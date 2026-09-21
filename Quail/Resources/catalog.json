@@ -1,0 +1,153 @@
+{
+  "revision": 1,
+  "asOf": "2026-09-21",
+  "notes": "Seed catalog. Verify each repo id and file name on Hugging Face before shipping; sizes and bandwidths are approximate and used only for fit/speed estimates.",
+  "ramTiersGB": {
+    "small": { "max": 24, "recommendParamsB": [0, 9] },
+    "medium": { "max": 48, "recommendParamsB": [9, 35] },
+    "large": { "max": 9999, "recommendParamsB": [35, 999] }
+  },
+  "chipBandwidthGBps": {
+    "Apple M1": 68, "Apple M1 Pro": 200, "Apple M1 Max": 400, "Apple M1 Ultra": 800,
+    "Apple M2": 100, "Apple M2 Pro": 200, "Apple M2 Max": 400, "Apple M2 Ultra": 800,
+    "Apple M3": 100, "Apple M3 Pro": 150, "Apple M3 Max": 400, "Apple M3 Ultra": 800,
+    "Apple M4": 120, "Apple M4 Pro": 273, "Apple M4 Max": 546,
+    "Apple M5": 153
+  },
+  "families": [
+    {
+      "id": "qwen3-0.6b",
+      "name": "Qwen3 0.6B",
+      "paramsB": 0.6,
+      "role": "smoke-test",
+      "rank": 99,
+      "license": "Apache-2.0",
+      "variants": {
+        "gguf": { "repo": "Qwen/Qwen3-0.6B-GGUF", "quants": ["Q8_0"], "default": "Q8_0" },
+        "mlx": { "repo": "mlx-community/Qwen3-0.6B-4bit" }
+      }
+    },
+    {
+      "id": "qwen3-4b",
+      "name": "Qwen3 4B",
+      "paramsB": 4,
+      "role": "general",
+      "rank": 3,
+      "license": "Apache-2.0",
+      "variants": {
+        "gguf": { "repo": "Qwen/Qwen3-4B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
+        "mlx": { "repo": "mlx-community/Qwen3-4B-4bit" }
+      }
+    },
+    {
+      "id": "qwen3-8b",
+      "name": "Qwen3 8B",
+      "paramsB": 8,
+      "role": "general",
+      "rank": 2,
+      "license": "Apache-2.0",
+      "variants": {
+        "gguf": { "repo": "Qwen/Qwen3-8B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M" },
+        "mlx": { "repo": "mlx-community/Qwen3-8B-4bit" }
+      }
+    },
+    {
+      "id": "qwen3-30b-a3b",
+      "name": "Qwen3 30B-A3B (MoE)",
+      "paramsB": 30,
+      "activeParamsB": 3,
+      "role": "general",
+      "rank": 1,
+      "license": "Apache-2.0",
+      "variants": {
+        "gguf": { "repo": "Qwen/Qwen3-30B-A3B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
+        "mlx": { "repo": "mlx-community/Qwen3-30B-A3B-4bit" }
+      }
+    },
+    {
+      "id": "qwen3-coder-30b-a3b",
+      "name": "Qwen3-Coder 30B-A3B (MoE)",
+      "paramsB": 30,
+      "activeParamsB": 3,
+      "role": "coding",
+      "rank": 1,
+      "license": "Apache-2.0",
+      "variants": {
+        "gguf": { "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
+        "mlx": { "repo": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit" }
+      }
+    },
+    {
+      "id": "qwen3-32b",
+      "name": "Qwen3 32B",
+      "paramsB": 32,
+      "role": "general",
+      "rank": 2,
+      "license": "Apache-2.0",
+      "variants": {
+        "gguf": { "repo": "Qwen/Qwen3-32B-GGUF", "quants": ["Q4_K_M", "Q5_K_M"], "default": "Q4_K_M" },
+        "mlx": { "repo": "mlx-community/Qwen3-32B-4bit" }
+      }
+    },
+    {
+      "id": "gemma-3-12b",
+      "name": "Gemma 3 12B (vision)",
+      "paramsB": 12,
+      "role": "general",
+      "rank": 3,
+      "license": "Gemma",
+      "variants": {
+        "gguf": { "repo": "unsloth/gemma-3-12b-it-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
+        "mlx": { "repo": "mlx-community/gemma-3-12b-it-4bit" }
+      }
+    },
+    {
+      "id": "gemma-3-27b",
+      "name": "Gemma 3 27B (vision)",
+      "paramsB": 27,
+      "role": "general",
+      "rank": 3,
+      "license": "Gemma",
+      "variants": {
+        "gguf": { "repo": "unsloth/gemma-3-27b-it-GGUF", "quants": ["Q4_K_M", "Q5_K_M"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
+        "mlx": { "repo": "mlx-community/gemma-3-27b-it-4bit" }
+      }
+    },
+    {
+      "id": "llama-3.1-8b",
+      "name": "Llama 3.1 8B Instruct",
+      "paramsB": 8,
+      "role": "general",
+      "rank": 4,
+      "license": "Llama 3.1",
+      "variants": {
+        "gguf": { "repo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M" },
+        "mlx": { "repo": "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" }
+      }
+    },
+    {
+      "id": "gpt-oss-20b",
+      "name": "gpt-oss 20B (MoE)",
+      "paramsB": 21,
+      "activeParamsB": 3.6,
+      "role": "general",
+      "rank": 2,
+      "license": "Apache-2.0",
+      "variants": {
+        "gguf": { "repo": "ggml-org/gpt-oss-20b-GGUF", "quants": ["mxfp4"], "default": "mxfp4" },
+        "mlx": { "repo": "mlx-community/gpt-oss-20b-MXFP4-Q8" }
+      }
+    },
+    {
+      "id": "nomic-embed-v1.5",
+      "name": "Nomic Embed v1.5 (embeddings)",
+      "paramsB": 0.14,
+      "role": "embedding",
+      "rank": 1,
+      "license": "Apache-2.0",
+      "variants": {
+        "gguf": { "repo": "nomic-ai/nomic-embed-text-v1.5-GGUF", "quants": ["f16", "Q8_0"], "default": "f16" }
+      }
+    }
+  ]
+}
