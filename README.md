@@ -39,4 +39,4 @@ Pre-alpha. See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for wh
 
 ## Licence
 
-TBD (MIT intended). Bundled llama.cpp is MIT; uv is MIT/Apache-2.0; oMLX and Rapid-MLX are Apache-2.0 and are installed, not redistributed.
+[MIT](LICENSE). Bundled llama.cpp is MIT; uv is MIT/Apache-2.0; oMLX and Rapid-MLX are Apache-2.0 and are installed, not redistributed.

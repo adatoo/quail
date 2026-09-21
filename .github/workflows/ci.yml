@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: build-and-test
+    runs-on: macos-26
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$DEVELOPER_DIR"
+          xcodebuild -version
+
+      - name: SwiftFormat lint
+        run: |
+          if find . -name '*.swift' -not -path './Vendor/*' -print -quit | grep -q .; then
+            swiftformat --lint .
+          else
+            echo "No Swift files yet; skipping."
+          fi
+
+      - name: Build (Quail)
+        run: |
+          if [ -e Quail.xcodeproj ] || [ -e Quail.xcworkspace ]; then
+            set -o pipefail
+            xcodebuild -scheme Quail -configuration Debug build \
+              CODE_SIGNING_ALLOWED=NO | xcbeautify
+          else
+            echo "No Xcode project yet; skipping build."
+          fi
+
+      - name: Test (Quail)
+        run: |
+          if [ -e Quail.xcodeproj ] || [ -e Quail.xcworkspace ]; then
+            set -o pipefail
+            xcodebuild -scheme Quail -configuration Debug test \
+              -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO | xcbeautify
+          else
+            echo "No Xcode project yet; skipping tests."
+          fi
