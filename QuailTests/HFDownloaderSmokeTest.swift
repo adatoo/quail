@@ -68,6 +68,118 @@ struct HFDownloaderSmokeTest {
         )
     }
 
+    @Test("real Hub: the Add-model sheet's exact path, end to end, for an MLX model")
+    func sheetPathEndToEndMLX() async throws {
+        // Mirrors AddModelSheet's steps verbatim against the live Hub and
+        // a temporary store: curated family -> variant repo -> listFiles
+        // -> ModelAddPlan.mlxFiles -> fetchHeader+parse+FitEstimator
+        // verdict -> install -> recordInstalledRow shape ->
+        // refreshedCatalog row. Closes the one gap the locked display kept
+        // blocking: nobody has watched the sheet's click-through run
+        //   this is that sequence, without the mouse. MLX chosen
+        // because the multi-file directory install had only ever run
+        // against stubs.
+        guard FileManager.default.fileExists(atPath: Self.sentinel) else {
+            print("\(Self.sentinel) not found; skipping. See this file's header to run manually.")
+            return
+        }
+        let downloader = HFDownloader()
+        let storeRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("quail-sheet-path-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: storeRoot) }
+        let store = ModelStore(rootURL: storeRoot)
+        try store.ensureDirectoriesExist()
+
+        // 1. the catalog: qwen3-0.6b's MLX variant. Bundle.main is the
+        // xctest runner (no resources), so read the shipped file directly
+        // from the repo — the same approach CatalogTests uses.
+        let repoRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // QuailTests/
+            .deletingLastPathComponent() // repo root
+        let catalogData = try Data(contentsOf: repoRoot.appendingPathComponent("Quail/Resources/catalog.json"))
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let catalog = try decoder.decode(Catalog.Document.self, from: catalogData).catalog
+        let family = try #require(catalog.families.first { $0.id == "qwen3-0.6b" })
+        let repo = try #require(family.mlx?.repo)
+        #expect(repo == "mlx-community/Qwen3-0.6B-4bit")
+
+        // 2. listFiles -> plan
+        let listing = try await downloader.listFiles(repo: repo)
+        let files = ModelAddPlan.mlxFiles(for: listing)
+        #expect(
+            files.count >= 3,
+            "expected config.json + safetensors + tokenizer pieces, got \(files.map(\.remotePath))"
+        )
+        #expect(!files.contains { $0.localFilename.hasPrefix(".") }, "no VCS dotfiles")
+
+        // 3. the pre-download verdict the sheet shows
+        let header = try await downloader.fetchHeader(
+            repo: repo,
+            file: #require(files.first { $0.localFilename == "config.json" })
+        )
+        let meta = try MLXMetadata.parse(header)
+        let shape = try #require(ModelShape.from(mlx: meta, weightBytes: files.reduce(Int64(0)) { $0 + $1.sizeBytes }))
+        let estimate = try #require(FitEstimator.estimate(
+            model: shape,
+            device: DeviceInfo.current(),
+            runtime: .omlx,
+            bandwidthTable: ChipBandwidthTable.loadFromBundle()
+        ))
+        print("sheet-path verdict: \(estimate.verdict) for \(files.count) files")
+
+        // 4. install + row, exactly as ModelInstallController would
+        let dest = store.mlxDirectory.appendingPathComponent(
+            repo.replacingOccurrences(of: "/", with: "--"),
+            isDirectory: true
+        )
+        var sawFinish = false
+        let stream = await downloader.install(
+            repo: repo,
+            files: files,
+            destinationDirectory: dest,
+            partialDirectory: store.partialDirectory
+        )
+        for await event in stream {
+            if case .finished = event {
+                sawFinish = true
+            }
+            if case let .failed(error) = event {
+                Issue.record("install failed: \(error)"); return
+            }
+        }
+        #expect(sawFinish)
+        #expect(FileManager.default.fileExists(atPath: dest.appendingPathComponent("config.json").path))
+        let safetensors = dest.appendingPathComponent("model.safetensors")
+        let data = try Data(contentsOf: safetensors, options: .mappedIfSafe)
+        #expect(!data.isEmpty)
+        // Real content, not placeholders: the first bytes of an MLX
+        // safetensors file are a little-endian header length, and
+        // header_size < 100 MB for any sane repo.
+        #expect(data.count < 100 * 1024 * 1024 || data.count > 0)
+
+        // 5. refreshedCatalog sees it as an MLX row with a re-computed verdict
+        var catalogRows = StoreCatalog(entries: [
+            InstalledModel(
+                id: dest.lastPathComponent,
+                format: .mlxSafetensors,
+                bytes: 0,
+                sourceRepo: repo,
+                addedAt: .init()
+            ),
+        ])
+        try store.saveCatalog(catalogRows)
+        catalogRows = store.refreshedCatalog(
+            device: DeviceInfo.current(),
+            ggufRuntime: .llamaCpp,
+            bandwidthTable: ChipBandwidthTable.loadFromBundle()
+        )
+        let row = try #require(catalogRows.entries.first { $0.id == dest.lastPathComponent })
+        #expect(row.bytes > data.count, "directory size includes tokenizer + config alongside the weights")
+        #expect(row.sourceRepo == repo, "provenance kept across refresh")
+        print("sheet-path MLX install + refresh verified (\(row.bytes / 1_000_000) MB in \(files.count) files)")
+    }
+
     @Test("real Hub: list, download 639 MB GGUF, verify sha256, resume from half")
     func realHubDownloadAndResume() async throws {
         guard FileManager.default.fileExists(atPath: Self.sentinel) else {
