@@ -37,6 +37,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         source.resume()
         sigtermSource = source
+
+        // Weekly catalog refresh (docs/ARCHITECTURE.md §6) — no-ops
+        // until a `QuailCatalogURL` exists in Info.plist; see
+        // `AppState.refreshCatalog` for the cadence rationale.
+        Task { await appState.refreshCatalog() }
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

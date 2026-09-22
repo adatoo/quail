@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
+
+### Added
+
+- `ModelStore`: the unified store folder layout, `catalog.json` index, and
+  `presets.ini` generated from whatever `.gguf` files are actually on disk.
+- `GGUFMetadata` / `MLXMetadata`: header/config parsers supplying the
+  device-fit inputs for both model formats.
+- `DeviceInfo` + `FitEstimator`: ARCHITECTURE.md §7's RAM/context verdicts
+  and bandwidth-based speed estimates, plus the chip bandwidth table loader.
+- `HFDownloader`: resumable, checksum-verified Hugging Face downloads
+  (single-file GGUFs and whole MLX directories), with cancel and
+  resume-across-restart under `Models/.partial/`.
+- `Catalog`: the curated download list, a weekly remote refresh
+  (`QuailCatalogURL`, unset until an update host exists), and user-added
+  uncurated repo entries.
+- Settings: the endpoint API key is now editable, copyable, regenerable
+  (and visibly so — fixing a stored-vs-computed observation bug), generated
+  shorter, and there's a slot for a Hugging Face token in Keychain.
+
+### Changed
+
+- The bundled server now starts with `--models-preset`, so each model gets
+  its `ctx-size`/`n-gpu-layers` from the store rather than llama.cpp's
+  defaults (ADR D-012).
+
 ## [0.1.0-alpha] - 2026-09-22
 
 Phase 1 (see docs/IMPLEMENTATION_PLAN.md): a menu bar app that runs the bundled

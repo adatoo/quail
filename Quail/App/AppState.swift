@@ -28,6 +28,15 @@ final class AppState {
 
     private let configURL: URL
     private let secretStore: any SecretStore
+    let catalogLocations: Catalog.Locations
+
+    /// The curated download list, bundled ⊕ weekly-refresh cache ⊕
+    /// user-added repos — see `Catalog.swift`. A stored property, not a
+    /// computed read of the files on every access, for the same reason
+    /// `apiKey` is: whatever UI observes it (step 7's Models pane) needs
+    /// `@Observable` to see changes, and every mutation path below
+    /// re-reads it explicitly after writing.
+    private(set) var catalog: Catalog
 
     private static let apiKeyAccount = "llamaCppAPIKey"
     private static let hfTokenAccount = "huggingFaceToken"
@@ -41,19 +50,25 @@ final class AppState {
     ///   defaulted `ModelStore` parameter: its default would need
     ///   `config`, and default-argument expressions can't reference
     ///   another parameter.
+    /// - Parameter catalogLocations: overrides where the catalog's three
+    ///   sources live — tests pass a scratch directory so nothing reads
+    ///   or writes the real `~/Library/Application Support/Quail`.
     init(
         config: Config = .load(),
         configURL: URL = Paths.configFile,
         secretStore: any SecretStore = Keychain(),
         runtime: any Runtime = LlamaCppRuntime(executableURL: Paths.llamaServerExecutable),
         logStore: LogStore = LogStore(),
-        modelsRootURL: URL? = nil
+        modelsRootURL: URL? = nil,
+        catalogLocations: Catalog.Locations = .default
     ) {
         self.config = config
         self.configURL = configURL
         self.secretStore = secretStore
         self.runtime = runtime
         self.logStore = logStore
+        self.catalogLocations = catalogLocations
+        catalog = Catalog.current(locations: catalogLocations)
         let resolvedRoot = modelsRootURL
             ?? Paths.resolveModelsDirectory(bookmark: config.modelsDirectoryBookmark)
             ?? Paths.defaultModelsDirectory
@@ -223,6 +238,51 @@ final class AppState {
 
     func clearHFToken() {
         try? secretStore.delete(account: Self.hfTokenAccount)
+    }
+
+    // MARK: - Catalog
+
+    /// Adds a user-pasted repo as an uncurated catalog entry
+    /// (docs/IMPLEMENTATION_PLAN.md step 6: "user-added repo URLs become
+    /// uncurated entries"). `format` is resolved by whatever UI collected
+    /// this — step 7's "Add model…" sheet queries the Hub before
+    /// confirming a paste, so it can say `.gguf`/`.mlxSafetensors`; `nil`
+    /// (an entry added by an older caller or a CLI-side affordance)
+    /// leaves both variants unset, and the picker shows the row without
+    /// badges until it is either removed or replaced by a curated one.
+    /// No-ops on a repo already present in the curated list or in the
+    /// user list.
+    func addUserCatalogRepo(_ repo: String, format: ModelFormat? = nil) {
+        let trimmed = repo.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        var entries = Catalog.loadUserEntries(from: catalogLocations.userEntriesFile)
+        guard !entries.contains(where: { $0.repo == trimmed }) else { return }
+        entries.append(Catalog.UserEntry(repo: trimmed, format: format, addedAt: .init()))
+        try? Catalog.saveUserEntries(entries, to: catalogLocations.userEntriesFile)
+        catalog = Catalog.current(locations: catalogLocations)
+    }
+
+    func removeUserCatalogRepo(_ repo: String) {
+        var entries = Catalog.loadUserEntries(from: catalogLocations.userEntriesFile)
+        let before = entries.count
+        entries.removeAll { $0.repo == repo }
+        guard entries.count != before else { return }
+        try? Catalog.saveUserEntries(entries, to: catalogLocations.userEntriesFile)
+        catalog = Catalog.current(locations: catalogLocations)
+    }
+
+    /// Checks the weekly remote refresh (no-op unless `QuailCatalogURL`
+    /// is set in `Info.plist` and the cached copy is a week old — see
+    /// `CatalogRefresher`) and reloads `catalog` if it pulled a newer
+    /// revision. Called on app launch from `AppDelegate` — a
+    /// long-running menu-bar agent therefore refreshes on the cadence it
+    /// restarts at, not a background timer; revisit only if launches
+    /// turn out rarer than a week in practice.
+    func refreshCatalog() async {
+        let refresher = CatalogRefresher(locations: catalogLocations, urlSession: .shared)
+        if case .updated = await refresher.refreshIfNeeded() {
+            catalog = Catalog.current(locations: catalogLocations)
+        }
     }
 
     // MARK: - Open at login
