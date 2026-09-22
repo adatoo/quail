@@ -35,7 +35,7 @@ actor FakeRuntime: Runtime {
         fixedLaunchSpec
     }
 
-    func health(base _: URL) async throws -> Health {
+    func health(base _: URL, apiKey _: String?) async throws -> Health {
         let result = healthResults[min(healthCallIndex, healthResults.count - 1)]
         if healthCallIndex < healthResults.count - 1 {
             healthCallIndex += 1
@@ -43,11 +43,11 @@ actor FakeRuntime: Runtime {
         return try result.get()
     }
 
-    func listModels(base _: URL) async throws -> [ServedModel] {
+    func listModels(base _: URL, apiKey _: String?) async throws -> [ServedModel] {
         try listModelsResult.get()
     }
 
-    func select(model _: ModelRef, base _: URL) async throws -> SelectAction {
+    func select(model _: ModelRef, base _: URL, apiKey _: String?) async throws -> SelectAction {
         try selectResult.get()
     }
 

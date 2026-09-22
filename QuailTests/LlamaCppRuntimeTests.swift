@@ -60,7 +60,7 @@ struct LlamaCppRuntimeTests {
         let session = Self.makeSession { _ in (200, Fixtures.health) }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
-        let health = try await runtime.health(base: Self.base)
+        let health = try await runtime.health(base: Self.base, apiKey: nil)
         #expect(health.isUp)
     }
 
@@ -70,7 +70,7 @@ struct LlamaCppRuntimeTests {
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
         await #expect(throws: RuntimeError.httpStatus(503)) {
-            _ = try await runtime.health(base: Self.base)
+            _ = try await runtime.health(base: Self.base, apiKey: nil)
         }
     }
 
@@ -81,7 +81,7 @@ struct LlamaCppRuntimeTests {
         let session = Self.makeSession { _ in (200, Fixtures.modelsWithOneLoaded) }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
-        let models = try await runtime.listModels(base: Self.base)
+        let models = try await runtime.listModels(base: Self.base, apiKey: nil)
         #expect(models.count == 1)
         #expect(models[0].id == "gguf")
         #expect(models[0].status.value == "loaded")
@@ -93,7 +93,7 @@ struct LlamaCppRuntimeTests {
         let session = Self.makeSession { _ in (200, Fixtures.modelsEmpty) }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
-        let models = try await runtime.listModels(base: Self.base)
+        let models = try await runtime.listModels(base: Self.base, apiKey: nil)
         #expect(models.isEmpty)
     }
 
@@ -108,7 +108,7 @@ struct LlamaCppRuntimeTests {
         }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
-        let action = try await runtime.select(model: ModelRef(id: "gguf"), base: Self.base)
+        let action = try await runtime.select(model: ModelRef(id: "gguf"), base: Self.base, apiKey: nil)
         #expect(action == .hotSwapped)
 
         let bodyJSON = try JSONSerialization.jsonObject(with: capturedBody.data ?? Data()) as? [String: String]
@@ -123,8 +123,42 @@ struct LlamaCppRuntimeTests {
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
         await #expect(throws: RuntimeError.httpStatus(404)) {
-            _ = try await runtime.select(model: ModelRef(id: "nope"), base: Self.base)
+            _ = try await runtime.select(model: ModelRef(id: "nope"), base: Self.base, apiKey: nil)
         }
+    }
+
+    // MARK: - Authorization header
+
+    //
+    // Confirmed empirically against a real b11081 build with --api-key set:
+    // /health is exempt, but /models, /v1/models and /v1/chat/completions
+    // all 401 without "Authorization: Bearer <key>". See Runtime.swift's
+    // doc comment on why every method here takes apiKey uniformly.
+
+    @Test("listModels sends Authorization: Bearer <key> when an API key is set")
+    func listModelsSendsAuthorizationHeaderWhenAPIKeySet() async throws {
+        let capturedHeader = CapturedHeader()
+        let session = Self.makeSession { request in
+            capturedHeader.set(request.value(forHTTPHeaderField: "Authorization"))
+            return (200, Fixtures.modelsEmpty)
+        }
+        let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
+
+        _ = try await runtime.listModels(base: Self.base, apiKey: "secret-123")
+        #expect(capturedHeader.value == "Bearer secret-123")
+    }
+
+    @Test("listModels sends no Authorization header when there's no API key")
+    func listModelsOmitsAuthorizationHeaderWhenNoAPIKey() async throws {
+        let capturedHeader = CapturedHeader()
+        let session = Self.makeSession { request in
+            capturedHeader.set(request.value(forHTTPHeaderField: "Authorization"))
+            return (200, Fixtures.modelsEmpty)
+        }
+        let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
+
+        _ = try await runtime.listModels(base: Self.base, apiKey: nil)
+        #expect(capturedHeader.value == nil)
     }
 }
 
@@ -138,6 +172,13 @@ private final class CapturedBody: @unchecked Sendable {
     private(set) var data: Data?
     func set(_ data: Data) {
         self.data = data
+    }
+}
+
+private final class CapturedHeader: @unchecked Sendable {
+    private(set) var value: String?
+    func set(_ value: String?) {
+        self.value = value
     }
 }
 

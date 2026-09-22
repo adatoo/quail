@@ -9,20 +9,21 @@ import Foundation
 enum HealthProbe {
     struct TimedOut: Error, Sendable {}
 
-    /// Polls `runtime.health(base:)` every `pollInterval` until it reports
-    /// up, or throws `TimedOut` after `timeout` seconds. Transient errors
-    /// while the process is still binding its port are expected and
+    /// Polls `runtime.health(base:apiKey:)` every `pollInterval` until it
+    /// reports up, or throws `TimedOut` after `timeout` seconds. Transient
+    /// errors while the process is still binding its port are expected and
     /// swallowed; only the timeout is surfaced.
     static func waitUntilHealthy(
         runtime: any Runtime,
         base: URL,
+        apiKey: String? = nil,
         timeout: TimeInterval = 90,
         pollInterval: TimeInterval = 0.5
     ) async throws {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
             try Task.checkCancellation()
-            if let health = try? await runtime.health(base: base), health.isUp {
+            if let health = try? await runtime.health(base: base, apiKey: apiKey), health.isUp {
                 return
             }
             try? await Task.sleep(for: .seconds(pollInterval))

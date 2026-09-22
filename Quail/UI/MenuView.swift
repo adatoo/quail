@@ -1,13 +1,12 @@
 import SwiftUI
 
-/// The MenuBarExtra's dropdown content: status, Start/Stop, Settings, Quit.
-///
-/// "Test…" and "Logs…" (docs/IMPLEMENTATION_PLAN.md Phase 1 steps 8–9) land
-/// in the next PR alongside the ping sheet and log window they open.
+/// The MenuBarExtra's dropdown content: status, Start/Stop, Test…, Logs…,
+/// Settings, Quit.
 struct MenuView: View {
     let appState: AppState
 
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -31,6 +30,15 @@ struct MenuView: View {
                     Task { await appState.stop() }
                 }
                 .disabled(!appState.canStop)
+            }
+
+            Button("Test…") {
+                openWindow(id: "ping")
+            }
+            .disabled(appState.serverController.phase != .ready)
+
+            Button("Logs…") {
+                openWindow(id: "logs")
             }
 
             Divider()
