@@ -58,6 +58,7 @@ final class AppState {
             ?? Paths.defaultModelsDirectory
         modelStore = ModelStore(rootURL: resolvedRoot)
         serverController = ServerController(runtime: runtime, logStore: logStore)
+        apiKey = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
     }
 
     // MARK: - Server state, as the menu wants to show it
@@ -149,9 +150,12 @@ final class AppState {
     func setAPIKeyEnabled(_ enabled: Bool) {
         guard enabled != config.apiKeyEnabled else { return }
         if enabled {
-            try? secretStore.set(Self.generateAPIKey(), account: Self.apiKeyAccount)
+            let newKey = Self.generateAPIKey()
+            try? secretStore.set(newKey, account: Self.apiKeyAccount)
+            apiKey = newKey
         } else {
             try? secretStore.delete(account: Self.apiKeyAccount)
+            apiKey = nil
         }
         config.apiKeyEnabled = enabled
         persist()
@@ -161,14 +165,34 @@ final class AppState {
     /// otherwise — including if Keychain access unexpectedly fails, in
     /// which case the runtime simply launches without `--api-key` rather
     /// than crashing.
-    var apiKey: String? {
-        guard config.apiKeyEnabled else { return nil }
-        return try? secretStore.get(account: Self.apiKeyAccount)
-    }
+    ///
+    /// A real stored property, kept in sync with the Keychain by every
+    /// method below, rather than a computed read-through to
+    /// `secretStore` — `@Observable` only tracks stored-property access,
+    /// so a computed pass-through here meant `regenerateAPIKey()` updated
+    /// the Keychain correctly but SwiftUI had no signal that anything had
+    /// changed, and `SettingsView` kept showing the old value. Found via
+    /// manual testing: clicking "Regenerate" visibly did nothing.
+    private(set) var apiKey: String?
 
     func regenerateAPIKey() {
         guard config.apiKeyEnabled else { return }
-        try? secretStore.set(Self.generateAPIKey(), account: Self.apiKeyAccount)
+        let newKey = Self.generateAPIKey()
+        try? secretStore.set(newKey, account: Self.apiKeyAccount)
+        apiKey = newKey
+    }
+
+    /// Sets a user-chosen API key directly, rather than a random one —
+    /// e.g. to match a key some other tool already expects. A no-op if
+    /// the toggle is off (mirrors `regenerateAPIKey`) or if `key` is
+    /// empty once trimmed; use the toggle itself to actually clear the
+    /// key.
+    func setAPIKey(_ key: String) {
+        guard config.apiKeyEnabled else { return }
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        try? secretStore.set(trimmed, account: Self.apiKeyAccount)
+        apiKey = trimmed
     }
 
     // MARK: - Open at login
@@ -194,10 +218,14 @@ final class AppState {
         try? config.save(to: configURL)
     }
 
-    /// 32 random bytes, hex-encoded — the same shape as llama-server's own
-    /// `--api-key` documentation examples.
+    /// 16 random bytes, hex-encoded (128 bits of entropy — plenty for a
+    /// secret whose job is deterring casual access on a loopback/LAN
+    /// endpoint, see ADR D-010, not resisting a nation-state). Previously
+    /// 32 bytes (64 hex characters): needlessly long for that threat
+    /// model and awkward to read, select, or copy — shortened per user
+    /// feedback.
     private static func generateAPIKey() -> String {
-        var bytes = [UInt8](repeating: 0, count: 32)
+        var bytes = [UInt8](repeating: 0, count: 16)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         return bytes.map { String(format: "%02x", $0) }.joined()
     }

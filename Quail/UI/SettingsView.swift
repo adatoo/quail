@@ -39,6 +39,15 @@ private struct GeneralSettingsView: View {
 private struct EndpointSettingsView: View {
     let appState: AppState
 
+    /// A local editing buffer, decoupled from `appState.apiKey` — a
+    /// direct two-way binding would fight the user mid-edit (typing a
+    /// replacement key means passing through an empty string, which
+    /// `AppState.setAPIKey` deliberately treats as a no-op rather than
+    /// clearing the key; see its doc comment). Synced from `appState`
+    /// on appear and whenever `appState.apiKey` changes elsewhere (e.g.
+    /// "Regenerate"); synced back to `appState` on submit.
+    @State private var apiKeyText = ""
+
     var body: some View {
         Form {
             Picker("Runtime", selection: .constant(RuntimeID.llamaCpp)) {
@@ -73,11 +82,14 @@ private struct EndpointSettingsView: View {
 
             if appState.config.apiKeyEnabled {
                 HStack {
-                    Text(appState.apiKey ?? "—")
+                    TextField("API Key", text: $apiKeyText)
                         .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit {
+                            appState.setAPIKey(apiKeyText)
+                            apiKeyText = appState
+                                .apiKey ?? "" // normalize, or snap back if the edit was rejected (e.g. blank)
+                        }
 
                     Button("Copy") {
                         copyToPasteboard(appState.apiKey ?? "")
@@ -86,6 +98,10 @@ private struct EndpointSettingsView: View {
                     Button("Regenerate") {
                         appState.regenerateAPIKey()
                     }
+                }
+                .onAppear { apiKeyText = appState.apiKey ?? "" }
+                .onChange(of: appState.apiKey) { _, newValue in
+                    apiKeyText = newValue ?? ""
                 }
             }
 
