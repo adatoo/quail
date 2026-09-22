@@ -23,6 +23,10 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
 - `Catalog`: the curated download list, a weekly remote refresh
   (`QuailCatalogURL`, unset until an update host exists), and user-added
   uncurated repo entries.
+- Hot swap: a Load button on installed GGUF rows while the server runs
+  (`POST /models/load`), with live loading→loaded status polling, and a
+  1–8 "Max loaded models" stepper in the Endpoint pane (applies next
+  Start; launch flag).
 - Models pane in Settings: installed models with format/size/fit-verdict/
   loaded-state badges, an All/GGUF/MLX filter, delete-with-confirm, store
   relocation (`Relocate…` + security-scoped bookmark), and a Hugging Face

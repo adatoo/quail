@@ -236,6 +236,37 @@ struct AppStateTests {
         #expect(Catalog.loadUserEntries(from: scratch.appendingPathComponent("user-catalog.json")).isEmpty)
     }
 
+    @Test("selectModel: refused stopped/uninstalled/MLX; hot-swaps an installed GGUF while running")
+    func selectModelGuards() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+
+        // Server not running.
+        await #expect(throws: AppState.ModelSelectionError.serverNotRunning) {
+            try await appState.selectModel(id: "Anything")
+        }
+
+        await appState.start()
+        try appState.modelStore.ensureDirectoriesExist()
+        try appState.modelStore.saveCatalog(StoreCatalog(entries: [
+            InstalledModel(id: "Big-Q8_0", format: .gguf, bytes: 1, addedAt: .init()),
+            InstalledModel(id: "Mlx-4bit", format: .mlxSafetensors, bytes: 1, addedAt: .init()),
+        ]))
+
+        await #expect(throws: AppState.ModelSelectionError.notInstalled) {
+            try await appState.selectModel(id: "NotThere")
+        }
+        await #expect(throws: AppState.ModelSelectionError.needsMLXRuntime) {
+            try await appState.selectModel(id: "Mlx-4bit")
+        }
+
+        // FakeRuntime's select defaults to .success(.hotSwapped).
+        try await appState.selectModel(id: "Big-Q8_0")
+
+        await appState.stop()
+    }
+
     @Test("setModelsMax persists; rejects 0 and unchanged values")
     func setModelsMaxPersists() {
         let scratch = scratchDirectory()
