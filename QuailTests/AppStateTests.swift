@@ -236,6 +236,112 @@ struct AppStateTests {
         #expect(Catalog.loadUserEntries(from: scratch.appendingPathComponent("user-catalog.json")).isEmpty)
     }
 
+    @Test("setModelsMax persists; rejects 0 and unchanged values")
+    func setModelsMaxPersists() {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+
+        appState.setModelsMax(0)
+        #expect(appState.config.modelsMax == 1) // default untouched
+        appState.setModelsMax(4)
+        #expect(appState.config.modelsMax == 4)
+        let reloaded = Config.load(from: scratch.appendingPathComponent("config.json"))
+        #expect(reloaded.modelsMax == 4)
+    }
+
+    @Test("loadedModelStates: empty while stopped, the router's statuses while running")
+    func loadedModelStates() async {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+
+        #expect(await appState.loadedModelStates() == [:])
+
+        await appState.start()
+        // FakeRuntime's default listModels is the empty success.
+        #expect(await appState.loadedModelStates() == [:])
+
+        let runtime = appState.runtime as? FakeRuntime
+        let status = ServedModel.Status(value: "loaded", failed: nil, exitCode: nil)
+        await runtime?.setListModelsResult(.success([
+            ServedModel(id: "Qwen3-0.6B-Q8_0", status: status),
+        ]))
+        let states = await appState.loadedModelStates()
+        #expect(states["Qwen3-0.6B-Q8_0"] == "loaded")
+
+        await appState.stop()
+    }
+
+    @Test("relocateModelsDirectory moves the store, bookmarks it, and repoints users")
+    func relocate() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        let destination = scratch.appendingPathComponent("Elsewhere", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: destination) }
+
+        // Put something in the store first, plus a stray .partial that
+        // must NOT move (a resume starts clean at the new root).
+        try appState.modelStore.ensureDirectoriesExist()
+        try Data("hi".utf8).write(
+            to: appState.modelStore.ggufDirectory.appendingPathComponent("X.gguf")
+        )
+        try Data("stale".utf8).write(
+            to: appState.modelStore.partialDirectory.appendingPathComponent("junk.partial")
+        )
+        let source = appState.modelStore.rootURL
+
+        try await appState.relocateModelsDirectory(to: destination)
+
+        let fm = FileManager.default
+        #expect(fm.fileExists(atPath: destination.appendingPathComponent("gguf/X.gguf").path))
+        #expect(fm.fileExists(atPath: source.appendingPathComponent(".partial/junk.partial").path))
+        #expect(!fm.fileExists(atPath: destination.appendingPathComponent(".partial/junk.partial").path))
+        #expect(appState.modelStore.rootURL == destination)
+        #expect(appState.installs.modelStore.rootURL == destination)
+
+        // The bookmark is real enough to resolve back to the same path,
+        // and it persisted to config.json like every other field.
+        let reloaded = Config.load(from: scratch.appendingPathComponent("config.json"))
+        let bookmark = try #require(reloaded.modelsDirectoryBookmark)
+        let resolved = try #require(Paths.resolveModelsDirectory(bookmark: bookmark))
+        #expect(resolved.standardizedFileURL == destination.standardizedFileURL)
+    }
+
+    @Test("delete removes the file, its companions, its row and its preset section")
+    func deleteModel() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        let store = appState.modelStore
+        try store.ensureDirectoriesExist()
+        let fm = FileManager.default
+        try Data("a".utf8).write(to: store.ggufDirectory.appendingPathComponent("Gone.gguf"))
+        try Data("b".utf8).write(to: store.ggufDirectory.appendingPathComponent("mmproj-Gone-F16.gguf"))
+        try Data("c".utf8).write(to: store.ggufDirectory.appendingPathComponent("Gone-Mate.gguf"))
+        try store.saveCatalog(StoreCatalog(entries: [
+            InstalledModel(id: "Gone", format: .gguf, bytes: 1, addedAt: .init()),
+            InstalledModel(id: "Gone-Mate", format: .gguf, bytes: 1, addedAt: .init()),
+        ]))
+        try store.regeneratePresets(catalog: store.loadCatalog())
+
+        await #expect(throws: AppState.ModelDeletionError.notInstalled) {
+            try await appState.deleteInstalledModel(id: "Never")
+        }
+
+        try await appState.deleteInstalledModel(id: "Gone")
+
+        #expect(!fm.fileExists(atPath: store.ggufDirectory.appendingPathComponent("Gone.gguf").path))
+        #expect(!fm.fileExists(atPath: store.ggufDirectory.appendingPathComponent("mmproj-Gone-F16.gguf").path))
+        #expect(fm.fileExists(atPath: store.ggufDirectory.appendingPathComponent("Gone-Mate.gguf").path))
+        let catalog = store.loadCatalog()
+        #expect(catalog.entries.map(\.id) == ["Gone-Mate"])
+        let ini = try String(contentsOf: store.presetsFile, encoding: .utf8)
+        #expect(!ini.contains("[Gone]"))
+        #expect(ini.contains("[Gone-Mate]"))
+    }
+
     @Test("start() creates the model store's directories and a presets.ini")
     func startCreatesModelStore() async {
         let scratch = scratchDirectory()

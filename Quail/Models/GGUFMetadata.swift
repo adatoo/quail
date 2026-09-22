@@ -58,14 +58,21 @@ struct GGUFMetadata: Sendable, Equatable {
     /// (`.mappedIfSafe`) so this is cheap regardless of the model's actual
     /// size on disk — tensor data itself is never paged in, only the
     /// header bytes this parser actually touches.
-    ///
-    /// Two passes over the header: the first finds `general.architecture`
-    /// (needed to recognize the architecture-namespaced keys below), the
-    /// second extracts everything else. GGUF's own writers always emit
-    /// `general.architecture` first in practice, but nothing in the
-    /// format guarantees that ordering, so this doesn't assume it.
     static func read(from url: URL) throws -> GGUFMetadata {
-        let data = try Data(contentsOf: url, options: [.mappedIfSafe])
+        try parse(Data(contentsOf: url, options: [.mappedIfSafe]))
+    }
+
+    /// Parses an in-buffer GGUF header — the same two-pass logic
+    /// `read(from:)` runs over an mmap'd file, usable on a partial
+    /// download of just the first few megabytes. This is what lets the
+    /// Models pane show a fit verdict for a model that hasn't been
+    /// downloaded yet: the metadata needed by the fit formula lives
+    /// before the tensor-info section, and the total size comes from
+    /// the Hub's file listing rather than the file. A buffer too small
+    /// to hold the whole metadata section (real vocabularies push it to
+    /// several megabytes on large models) throws `.truncated`, which
+    /// callers should treat as "no verdict", not as an error.
+    static func parse(_ data: Data) throws -> GGUFMetadata {
         let (version, kvCount, headerStart) = try readPreamble(data)
 
         let architecture = try findArchitecture(data, kvCount: kvCount, start: headerStart)

@@ -21,7 +21,7 @@ struct Catalog: Sendable, Equatable {
     /// reliably carry `id`/`name`/the resolved variant — `paramsB`,
     /// `role`, `rank` and `license` are `nil` for them, since nothing
     /// without a human review or a Hub query knows them.
-    struct Family: Sendable, Equatable, Identifiable {
+    struct Family: Sendable, Equatable, Identifiable, Hashable {
         let id: String
         var name: String
         var paramsB: Double?
@@ -50,7 +50,7 @@ struct Catalog: Sendable, Equatable {
         }
     }
 
-    struct GGUFVariant: Sendable, Equatable {
+    struct GGUFVariant: Sendable, Equatable, Hashable {
         var repo: String
         /// Quant labels, e.g. ["Q4_K_M", "Q8_0"] — not filenames. The
         /// download flow matches case-insensitively against the repo's
@@ -66,7 +66,7 @@ struct Catalog: Sendable, Equatable {
         var mmproj: String?
     }
 
-    struct MLXVariant: Sendable, Equatable {
+    struct MLXVariant: Sendable, Equatable, Hashable {
         var repo: String
     }
 

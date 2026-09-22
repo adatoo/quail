@@ -23,6 +23,12 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
 - `Catalog`: the curated download list, a weekly remote refresh
   (`QuailCatalogURL`, unset until an update host exists), and user-added
   uncurated repo entries.
+- Models pane in Settings: installed models with format/size/fit-verdict/
+  loaded-state badges, an All/GGUF/MLX filter, delete-with-confirm, store
+  relocation (`Relocate…` + security-scoped bookmark), and a Hugging Face
+  token field for gated repos.
+- "Add model…" sheet: curated catalog (or a pasted repo id), quant picker,
+  and a fit verdict computed from the Hub's file listing *before* download.
 - Settings: the endpoint API key is now editable, copyable, regenerable
   (and visibly so — fixing a stored-vs-computed observation bug), generated
   shorter, and there's a slot for a Hugging Face token in Keychain.

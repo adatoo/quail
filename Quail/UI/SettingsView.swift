@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Root of the Settings window: `General` (open at login) and `Endpoint`
-/// (runtime, host, port, API key) for now. `Models`, `Runtimes`, `Logs` and
-/// `About` land in later PRs per docs/IMPLEMENTATION_PLAN.md.
+/// Root of the Settings window: `General` (open at login), `Endpoint`
+/// (runtime, host, port, API key) and `Models` (store, catalog,
+/// downloads). `Runtimes`, `Logs` and `About` land in later phases per
+/// docs/IMPLEMENTATION_PLAN.md.
 struct SettingsView: View {
     let appState: AppState
 
@@ -13,8 +14,11 @@ struct SettingsView: View {
 
             EndpointSettingsView(appState: appState)
                 .tabItem { Label("Endpoint", systemImage: "network") }
+
+            ModelsPane(appState: appState)
+                .tabItem { Label("Models", systemImage: "shippingbox") }
         }
-        .frame(width: 420)
+        .frame(width: 480)
         .fixedSize(horizontal: false, vertical: true)
     }
 }
