@@ -44,14 +44,17 @@
 		9E7A072989A42AFD0CF6C555 /* HFDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49BE1EF5FB53B825FC562F0 /* HFDownloader.swift */; };
 		A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */; };
 		A97EF1AD2BF0945DC2C70167 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */; };
+		AD84B88BEFC224DCB3B822A2 /* ModelInstallControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60CD26ED650B7D72E7C62559 /* ModelInstallControllerTests.swift */; };
 		AF8F824B4E7AD00629E4BEC8 /* PingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5907867E917EAA9CB82DDAAF /* PingTests.swift */; };
 		B62BFE886200969B22216A6A /* LogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9482F330D14ABD97C3CB8A /* LogStore.swift */; };
 		BB9E9F4BD5FCE9643645DFC3 /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF5343FFDFED49C8EFF6B3C /* Catalog.swift */; };
 		BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F86147309B95CB624585AB /* Paths.swift */; };
 		C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */; };
+		CB7CA9A2F895FD0B2EB70E10 /* GGUFFixtureBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 649E93D9E6DF446442533B00 /* GGUFFixtureBuilder.swift */; };
 		D14CDB94C0DC992397CDE352 /* AppInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70BF19344F23B98FA299585E /* AppInfoTests.swift */; };
 		D21903B2E76547FABF0D784A /* ServerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B6A68D6E8CFFF1B6142EB1 /* ServerController.swift */; };
 		D577E84C9E4191CBAED0D203 /* ConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0456E0B59C5B4A2C4303E13 /* ConfigTests.swift */; };
+		D852BFCB8112DD76D6DBEB44 /* ModelInstallController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BACE052AE6756F1062784F3F /* ModelInstallController.swift */; };
 		E20F2581D31F14C3DAA57F66 /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174474DD711C1D0D6ACAE912 /* MenuView.swift */; };
 		E7B46F57608AA37F1533608B /* LlamaCppRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97C5FEC519D2CD76691F38A2 /* LlamaCppRuntime.swift */; };
 		ED92861B2F3678237F476B4F /* LogsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8373F07EB148CC4C08D0EC8A /* LogsWindow.swift */; };
@@ -89,7 +92,9 @@
 		5907867E917EAA9CB82DDAAF /* PingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PingTests.swift; sourceTree = "<group>"; };
 		5BF75DEC1D436363C620CA16 /* Runtime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Runtime.swift; sourceTree = "<group>"; };
 		5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXMetadataTests.swift; sourceTree = "<group>"; };
+		60CD26ED650B7D72E7C62559 /* ModelInstallControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelInstallControllerTests.swift; sourceTree = "<group>"; };
 		6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppIntegrationSmokeTest.swift; sourceTree = "<group>"; };
+		649E93D9E6DF446442533B00 /* GGUFFixtureBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GGUFFixtureBuilder.swift; sourceTree = "<group>"; };
 		653A70D18AA958C1F75CD511 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppRuntimeTests.swift; sourceTree = "<group>"; };
 		6A0207CABC73498170DE7FF0 /* CatalogRefresherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogRefresherTests.swift; sourceTree = "<group>"; };
@@ -114,6 +119,7 @@
 		B44B50F18DB9B66BCFEB8060 /* PingSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PingSheet.swift; sourceTree = "<group>"; };
 		B472EFE40DDB9C26209BE18D /* Quail-AppStore.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Quail-AppStore.entitlements"; sourceTree = "<group>"; };
 		B81725CFCB6D74EB402C92CD /* AppInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfo.swift; sourceTree = "<group>"; };
+		BACE052AE6756F1062784F3F /* ModelInstallController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelInstallController.swift; sourceTree = "<group>"; };
 		C1946EC80763A824682094C0 /* GGUFMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GGUFMetadataTests.swift; sourceTree = "<group>"; };
 		C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStoreTests.swift; sourceTree = "<group>"; };
 		CB03FA5B5C74DB6E5B963EF2 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
@@ -150,6 +156,7 @@
 				857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */,
 				11EF96D4F00F64BCEE9E13B3 /* FakeSecretStore.swift */,
 				9AE0E33AD95285152C0DD917 /* FitEstimatorTests.swift */,
+				649E93D9E6DF446442533B00 /* GGUFFixtureBuilder.swift */,
 				C1946EC80763A824682094C0 /* GGUFMetadataTests.swift */,
 				FDE8BD6ECEA9B7B53DBF2DEB /* HFDownloaderSmokeTest.swift */,
 				7FA08B3E9C936F3BF55909CC /* HFDownloaderTests.swift */,
@@ -157,6 +164,7 @@
 				69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */,
 				C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */,
 				5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */,
+				60CD26ED650B7D72E7C62559 /* ModelInstallControllerTests.swift */,
 				97B32A723E276ED3F733ACB2 /* ModelStoreTests.swift */,
 				202E2A8059B6ABFB4874ED71 /* PathsTests.swift */,
 				5907867E917EAA9CB82DDAAF /* PingTests.swift */,
@@ -176,6 +184,7 @@
 				D49BE1EF5FB53B825FC562F0 /* HFDownloader.swift */,
 				425E81D2DAC331A359585A0F /* HFRepo.swift */,
 				0DF36C9C4B0032D9BDA798A6 /* MLXMetadata.swift */,
+				BACE052AE6756F1062784F3F /* ModelInstallController.swift */,
 				7E932070B21FCE331F0977B5 /* ModelStore.swift */,
 				3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */,
 			);
@@ -383,6 +392,7 @@
 				ED92861B2F3678237F476B4F /* LogsWindow.swift in Sources */,
 				47DAABA1E882A6CD01680186 /* MLXMetadata.swift in Sources */,
 				E20F2581D31F14C3DAA57F66 /* MenuView.swift in Sources */,
+				D852BFCB8112DD76D6DBEB44 /* ModelInstallController.swift in Sources */,
 				3D0EB48D9129E71E6B3A43E2 /* ModelStore.swift in Sources */,
 				BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */,
 				4264D719B78C601B5C03EB45 /* Ping.swift in Sources */,
@@ -410,6 +420,7 @@
 				2AB54DF34364E60EB414F204 /* FakeRuntime.swift in Sources */,
 				3E4CFBB8E487B89E99CA3D1B /* FakeSecretStore.swift in Sources */,
 				9317F0C660C4BDE4BC7A980E /* FitEstimatorTests.swift in Sources */,
+				CB7CA9A2F895FD0B2EB70E10 /* GGUFFixtureBuilder.swift in Sources */,
 				8D88704579DC44780C153B31 /* GGUFMetadataTests.swift in Sources */,
 				4AF09C43020E3D85307B71A8 /* HFDownloaderSmokeTest.swift in Sources */,
 				F03565C275B071D4BC9F7F0D /* HFDownloaderTests.swift in Sources */,
@@ -417,6 +428,7 @@
 				78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */,
 				845C332E6D75F8E7D4CF3E1A /* LogStoreTests.swift in Sources */,
 				4A67F045D85B57F300F618D5 /* MLXMetadataTests.swift in Sources */,
+				AD84B88BEFC224DCB3B822A2 /* ModelInstallControllerTests.swift in Sources */,
 				125123BCBFABCB9EB4A53BEA /* ModelStoreTests.swift in Sources */,
 				78A0C100BA7CBC5B2B1F3FA8 /* PathsTests.swift in Sources */,
 				AF8F824B4E7AD00629E4BEC8 /* PingTests.swift in Sources */,

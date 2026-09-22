@@ -88,8 +88,12 @@ struct ModelStore: Sendable, Equatable {
     /// projector companions (`mmproj-*`, per docs/ARCHITECTURE.md §6's
     /// "paired by name" note) — those load implicitly alongside their
     /// matching main model and don't get their own preset section or
-    /// router-mode entry. Sorted by filename for a stable, predictable
-    /// `presets.ini`.
+    /// router-mode entry — and excluding every shard but the first of a
+    /// multi-file split model (`...-00002-of-00007.gguf`), which
+    /// llama.cpp loads implicitly by following the split manifest from
+    /// `...-00001-of-...`; a preset per later shard would have the router
+    /// try to load fragments standalone. Sorted by filename for a stable,
+    /// predictable `presets.ini`.
     func installedGGUFFiles() -> [URL] {
         let fm = FileManager.default
         guard let files = try? fm.contentsOfDirectory(at: ggufDirectory, includingPropertiesForKeys: nil) else {
@@ -98,7 +102,187 @@ struct ModelStore: Sendable, Equatable {
         return files
             .filter { $0.pathExtension.lowercased() == "gguf" }
             .filter { !$0.lastPathComponent.hasPrefix("mmproj-") }
+            .filter { (Self.shardIndex(of: $0) ?? 1) == 1 }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }
+
+    /// The 1-based shard number in a `name-00002-of-00007.gguf` stem, or
+    /// `nil` for an ordinary single-file name. Matches the exact
+    /// five-digit llama.cpp convention rather than any-digits, so a real
+    /// model named e.g. `Llama-3-8B` never trips it.
+    private static func shardIndex(of url: URL) -> Int? {
+        let stem = url.deletingPathExtension().lastPathComponent
+        guard let ofRange = stem.range(of: "-of-") else { return nil }
+        let before = stem[..<ofRange.lowerBound]
+        let after = stem[ofRange.upperBound...]
+        guard !after.isEmpty, after.allSatisfy(\.isNumber), after.count == 5,
+              let dash = before.lastIndex(of: "-")
+        else { return nil }
+        let digits = before[before.index(after: dash)...]
+        guard digits.count == 5, digits.allSatisfy(\.isNumber) else { return nil }
+        return Int(digits)
+    }
+
+    // MARK: - Catalog refresh from disk
+
+    /// The store's catalog, reconciled against what's actually on disk —
+    /// the same "disk is the source of truth, catalog is the index"
+    /// stance as `regeneratePresets` (ADR D-012): files no longer on disk
+    /// lose their rows (ARCHITECTURE.md §6: "Deletion removes the files
+    /// and the catalog row"), files on disk without a row gain one (a
+    /// hand-placed model), and every surviving row's `bytes` and
+    /// `contextSize` are recomputed. Download-specific fields
+    /// (`sourceRepo`, `sha256`, `quant`, `family`) are kept as-is since
+    /// the disk can't re-derive them.
+    ///
+    /// `contextSize` is Phase 2 step 4's deferred wiring: each model's
+    /// GGUF/MLX metadata is parsed (cheaply — `GGUFMetadata` memory-maps),
+    /// fed to `FitEstimator` against `device` under `ggufRuntime` (MLX
+    /// directories always evaluate under `.omlx` — that's the only
+    /// format-aware choice for them), and the resulting
+    /// `reducedContextSize` for a `.tight` verdict is what
+    /// `regeneratePresets` will write into `presets.ini`. Everything
+    /// else keeps the `defaultContextSize` fallback in
+    /// `regeneratePresets` rather than baking the number into the row —
+    /// a `.comfortable` model runs at the default, and `.wontFit` gets
+    /// no number at all (see `fitContextSize`'s doc comment).
+    func refreshedCatalog(
+        device: DeviceInfo,
+        ggufRuntime: RuntimeID,
+        bandwidthTable: [String: Double],
+        now: Date = .init()
+    ) -> StoreCatalog {
+        var result = loadCatalog()
+        var remaining: Set<String> = Set(result.entries.map(\.id))
+
+        for file in installedGGUFFiles() {
+            let id = file.deletingPathExtension().lastPathComponent
+            let bytes = fileSize(of: file)
+            let contextSize = fitContextSize(
+                for: (try? GGUFMetadata.read(from: file)).flatMap { ModelShape.from(gguf: $0, weightBytes: bytes) },
+                device: device,
+                runtime: ggufRuntime,
+                bandwidthTable: bandwidthTable
+            )
+            if let index = result.entries.firstIndex(where: { $0.id == id }) {
+                result.entries[index].bytes = bytes
+                result.entries[index].contextSize = contextSize
+                remaining.remove(id)
+            } else {
+                result.entries.append(
+                    InstalledModel(id: id, format: .gguf, bytes: bytes, contextSize: contextSize, addedAt: now)
+                )
+            }
+        }
+
+        for directory in installedMLXDirectories() {
+            let id = directory.lastPathComponent
+            let bytes = directorySize(of: directory)
+            let contextSize = fitContextSize(
+                for: (try? MLXMetadata.read(from: directory.appendingPathComponent("config.json"))).flatMap {
+                    ModelShape.from(mlx: $0, weightBytes: bytes)
+                },
+                device: device,
+                runtime: .omlx,
+                bandwidthTable: bandwidthTable
+            )
+            if let index = result.entries.firstIndex(where: { $0.id == id }) {
+                result.entries[index].bytes = bytes
+                result.entries[index].contextSize = contextSize
+                remaining.remove(id)
+            } else {
+                result.entries.append(
+                    InstalledModel(
+                        id: id,
+                        format: .mlxSafetensors,
+                        bytes: bytes,
+                        contextSize: contextSize,
+                        addedAt: now
+                    )
+                )
+            }
+        }
+
+        result.entries.removeAll { remaining.contains($0.id) }
+        result.entries.sort { $0.id < $1.id }
+        return result
+    }
+
+    /// The `contextSize` a fit estimate implies: only `.tight` with a
+    /// positive reduced context writes one (the context the model can
+    /// actually run at — what ARCHITECTURE.md §7 says Quail "sets
+    /// automatically"). `.tight(reducedContextSize: 0)` — the D-013 edge
+    /// case where weights fit but weights-plus-overhead don't — and
+    /// `.comfortable` leave it `nil` so `regeneratePresets`'s
+    /// `defaultContextSize` still governs; a `ctx-size = 0` preset would
+    /// break the router at startup, not merely make the model unusable.
+    /// `.wontFit` deliberately also leaves `nil` — writing a reduced
+    /// context for a model whose weights alone exceed the ceiling would
+    /// pretend there's a working configuration when there isn't; the
+    /// Models pane (step 7) shows that verdict from the catalog row's
+    /// presence plus a fresh estimate instead.
+    private func fitContextSize(
+        for shape: ModelShape?,
+        device: DeviceInfo,
+        runtime: RuntimeID,
+        bandwidthTable: [String: Double]
+    ) -> Int? {
+        guard let shape,
+              let estimate = FitEstimator.estimate(
+                  model: shape,
+                  device: device,
+                  runtime: runtime,
+                  bandwidthTable: bandwidthTable
+              )
+        else { return nil }
+        if case let .tight(reduced) = estimate.verdict, reduced > 0 {
+            return reduced
+        }
+        return nil
+    }
+
+    /// Every MLX model directory inside `mlx/` — a subdirectory that
+    /// contains a `config.json`, ARCHITECTURE.md §6's layout. A stray
+    /// folder without one isn't a model and gets no row/presence
+    /// guarantee; the `.partial` staging directory never lives here, so
+    /// there's no filtering hazard like the GGUF `mmproj-` exclusion.
+    func installedMLXDirectories() -> [URL] {
+        let fm = FileManager.default
+        guard let entries = try? fm
+            .contentsOfDirectory(at: mlxDirectory, includingPropertiesForKeys: [.isDirectoryKey])
+        else {
+            return []
+        }
+        return entries
+            .filter { fm.fileExists(atPath: $0.appendingPathComponent("config.json").path) }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }
+
+    /// Sum of all file sizes directly inside a directory plus one level
+    /// down — real MLX repos keep everything flat, and the one repo shape
+    /// with nested content (`snapshots/` from an HF cache) never lands in
+    /// this store, since Quail is the only thing that writes here.
+    private func directorySize(of directory: URL) -> Int64 {
+        let fm = FileManager.default
+        guard let walker = fm.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.totalFileAllocatedSizeKey, .fileSizeKey]
+        ) else {
+            return 0
+        }
+        var total: Int64 = 0
+        for case let url as URL in walker {
+            let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+            if values?.isRegularFile == true {
+                total += Int64(values?.fileSize ?? 0)
+            }
+        }
+        return total
+    }
+
+    private func fileSize(of url: URL) -> Int64 {
+        let values = try? url.resourceValues(forKeys: [.fileSizeKey])
+        return Int64(values?.fileSize ?? 0)
     }
 
     // MARK: - presets.ini

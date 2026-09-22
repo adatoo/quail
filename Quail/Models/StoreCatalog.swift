@@ -18,17 +18,17 @@ struct InstalledModel: Sendable, Equatable, Codable, Identifiable {
     /// for a GGUF (its filename without extension), or the directory name
     /// for an MLX model.
     let id: String
-    var family: String?
+    var family: String? = nil
     var format: ModelFormat
     var bytes: Int64
-    var sha256: String?
-    var sourceRepo: String?
-    var params: String?
-    var quant: String?
+    var sha256: String? = nil
+    var sourceRepo: String? = nil
+    var params: String? = nil
+    var quant: String? = nil
     /// The context length Quail has decided this model should run at —
     /// `nil` until Phase 2 step 4's `FitEstimator` sets one; `ModelStore`
     /// falls back to a fixed default in `presets.ini` until then.
-    var contextSize: Int?
+    var contextSize: Int? = nil
     var addedAt: Date
 }
 
