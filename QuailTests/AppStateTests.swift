@@ -38,7 +38,8 @@ struct AppStateTests {
             secretStore: secretStore,
             runtime: FakeRuntime(launchSpec: launchSpec),
             logStore: LogStore(),
-            modelsRootURL: scratchDir.appendingPathComponent("Models", isDirectory: true)
+            modelsRootURL: scratchDir.appendingPathComponent("Models", isDirectory: true),
+            catalogLocations: .init(bundle: .main, directory: scratchDir)
         )
     }
 
@@ -205,6 +206,34 @@ struct AppStateTests {
         #expect(try secretStore.get(account: "huggingFaceToken") == "hf_test_token")
         appState.clearHFToken()
         #expect(appState.hfToken == nil)
+    }
+
+    @Test("addUserCatalogRepo persists an uncurated entry; remove deletes it")
+    func userCatalogRepoRoundTripThroughAppState() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+
+        #expect(appState.catalog.families.isEmpty)
+
+        appState.addUserCatalogRepo("someone/New-GGUF", format: .gguf)
+        appState.addUserCatalogRepo("  ") // trims to empty, no-op
+        appState.addUserCatalogRepo("someone/New-GGUF", format: .gguf) // dedup
+
+        let entry = try #require(appState.catalog.families.first)
+        #expect(entry.id == "someone/New-GGUF")
+        #expect(!entry.isCurated)
+        #expect(entry.gguf?.repo == "someone/New-GGUF")
+
+        // Survives a fresh AppState pointed at the same directory.
+        let reloaded = makeAppState(scratchDir: scratch)
+        #expect(reloaded.catalog.families.count == 1)
+
+        reloaded.removeUserCatalogRepo("someone/New-GGUF")
+        #expect(reloaded.catalog.families.isEmpty)
+        #expect(Catalog.loadUserEntries(from: scratch.appendingPathComponent("user-catalog.json")).isEmpty)
+        reloaded.removeUserCatalogRepo("never-existed") // no-op, file intact
+        #expect(Catalog.loadUserEntries(from: scratch.appendingPathComponent("user-catalog.json")).isEmpty)
     }
 
     @Test("start() creates the model store's directories and a presets.ini")
