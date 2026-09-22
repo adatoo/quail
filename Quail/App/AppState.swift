@@ -24,24 +24,39 @@ final class AppState {
     /// `LogsWindow`.
     let runtime: any Runtime
     let logStore: LogStore
+    let modelStore: ModelStore
 
     private let configURL: URL
     private let secretStore: any SecretStore
 
     private static let apiKeyAccount = "llamaCppAPIKey"
 
+    /// - Parameter modelsRootURL: overrides `ModelStore`'s root — tests
+    ///   pass a scratch temp directory so they never touch the real
+    ///   `~/Library/Application Support/Quail/Models`. Production leaves
+    ///   this `nil`, which resolves `config.modelsDirectoryBookmark` (if
+    ///   the store's been relocated) or falls back to
+    ///   `Paths.defaultModelsDirectory`. This can't just be another
+    ///   defaulted `ModelStore` parameter: its default would need
+    ///   `config`, and default-argument expressions can't reference
+    ///   another parameter.
     init(
         config: Config = .load(),
         configURL: URL = Paths.configFile,
         secretStore: any SecretStore = Keychain(),
         runtime: any Runtime = LlamaCppRuntime(executableURL: Paths.llamaServerExecutable),
-        logStore: LogStore = LogStore()
+        logStore: LogStore = LogStore(),
+        modelsRootURL: URL? = nil
     ) {
         self.config = config
         self.configURL = configURL
         self.secretStore = secretStore
         self.runtime = runtime
         self.logStore = logStore
+        let resolvedRoot = modelsRootURL
+            ?? Paths.resolveModelsDirectory(bookmark: config.modelsDirectoryBookmark)
+            ?? Paths.defaultModelsDirectory
+        modelStore = ModelStore(rootURL: resolvedRoot)
         serverController = ServerController(runtime: runtime, logStore: logStore)
     }
 
@@ -100,6 +115,13 @@ final class AppState {
     }
 
     func start() async {
+        // Best-effort: if the store can't be created or presets.ini can't
+        // be written (e.g. a relocated store's volume is unmounted), the
+        // server itself will fail to bind and HealthProbe's timeout
+        // surfaces that as .failed — there's no separate failure path for
+        // this yet.
+        try? modelStore.ensureDirectoriesExist()
+        try? modelStore.regeneratePresets(catalog: modelStore.loadCatalog())
         await serverController.start(config: endpointConfig())
     }
 
@@ -162,8 +184,9 @@ final class AppState {
             host: config.host,
             port: config.port,
             apiKey: apiKey,
-            modelsDirectory: Paths.defaultGGUFDirectory,
-            modelsMax: config.modelsMax
+            modelsDirectory: modelStore.ggufDirectory,
+            modelsMax: config.modelsMax,
+            presetsFile: modelStore.presetsFile
         )
     }
 

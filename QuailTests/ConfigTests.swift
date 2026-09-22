@@ -37,6 +37,7 @@ struct ConfigTests {
         original.apiKeyEnabled = true
         original.openAtLogin = true
         original.autoStartServer = true
+        original.modelsDirectoryBookmark = Data([0x01, 0x02, 0x03])
         try original.save(to: url)
 
         let loaded = Config.load(from: url)
@@ -58,5 +59,6 @@ struct ConfigTests {
         let loaded = Config.load(from: url)
         #expect(loaded.openAtLogin == true)
         #expect(loaded.autoStartServer == false) // the field that was "missing"
+        #expect(loaded.modelsDirectoryBookmark == nil) // also missing from the legacy JSON
     }
 }

@@ -49,6 +49,11 @@ struct EndpointConfig: Sendable, Equatable {
     var apiKey: String?
     var modelsDirectory: URL
     var modelsMax: Int = 1
+    /// `ModelStore.presetsFile` — see `ModelStore.regeneratePresets`. `nil`
+    /// omits `--models-preset` entirely rather than pointing at a file
+    /// that may not exist yet (existing tests construct `EndpointConfig`
+    /// without this and don't need a real store on disk).
+    var presetsFile: URL?
 }
 
 /// Result of `Runtime.health(base:apiKey:)`. `status` is kept as the raw string
