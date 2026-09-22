@@ -192,6 +192,21 @@ struct AppStateTests {
         await appState.stop()
     }
 
+    @Test("setHFToken stores and clearHFToken deletes the Hugging Face token")
+    func hfTokenRoundTrip() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let secretStore = FakeSecretStore()
+        let appState = makeAppState(scratchDir: scratch, secretStore: secretStore)
+
+        #expect(appState.hfToken == nil)
+        appState.setHFToken("hf_test_token")
+        #expect(appState.hfToken == "hf_test_token")
+        #expect(try secretStore.get(account: "huggingFaceToken") == "hf_test_token")
+        appState.clearHFToken()
+        #expect(appState.hfToken == nil)
+    }
+
     @Test("start() creates the model store's directories and a presets.ini")
     func startCreatesModelStore() async {
         let scratch = scratchDirectory()

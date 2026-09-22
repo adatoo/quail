@@ -4,7 +4,7 @@ import Testing
 
 @Suite("LlamaCppRuntime")
 struct LlamaCppRuntimeTests {
-    private static func makeSession(handler: @escaping @Sendable (URLRequest) -> (Int, Data)) -> URLSession {
+    private static func makeSession(handler: @escaping @Sendable (URLRequest) -> StubResponse) -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [StubURLProtocol.self]
         StubURLProtocol.handler = handler
@@ -57,7 +57,7 @@ struct LlamaCppRuntimeTests {
 
     @Test("health decodes a real /health payload as up")
     func healthDecodesUp() async throws {
-        let session = Self.makeSession { _ in (200, Fixtures.health) }
+        let session = Self.makeSession { _ in StubResponse(statusCode: 200, body: Fixtures.health) }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
         let health = try await runtime.health(base: Self.base, apiKey: nil)
@@ -66,7 +66,7 @@ struct LlamaCppRuntimeTests {
 
     @Test("health throws httpStatus on a non-2xx response")
     func healthThrowsOnBadStatus() async throws {
-        let session = Self.makeSession { _ in (503, Data()) }
+        let session = Self.makeSession { _ in StubResponse(statusCode: 503) }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
         await #expect(throws: RuntimeError.httpStatus(503)) {
@@ -78,7 +78,7 @@ struct LlamaCppRuntimeTests {
 
     @Test("listModels decodes a real router-mode /models payload, ignoring unmodelled fields")
     func listModelsDecodesRealPayload() async throws {
-        let session = Self.makeSession { _ in (200, Fixtures.modelsWithOneLoaded) }
+        let session = Self.makeSession { _ in StubResponse(statusCode: 200, body: Fixtures.modelsWithOneLoaded) }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
         let models = try await runtime.listModels(base: Self.base, apiKey: nil)
@@ -90,7 +90,7 @@ struct LlamaCppRuntimeTests {
 
     @Test("listModels decodes an empty router with no models on disk")
     func listModelsDecodesEmpty() async throws {
-        let session = Self.makeSession { _ in (200, Fixtures.modelsEmpty) }
+        let session = Self.makeSession { _ in StubResponse(statusCode: 200, body: Fixtures.modelsEmpty) }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
         let models = try await runtime.listModels(base: Self.base, apiKey: nil)
@@ -104,7 +104,7 @@ struct LlamaCppRuntimeTests {
         let capturedBody = CapturedBody()
         let session = Self.makeSession { request in
             capturedBody.set(request.httpBodyStreamData() ?? Data())
-            return (200, #"{"success":true}"#.data(using: .utf8)!)
+            return StubResponse(statusCode: 200, body: #"{"success":true}"#.data(using: .utf8)!)
         }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
@@ -118,7 +118,7 @@ struct LlamaCppRuntimeTests {
     @Test("select throws httpStatus when the router rejects the request")
     func selectThrowsOnBadStatus() async throws {
         let session = Self.makeSession { _ in
-            (404, #"{"error":{"message":"File Not Found"}}"#.data(using: .utf8)!)
+            StubResponse(statusCode: 404, body: #"{"error":{"message":"File Not Found"}}"#.data(using: .utf8)!)
         }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
@@ -140,7 +140,7 @@ struct LlamaCppRuntimeTests {
         let capturedHeader = CapturedHeader()
         let session = Self.makeSession { request in
             capturedHeader.set(request.value(forHTTPHeaderField: "Authorization"))
-            return (200, Fixtures.modelsEmpty)
+            return StubResponse(statusCode: 200, body: Fixtures.modelsEmpty)
         }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
@@ -153,7 +153,7 @@ struct LlamaCppRuntimeTests {
         let capturedHeader = CapturedHeader()
         let session = Self.makeSession { request in
             capturedHeader.set(request.value(forHTTPHeaderField: "Authorization"))
-            return (200, Fixtures.modelsEmpty)
+            return StubResponse(statusCode: 200, body: Fixtures.modelsEmpty)
         }
         let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
 
@@ -182,32 +182,6 @@ private final class CapturedHeader: @unchecked Sendable {
     }
 }
 
-private extension URLRequest {
-    /// `URLProtocol` only sees `httpBodyStream` for POST bodies set via
-    /// `URLRequest.httpBody` once `URLSession` has processed the request in
-    /// some configurations; this reads whichever is present.
-    func httpBodyStreamData() -> Data? {
-        if let httpBody {
-            return httpBody
-        }
-        guard let stream = httpBodyStream else { return nil }
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        let bufferSize = 4096
-        var buffer = [UInt8](repeating: 0, count: bufferSize)
-        while stream.hasBytesAvailable {
-            let read = stream.read(&buffer, maxLength: bufferSize)
-            if read > 0 {
-                data.append(buffer, count: read)
-            } else {
-                break
-            }
-        }
-        return data
-    }
-}
-
 /// Captured real JSON payloads from a live `llama-server` (b11081), so the
 /// decoding tests exercise the actual shape of the API rather than a
 /// hand-guessed one.
@@ -225,32 +199,4 @@ private enum Fixtures {
     "n_ctx":40960,"n_ctx_train":40960,"n_embd":1024,"n_params":596049920,\
     "size":633495552,"ftype":"Q8_0"}}],"object":"list"}
     """.data(using: .utf8)!
-}
-
-/// Intercepts every request made by a session configured with it and
-/// returns a canned (status, body) via `handler`.
-private final class StubURLProtocol: URLProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static var handler: (@Sendable (URLRequest) -> (Int, Data))?
-
-    override class func canInit(with _: URLRequest) -> Bool {
-        true
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        guard let handler = Self.handler, let url = request.url else {
-            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
-            return
-        }
-        let (status, data) = handler(request)
-        let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: nil)!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: data)
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    override func stopLoading() {}
 }
