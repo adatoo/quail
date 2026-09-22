@@ -51,7 +51,7 @@ struct EndpointConfig: Sendable, Equatable {
     var modelsMax: Int = 1
 }
 
-/// Result of `Runtime.health(base:)`. `status` is kept as the raw string
+/// Result of `Runtime.health(base:apiKey:)`. `status` is kept as the raw string
 /// llama-server returns (`"ok"`) rather than an enum, since it's the only
 /// value observed and other runtimes may report differently.
 struct Health: Sendable, Equatable, Decodable {
@@ -86,7 +86,7 @@ struct ServedModel: Sendable, Equatable, Identifiable, Decodable {
     }
 }
 
-/// Result of `Runtime.select(model:base:)`.
+/// Result of `Runtime.select(model:base:apiKey:)`.
 enum SelectAction: Sendable, Equatable {
     /// The runtime swapped models without restarting (llama.cpp router
     /// mode's `POST /models/load`).
@@ -113,9 +113,17 @@ protocol Runtime: Sendable {
     var installState: InstallState { get async }
 
     func launchSpec(config: EndpointConfig, model: ModelRef?) -> LaunchSpec
-    func health(base: URL) async throws -> Health
-    func listModels(base: URL) async throws -> [ServedModel]
-    func select(model: ModelRef, base: URL) async throws -> SelectAction
+
+    /// `apiKey` is whatever `--api-key` the runtime was launched with, or
+    /// `nil`. Confirmed empirically against a real b11081 build: `/health`
+    /// is exempt from auth, but `/models`, `/v1/models` and
+    /// `/v1/chat/completions` all 401 without it once `--api-key` is set —
+    /// so every call here takes it, even though `health` doesn't strictly
+    /// need it today, for one consistent rule callers don't have to
+    /// special-case.
+    func health(base: URL, apiKey: String?) async throws -> Health
+    func listModels(base: URL, apiKey: String?) async throws -> [ServedModel]
+    func select(model: ModelRef, base: URL, apiKey: String?) async throws -> SelectAction
 
     /// The runtime's own web UI at this base URL, if it has one (llama.cpp's
     /// built-in chat/model UI, oMLX's `/admin`). `nil` for Rapid-MLX.

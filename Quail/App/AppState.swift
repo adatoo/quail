@@ -16,6 +16,13 @@ final class AppState {
     private(set) var config: Config
     let serverController: ServerController
 
+    /// Exposed (not just handed to `ServerController`) because the Ping
+    /// sheet and Logs window both need to talk to the same runtime/log
+    /// store `ServerController` is driving — see `PingSheet` and
+    /// `LogsWindow`.
+    let runtime: any Runtime
+    let logStore: LogStore
+
     private let configURL: URL
     private let secretStore: any SecretStore
 
@@ -31,6 +38,8 @@ final class AppState {
         self.config = config
         self.configURL = configURL
         self.secretStore = secretStore
+        self.runtime = runtime
+        self.logStore = logStore
         serverController = ServerController(runtime: runtime, logStore: logStore)
     }
 

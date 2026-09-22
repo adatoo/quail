@@ -51,17 +51,17 @@ struct LlamaCppRuntime: Runtime {
         )
     }
 
-    func health(base: URL) async throws -> Health {
-        try await get(Health.self, at: base.appending(path: "health"))
+    func health(base: URL, apiKey: String?) async throws -> Health {
+        try await get(Health.self, at: base.appending(path: "health"), apiKey: apiKey)
     }
 
-    func listModels(base: URL) async throws -> [ServedModel] {
+    func listModels(base: URL, apiKey: String?) async throws -> [ServedModel] {
         struct Response: Decodable { let data: [ServedModel] }
-        return try await get(Response.self, at: base.appending(path: "models")).data
+        return try await get(Response.self, at: base.appending(path: "models"), apiKey: apiKey).data
     }
 
-    func select(model: ModelRef, base: URL) async throws -> SelectAction {
-        var request = URLRequest(url: base.appending(path: "models/load"))
+    func select(model: ModelRef, base: URL, apiKey: String?) async throws -> SelectAction {
+        var request = Self.authorized(URLRequest(url: base.appending(path: "models/load")), apiKey: apiKey)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(["model": model.id])
@@ -75,14 +75,23 @@ struct LlamaCppRuntime: Runtime {
         base
     }
 
-    private func get<T: Decodable>(_: T.Type, at url: URL) async throws -> T {
-        let (data, response) = try await urlSession.data(from: url)
+    private func get<T: Decodable>(_: T.Type, at url: URL, apiKey: String?) async throws -> T {
+        let request = Self.authorized(URLRequest(url: url), apiKey: apiKey)
+        let (data, response) = try await urlSession.data(for: request)
         try Self.checkStatus(response, data: data)
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
             throw RuntimeError.decoding(String(describing: error))
         }
+    }
+
+    private static func authorized(_ request: URLRequest, apiKey: String?) -> URLRequest {
+        var request = request
+        if let apiKey, !apiKey.isEmpty {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
+        return request
     }
 
     private static func checkStatus(_ response: URLResponse, data _: Data) throws {

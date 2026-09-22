@@ -95,7 +95,12 @@ final class ServerController {
         }
 
         do {
-            try await HealthProbe.waitUntilHealthy(runtime: runtime, base: base, timeout: healthTimeout)
+            try await HealthProbe.waitUntilHealthy(
+                runtime: runtime,
+                base: base,
+                apiKey: config.apiKey,
+                timeout: healthTimeout
+            )
             if generation == thisGeneration, phase == .starting {
                 phase = .ready
             }

@@ -58,8 +58,51 @@ struct LlamaCppIntegrationSmokeTest {
         #expect(controller.phase == .ready)
 
         let base = try #require(controller.baseURL)
-        let models = try await runtime.listModels(base: base)
+        let models = try await runtime.listModels(base: base, apiKey: nil)
         #expect(!models.isEmpty, "expected the real GGUF at \(modelsDir) to be listed")
+
+        await controller.stop()
+        #expect(controller.phase == .stopped)
+    }
+
+    @Test("real llama-server with --api-key: /health is exempt, /models needs the header")
+    func realRouterEnforcesAPIKeyExceptOnHealth() async throws {
+        let modelsDir = "/tmp/quail-smoke-models/gguf"
+        guard FileManager.default.fileExists(atPath: modelsDir) else {
+            print("\(modelsDir) not found; skipping. See this file's header to run manually.")
+            return
+        }
+
+        let vendorURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Vendor/llama.cpp/llama-server")
+        try #require(FileManager.default.fileExists(atPath: vendorURL.path))
+
+        let runtime = LlamaCppRuntime(executableURL: vendorURL)
+        let controller = ServerController(runtime: runtime, logStore: LogStore(), healthTimeout: 30)
+        let config = EndpointConfig(
+            host: "127.0.0.1",
+            port: 18200,
+            apiKey: "quail-smoke-test-key",
+            modelsDirectory: URL(fileURLWithPath: modelsDir)
+        )
+
+        // start() itself relies on health being exempt from auth — if it
+        // weren't, HealthProbe would time out here even with the right key
+        // wired through (see ServerController.start's HealthProbe.
+        // waitUntilHealthy call and Runtime.swift's doc comment).
+        await controller.start(config: config)
+        #expect(controller.phase == .ready)
+
+        let base = try #require(controller.baseURL)
+
+        await #expect(throws: RuntimeError.httpStatus(401)) {
+            _ = try await runtime.listModels(base: base, apiKey: nil)
+        }
+
+        let models = try await runtime.listModels(base: base, apiKey: "quail-smoke-test-key")
+        #expect(!models.isEmpty)
 
         await controller.stop()
         #expect(controller.phase == .stopped)
