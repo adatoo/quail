@@ -55,6 +55,11 @@ targets:
         Release-AppStore:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "APPSTORE"
           CODE_SIGN_ENTITLEMENTS: Quail/Quail-AppStore.entitlements
+    postbuildScripts:
+      - name: "Embed llama.cpp"
+        script: |
+          "$SRCROOT/scripts/embed-llama.sh"
+        basedOnDependencyAnalysis: false
     scheme:
       testTargets:
         - QuailTests

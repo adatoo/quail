@@ -33,6 +33,18 @@ jobs:
             echo "No Swift files yet; skipping."
           fi
 
+      - name: Vendor llama.cpp
+        if: hashFiles('scripts/vendor-llama.sh') != ''
+        run: |
+          scripts/vendor-llama.sh
+          scripts/verify-macho.sh Vendor/llama.cpp
+
+      - name: Vendor uv
+        if: hashFiles('scripts/vendor-uv.sh') != ''
+        run: |
+          scripts/vendor-uv.sh
+          scripts/verify-macho.sh Vendor/uv
+
       - name: Build (Quail)
         run: |
           if [ -e Quail.xcodeproj ] || [ -e Quail.xcworkspace ]; then
@@ -41,6 +53,16 @@ jobs:
               CODE_SIGNING_ALLOWED=NO | xcbeautify
           else
             echo "No Xcode project yet; skipping build."
+          fi
+
+      - name: Verify embedded Mach-O closure
+        if: hashFiles('scripts/verify-macho.sh') != '' && hashFiles('Quail.xcodeproj/**') != ''
+        run: |
+          APP="$(find ~/Library/Developer/Xcode/DerivedData -maxdepth 6 -name 'Quail.app' -path '*/Debug/*' -print -quit)"
+          if [ -n "$APP" ] && [ -d "$APP/Contents/MacOS" ]; then
+            scripts/verify-macho.sh "$APP/Contents/MacOS"
+          else
+            echo "Quail.app not found under DerivedData; skipping."
           fi
 
       - name: Test (Quail)

@@ -121,6 +121,7 @@
 			buildConfigurationList = 3B430F6F8BDF5060F21AEB71 /* Build configuration list for PBXNativeTarget "Quail" */;
 			buildPhases = (
 				770EE833D45FFC7C0F7EB829 /* Sources */,
+				C2420F31802B4F92A73F8506 /* Embed llama.cpp */,
 			);
 			buildRules = (
 			);
@@ -169,6 +170,28 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C2420F31802B4F92A73F8506 /* Embed llama.cpp */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed llama.cpp";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/embed-llama.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		770EE833D45FFC7C0F7EB829 /* Sources */ = {
