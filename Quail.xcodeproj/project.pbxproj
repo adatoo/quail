@@ -20,6 +20,8 @@
 		419CB9320DD2555B4214B403 /* AppInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81725CFCB6D74EB402C92CD /* AppInfo.swift */; };
 		4264D719B78C601B5C03EB45 /* Ping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C29DC0715805F71AA1A5599 /* Ping.swift */; };
 		430E89F9BAD4B4183FB1E2F8 /* ServerControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1105E578FC33E291B560DFEE /* ServerControllerTests.swift */; };
+		47DAABA1E882A6CD01680186 /* MLXMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF36C9C4B0032D9BDA798A6 /* MLXMetadata.swift */; };
+		4A67F045D85B57F300F618D5 /* MLXMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */; };
 		530F6395D5751008F12153DC /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653A70D18AA958C1F75CD511 /* AppState.swift */; };
 		66B3DA5DEF7A55577F3A8813 /* ProcessSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */; };
 		702EF962A21D3A10FC5E62A8 /* StoreCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */; };
@@ -56,6 +58,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0DF36C9C4B0032D9BDA798A6 /* MLXMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXMetadata.swift; sourceTree = "<group>"; };
 		0F31B617CA8019BFAC6C2FF8 /* GGUFMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GGUFMetadata.swift; sourceTree = "<group>"; };
 		1105E578FC33E291B560DFEE /* ServerControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerControllerTests.swift; sourceTree = "<group>"; };
 		11EF96D4F00F64BCEE9E13B3 /* FakeSecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeSecretStore.swift; sourceTree = "<group>"; };
@@ -67,6 +70,7 @@
 		4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthProbe.swift; sourceTree = "<group>"; };
 		5907867E917EAA9CB82DDAAF /* PingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PingTests.swift; sourceTree = "<group>"; };
 		5BF75DEC1D436363C620CA16 /* Runtime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Runtime.swift; sourceTree = "<group>"; };
+		5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXMetadataTests.swift; sourceTree = "<group>"; };
 		6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppIntegrationSmokeTest.swift; sourceTree = "<group>"; };
 		653A70D18AA958C1F75CD511 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppRuntimeTests.swift; sourceTree = "<group>"; };
@@ -120,6 +124,7 @@
 				6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */,
 				69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */,
 				C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */,
+				5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */,
 				97B32A723E276ED3F733ACB2 /* ModelStoreTests.swift */,
 				202E2A8059B6ABFB4874ED71 /* PathsTests.swift */,
 				5907867E917EAA9CB82DDAAF /* PingTests.swift */,
@@ -133,6 +138,7 @@
 			isa = PBXGroup;
 			children = (
 				0F31B617CA8019BFAC6C2FF8 /* GGUFMetadata.swift */,
+				0DF36C9C4B0032D9BDA798A6 /* MLXMetadata.swift */,
 				7E932070B21FCE331F0977B5 /* ModelStore.swift */,
 				3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */,
 			);
@@ -322,6 +328,7 @@
 				B62BFE886200969B22216A6A /* LogStore.swift in Sources */,
 				711387A1DA5998F40B757612 /* LoginItem.swift in Sources */,
 				ED92861B2F3678237F476B4F /* LogsWindow.swift in Sources */,
+				47DAABA1E882A6CD01680186 /* MLXMetadata.swift in Sources */,
 				E20F2581D31F14C3DAA57F66 /* MenuView.swift in Sources */,
 				3D0EB48D9129E71E6B3A43E2 /* ModelStore.swift in Sources */,
 				BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */,
@@ -350,6 +357,7 @@
 				A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */,
 				78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */,
 				845C332E6D75F8E7D4CF3E1A /* LogStoreTests.swift in Sources */,
+				4A67F045D85B57F300F618D5 /* MLXMetadataTests.swift in Sources */,
 				125123BCBFABCB9EB4A53BEA /* ModelStoreTests.swift in Sources */,
 				78A0C100BA7CBC5B2B1F3FA8 /* PathsTests.swift in Sources */,
 				AF8F824B4E7AD00629E4BEC8 /* PingTests.swift in Sources */,
