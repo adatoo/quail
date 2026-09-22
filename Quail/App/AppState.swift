@@ -1,5 +1,7 @@
+import AppKit
 import Foundation
 import Observation
+import SwiftUI
 
 /// Observable root of the app's UI state. Owns the persisted `Config`, the
 /// `ServerController` state machine, and translates between the two — the
@@ -55,16 +57,34 @@ final class AppState {
         }
     }
 
-    /// SF Symbol name for the menu bar icon (Phase 1 step 6: "Icon states:
-    /// stopped/starting/running/failed"). `.stopping` reuses the starting
-    /// glyph — both are transient, in-between states.
-    var statusSymbolName: String {
+    /// The menu bar icon is always the same bird glyph — only its colour
+    /// changes with `ServerController.phase` (Phase 1 step 6: "Icon
+    /// states: stopped/starting/running/failed"). An earlier version swapped
+    /// to unrelated SF Symbols (a checkmark, a warning triangle) per state,
+    /// which read as "the app changed" rather than "the server's status
+    /// changed" — a colour on the same glyph reads correctly at a glance
+    /// and is how most menu-bar status utilities do this.
+    var statusColor: Color {
         switch serverController.phase {
-        case .stopped: "bird"
-        case .starting, .stopping: "bird.fill"
-        case .ready: "checkmark.circle.fill"
-        case .failed: "exclamationmark.triangle.fill"
+        case .stopped: .gray
+        case .starting, .stopping: .yellow
+        case .ready: .green
+        case .failed: .red
         }
+    }
+
+    /// The actual menu bar icon. `MenuBarExtra` renders a plain
+    /// `Image(systemName:)` label as an AppKit template image regardless
+    /// of any SwiftUI `.foregroundStyle` applied to it — confirmed by
+    /// testing it, the bird stayed plain white in every phase. Baking the
+    /// colour into the `NSImage` itself and marking it non-template is
+    /// the only way to get a real colour onto a status item's icon.
+    var menuBarIcon: NSImage {
+        let config = NSImage.SymbolConfiguration(paletteColors: [NSColor(statusColor)])
+        let image = NSImage(systemSymbolName: "bird.fill", accessibilityDescription: statusLabel)?
+            .withSymbolConfiguration(config) ?? NSImage()
+        image.isTemplate = false
+        return image
     }
 
     var canStart: Bool {

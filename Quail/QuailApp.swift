@@ -11,11 +11,16 @@ struct QuailApp: App {
         MenuBarExtra {
             MenuView(appState: appDelegate.appState)
         } label: {
-            // Reflects ServerController.phase — see AppState.statusSymbolName
-            // and docs/IMPLEMENTATION_PLAN.md Phase 1 step 6.
-            Image(systemName: appDelegate.appState.statusSymbolName)
+            // Always the same bird glyph; only the colour reflects
+            // ServerController.phase — see AppState.menuBarIcon's doc
+            // comment for why this has to be a colour-baked NSImage
+            // rather than a plain Image(systemName:) with .foregroundStyle.
+            Image(nsImage: appDelegate.appState.menuBarIcon)
         }
-        .menuBarExtraStyle(.window)
+        // The default `.menu` style renders a real NSMenu — standard
+        // full-width items, native hover highlighting, real separators.
+        // An earlier `.window` style drew its own floating panel by hand,
+        // which looked and behaved unlike every other menu bar app.
 
         Settings {
             SettingsView(appState: appDelegate.appState)
