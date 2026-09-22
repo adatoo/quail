@@ -87,6 +87,33 @@ actor HFDownloader {
         !repo.isEmpty && !repo.hasPrefix("/") && !repo.hasSuffix("/") && !repo.contains("..")
     }
 
+    /// Fetches only a file's first `maxBytes` (one `Range` request —
+    /// confirmed a real 206 comes back through the CDN redirect) so the
+    /// Models pane can run `GGUFMetadata.parse` for a *pre-download* fit
+    /// verdict, per docs/ARCHITECTURE.md §7: "Both are read from the Hub
+    /// file listing before download, so the verdict shows in the picker"
+    /// (with the listing supplying the size and this supplying the
+    /// shape). 8 MiB covers the metadata section of every model checked
+    /// — vocabularies make it larger than it sounds (Qwen3's 151,936-
+    /// token vocab ≈ 2 MB) — and a header that outgrows the budget
+    /// throws `.truncated` from `GGUFMetadata.parse`, which callers
+    /// treat as "no verdict", not an error.
+    func fetchHeader(
+        repo: String,
+        file: HFFile,
+        maxBytes: Int = 8 * 1024 * 1024,
+        token: String? = nil
+    ) async throws -> Data {
+        let resolveURL = hubBaseURL.appendingPathComponent("\(repo)/resolve/main/\(file.remotePath)")
+        var request = URLRequest(url: resolveURL)
+        Self.authorize(&request, token: token)
+        request.setValue("bytes=0-\(maxBytes - 1)", forHTTPHeaderField: "Range")
+        let delegate = RangePreservingRedirectDelegate()
+        let (data, response) = try await urlSession.data(for: request, delegate: delegate)
+        try Self.checkStatus(response)
+        return data
+    }
+
     // MARK: - Install (download + verify + move into place)
 
     /// Downloads every file in `files` from `repo` into `destinationDirectory`,

@@ -42,7 +42,10 @@ final class ModelInstallController {
     private(set) var target: Target?
 
     let downloader: HFDownloader
-    private let modelStore: ModelStore
+    /// Swappable rather than fixed at init: relocating the store (step 7)
+    /// repoints `AppState.modelStore`, and this has to follow — it writes
+    /// the installed row and regenerates presets against it.
+    var modelStore: ModelStore
 
     private var task: Task<Void, Never>?
 

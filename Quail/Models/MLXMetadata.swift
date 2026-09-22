@@ -77,7 +77,13 @@ struct MLXMetadata: Sendable, Equatable {
     /// `configURL` should point at the file itself (typically
     /// `<model directory>/config.json`).
     static func read(from configURL: URL) throws -> MLXMetadata {
-        let data = try Data(contentsOf: configURL)
+        try parse(Data(contentsOf: configURL))
+    }
+
+    /// The same parse over an in-memory copy — for the pre-download
+    /// verdict path, where a `config.json` (always a few KB) arrives via
+    /// `HFDownloader.fetchHeader` rather than from disk.
+    static func parse(_ data: Data) throws -> MLXMetadata {
         let raw: RawConfig
         do {
             raw = try JSONDecoder().decode(RawConfig.self, from: data)

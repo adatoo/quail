@@ -24,7 +24,11 @@ final class AppState {
     /// `LogsWindow`.
     let runtime: any Runtime
     let logStore: LogStore
-    let modelStore: ModelStore
+
+    /// Swappable only via `relocateModelsDirectory` — the store root can
+    /// move (docs/ARCHITECTURE.md §6: "relocatable; path stored as a
+    /// bookmark") without restarting the app.
+    private(set) var modelStore: ModelStore
 
     /// The in-flight download the Models pane observes. Owns its own
     /// `HFDownloader` by default; tests inject one pointed at a stub
@@ -77,10 +81,12 @@ final class AppState {
         let resolvedRoot = modelsRootURL
             ?? Paths.resolveModelsDirectory(bookmark: config.modelsDirectoryBookmark)
             ?? Paths.defaultModelsDirectory
-        modelStore = ModelStore(rootURL: resolvedRoot)
-        installs = ModelInstallController(modelStore: modelStore)
+        let store = ModelStore(rootURL: resolvedRoot)
+        modelStore = store
+        installs = ModelInstallController(modelStore: store)
         serverController = ServerController(runtime: runtime, logStore: logStore)
         apiKey = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
+        hfToken = try? secretStore.get(account: Self.hfTokenAccount)
     }
 
     // MARK: - Server state, as the menu wants to show it
@@ -233,28 +239,24 @@ final class AppState {
     /// A user's HF access token, for `HFDownloader` to send as
     /// `Authorization: Bearer` when downloading from a gated repo — see
     /// docs/ARCHITECTURE.md §6 ("Gated repos take a user-supplied HF
-    /// token stored in Keychain"). No Settings UI reads or writes this
-    /// yet; it lands with Phase 2 step 7's Models pane, the first thing
-    /// that actually needs to prompt for one.
+    /// token stored in Keychain").
     ///
-    /// Deliberately a computed pass-through to `secretStore`, unlike
-    /// `apiKey` above — there's no view observing this yet, so the
-    /// `@Observable` reactivity problem `apiKey` hit doesn't apply here.
-    /// If a future UI binds to this directly, learn from that: give it a
-    /// real stored property, updated explicitly by whatever sets it,
-    /// rather than reading through on every access.
-    var hfToken: String? {
-        try? secretStore.get(account: Self.hfTokenAccount)
-    }
+    /// A real stored property kept in sync by the setters below, for the
+    /// reason `apiKey` learned in PR 13: the Models pane binds to this,
+    /// and a computed Keychain read-through would make edits invisible
+    /// to `@Observable`.
+    private(set) var hfToken: String?
 
     func setHFToken(_ token: String) {
         let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         try? secretStore.set(trimmed, account: Self.hfTokenAccount)
+        hfToken = trimmed
     }
 
     func clearHFToken() {
         try? secretStore.delete(account: Self.hfTokenAccount)
+        hfToken = nil
     }
 
     // MARK: - Catalog
@@ -300,6 +302,122 @@ final class AppState {
         if case .updated = await refresher.refreshIfNeeded() {
             catalog = Catalog.current(locations: catalogLocations)
         }
+    }
+
+    // MARK: - Model store management
+
+    /// Loaded-state for the Models pane's badges: model id -> status
+    /// string from the running router ("loaded"/"loading"/"unloaded"),
+    /// empty when the server isn't up. Best-effort by design — a stale
+    /// server mid-shutdown shouldn't blank the pane, so failures read
+    /// as "nothing loaded" rather than propagating.
+    func loadedModelStates() async -> [String: String] {
+        guard let base = baseURL else { return [:] }
+        guard let models = try? await runtime.listModels(base: base, apiKey: apiKey) else { return [:] }
+        return Dictionary(uniqueKeysWithValues: models.map { ($0.id, $0.status.value) })
+    }
+
+    /// How many models router-mode llama.cpp may keep loaded at once
+    /// (docs/ARCHITECTURE.md §6's hot-swap budget; ADR D-011 defaults it
+    /// to 1 until loaded-state is visible — it is, as of the Models
+    /// pane, but 1 stays the default until step 8's click-to-load makes
+    /// more meaningful).
+    func setModelsMax(_ count: Int) {
+        guard count >= 1, count != config.modelsMax else { return }
+        config.modelsMax = count
+        persist()
+    }
+
+    /// Moves the whole store to a new folder and repoints at it — the
+    /// point `Paths.makeModelsDirectoryBookmark` has existed for since
+    /// PR 9 (docs/IMPLEMENTATION_PLAN.md step 7: "where it finally gets
+    /// called, behind a 'Relocate…' button"). Contents move with it
+    /// (same-volume renames are instant; cross-volume is a real copy —
+    /// multi-GB models make that slow, which is why this runs off the
+    /// main actor and the UI shows progress).
+    ///
+    /// Refuses a store with an install in flight: `ModelInstallController`
+    /// holds paths into the current root, and moving underneath it would
+    /// strand partials.
+    func relocateModelsDirectory(to newRoot: URL) async throws {
+        guard !installs.isDownloading else { throw RelocationError.downloadInFlight }
+        let previous = modelStore
+        guard previous.rootURL.standardizedFileURL != newRoot.standardizedFileURL else { return }
+
+        try FileManager.default.createDirectory(at: newRoot, withIntermediateDirectories: true)
+        for item in try FileManager.default.contentsOfDirectory(
+            at: previous.rootURL, includingPropertiesForKeys: nil
+        ) {
+            // .partial stays behind: the in-progress-at-best is not worth
+            // moving mid-relocate, and a resume starts from zero on the
+            // new location's absence, which is correct.
+            if item.lastPathComponent == ".partial" {
+                continue
+            }
+            try FileManager.default.moveItem(
+                at: item,
+                to: newRoot.appendingPathComponent(item.lastPathComponent)
+            )
+        }
+
+        modelStore = ModelStore(rootURL: newRoot)
+        installs.modelStore = modelStore
+        config.modelsDirectoryBookmark = try Paths.makeModelsDirectoryBookmark(for: newRoot)
+        persist()
+    }
+
+    enum RelocationError: Error, Equatable {
+        case downloadInFlight
+    }
+
+    /// Removes a model: its files and its `catalog.json` row together
+    /// (docs/ARCHITECTURE.md §6: "Deletion removes the files and the
+    /// catalog row"), plus `presets.ini` regeneration. A loaded model is
+    /// handled the §6-sanctioned "or a restart" way: the server is
+    /// stopped first (step 8's `POST /models/unload` equivalent will
+    /// make this gentler), and stays stopped — restarting it
+    /// automatically after an explicit destructive action is the
+    /// surprising half of that choice, so the user presses Start again.
+    enum ModelDeletionError: Error, Equatable {
+        case notInstalled
+        case downloadInFlight
+    }
+
+    func deleteInstalledModel(id: String) async throws {
+        guard !installs.isDownloading else { throw ModelDeletionError.downloadInFlight }
+        var catalog = modelStore.loadCatalog()
+        guard let index = catalog.entries.firstIndex(where: { $0.id == id }) else {
+            throw ModelDeletionError.notInstalled
+        }
+        let entry = catalog.entries[index]
+        await serverController.stop()
+
+        let fm = FileManager.default
+        switch entry.format {
+        case .gguf:
+            // The model plus every companion: split shards (a
+            // `<id>-NNNNN-of-NNNNN.gguf` set, however many landed) and
+            // the name-paired vision projectors (`mmproj-<id>…`,
+            // ARCHITECTURE §6 "paired by name").
+            let stem = id
+            for file in (try? fm.contentsOfDirectory(at: modelStore.ggufDirectory, includingPropertiesForKeys: nil)) ??
+                []
+            {
+                let name = file.deletingPathExtension().lastPathComponent
+                let isMain = name == stem
+                let isShard = name.hasPrefix("\(stem)-") && name.contains("-of-")
+                let isProjector = file.lastPathComponent.hasPrefix("mmproj-\(stem)")
+                if isMain || isShard || isProjector {
+                    try? fm.removeItem(at: file)
+                }
+            }
+        case .mlxSafetensors:
+            try? fm.removeItem(at: modelStore.mlxDirectory.appendingPathComponent(id, isDirectory: true))
+        }
+
+        catalog.entries.remove(at: index)
+        try modelStore.saveCatalog(catalog)
+        try modelStore.regeneratePresets(catalog: catalog)
     }
 
     // MARK: - Open at login
