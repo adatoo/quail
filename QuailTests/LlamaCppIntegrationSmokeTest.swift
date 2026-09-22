@@ -107,4 +107,31 @@ struct LlamaCppIntegrationSmokeTest {
         await controller.stop()
         #expect(controller.phase == .stopped)
     }
+
+    @Test("ModelStore.refreshedCatalog parses the real multi-GB GGUF's header cheaply")
+    func refreshAgainstRealGGUF() throws {
+        // GGUFMetadata's fixtures are synthetic; this proves the
+        // memory-mapped header read against a real 639 MB file with its
+        // full tensor-info section and ~150k-entry vocab after the
+        // metadata — the skip-past-what-we-don't-read path at real scale,
+        // and refreshedCatalog's end-to-end fit wiring on it.
+        let modelsDir = URL(fileURLWithPath: "/tmp/quail-smoke-models", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: modelsDir.appendingPathComponent("gguf").path) else {
+            print("smoke model store not found; skipping. See this file's header to run manually.")
+            return
+        }
+        let store = ModelStore(rootURL: modelsDir)
+
+        let catalog = store.refreshedCatalog(
+            device: DeviceInfo.current(),
+            ggufRuntime: .llamaCpp,
+            bandwidthTable: ChipBandwidthTable.loadFromBundle()
+        )
+
+        let row = try #require(catalog.entries.first { $0.id == "Qwen3-0.6B-Q8_0" })
+        #expect(row.bytes == 639_446_688)
+        // A 0.6B model on this machine is comfortably under the ceiling
+        // either way — comfortable leaves the row override-free.
+        #expect(row.contextSize == nil)
+    }
 }

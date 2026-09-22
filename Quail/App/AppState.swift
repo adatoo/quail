@@ -26,6 +26,11 @@ final class AppState {
     let logStore: LogStore
     let modelStore: ModelStore
 
+    /// The in-flight download the Models pane observes. Owns its own
+    /// `HFDownloader` by default; tests inject one pointed at a stub
+    /// session.
+    let installs: ModelInstallController
+
     private let configURL: URL
     private let secretStore: any SecretStore
     let catalogLocations: Catalog.Locations
@@ -73,6 +78,7 @@ final class AppState {
             ?? Paths.resolveModelsDirectory(bookmark: config.modelsDirectoryBookmark)
             ?? Paths.defaultModelsDirectory
         modelStore = ModelStore(rootURL: resolvedRoot)
+        installs = ModelInstallController(modelStore: modelStore)
         serverController = ServerController(runtime: runtime, logStore: logStore)
         apiKey = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
     }
@@ -138,7 +144,18 @@ final class AppState {
         // surfaces that as .failed — there's no separate failure path for
         // this yet.
         try? modelStore.ensureDirectoriesExist()
-        try? modelStore.regeneratePresets(catalog: modelStore.loadCatalog())
+        // Reconcile the catalog with the disk (hand-placed models gain
+        // rows, deleted ones lose them) and set each model's per-device
+        // context size from FitEstimator before generating presets —
+        // Phase 2 step 4's deferred wiring. Reads device facts fresh
+        // every Start (free RAM changes; so should the verdicts).
+        let refreshed = modelStore.refreshedCatalog(
+            device: DeviceInfo.current(),
+            ggufRuntime: config.runtimeID,
+            bandwidthTable: ChipBandwidthTable.loadFromBundle()
+        )
+        try? modelStore.saveCatalog(refreshed)
+        try? modelStore.regeneratePresets(catalog: refreshed)
         await serverController.start(config: endpointConfig())
     }
 
