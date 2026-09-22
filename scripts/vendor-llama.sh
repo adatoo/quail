@@ -46,17 +46,16 @@ SRC_DIR="$(find "$TMP/unz" -mindepth 1 -maxdepth 1 -type d -print -quit)"
 rm -rf "$OUT" && mkdir -p "$OUT"
 
 # --- Copy llama-server and the full @rpath dependency closure -------------
-declare -A COPIED=()
-
+# Memoization is just "does it already exist in $OUT" — deliberately not a
+# bash associative array, since GitHub Actions' macOS runners execute this
+# via the system /bin/bash (3.2, no `declare -A`) regardless of the shebang.
 copy_with_deps() {
   local name="$1"
-  [ -n "${COPIED[$name]:-}" ] && return 0
-  [ -e "$OUT/$name" ] && { COPIED[$name]=1; return 0; }
+  [ -e "$OUT/$name" ] && return 0
 
   local src="$SRC_DIR/$name"
   [ -e "$src" ] || { echo "error: $name is a dependency but was not found in the release asset"; exit 1; }
   cp -a "$src" "$OUT/$name"
-  COPIED[$name]=1
 
   # If we copied a symlink, also stage its target (by name) so it resolves.
   if [ -L "$OUT/$name" ]; then
