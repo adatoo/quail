@@ -76,6 +76,16 @@ private struct EndpointSettingsView: View {
                 format: .number.grouping(.never)
             )
 
+            Stepper(value: Binding(
+                get: { appState.config.modelsMax },
+                set: { appState.setModelsMax($0) }
+            ), in: 1 ... 8) {
+                Text("Max loaded models: \(appState.config.modelsMax)")
+            }
+            Text("Applies next time the server starts. Each loaded model keeps its weights in RAM.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             Toggle(
                 "Require API key",
                 isOn: Binding(

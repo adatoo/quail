@@ -317,6 +317,42 @@ final class AppState {
         return Dictionary(uniqueKeysWithValues: models.map { ($0.id, $0.status.value) })
     }
 
+    /// Hot-swap: ask the running router to load an installed GGUF
+    /// (docs/IMPLEMENTATION_PLAN.md step 8 — llama.cpp router mode's
+    /// `POST /models/load`, already verified against a real b11081
+    /// server in PR 7's integration testing; the runtime can also be
+    /// asked to evict per `modelsMax`, and that budget is set at launch
+    /// — changing it needs a restart, which is Settings' job, not
+    /// here). MLX models throw `needsMLXRuntime` because nothing that
+    /// can serve them exists yet — Phase 3.
+    func selectModel(id: String) async throws {
+        guard let base = baseURL, serverController.phase == .ready else {
+            throw ModelSelectionError.serverNotRunning
+        }
+        let catalog = modelStore.loadCatalog()
+        guard let entry = catalog.entries.first(where: { $0.id == id }) else {
+            throw ModelSelectionError.notInstalled
+        }
+        guard entry.format == .gguf else {
+            throw ModelSelectionError.needsMLXRuntime
+        }
+        _ = try await runtime.select(model: ModelRef(id: id), base: base, apiKey: apiKey)
+    }
+
+    enum ModelSelectionError: Error, Equatable, CustomStringConvertible {
+        case serverNotRunning
+        case notInstalled
+        case needsMLXRuntime
+
+        var description: String {
+            switch self {
+            case .serverNotRunning: "start the server first"
+            case .notInstalled: "that model isn't installed"
+            case .needsMLXRuntime: "MLX models need an MLX runtime (Phase 3)"
+            }
+        }
+    }
+
     /// How many models router-mode llama.cpp may keep loaded at once
     /// (docs/ARCHITECTURE.md §6's hot-swap budget; ADR D-011 defaults it
     /// to 1 until loaded-state is visible — it is, as of the Models

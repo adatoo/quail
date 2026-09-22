@@ -25,6 +25,7 @@ struct ModelsPane: View {
     @State private var pendingDeletion: String?
     @State private var showDeleteConfirm = false
     @State private var relocationError: String?
+    @State private var loadError: String?
     @State private var tokenDraft = ""
 
     enum FormatFilter: String, CaseIterable, Identifiable {
@@ -126,6 +127,18 @@ struct ModelsPane: View {
                     entry: entry,
                     verdict: verdicts[entry.id],
                     loaded: loadedStates[entry.id],
+                    serverReady: appState.serverController.phase == .ready,
+                    onLoad: {
+                        Task {
+                            do {
+                                try await appState.selectModel(id: entry.id)
+                                loadError = nil
+                                await pollUntilLoaded(entry.id)
+                            } catch {
+                                loadError = String(describing: error)
+                            }
+                        }
+                    },
                     onDelete: {
                         pendingDeletion = entry.id
                         showDeleteConfirm = true
@@ -211,7 +224,11 @@ struct ModelsPane: View {
                 .font(.callout)
                 .foregroundStyle(.green)
         case .idle:
-            EmptyView()
+            if let loadError {
+                Label(loadError, systemImage: "exclamationmark.triangle")
+                    .font(.callout)
+                    .foregroundStyle(.red)
+            }
         }
     }
 
@@ -237,6 +254,21 @@ struct ModelsPane: View {
         switch error {
         case AppState.RelocationError.downloadInFlight: "A download is running — cancel it first."
         default: String(describing: error)
+        }
+    }
+
+    /// After a Load click the router moves through `loading` to
+    /// `loaded` on its own (a cold model load is seconds); poll so the
+    /// badge updates without a manual Reload. Bounded — a load that
+    /// stalls forever shows the last known state, not an endless spinner.
+    private func pollUntilLoaded(_ id: String) async {
+        for _ in 0 ..< 20 {
+            let states = await appState.loadedModelStates()
+            loadedStates = states
+            if states[id] == "loaded" || states[id] == nil {
+                return
+            }
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
         }
     }
 
@@ -271,6 +303,8 @@ private struct ModelRow: View {
     let entry: InstalledModel
     let verdict: FitEstimate?
     let loaded: String?
+    let serverReady: Bool
+    let onLoad: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -279,10 +313,20 @@ private struct ModelRow: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             badge(entry.format == .gguf ? "GGUF" : "MLX", entry.format == .gguf ? .blue : .purple)
-            if let loaded {
-                badge(loaded, loaded == "loaded" ? .green : .gray)
+            if loaded == "loaded" {
+                badge("loaded", .green)
+            } else if let loaded {
+                badge(loaded, .gray)
             }
             Spacer()
+            // Hot swap (step 8): an installed GGUF can be loaded into the
+            // running router with a click. MLX rows get the badge-only
+            // treatment — their runtimes are Phase 3, and offering a
+            // button that must fail would be a lie about capability.
+            if serverReady, entry.format == .gguf, loaded != "loaded" {
+                Button("Load", action: onLoad)
+                    .controlSize(.small)
+            }
             if let verdict {
                 verdictTag(verdict)
             }
