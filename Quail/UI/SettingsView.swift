@@ -18,7 +18,12 @@ struct SettingsView: View {
             ModelsPane(appState: appState)
                 .tabItem { Label("Models", systemImage: "shippingbox") }
         }
-        .frame(width: 480)
+        // 560, not 480: the Endpoint tab's stepper caption and API-key
+        // row overflowed the narrower fixed width (user-reported) —
+        // content wider than the frame is drawn centered and clipped
+        // both edges, which no amount of internal wrapping fixes once
+        // a row's minimum genuinely exceeds it.
+        .frame(width: 560)
         .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -85,6 +90,11 @@ private struct EndpointSettingsView: View {
             Text("Applies next time the server starts. Each loaded model keeps its weights in RAM.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                // Without maxWidth+.infinity a Text's one-line ideal width
+                // drives the whole form's width; this pins it to whatever
+                // the row actually offers and lets it wrap.
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
 
             Toggle(
                 "Require API key",
@@ -99,6 +109,7 @@ private struct EndpointSettingsView: View {
                     TextField("API Key", text: $apiKeyText)
                         .font(.system(.body, design: .monospaced))
                         .textFieldStyle(.roundedBorder)
+                        .lineLimit(1)
                         .onSubmit {
                             appState.setAPIKey(apiKeyText)
                             apiKeyText = appState

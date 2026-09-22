@@ -93,7 +93,22 @@ struct ModelsPane: View {
             Text(relocationError ?? "")
         }
         .onAppear { tokenDraft = appState.hfToken ?? "" }
-        .task { await refresh() }
+        // Keyed on the server phase: opening the pane refreshes once,
+        // and every stop→ready transition refreshes again (the verdicts
+        // re-check against current device facts, the Load buttons appear).
+        // While the router is running, loaded state is also re-polled on
+        // a timer — a model can load behind the pane's back (the
+        // router's own web UI, auto-load on the first chat request, a
+        // ping), and there is no push channel from llama-server to know
+        // about it. 2 s, same cadence the Logs window tails at.
+        .task(id: appState.serverController.phase) {
+            await refresh()
+            while appState.serverController.phase == .ready {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                guard appState.serverController.phase == .ready else { break }
+                loadedStates = await appState.loadedModelStates()
+            }
+        }
         .onChange(of: appState.installs.phase) { _, newPhase in
             // Rows only appear/verify once an install reaches a terminal
             // phase; the downloading phase re-renders by observation.
