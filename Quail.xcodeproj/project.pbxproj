@@ -8,10 +8,23 @@
 
 /* Begin PBXBuildFile section */
 		16C023CA506F7A2439BD7726 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C313E49C170F38D115B7E22 /* SettingsView.swift */; };
+		2AB54DF34364E60EB414F204 /* FakeRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */; };
+		3D4B8A0405C4485889775071 /* HealthProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */; };
 		419CB9320DD2555B4214B403 /* AppInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81725CFCB6D74EB402C92CD /* AppInfo.swift */; };
+		430E89F9BAD4B4183FB1E2F8 /* ServerControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1105E578FC33E291B560DFEE /* ServerControllerTests.swift */; };
 		530F6395D5751008F12153DC /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653A70D18AA958C1F75CD511 /* AppState.swift */; };
+		66B3DA5DEF7A55577F3A8813 /* ProcessSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */; };
+		78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */; };
+		845C332E6D75F8E7D4CF3E1A /* LogStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */; };
+		A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */; };
+		B62BFE886200969B22216A6A /* LogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9482F330D14ABD97C3CB8A /* LogStore.swift */; };
+		BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F86147309B95CB624585AB /* Paths.swift */; };
+		C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */; };
 		D14CDB94C0DC992397CDE352 /* AppInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70BF19344F23B98FA299585E /* AppInfoTests.swift */; };
+		D21903B2E76547FABF0D784A /* ServerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B6A68D6E8CFFF1B6142EB1 /* ServerController.swift */; };
 		E20F2581D31F14C3DAA57F66 /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174474DD711C1D0D6ACAE912 /* MenuView.swift */; };
+		E7B46F57608AA37F1533608B /* LlamaCppRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97C5FEC519D2CD76691F38A2 /* LlamaCppRuntime.swift */; };
+		FAAC603389E9A8652CD31502 /* Runtime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF75DEC1D436363C620CA16 /* Runtime.swift */; };
 		FE3F1D8FFB1AB2BA257B7DD5 /* QuailApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5340652668A6D7507752E82 /* QuailApp.swift */; };
 /* End PBXBuildFile section */
 
@@ -26,16 +39,29 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1105E578FC33E291B560DFEE /* ServerControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerControllerTests.swift; sourceTree = "<group>"; };
 		174474DD711C1D0D6ACAE912 /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
 		3C313E49C170F38D115B7E22 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthProbe.swift; sourceTree = "<group>"; };
+		5BF75DEC1D436363C620CA16 /* Runtime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Runtime.swift; sourceTree = "<group>"; };
+		6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppIntegrationSmokeTest.swift; sourceTree = "<group>"; };
 		653A70D18AA958C1F75CD511 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppRuntimeTests.swift; sourceTree = "<group>"; };
 		70BF19344F23B98FA299585E /* AppInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfoTests.swift; sourceTree = "<group>"; };
+		81B6A68D6E8CFFF1B6142EB1 /* ServerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerController.swift; sourceTree = "<group>"; };
+		857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeRuntime.swift; sourceTree = "<group>"; };
 		86E04BE051B50D9C82809577 /* QuailTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuailTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSupervisorTests.swift; sourceTree = "<group>"; };
+		94F86147309B95CB624585AB /* Paths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paths.swift; sourceTree = "<group>"; };
+		97C5FEC519D2CD76691F38A2 /* LlamaCppRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppRuntime.swift; sourceTree = "<group>"; };
 		B472EFE40DDB9C26209BE18D /* Quail-AppStore.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Quail-AppStore.entitlements"; sourceTree = "<group>"; };
 		B81725CFCB6D74EB402C92CD /* AppInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfo.swift; sourceTree = "<group>"; };
+		C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStoreTests.swift; sourceTree = "<group>"; };
 		D54B98A3385069A2422F5027 /* Quail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Quail.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D69BCA84C093F9E62CA1941F /* Quail.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Quail.entitlements; sourceTree = "<group>"; };
 		E5340652668A6D7507752E82 /* QuailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailApp.swift; sourceTree = "<group>"; };
+		EB9482F330D14ABD97C3CB8A /* LogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStore.swift; sourceTree = "<group>"; };
+		EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSupervisor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -52,6 +78,12 @@
 			isa = PBXGroup;
 			children = (
 				70BF19344F23B98FA299585E /* AppInfoTests.swift */,
+				857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */,
+				6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */,
+				69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */,
+				C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */,
+				921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */,
+				1105E578FC33E291B560DFEE /* ServerControllerTests.swift */,
 			);
 			path = QuailTests;
 			sourceTree = "<group>";
@@ -70,8 +102,20 @@
 			children = (
 				B81725CFCB6D74EB402C92CD /* AppInfo.swift */,
 				653A70D18AA958C1F75CD511 /* AppState.swift */,
+				94F86147309B95CB624585AB /* Paths.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		53B832DE71E161DCFCCB0CC3 /* Server */ = {
+			isa = PBXGroup;
+			children = (
+				4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */,
+				EB9482F330D14ABD97C3CB8A /* LogStore.swift */,
+				EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */,
+				81B6A68D6E8CFFF1B6142EB1 /* ServerController.swift */,
+			);
+			path = Server;
 			sourceTree = "<group>";
 		};
 		5CBAB557AA869416BB79A458 /* Quail */ = {
@@ -81,6 +125,8 @@
 				D69BCA84C093F9E62CA1941F /* Quail.entitlements */,
 				E5340652668A6D7507752E82 /* QuailApp.swift */,
 				46B1875E207F95A8F989B8C9 /* App */,
+				E253BF4A5D3962970AE9AF43 /* Runtimes */,
+				53B832DE71E161DCFCCB0CC3 /* Server */,
 				38E92C9FBB2A03ED7B29BE1B /* UI */,
 			);
 			path = Quail;
@@ -93,6 +139,15 @@
 				86E04BE051B50D9C82809577 /* QuailTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E253BF4A5D3962970AE9AF43 /* Runtimes */ = {
+			isa = PBXGroup;
+			children = (
+				97C5FEC519D2CD76691F38A2 /* LlamaCppRuntime.swift */,
+				5BF75DEC1D436363C620CA16 /* Runtime.swift */,
+			);
+			path = Runtimes;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -200,8 +255,15 @@
 			files = (
 				419CB9320DD2555B4214B403 /* AppInfo.swift in Sources */,
 				530F6395D5751008F12153DC /* AppState.swift in Sources */,
+				3D4B8A0405C4485889775071 /* HealthProbe.swift in Sources */,
+				E7B46F57608AA37F1533608B /* LlamaCppRuntime.swift in Sources */,
+				B62BFE886200969B22216A6A /* LogStore.swift in Sources */,
 				E20F2581D31F14C3DAA57F66 /* MenuView.swift in Sources */,
+				BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */,
+				66B3DA5DEF7A55577F3A8813 /* ProcessSupervisor.swift in Sources */,
 				FE3F1D8FFB1AB2BA257B7DD5 /* QuailApp.swift in Sources */,
+				FAAC603389E9A8652CD31502 /* Runtime.swift in Sources */,
+				D21903B2E76547FABF0D784A /* ServerController.swift in Sources */,
 				16C023CA506F7A2439BD7726 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -211,6 +273,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				D14CDB94C0DC992397CDE352 /* AppInfoTests.swift in Sources */,
+				2AB54DF34364E60EB414F204 /* FakeRuntime.swift in Sources */,
+				A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */,
+				78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */,
+				845C332E6D75F8E7D4CF3E1A /* LogStoreTests.swift in Sources */,
+				C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */,
+				430E89F9BAD4B4183FB1E2F8 /* ServerControllerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
