@@ -2,6 +2,21 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-011 · 2026-09-22 · `--models-max 1` by default
+
+**Decision:** `EndpointConfig.modelsMax` (passed to router-mode `llama-server` as `--models-max`) defaults to `1`, not upstream's own default of 4. A single loaded model is the only thing Quail's UI has any concept of in Phase 1; there's no model picker, no "which models are loaded" view, and no per-model RAM accounting yet. Letting the router silently keep up to 4 GGUFs resident — each potentially several GB — with no UI surfacing that fact would be a footgun on the exact machines (16 GB, 32 GB) Quail's device-fit story (ARCHITECTURE.md §7) cares most about.
+**Alternatives:** Leave it at the upstream default of 4 (rejected for the reason above); make it 2 as ARCHITECTURE.md's open question floated for "fast switching on 64 GB+ machines" (deferred, not rejected — worth revisiting once Settings has a way to show and evict multiple loaded models).
+**Answers ARCHITECTURE.md's open question:** "Whether to let llama-server keep two models loaded (`--models-max 2`) for fast switching on 64 GB+ machines" — not yet; `modelsMax` is a `Config` field so this is a one-line change plus UI once Phase 2's Models pane exists to make loaded state visible.
+**Revisit if:** the Models pane (Phase 2) adds a "loaded models" view — at that point `--models-max 2` on 64 GB+ machines becomes safe to default to, or at least easy to offer as a Settings toggle.
+
+## D-010 · 2026-09-22 · API key off by default, regardless of host
+
+**Decision:** `Config.apiKeyEnabled` defaults to `false`. A freshly-launched Quail runs `llama-server` with no `--api-key` at all, on `127.0.0.1`, same as it always has. The Settings → Endpoint toggle is the only way to turn one on; enabling it generates a random 32-byte key (Keychain-only, never in `config.json`) and passes it as `--api-key`.
+**Why:** Matches Postgres.app's "trust" default on loopback (cited in ARCHITECTURE.md's own open question) — a local dev tool serving `127.0.0.1` isn't meaningfully more secure with an API key, since anything on the same machine that can reach loopback can also read the key out of Keychain or `ps`. The real risk is binding to `0.0.0.0` (LAN) with no key; Phase 4's one-time LAN-binding warning (ARCHITECTURE.md's UI table) is the point where Quail should actively steer users towards enabling one, not Phase 1 forcing it on unconditionally for everyone including the common loopback-only case.
+**Alternatives:** Default on everywhere (rejected — friction for the common case, and a key sitting in Keychain that every loopback process can already read isn't protecting much); default on only when host isn't loopback (deferred to Phase 4 alongside the LAN warning this PR doesn't implement, rather than half-building host-dependent defaulting now).
+**Answers ARCHITECTURE.md's open question:** "Should the API key default to on (random, shown once) or off for loopback?" — off, matching Postgres.app.
+**Revisit if:** Phase 4's LAN-binding warning ships and it turns out users routinely miss it — at that point, forcing the toggle on when `host != "127.0.0.1"` (rather than just warning) is worth reconsidering.
+
 ## D-009 · 2026-09-22 · llama.cpp vendoring: computed dependency closure, no `install_name_tool` rewriting
 
 **Decision:** `scripts/vendor-llama.sh` copies `llama-server` and its full `@rpath` dependency closure — computed by recursively walking `otool -L`, not a hardcoded library list — into `Vendor/llama.cpp/`, and does **not** run `install_name_tool -id`/`-change`. `scripts/verify-macho.sh` asserts every dependency is `@rpath/`, `@loader_path/`, `@executable_path/`, or a system path, failing loudly otherwise. A separate Xcode run-script build phase, `scripts/embed-llama.sh`, copies that same closure into `Contents/MacOS` on every build and signs each file with whatever identity Xcode resolved for that build (ad-hoc for `CODE_SIGNING_ALLOWED=NO`, the real Developer ID identity for a signed Release build) — this is where the "sign inside-out … `--timestamp --options runtime`" step from §9 actually happens, not in the vendor script.
