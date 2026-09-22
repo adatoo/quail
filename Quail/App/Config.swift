@@ -18,11 +18,15 @@ struct Config: Sendable, Equatable, Codable {
     var apiKeyEnabled: Bool = false
     var openAtLogin: Bool = false
     var autoStartServer: Bool = false
+    /// Set once the Models pane (Phase 2 step 7) lets someone relocate the
+    /// store; `Paths.resolveModelsDirectory(bookmark:)` turns this back
+    /// into a URL. `nil` means "use `Paths.defaultModelsDirectory`".
+    var modelsDirectoryBookmark: Data?
 
     init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case runtimeID, host, port, modelsMax, apiKeyEnabled, openAtLogin, autoStartServer
+        case runtimeID, host, port, modelsMax, apiKeyEnabled, openAtLogin, autoStartServer, modelsDirectoryBookmark
     }
 
     init(from decoder: Decoder) throws {
@@ -35,6 +39,8 @@ struct Config: Sendable, Equatable, Codable {
         apiKeyEnabled = try container.decodeIfPresent(Bool.self, forKey: .apiKeyEnabled) ?? fallback.apiKeyEnabled
         openAtLogin = try container.decodeIfPresent(Bool.self, forKey: .openAtLogin) ?? fallback.openAtLogin
         autoStartServer = try container.decodeIfPresent(Bool.self, forKey: .autoStartServer) ?? fallback.autoStartServer
+        modelsDirectoryBookmark = try container.decodeIfPresent(Data.self, forKey: .modelsDirectoryBookmark)
+            ?? fallback.modelsDirectoryBookmark
     }
 }
 

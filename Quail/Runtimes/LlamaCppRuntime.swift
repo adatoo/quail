@@ -41,6 +41,9 @@ struct LlamaCppRuntime: Runtime {
         if let apiKey = config.apiKey, !apiKey.isEmpty {
             args += ["--api-key", apiKey]
         }
+        if let presetsFile = config.presetsFile {
+            args += ["--models-preset", presetsFile.path]
+        }
         // Deliberately no --no-webui: the built-in web UI stays available
         // by default (docs/IMPLEMENTATION_PLAN.md Phase 1 step 3).
         return LaunchSpec(
