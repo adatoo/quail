@@ -8,6 +8,14 @@ import Foundation
 /// key-value section, and unwanted values within that section — including
 /// huge string arrays like `tokenizer.ggml.tokens` — are skipped by
 /// advancing past their byte length, never decoded.
+///
+/// Beyond the fields ARCHITECTURE.md §7 lists by name, this also reads
+/// `key_length`/`value_length` and `expert_count`/`expert_used_count` —
+/// confirmed present as real keys in the vendored llama.cpp binary's own
+/// string table (`strings Vendor/llama.cpp/libllama*.dylib`). `FitEstimator`
+/// needs a true head dimension (not always `embedding_length / head_count`
+/// — see `keyLength`'s doc comment) and MoE active-expert counts for the
+/// speed estimate.
 struct GGUFMetadata: Sendable, Equatable {
     var architecture: String?
     var blockCount: Int?
@@ -19,6 +27,24 @@ struct GGUFMetadata: Sendable, Equatable {
     /// undecoded — turning this into a human quant label like "Q4_K_M" is
     /// a display concern for whatever reads this struct, not this parser.
     var fileType: Int?
+    /// `<arch>.attention.key_length` — the true per-head attention
+    /// dimension, when the architecture writes one explicitly. Confirmed
+    /// against the vendored llama.cpp binary's own string table that this
+    /// key exists in real builds; only present when it differs from
+    /// `embedding_length / head_count` (mirrors MLX's `head_dim`, which
+    /// has the same "don't assume it divides evenly" caveat — see
+    /// `MLXMetadata.swift`). `nil` when the architecture doesn't write it,
+    /// in which case `embedding_length / head_count` is the fallback.
+    var keyLength: Int?
+    /// `<arch>.attention.value_length` — same story as `keyLength`, for
+    /// the value projection's per-head dimension.
+    var valueLength: Int?
+    /// `<arch>.expert_count` — total routable experts, for MoE
+    /// architectures. `nil` for dense models.
+    var expertCount: Int?
+    /// `<arch>.expert_used_count` — experts activated per token, for MoE
+    /// architectures. `nil` for dense models.
+    var expertUsedCount: Int?
 
     enum GGUFReadError: Error, Equatable {
         case notAGGUFFile
@@ -69,6 +95,18 @@ struct GGUFMetadata: Sendable, Equatable {
                     continue
                 case "\(arch).attention.head_count":
                     result.headCount = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).attention.key_length":
+                    result.keyLength = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).attention.value_length":
+                    result.valueLength = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).expert_count":
+                    result.expertCount = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).expert_used_count":
+                    result.expertUsedCount = try cursor.readScalarAsInt(type: type)
                     continue
                 default:
                     break

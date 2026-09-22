@@ -126,6 +126,70 @@ struct GGUFMetadataTests {
         #expect(metadata.fileType == 15)
     }
 
+    @Test("reads key_length/value_length when the architecture writes them explicitly")
+    func readsExplicitKeyAndValueLength() throws {
+        var fixture = GGUFFixtureBuilder()
+        fixture.addString("general.architecture", "gemma2")
+        // Mirrors mlx-community/gemma-2-9b-it-4bit's real config: hidden
+        // 3584 over 16 heads is 224, but the real per-head dim is 256 —
+        // key_length/value_length is how GGUF spells that out explicitly.
+        fixture.addUInt32("gemma2.embedding_length", 3584)
+        fixture.addUInt32("gemma2.attention.head_count", 16)
+        fixture.addUInt32("gemma2.attention.key_length", 256)
+        fixture.addUInt32("gemma2.attention.value_length", 256)
+        let url = try fixture.write()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let metadata = try GGUFMetadata.read(from: url)
+
+        #expect(metadata.keyLength == 256)
+        #expect(metadata.valueLength == 256)
+    }
+
+    @Test("key_length/value_length are nil when the architecture doesn't write them")
+    func missingKeyAndValueLengthAreNil() throws {
+        var fixture = GGUFFixtureBuilder()
+        fixture.addString("general.architecture", "llama")
+        fixture.addUInt32("llama.embedding_length", 4096)
+        fixture.addUInt32("llama.attention.head_count", 32)
+        let url = try fixture.write()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let metadata = try GGUFMetadata.read(from: url)
+
+        #expect(metadata.keyLength == nil)
+        #expect(metadata.valueLength == nil)
+    }
+
+    @Test("reads expert_count/expert_used_count for a MoE architecture")
+    func readsExpertCounts() throws {
+        var fixture = GGUFFixtureBuilder()
+        fixture.addString("general.architecture", "qwen3moe")
+        fixture.addUInt32("qwen3moe.expert_count", 128)
+        fixture.addUInt32("qwen3moe.expert_used_count", 8)
+        let url = try fixture.write()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let metadata = try GGUFMetadata.read(from: url)
+
+        #expect(metadata.expertCount == 128)
+        #expect(metadata.expertUsedCount == 8)
+    }
+
+    @Test("expert_count/expert_used_count are nil for a dense architecture")
+    func missingExpertCountsAreNilForDenseModel() throws {
+        var fixture = GGUFFixtureBuilder()
+        fixture.addString("general.architecture", "llama")
+        fixture.addUInt32("llama.block_count", 32)
+        let url = try fixture.write()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let metadata = try GGUFMetadata.read(from: url)
+
+        #expect(metadata.expertCount == nil)
+        #expect(metadata.expertUsedCount == nil)
+    }
+
     @Test("general.architecture appearing after the keys it namespaces still resolves")
     func architectureOrderIndependent() throws {
         var fixture = GGUFFixtureBuilder()
@@ -188,6 +252,10 @@ struct GGUFMetadataTests {
         #expect(metadata.embeddingLength == nil)
         #expect(metadata.headCount == nil)
         #expect(metadata.fileType == nil)
+        #expect(metadata.keyLength == nil)
+        #expect(metadata.valueLength == nil)
+        #expect(metadata.expertCount == nil)
+        #expect(metadata.expertUsedCount == nil)
     }
 
     @Test("no general.architecture key leaves architecture and every namespaced field nil")

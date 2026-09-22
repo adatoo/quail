@@ -14,6 +14,7 @@
 		2025E52063DD98DFCBE2947A /* GGUFMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F31B617CA8019BFAC6C2FF8 /* GGUFMetadata.swift */; };
 		2AB54DF34364E60EB414F204 /* FakeRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */; };
 		3430F195CEBC5CF8261D57D2 /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB03FA5B5C74DB6E5B963EF2 /* AppStateTests.swift */; };
+		3BCA43382C343027C7FB0981 /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5017B60F5810B38F0C09B7F3 /* DeviceInfo.swift */; };
 		3D0EB48D9129E71E6B3A43E2 /* ModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E932070B21FCE331F0977B5 /* ModelStore.swift */; };
 		3D4B8A0405C4485889775071 /* HealthProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */; };
 		3E4CFBB8E487B89E99CA3D1B /* FakeSecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EF96D4F00F64BCEE9E13B3 /* FakeSecretStore.swift */; };
@@ -23,14 +24,17 @@
 		47DAABA1E882A6CD01680186 /* MLXMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF36C9C4B0032D9BDA798A6 /* MLXMetadata.swift */; };
 		4A67F045D85B57F300F618D5 /* MLXMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */; };
 		530F6395D5751008F12153DC /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653A70D18AA958C1F75CD511 /* AppState.swift */; };
+		58924A4F3EE841D42D8D721E /* DeviceInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50419AA3D40B6B9BAEDBF837 /* DeviceInfoTests.swift */; };
 		66B3DA5DEF7A55577F3A8813 /* ProcessSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */; };
 		702EF962A21D3A10FC5E62A8 /* StoreCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */; };
 		711387A1DA5998F40B757612 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7109E7D7686B314F8156BAC7 /* LoginItem.swift */; };
 		78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */; };
 		78A0C100BA7CBC5B2B1F3FA8 /* PathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202E2A8059B6ABFB4874ED71 /* PathsTests.swift */; };
+		78FECD20C76D7176307998ED /* FitEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8CD21849DF52BA5CDB319AC /* FitEstimator.swift */; };
 		798F1C09C23FA25832FFAC3B /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5C298F9956FEEED5E539F2 /* Config.swift */; };
 		845C332E6D75F8E7D4CF3E1A /* LogStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */; };
 		8D88704579DC44780C153B31 /* GGUFMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1946EC80763A824682094C0 /* GGUFMetadataTests.swift */; };
+		9317F0C660C4BDE4BC7A980E /* FitEstimatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AE0E33AD95285152C0DD917 /* FitEstimatorTests.swift */; };
 		A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */; };
 		A97EF1AD2BF0945DC2C70167 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */; };
 		AF8F824B4E7AD00629E4BEC8 /* PingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5907867E917EAA9CB82DDAAF /* PingTests.swift */; };
@@ -68,6 +72,8 @@
 		3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreCatalog.swift; sourceTree = "<group>"; };
 		3C313E49C170F38D115B7E22 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthProbe.swift; sourceTree = "<group>"; };
+		5017B60F5810B38F0C09B7F3 /* DeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfo.swift; sourceTree = "<group>"; };
+		50419AA3D40B6B9BAEDBF837 /* DeviceInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfoTests.swift; sourceTree = "<group>"; };
 		5907867E917EAA9CB82DDAAF /* PingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PingTests.swift; sourceTree = "<group>"; };
 		5BF75DEC1D436363C620CA16 /* Runtime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Runtime.swift; sourceTree = "<group>"; };
 		5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXMetadataTests.swift; sourceTree = "<group>"; };
@@ -87,6 +93,7 @@
 		94F86147309B95CB624585AB /* Paths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paths.swift; sourceTree = "<group>"; };
 		97B32A723E276ED3F733ACB2 /* ModelStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelStoreTests.swift; sourceTree = "<group>"; };
 		97C5FEC519D2CD76691F38A2 /* LlamaCppRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppRuntime.swift; sourceTree = "<group>"; };
+		9AE0E33AD95285152C0DD917 /* FitEstimatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitEstimatorTests.swift; sourceTree = "<group>"; };
 		B0456E0B59C5B4A2C4303E13 /* ConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigTests.swift; sourceTree = "<group>"; };
 		B44B50F18DB9B66BCFEB8060 /* PingSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PingSheet.swift; sourceTree = "<group>"; };
 		B472EFE40DDB9C26209BE18D /* Quail-AppStore.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Quail-AppStore.entitlements"; sourceTree = "<group>"; };
@@ -97,6 +104,7 @@
 		D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStore.swift; sourceTree = "<group>"; };
 		D54B98A3385069A2422F5027 /* Quail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Quail.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D69BCA84C093F9E62CA1941F /* Quail.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Quail.entitlements; sourceTree = "<group>"; };
+		D8CD21849DF52BA5CDB319AC /* FitEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitEstimator.swift; sourceTree = "<group>"; };
 		E5340652668A6D7507752E82 /* QuailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailApp.swift; sourceTree = "<group>"; };
 		EB9482F330D14ABD97C3CB8A /* LogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStore.swift; sourceTree = "<group>"; };
 		EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSupervisor.swift; sourceTree = "<group>"; };
@@ -118,8 +126,10 @@
 				70BF19344F23B98FA299585E /* AppInfoTests.swift */,
 				CB03FA5B5C74DB6E5B963EF2 /* AppStateTests.swift */,
 				B0456E0B59C5B4A2C4303E13 /* ConfigTests.swift */,
+				50419AA3D40B6B9BAEDBF837 /* DeviceInfoTests.swift */,
 				857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */,
 				11EF96D4F00F64BCEE9E13B3 /* FakeSecretStore.swift */,
+				9AE0E33AD95285152C0DD917 /* FitEstimatorTests.swift */,
 				C1946EC80763A824682094C0 /* GGUFMetadataTests.swift */,
 				6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */,
 				69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */,
@@ -189,6 +199,7 @@
 				D69BCA84C093F9E62CA1941F /* Quail.entitlements */,
 				E5340652668A6D7507752E82 /* QuailApp.swift */,
 				46B1875E207F95A8F989B8C9 /* App */,
+				DD8C8330D9D8560E53B9C0F3 /* DeviceFit */,
 				2E999F1E3ABC71EC44FB61BC /* Models */,
 				E253BF4A5D3962970AE9AF43 /* Runtimes */,
 				53B832DE71E161DCFCCB0CC3 /* Server */,
@@ -204,6 +215,15 @@
 				86E04BE051B50D9C82809577 /* QuailTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		DD8C8330D9D8560E53B9C0F3 /* DeviceFit */ = {
+			isa = PBXGroup;
+			children = (
+				5017B60F5810B38F0C09B7F3 /* DeviceInfo.swift */,
+				D8CD21849DF52BA5CDB319AC /* FitEstimator.swift */,
+			);
+			path = DeviceFit;
 			sourceTree = "<group>";
 		};
 		E253BF4A5D3962970AE9AF43 /* Runtimes */ = {
@@ -322,6 +342,8 @@
 				419CB9320DD2555B4214B403 /* AppInfo.swift in Sources */,
 				530F6395D5751008F12153DC /* AppState.swift in Sources */,
 				798F1C09C23FA25832FFAC3B /* Config.swift in Sources */,
+				3BCA43382C343027C7FB0981 /* DeviceInfo.swift in Sources */,
+				78FECD20C76D7176307998ED /* FitEstimator.swift in Sources */,
 				2025E52063DD98DFCBE2947A /* GGUFMetadata.swift in Sources */,
 				3D4B8A0405C4485889775071 /* HealthProbe.swift in Sources */,
 				E7B46F57608AA37F1533608B /* LlamaCppRuntime.swift in Sources */,
@@ -351,8 +373,10 @@
 				D14CDB94C0DC992397CDE352 /* AppInfoTests.swift in Sources */,
 				3430F195CEBC5CF8261D57D2 /* AppStateTests.swift in Sources */,
 				D577E84C9E4191CBAED0D203 /* ConfigTests.swift in Sources */,
+				58924A4F3EE841D42D8D721E /* DeviceInfoTests.swift in Sources */,
 				2AB54DF34364E60EB414F204 /* FakeRuntime.swift in Sources */,
 				3E4CFBB8E487B89E99CA3D1B /* FakeSecretStore.swift in Sources */,
+				9317F0C660C4BDE4BC7A980E /* FitEstimatorTests.swift in Sources */,
 				8D88704579DC44780C153B31 /* GGUFMetadataTests.swift in Sources */,
 				A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */,
 				78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */,
