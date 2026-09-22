@@ -34,6 +34,40 @@ struct HFDownloaderSmokeTest {
     private static let expectedSize: Int64 = 639_446_688
     private static let expectedSHA256 = "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031"
 
+    @Test("real Hub: 8 MiB ranged header fetch parses into a live-fit ModelShape")
+    func realHeaderFetchForPreDownloadVerdict() async throws {
+        // The pre-download verdict's exact network path: a Range GET on
+        // resolve/main/... through the CDN redirect into
+        // GGUFMetadata.parse. Cheaper than the full download and runs
+        // under the same sentinel as that test.
+        guard FileManager.default.fileExists(atPath: Self.sentinel) else {
+            print("\(Self.sentinel) not found; skipping. See this file's header to run manually.")
+            return
+        }
+        let downloader = HFDownloader()
+        let repo = try await downloader.listFiles(repo: Self.repo)
+        let file = try #require(repo.files.first { $0.remotePath == Self.remotePath })
+
+        let header = try await downloader.fetchHeader(repo: Self.repo, file: file)
+        #expect(header.count > 200)
+        let metadata = try GGUFMetadata.parse(header)
+        #expect(metadata.architecture == "qwen3")
+        let shape = try #require(ModelShape.from(gguf: metadata, weightBytes: file.sizeBytes))
+        let device = DeviceInfo.current()
+        let estimate = try #require(FitEstimator.estimate(
+            model: shape,
+            device: device,
+            runtime: .llamaCpp,
+            bandwidthTable: ChipBandwidthTable.loadFromBundle()
+        ))
+        // A 0.6B Q8_0 (639 MB) fits comfortably on any Mac that can run
+        // Quail at all.
+        #expect(estimate.verdict == .comfortable)
+        print(
+            "smoke header-fetch passed: qwen3 \(shape.layerCount) layers, \(estimate.estimatedTokensPerSecond.map { "\(Int($0.rounded())) tok/s est." } ?? "no speed estimate")"
+        )
+    }
+
     @Test("real Hub: list, download 639 MB GGUF, verify sha256, resume from half")
     func realHubDownloadAndResume() async throws {
         guard FileManager.default.fileExists(atPath: Self.sentinel) else {
