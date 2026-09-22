@@ -113,6 +113,71 @@ struct AppStateTests {
         #expect(first != second)
     }
 
+    @Test("regenerateAPIKey produces a 32-character hex string (16 bytes)")
+    func regenerateAPIKeyLength() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+
+        appState.setAPIKeyEnabled(true)
+        let key = try #require(appState.apiKey)
+
+        // 16 random bytes, hex-encoded — see AppState.generateAPIKey's doc
+        // comment for why this was shortened from 32 bytes/64 characters.
+        #expect(key.count == 32)
+        // swiftformat:disable:next preferKeyPath
+        #expect(key.allSatisfy { $0.isHexDigit })
+    }
+
+    @Test("setAPIKey stores a user-chosen key while enabled")
+    func setAPIKeyStoresCustomKey() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let secretStore = FakeSecretStore()
+        let appState = makeAppState(scratchDir: scratch, secretStore: secretStore)
+
+        appState.setAPIKeyEnabled(true)
+        appState.setAPIKey("my-own-custom-key")
+
+        #expect(appState.apiKey == "my-own-custom-key")
+        #expect(try secretStore.get(account: "llamaCppAPIKey") == "my-own-custom-key")
+    }
+
+    @Test("setAPIKey trims surrounding whitespace")
+    func setAPIKeyTrimsWhitespace() {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+
+        appState.setAPIKeyEnabled(true)
+        appState.setAPIKey("  padded-key  \n")
+
+        #expect(appState.apiKey == "padded-key")
+    }
+
+    @Test("setAPIKey no-ops on an empty or whitespace-only key")
+    func setAPIKeyNoOpsOnEmptyKey() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+
+        appState.setAPIKeyEnabled(true)
+        let originalKey = try #require(appState.apiKey)
+
+        appState.setAPIKey("   ")
+        #expect(appState.apiKey == originalKey)
+    }
+
+    @Test("setAPIKey no-ops while the API key toggle is disabled")
+    func setAPIKeyNoOpsWhileDisabled() {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+
+        appState.setAPIKey("should-not-be-stored")
+        #expect(appState.apiKey == nil)
+    }
+
     @Test("a config loaded with apiKeyEnabled but no stored key starts the runtime without --api-key")
     func endpointConfigOmitsAPIKeyWhenNoneStored() async {
         var config = Config()
