@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// The MenuBarExtra's dropdown content.
+/// The MenuBarExtra's dropdown content: status, Start/Stop, Settings, Quit.
 ///
-/// Phase 1 will add status, current model, Start/Stop, Test… and Logs…
-/// (docs/IMPLEMENTATION_PLAN.md, "Menu" step). This is the minimal shell
-/// that proves the app launches as a menu-bar-only item.
+/// "Test…" and "Logs…" (docs/IMPLEMENTATION_PLAN.md Phase 1 steps 8–9) land
+/// in the next PR alongside the ping sheet and log window they open.
 struct MenuView: View {
     let appState: AppState
 
@@ -12,8 +11,27 @@ struct MenuView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(appState.statusLabel)
+            Label(appState.statusLabel, systemImage: appState.statusSymbolName)
                 .font(.headline)
+
+            if case let .failed(reason) = appState.serverController.phase {
+                Text(reason)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            if appState.canStart {
+                Button("Start") {
+                    Task { await appState.start() }
+                }
+            } else {
+                Button("Stop") {
+                    Task { await appState.stop() }
+                }
+                .disabled(!appState.canStop)
+            }
 
             Divider()
 
@@ -30,6 +48,6 @@ struct MenuView: View {
             .keyboardShortcut("q")
         }
         .padding(8)
-        .frame(minWidth: 200)
+        .frame(minWidth: 220)
     }
 }

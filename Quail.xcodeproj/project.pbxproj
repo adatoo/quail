@@ -9,19 +9,25 @@
 /* Begin PBXBuildFile section */
 		16C023CA506F7A2439BD7726 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C313E49C170F38D115B7E22 /* SettingsView.swift */; };
 		2AB54DF34364E60EB414F204 /* FakeRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */; };
+		3430F195CEBC5CF8261D57D2 /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB03FA5B5C74DB6E5B963EF2 /* AppStateTests.swift */; };
 		3D4B8A0405C4485889775071 /* HealthProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */; };
+		3E4CFBB8E487B89E99CA3D1B /* FakeSecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EF96D4F00F64BCEE9E13B3 /* FakeSecretStore.swift */; };
 		419CB9320DD2555B4214B403 /* AppInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81725CFCB6D74EB402C92CD /* AppInfo.swift */; };
 		430E89F9BAD4B4183FB1E2F8 /* ServerControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1105E578FC33E291B560DFEE /* ServerControllerTests.swift */; };
 		530F6395D5751008F12153DC /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653A70D18AA958C1F75CD511 /* AppState.swift */; };
 		66B3DA5DEF7A55577F3A8813 /* ProcessSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */; };
+		711387A1DA5998F40B757612 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7109E7D7686B314F8156BAC7 /* LoginItem.swift */; };
 		78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */; };
+		798F1C09C23FA25832FFAC3B /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5C298F9956FEEED5E539F2 /* Config.swift */; };
 		845C332E6D75F8E7D4CF3E1A /* LogStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */; };
 		A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */; };
+		A97EF1AD2BF0945DC2C70167 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */; };
 		B62BFE886200969B22216A6A /* LogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9482F330D14ABD97C3CB8A /* LogStore.swift */; };
 		BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F86147309B95CB624585AB /* Paths.swift */; };
 		C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */; };
 		D14CDB94C0DC992397CDE352 /* AppInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70BF19344F23B98FA299585E /* AppInfoTests.swift */; };
 		D21903B2E76547FABF0D784A /* ServerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B6A68D6E8CFFF1B6142EB1 /* ServerController.swift */; };
+		D577E84C9E4191CBAED0D203 /* ConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0456E0B59C5B4A2C4303E13 /* ConfigTests.swift */; };
 		E20F2581D31F14C3DAA57F66 /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174474DD711C1D0D6ACAE912 /* MenuView.swift */; };
 		E7B46F57608AA37F1533608B /* LlamaCppRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97C5FEC519D2CD76691F38A2 /* LlamaCppRuntime.swift */; };
 		FAAC603389E9A8652CD31502 /* Runtime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF75DEC1D436363C620CA16 /* Runtime.swift */; };
@@ -40,6 +46,7 @@
 
 /* Begin PBXFileReference section */
 		1105E578FC33E291B560DFEE /* ServerControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerControllerTests.swift; sourceTree = "<group>"; };
+		11EF96D4F00F64BCEE9E13B3 /* FakeSecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeSecretStore.swift; sourceTree = "<group>"; };
 		174474DD711C1D0D6ACAE912 /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
 		3C313E49C170F38D115B7E22 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthProbe.swift; sourceTree = "<group>"; };
@@ -48,15 +55,20 @@
 		653A70D18AA958C1F75CD511 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppRuntimeTests.swift; sourceTree = "<group>"; };
 		70BF19344F23B98FA299585E /* AppInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfoTests.swift; sourceTree = "<group>"; };
+		7109E7D7686B314F8156BAC7 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
+		7D5C298F9956FEEED5E539F2 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		81B6A68D6E8CFFF1B6142EB1 /* ServerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerController.swift; sourceTree = "<group>"; };
 		857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeRuntime.swift; sourceTree = "<group>"; };
 		86E04BE051B50D9C82809577 /* QuailTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuailTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSupervisorTests.swift; sourceTree = "<group>"; };
 		94F86147309B95CB624585AB /* Paths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paths.swift; sourceTree = "<group>"; };
 		97C5FEC519D2CD76691F38A2 /* LlamaCppRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppRuntime.swift; sourceTree = "<group>"; };
+		B0456E0B59C5B4A2C4303E13 /* ConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigTests.swift; sourceTree = "<group>"; };
 		B472EFE40DDB9C26209BE18D /* Quail-AppStore.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Quail-AppStore.entitlements"; sourceTree = "<group>"; };
 		B81725CFCB6D74EB402C92CD /* AppInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfo.swift; sourceTree = "<group>"; };
 		C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStoreTests.swift; sourceTree = "<group>"; };
+		CB03FA5B5C74DB6E5B963EF2 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
+		D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStore.swift; sourceTree = "<group>"; };
 		D54B98A3385069A2422F5027 /* Quail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Quail.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D69BCA84C093F9E62CA1941F /* Quail.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Quail.entitlements; sourceTree = "<group>"; };
 		E5340652668A6D7507752E82 /* QuailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailApp.swift; sourceTree = "<group>"; };
@@ -78,7 +90,10 @@
 			isa = PBXGroup;
 			children = (
 				70BF19344F23B98FA299585E /* AppInfoTests.swift */,
+				CB03FA5B5C74DB6E5B963EF2 /* AppStateTests.swift */,
+				B0456E0B59C5B4A2C4303E13 /* ConfigTests.swift */,
 				857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */,
+				11EF96D4F00F64BCEE9E13B3 /* FakeSecretStore.swift */,
 				6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */,
 				69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */,
 				C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */,
@@ -102,7 +117,10 @@
 			children = (
 				B81725CFCB6D74EB402C92CD /* AppInfo.swift */,
 				653A70D18AA958C1F75CD511 /* AppState.swift */,
+				7D5C298F9956FEEED5E539F2 /* Config.swift */,
+				7109E7D7686B314F8156BAC7 /* LoginItem.swift */,
 				94F86147309B95CB624585AB /* Paths.swift */,
+				D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -255,14 +273,17 @@
 			files = (
 				419CB9320DD2555B4214B403 /* AppInfo.swift in Sources */,
 				530F6395D5751008F12153DC /* AppState.swift in Sources */,
+				798F1C09C23FA25832FFAC3B /* Config.swift in Sources */,
 				3D4B8A0405C4485889775071 /* HealthProbe.swift in Sources */,
 				E7B46F57608AA37F1533608B /* LlamaCppRuntime.swift in Sources */,
 				B62BFE886200969B22216A6A /* LogStore.swift in Sources */,
+				711387A1DA5998F40B757612 /* LoginItem.swift in Sources */,
 				E20F2581D31F14C3DAA57F66 /* MenuView.swift in Sources */,
 				BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */,
 				66B3DA5DEF7A55577F3A8813 /* ProcessSupervisor.swift in Sources */,
 				FE3F1D8FFB1AB2BA257B7DD5 /* QuailApp.swift in Sources */,
 				FAAC603389E9A8652CD31502 /* Runtime.swift in Sources */,
+				A97EF1AD2BF0945DC2C70167 /* SecretStore.swift in Sources */,
 				D21903B2E76547FABF0D784A /* ServerController.swift in Sources */,
 				16C023CA506F7A2439BD7726 /* SettingsView.swift in Sources */,
 			);
@@ -273,7 +294,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				D14CDB94C0DC992397CDE352 /* AppInfoTests.swift in Sources */,
+				3430F195CEBC5CF8261D57D2 /* AppStateTests.swift in Sources */,
+				D577E84C9E4191CBAED0D203 /* ConfigTests.swift in Sources */,
 				2AB54DF34364E60EB414F204 /* FakeRuntime.swift in Sources */,
+				3E4CFBB8E487B89E99CA3D1B /* FakeSecretStore.swift in Sources */,
 				A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */,
 				78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */,
 				845C332E6D75F8E7D4CF3E1A /* LogStoreTests.swift in Sources */,

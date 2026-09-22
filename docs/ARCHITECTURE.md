@@ -240,10 +240,10 @@ flowchart LR
 
 ## 10. Open questions
 
-- [ ] Should the API key default to on (random, shown once) or off for loopback? Postgres.app defaults to trust on localhost.
+- [x] Should the API key default to on (random, shown once) or off for loopback? Postgres.app defaults to trust on localhost. **Resolved:** off, regardless of host — see ADR D-010.
 - [ ] Rapid-MLX: confirm current `serve` accepts a local model directory and whether `/v1/models` exists in the pinned version.
 - [ ] oMLX: confirm the `/admin` load/unload endpoints are stable enough to use, or rely on auto-load only.
-- [ ] Whether to let llama-server keep two models loaded (`--models-max 2`) for fast switching on 64 GB+ machines.
+- [x] Whether to let llama-server keep two models loaded (`--models-max 2`) for fast switching on 64 GB+ machines. **Resolved for Phase 1:** default is `1`; revisit once the Models pane can show loaded state — see ADR D-011.
 - [ ] Where the appcast and remote catalog live (GitHub Releases vs the app's own domain).
 
 ## Sources

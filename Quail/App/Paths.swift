@@ -40,6 +40,15 @@ enum Paths {
         logs.appendingPathComponent("\(runtime.rawValue).log", isDirectory: false)
     }
 
+    /// The vendored `llama-server`, embedded as a sibling of Quail's own
+    /// executable in `Contents/MacOS` by `scripts/embed-llama.sh` on every
+    /// build — see that script and D-009.
+    static var llamaServerExecutable: URL {
+        (Bundle.main.executableURL ?? URL(fileURLWithPath: "/dev/null"))
+            .deletingLastPathComponent()
+            .appendingPathComponent("llama-server", isDirectory: false)
+    }
+
     /// Creates every directory this enum points at, if missing. Safe to call
     /// repeatedly (e.g. on every app launch).
     static func ensureDirectoriesExist() throws {
