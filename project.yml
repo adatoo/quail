@@ -1,0 +1,101 @@
+name: Quail
+options:
+  bundleIdPrefix: com.datoos
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+
+configs:
+  Debug: debug
+  Release: release
+  Debug-AppStore: debug
+  Release-AppStore: release
+
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_HARDENED_RUNTIME: YES
+    GENERATE_INFOPLIST_FILE: YES
+    INFOPLIST_KEY_LSUIElement: YES
+    INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Arif Datoo. MIT Licence."
+    INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    GCC_TREAT_WARNINGS_AS_ERRORS: YES
+    CODE_SIGN_STYLE: Automatic
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+
+targets:
+  Quail:
+    type: application
+    platform: macOS
+    sources:
+      - path: Quail
+        excludes:
+          - "Resources/**"
+    resources:
+      - path: Quail/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.datoos.quail
+        PRODUCT_NAME: Quail
+        INFOPLIST_KEY_CFBundleDisplayName: Quail
+      configs:
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG"
+          CODE_SIGN_ENTITLEMENTS: Quail/Quail.entitlements
+        Release:
+          CODE_SIGN_ENTITLEMENTS: Quail/Quail.entitlements
+        Debug-AppStore:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG APPSTORE"
+          CODE_SIGN_ENTITLEMENTS: Quail/Quail-AppStore.entitlements
+        Release-AppStore:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "APPSTORE"
+          CODE_SIGN_ENTITLEMENTS: Quail/Quail-AppStore.entitlements
+    scheme:
+      testTargets:
+        - QuailTests
+      config: Debug
+
+  QuailTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: QuailTests
+    dependencies:
+      - target: Quail
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.datoos.quail.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Quail:
+    build:
+      targets:
+        Quail: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - QuailTests
+    archive:
+      config: Release
+
+  Quail-AppStore:
+    build:
+      targets:
+        Quail: all
+    run:
+      config: Debug-AppStore
+    test:
+      config: Debug-AppStore
+      targets:
+        - QuailTests
+    archive:
+      config: Release-AppStore

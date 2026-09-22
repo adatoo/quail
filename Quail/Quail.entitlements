@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	 Developer ID (direct) build: no App Sandbox. Hardened runtime is enabled
+	 via ENABLE_HARDENED_RUNTIME in project.yml. See docs/ARCHITECTURE.md §2
+	 and §9 for the signing rules; no entitlement keys are needed here yet
+	 because llama.cpp's Metal path does not JIT.
+	-->
+</dict>
+</plist>

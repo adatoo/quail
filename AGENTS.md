@@ -17,11 +17,14 @@ Quail is a macOS menu bar app (SwiftUI, Swift 6, macOS 14+) that runs local LLM 
 ## Build and test
 
 ```
+xcodegen generate                  # only needed after editing project.yml; Quail.xcodeproj is committed
 xcodebuild -scheme Quail -configuration Debug build
 xcodebuild -scheme Quail test
 scripts/vendor-llama.sh            # once per llama.cpp bump; updates Vendor/llama.cpp
 otool -L Vendor/llama.cpp/llama-server   # must show only @executable_path and /usr/lib, /System
 ```
+
+The Xcode project is generated from `project.yml` (see ADR D-008 in docs/DECISIONS.md). Edit `project.yml`, not the `.xcodeproj` directly, then re-run `xcodegen generate` and commit both.
 
 Smoke test after any change to Server/ or Runtimes/: place a small GGUF in the store, Start, run the Ping sheet. Ping must pass.
 
