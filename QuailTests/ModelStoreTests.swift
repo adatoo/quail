@@ -10,7 +10,7 @@ struct ModelStoreTests {
         return ModelStore(rootURL: root)
     }
 
-    @Test("ensureDirectoriesExist creates gguf, mlx and hf-cache")
+    @Test("ensureDirectoriesExist creates gguf, mlx, hf-cache and .partial")
     func ensureDirectoriesExistCreatesLayout() throws {
         let store = scratchStore()
         defer { try? FileManager.default.removeItem(at: store.rootURL) }
@@ -21,6 +21,7 @@ struct ModelStoreTests {
         #expect(fm.fileExists(atPath: store.ggufDirectory.path))
         #expect(fm.fileExists(atPath: store.mlxDirectory.path))
         #expect(fm.fileExists(atPath: store.hfCacheDirectory.path))
+        #expect(fm.fileExists(atPath: store.partialDirectory.path))
     }
 
     @Test("ensureDirectoriesExist is safe to call repeatedly")

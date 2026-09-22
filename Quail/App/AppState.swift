@@ -30,6 +30,7 @@ final class AppState {
     private let secretStore: any SecretStore
 
     private static let apiKeyAccount = "llamaCppAPIKey"
+    private static let hfTokenAccount = "huggingFaceToken"
 
     /// - Parameter modelsRootURL: overrides `ModelStore`'s root — tests
     ///   pass a scratch temp directory so they never touch the real
@@ -193,6 +194,35 @@ final class AppState {
         guard !trimmed.isEmpty else { return }
         try? secretStore.set(trimmed, account: Self.apiKeyAccount)
         apiKey = trimmed
+    }
+
+    // MARK: - Hugging Face token
+
+    /// A user's HF access token, for `HFDownloader` to send as
+    /// `Authorization: Bearer` when downloading from a gated repo — see
+    /// docs/ARCHITECTURE.md §6 ("Gated repos take a user-supplied HF
+    /// token stored in Keychain"). No Settings UI reads or writes this
+    /// yet; it lands with Phase 2 step 7's Models pane, the first thing
+    /// that actually needs to prompt for one.
+    ///
+    /// Deliberately a computed pass-through to `secretStore`, unlike
+    /// `apiKey` above — there's no view observing this yet, so the
+    /// `@Observable` reactivity problem `apiKey` hit doesn't apply here.
+    /// If a future UI binds to this directly, learn from that: give it a
+    /// real stored property, updated explicitly by whatever sets it,
+    /// rather than reading through on every access.
+    var hfToken: String? {
+        try? secretStore.get(account: Self.hfTokenAccount)
+    }
+
+    func setHFToken(_ token: String) {
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        try? secretStore.set(trimmed, account: Self.hfTokenAccount)
+    }
+
+    func clearHFToken() {
+        try? secretStore.delete(account: Self.hfTokenAccount)
     }
 
     // MARK: - Open at login
