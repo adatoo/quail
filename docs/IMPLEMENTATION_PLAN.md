@@ -93,18 +93,24 @@ Goal: a menu bar app that runs the bundled `llama-server` against a folder and t
 
 **Done when:** a fresh user picks a recommended model, downloads it, and passes the ping test without touching a terminal.
 
-## Phase 3 — MLX runtimes (direct build only)
+## Phase 3 — MLX runtimes
 
-1. **Vendor uv.** `scripts/vendor-uv.sh` fetches the pinned `uv-aarch64-apple-darwin.tar.gz`, verifies sha256, signs. Copied to `Contents/MacOS/uv`.
-2. **RuntimeInstaller.** Env: `UV_TOOL_DIR`, `UV_TOOL_BIN_DIR`, `UV_PYTHON_INSTALL_DIR`, `UV_CACHE_DIR` under `Application Support/Quail/Runtimes/`. Commands: `uv python install 3.12`, `uv tool install --python 3.12 'omlx==X'`, same for `rapid-mlx`. Stream output to the log window. Write `manifest.json` (package, pinned version, previous pin, installed-at, smoke-test result).
-3. **Version checks.** Daily `GET https://pypi.org/pypi/{pkg}/json`; compare with installed and with the adapter's `testedRange`. Three UI states: Up to date / Update available (tested) / Newer exists (untested).
-4. **Update flow.** Install new pin → smoke test (`serve` on a random port with the smallest MLX model in the store, `/v1/models` within 60 s) → promote → keep previous pin for rollback. Rollback = reinstall previous pin from cache.
-5. **OMLXRuntime.** `omlx serve --model-dir <store>/mlx --port --api-key`; health via `/v1/models`; web UI `/admin`; select = set default model, auto-load. Investigate `/admin` load/unload endpoints; use only if stable.
-6. **RapidMLXRuntime.** `rapid-mlx serve <model-path> --models-dir <store>/mlx --port --api-key` with `HF_HOME=<store>/hf-cache`; health via `/readyz`; select = restart. Never call `launch` or `service`.
-7. **Runtimes pane.** Per-runtime card: state, version, tested range, Install / Update / Roll back / Uninstall, "open log".
-8. **Supervisor hardening.** `PYTHONUNBUFFERED=1`, `TERM=dumb`, stdin closed, 90 s bind timeout with a clear failure message.
+Four MLX adapters, not one — see ADR D-014. Steps 1–3 are the native Swift server Quail builds and ships itself (works in **both** builds, App Store included, since there's no Python involved); steps 4–10 are the two uv-installed Python runtimes (**direct build only**, per D-006 — the sandbox forbids downloading executable code).
 
-**Done when:** all three runtimes start from Settings against the same model folder, and a deliberate bad update (pin a broken version) rolls back cleanly.
+1. **MLXServer target.** New executable target (e.g. `Quail/MLXServer/`, `mlx-server` binary) linking `mlx-swift-lm` + `mlx-swift` via SwiftPM — the first dependency beyond Sparkle; needs its own ADR alongside AGENTS.md's rule update when this starts. `--host` (default `127.0.0.1`), `--port`, `--api-key`, `--models-dir <store>/mlx`.
+2. **MLXServerRuntime.** `Runtime` adapter mimicking llama-server's router shape: `GET /v1/models` returning `status.value`-style entries, `POST /models/load` for hot swap where feasible (MLX model swap cost differs from GGUF's — measure before assuming parity). `/v1/chat/completions` with SSE streaming, reusing `Ping`'s existing timing.
+3. **CI build + signing.** Compiling `mlx-swift`'s Metal shaders needs `xcodebuild`, not plain SwiftPM (already true for the whole project). Vendor nothing — this target is source, built and signed by Quail's own pipeline every release, unlike `llama-server`.
+4. **Vendor uv.** `scripts/vendor-uv.sh` fetches the pinned `uv-aarch64-apple-darwin.tar.gz`, verifies sha256, signs. Copied to `Contents/MacOS/uv`.
+5. **RuntimeInstaller.** Env: `UV_TOOL_DIR`, `UV_TOOL_BIN_DIR`, `UV_PYTHON_INSTALL_DIR`, `UV_CACHE_DIR` under `Application Support/Quail/Runtimes/`. Commands: `uv python install 3.12`, `uv tool install --python 3.12 'omlx==X'`, same for `rapid-mlx`. Stream output to the log window. Write `manifest.json` (package, pinned version, previous pin, installed-at, smoke-test result).
+6. **Version checks.** Daily `GET https://pypi.org/pypi/{pkg}/json`; compare with installed and with the adapter's `testedRange`. Three UI states: Up to date / Update available (tested) / Newer exists (untested).
+7. **Update flow.** Install new pin → smoke test (`serve` on a random port with the smallest MLX model in the store, `/v1/models` within 60 s) → promote → keep previous pin for rollback. Rollback = reinstall previous pin from cache.
+8. **OMLXRuntime.** `omlx serve --model-dir <store>/mlx --port --api-key`; health via `/v1/models`; web UI `/admin`; select = set default model, auto-load. Investigate `/admin` load/unload endpoints; use only if stable.
+9. **RapidMLXRuntime.** `rapid-mlx serve <model-path> --models-dir <store>/mlx --port --api-key` with `HF_HOME=<store>/hf-cache`; health via `/readyz`; select = restart. Never call `launch` or `service`.
+10. **Runtimes pane.** Per-runtime card: state, version, tested range, Install / Update / Roll back / Uninstall, "open log".
+11. **Supervisor hardening.** `PYTHONUNBUFFERED=1`, `TERM=dumb`, stdin closed, 90 s bind timeout with a clear failure message.
+12. **Cross-runtime benchmark.** Extend `Ping`'s per-step timing into a real comparison across all MLX adapters present (same model, same chip) — measured TTFT and tok/s per (model, chip, runtime), per ARCHITECTURE §7's calibration story. Decides which MLX runtime the picker recommends by default; not assumed up front.
+
+**Done when:** all four runtimes start from Settings against the same model folder, a deliberate bad Python-runtime update (pin a broken version) rolls back cleanly, and the benchmark has an answer for which MLX runtime is fastest on at least one real machine.
 
 ## Phase 4 — Polish and Store
 

@@ -89,6 +89,8 @@ protocol Runtime: Sendable {
 
 llama.cpp is bundled and always available; oMLX and Rapid-MLX are optional installs. Each adapter is a few hundred lines mapping the `Runtime` protocol onto that runtime's flags and endpoints.
 
+Phase 3 adds a fourth adapter for MLX that Quail builds and ships itself — a native Swift server on top of Apple's `mlx-swift-lm`, rather than a Python install or a vendored third-party binary. See ADR D-014 for why (in short: no bundleable MLX server exists today that's both App-Store-legal and meets D-010's `--api-key` requirement, and wrapping `libllama` to unify the GGUF path onto a from-scratch REST layer instead was evaluated and rejected — it would mean reimplementing router mode, Jinja chat-template rendering, and the built-in web UI AGENTS.md relies on, all of which already work in llama-server today). It mimics llama-server's router-mode API shape where practical, and is retained alongside — not instead of — oMLX and Rapid-MLX pending a real cross-runtime benchmark.
+
 | | llama.cpp `llama-server` | oMLX | Rapid-MLX |
 | --- | --- | --- | --- |
 | Delivery | Bundled binaries from the ggml-org GitHub release | `uv tool install omlx` (Python 3.11–3.13) | `uv tool install rapid-mlx` (Python 3.10+) |
@@ -107,6 +109,7 @@ llama.cpp is bundled and always available; oMLX and Rapid-MLX are optional insta
 - oMLX: `~/.omlx/settings.json` and CLI flags both exist; Quail passes flags only and leaves oMLX's own settings untouched so a user's terminal use keeps working. Its `/admin` load/unload API is undocumented and may change; treat it as best-effort and fall back to auto-load.
 - Rapid-MLX: the CLI patches IDE configs (`rapid-mlx launch`) and can install a system LaunchDaemon (`rapid-mlx service install`). Quail must never call those; it only ever runs `serve` and `pull`.
 - Version drift: each adapter declares a tested version range. Outside it Quail still launches the runtime but shows "untested version" in the status menu rather than refusing.
+- Quail's own MLX server (Phase 3, D-014): built from source by Quail's CI as a second executable target, not vendored as a release asset — there is no upstream release to pin. `--api-key` and a loopback-by-default `--host` from day one, matching every other runtime.
 
 ## 5. Runtime installation and updates (app-managed uv)
 
