@@ -38,6 +38,24 @@ extension AppState {
                 "\(line.timestamp.formatted(date: .omitted, time: .standard))  \(line.text)"
             }
             return ControlResponse(ok: true, logLines: Array(lines))
+        case .bench:
+            guard let model = request.model ?? config.defaultModelID else {
+                return .failure("No model given and no default set. See `quail list`.")
+            }
+            do {
+                return try await ControlResponse(ok: true, benchmark: runBenchmark(model: model))
+            } catch {
+                return .failure((error as? BenchmarkError)?.description ?? error.localizedDescription)
+            }
+        case .benchProgress:
+            return ControlResponse(ok: true, benchProgress: BenchProgress(
+                running: benchmarks.isRunning,
+                model: benchmarks.runningModel,
+                step: benchmarks.step,
+                fraction: benchmarks.fraction
+            ))
+        case .benchHistory:
+            return ControlResponse(ok: true, benchmarks: benchmarks.results)
         case .service:
             if let enabled = request.enabled {
                 setOpenAtLogin(enabled)

@@ -17,6 +17,12 @@ enum ControlPaths {
 
 enum ControlCommand: String, Codable, Sendable {
     case status, start, stop, restart, list, ps, endpoint, launch, logs, service
+    /// Runs the benchmark on `model` and answers when it's done.
+    case bench
+    /// What a running benchmark is doing — polled while `bench` waits.
+    case benchProgress
+    /// Saved benchmark results, newest first.
+    case benchHistory
 }
 
 struct ControlRequest: Codable, Sendable, Equatable {
@@ -40,6 +46,9 @@ struct ControlResponse: Codable, Sendable, Equatable {
     var launch: ToolLaunch?
     var logLines: [String]?
     var service: ServiceInfo?
+    var benchmark: BenchmarkResult?
+    var benchmarks: [BenchmarkResult]?
+    var benchProgress: BenchProgress?
 
     static func failure(_ message: String) -> ControlResponse {
         ControlResponse(ok: false, error: message)
@@ -90,6 +99,13 @@ struct ToolLaunch: Codable, Sendable, Equatable {
     var warnings: [String]
 }
 
+struct BenchProgress: Codable, Sendable, Equatable {
+    var running: Bool
+    var model: String?
+    var step: String
+    var fraction: Double
+}
+
 struct ServiceInfo: Codable, Sendable, Equatable {
     var openAtLogin: Bool
     var autoStartServer: Bool
@@ -99,12 +115,15 @@ enum ControlCoding {
     static func encodeLine(_ value: some Encodable) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        encoder.dateEncodingStrategy = .iso8601
         var data = try encoder.encode(value)
         data.append(0x0A)
         return data
     }
 
     static func decode<T: Decodable>(_: T.Type, line: Data) throws -> T {
-        try JSONDecoder().decode(T.self, from: line)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(T.self, from: line)
     }
 }

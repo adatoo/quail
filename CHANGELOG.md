@@ -101,6 +101,15 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   only); Settings → General installs it to ~/.local/bin. "Start the server
   when Quail opens" is now a real setting.
 
+- Benchmark (ADR D-023): a fixed suite, `quail-bench-1` — prompt processing at
+  512 and 4096 tokens, generation over 256, time to first token and load
+  time, 3 runs after a warm-up — run from a new Benchmark window (menu, or a
+  Models row's context menu) or `quail bench [model]`. Results record the
+  Mac, model file, llama.cpp build and conditions, are saved, and can be
+  compared, copied as Markdown or exported as JSON. The Models tab shows each
+  model's measured generation speed. Whatever was loaded before a run is
+  loaded again after it.
+
 ### Fixed
 
 - Leaving the Models tab left its 2-second poll running flat out — the

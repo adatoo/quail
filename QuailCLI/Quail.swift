@@ -13,7 +13,7 @@ struct Quail: AsyncParsableCommand {
         version: "0.1.0",
         subcommands: [
             Status.self, Start.self, Stop.self, Restart.self,
-            List.self, PS.self, Run.self, Launch.self, Logs.self, Service.self,
+            List.self, PS.self, Run.self, Bench.self, Launch.self, Logs.self, Service.self,
         ]
     )
 }

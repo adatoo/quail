@@ -34,6 +34,11 @@ struct QuailApp: App {
         .defaultSize(width: 360, height: 220)
         .windowResizability(.contentSize)
 
+        Window("Benchmark", id: "benchmark") {
+            BenchmarkWindow(appState: appDelegate.appState).opensInFront()
+        }
+        .defaultSize(width: 900, height: 520)
+
         Window("Logs", id: "logs") {
             LogsWindow(appState: appDelegate.appState).opensInFront()
         }

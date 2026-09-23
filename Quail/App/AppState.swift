@@ -36,6 +36,9 @@ final class AppState {
     /// session.
     let installs: ModelInstallController
 
+    /// Benchmark runs and saved results (Phase 2b step 4, ADR D-023).
+    let benchmarks: BenchmarkController
+
     private let configURL: URL
     private let secretStore: any SecretStore
     let catalogLocations: Catalog.Locations
@@ -72,6 +75,7 @@ final class AppState {
         modelsRootURL: URL? = nil,
         catalogLocations: Catalog.Locations = .default,
         downloader: HFDownloader = HFDownloader(),
+        benchmarkStore: BenchmarkStore = .default,
         serverPreflight: (@Sendable (EndpointConfig) async -> PreflightResult)? = ServerPreflight.live
     ) {
         self.config = config
@@ -95,6 +99,7 @@ final class AppState {
         // and-egg would otherwise be permanent.
         try? store.ensureDirectoriesExist()
         installs = ModelInstallController(downloader: downloader, modelStore: store)
+        benchmarks = BenchmarkController(store: benchmarkStore)
         serverController = ServerController(runtime: runtime, logStore: logStore, preflight: serverPreflight)
         apiKey = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
         hfToken = try? secretStore.get(account: Self.hfTokenAccount)
