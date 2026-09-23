@@ -213,6 +213,14 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
 
 ### Changed
 
+- CI can run on a self-hosted Mac: set the `MAC_RUNNER` repo variable
+  (e.g. `mac-mini`) to move `build-and-test` onto it, and
+  `MAC_SIGNING_RUNNER` to move the release job onto a runner that runs as
+  its own macOS user (the release job replaces its default keychain).
+  Unset, both stay on GitHub-hosted `macos-26`. On a self-hosted Mac the
+  jobs use `/Applications/Xcode.app` and skip the `sudo xcode-select`
+  switch, and `build-and-test` now builds into a per-workspace
+  DerivedData so its Quail.app checks can't pick up a local build.
 - The bundled server now starts with `--models-preset`, so each model gets
   its `ctx-size`/`n-gpu-layers` from the store rather than llama.cpp's
   defaults (ADR D-012).

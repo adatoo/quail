@@ -13,16 +13,26 @@ concurrency:
 jobs:
   build-and-test:
     name: build-and-test
-    runs-on: macos-26
+    # vars.MAC_RUNNER (repo variable, e.g. `mac-mini`) moves this job onto the
+    # self-hosted Mac runner, which uses its default /Applications/Xcode.app.
+    # Unset it to go back to GitHub-hosted macos-26 with the pinned Xcode.
+    runs-on: ${{ vars.MAC_RUNNER || 'macos-26' }}
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: ${{ vars.MAC_RUNNER && '/Applications/Xcode.app/Contents/Developer' || '/Applications/Xcode_26.6.app/Contents/Developer' }}
+      # Per-workspace DerivedData so the Quail.app checks below can't pick up
+      # a stale build from the shared ~/Library DerivedData on a real Mac.
+      DERIVED_DATA: ${{ github.workspace }}/DerivedData
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Select Xcode
         run: |
-          sudo xcode-select -s "$DEVELOPER_DIR"
+          # DEVELOPER_DIR already selects Xcode for every step; the global
+          # switch needs passwordless sudo, which only hosted runners have.
+          if [ -z "${{ vars.MAC_RUNNER }}" ]; then
+            sudo xcode-select -s "$DEVELOPER_DIR"
+          fi
           xcodebuild -version
 
       - name: SwiftFormat lint
@@ -50,6 +60,7 @@ jobs:
           if [ -e Quail.xcodeproj ] || [ -e Quail.xcworkspace ]; then
             set -o pipefail
             xcodebuild -scheme Quail -configuration Debug build \
+              -derivedDataPath "$DERIVED_DATA" \
               CODE_SIGNING_ALLOWED=NO | xcbeautify
           else
             echo "No Xcode project yet; skipping build."
@@ -58,7 +69,7 @@ jobs:
       - name: Verify embedded Mach-O closure
         if: hashFiles('scripts/verify-macho.sh') != '' && hashFiles('Quail.xcodeproj/**') != ''
         run: |
-          APP="$(find ~/Library/Developer/Xcode/DerivedData -maxdepth 6 -name 'Quail.app' -path '*/Debug/*' -print -quit)"
+          APP="$(find "$DERIVED_DATA" -maxdepth 6 -name 'Quail.app' -path '*/Debug/*' -print -quit)"
           if [ -n "$APP" ] && [ -d "$APP/Contents/MacOS" ]; then
             scripts/verify-macho.sh "$APP/Contents/MacOS"
           else
@@ -68,7 +79,7 @@ jobs:
       - name: Verify bundled resources
         if: hashFiles('Quail.xcodeproj/**') != ''
         run: |
-          APP="$(find ~/Library/Developer/Xcode/DerivedData -maxdepth 6 -name 'Quail.app' -path '*/Debug/*' -print -quit)"
+          APP="$(find "$DERIVED_DATA" -maxdepth 6 -name 'Quail.app' -path '*/Debug/*' -print -quit)"
           if [ -z "$APP" ]; then
             echo "Quail.app not found under DerivedData; skipping."
           else
@@ -88,6 +99,7 @@ jobs:
           if [ -e Quail.xcodeproj ] || [ -e Quail.xcworkspace ]; then
             set -o pipefail
             xcodebuild -scheme Quail -configuration Debug test \
+              -derivedDataPath "$DERIVED_DATA" \
               -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO | xcbeautify
           else
             echo "No Xcode project yet; skipping tests."
