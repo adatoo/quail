@@ -62,6 +62,16 @@ struct AddModelSheet: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .frame(width: 200)
+                // `.sheet` supplies no close chrome on macOS. `detail`
+                // already has its own "Cancel"/"Close"/"Done" once a
+                // download starts (`.downloading` cancels the transfer
+                // itself, not just the sheet) — this header button fills
+                // the gap for every state before that, which previously
+                // had no button at all, only Esc.
+                if !isDownloadingOrInstalled {
+                    Button("Cancel") { dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                }
             }
             .padding()
 
@@ -198,6 +208,13 @@ struct AddModelSheet: View {
             .replacingOccurrences(of: "https://huggingface.co/", with: "")
         guard !repo.isEmpty else { return }
         selection = .pasted(repo)
+    }
+
+    private var isDownloadingOrInstalled: Bool {
+        switch appState.installs.phase {
+        case .downloading, .installed: true
+        case .idle, .failed: false
+        }
     }
 
     // MARK: - Right: the pick + verdict + action
