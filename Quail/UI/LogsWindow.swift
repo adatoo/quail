@@ -59,7 +59,11 @@ struct LogsWindow: View {
     private func tail() async {
         while !Task.isCancelled {
             lines = await appState.logStore.recentLines
-            try? await Task.sleep(for: .milliseconds(500))
+            do {
+                try await Task.sleep(for: .milliseconds(500))
+            } catch {
+                return
+            }
         }
     }
 

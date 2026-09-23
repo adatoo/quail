@@ -63,7 +63,11 @@ struct ThisMacPane: View {
         .task {
             while !Task.isCancelled {
                 device = DeviceInfo.current()
-                try? await Task.sleep(for: .seconds(2))
+                do {
+                    try await Task.sleep(for: .seconds(2))
+                } catch {
+                    return
+                }
             }
         }
     }

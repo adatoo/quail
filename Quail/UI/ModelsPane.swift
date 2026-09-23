@@ -47,40 +47,48 @@ struct ModelsPane: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Picker("Show", selection: $formatFilter) {
-                    ForEach(FormatFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
+        Form {
+            Section {
+                installedList
+            } header: {
+                HStack {
+                    Text("Installed")
+                    Spacer()
+                    Picker("Show", selection: $formatFilter) {
+                        ForEach(FormatFilter.allCases) { filter in
+                            Text(filter.rawValue).tag(filter)
+                        }
                     }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                    Button("Add Model…") {
+                        preselectFamily = nil
+                        showAddSheet = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 220)
-                Spacer()
-                Button("Add Model…") {
-                    preselectFamily = nil
-                    showAddSheet = true
+            } footer: {
+                if !rows.isEmpty {
+                    Text("Send \"model\": \"<id>\" in a request to pick a model — right-click a row to copy its id.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.borderedProminent)
-            }
-            .padding([.horizontal, .top])
-
-            installedList
-
-            if !rows.isEmpty {
-                Text("Send \"model\": \"<id>\" in a request to pick a model — right-click a row to copy its id.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
             }
 
-            Divider()
+            if appState.installs.phase != .idle || loadError != nil {
+                Section {
+                    installProgress
+                }
+            }
 
             storeSection
         }
-        .frame(minHeight: 320)
+        .formStyle(.grouped)
+        // A grouped Form scrolls, so its ideal height is tiny and the
+        // Settings window (which sizes to the tab) would collapse.
+        .frame(minHeight: 560)
         .sheet(isPresented: $showCleanUp) {
             CleanUpSheet(appState: appState)
         }
@@ -130,11 +138,7 @@ struct ModelsPane: View {
         // about it. 2 s, same cadence the Logs window tails at.
         .task(id: appState.serverController.phase) {
             await refresh()
-            while appState.serverController.phase == .ready {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                guard appState.serverController.phase == .ready else { break }
-                loadedStates = await appState.loadedModelStates()
-            }
+            await appState.pollLoadedStates { loadedStates = $0 }
         }
         .onChange(of: appState.storeRevision) { _, _ in
             Task { await refresh() }
@@ -183,9 +187,10 @@ struct ModelsPane: View {
                     showAddSheet = true
                 }
             )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
         } else {
-            List(entries) { entry in
+            ForEach(entries) { entry in
                 ModelRow(
                     entry: entry,
                     verdict: verdicts[entry.id],
@@ -216,7 +221,6 @@ struct ModelsPane: View {
                     }
                 )
             }
-            .frame(maxHeight: 260)
         }
     }
 
@@ -225,64 +229,56 @@ struct ModelsPane: View {
     /// Redesigned after user feedback: five buttons in one row truncated
     /// ("Show in Fin…") and squeezed the path to "/Users/…/Models".
     private var storeSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            installProgress
-
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
-                GridRow {
-                    Text("Models folder")
-                        .foregroundStyle(.secondary)
-                        .gridColumnAlignment(.trailing)
-                    HStack(spacing: 8) {
-                        Text((appState.modelStore.rootURL.path as NSString).abbreviatingWithTildeInPath)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .textSelection(.enabled)
-                            .help(appState.modelStore.rootURL.path)
-                        Spacer(minLength: 8)
-                        Button("Show in Finder") {
-                            NSWorkspace.shared.open(appState.modelStore.ggufDirectory)
-                        }
-                        .help("Open the GGUF models folder. Models added or deleted there show up here automatically.")
-                        Menu {
-                            Button("Clean Up…") { showCleanUp = true }
-                            Button("Move Folder…") { relocate() }
-                                .disabled(
-                                    appState.installs.isDownloading
-                                        || !appState.serverController.phase.isStoppedForRelocation
-                                )
-                            Divider()
-                            Button("Reload") { Task { await refresh() } }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                        }
-                        .menuStyle(.borderlessButton)
-                        .menuIndicator(.hidden)
-                        .fixedSize()
-                        .help("Clean up leftovers, move the folder, reload")
+        Section {
+            LabeledContent("Models folder") {
+                HStack(spacing: 8) {
+                    Text((appState.modelStore.rootURL.path as NSString).abbreviatingWithTildeInPath)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
+                        .help(appState.modelStore.rootURL.path)
+                    Button("Show in Finder") {
+                        NSWorkspace.shared.open(appState.modelStore.ggufDirectory)
                     }
-                }
-                GridRow {
-                    Text("Hugging Face token")
-                        .foregroundStyle(.secondary)
-                    HStack(spacing: 8) {
-                        SecureField("Only needed for gated repos", text: $tokenDraft)
-                            .textFieldStyle(.roundedBorder)
-                        Button("Save") {
-                            appState.setHFToken(tokenDraft)
-                            tokenDraft = appState.hfToken ?? ""
-                        }
-                        .disabled(tokenDraft.trimmingCharacters(in: .whitespaces).isEmpty)
-                        Button("Clear") {
-                            appState.clearHFToken()
-                            tokenDraft = ""
-                        }
-                        .disabled(appState.hfToken == nil)
+                    .help("Open the GGUF models folder. Models added or deleted there show up here automatically.")
+                    Menu {
+                        Button("Clean Up…") { showCleanUp = true }
+                        Button("Move Folder…") { relocate() }
+                            .disabled(
+                                appState.installs.isDownloading
+                                    || !appState.serverController.phase.isStoppedForRelocation
+                            )
+                        Divider()
+                        Button("Reload") { Task { await refresh() } }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                    .help("Clean up leftovers, move the folder, reload")
                 }
             }
+            LabeledContent("Hugging Face token") {
+                HStack(spacing: 8) {
+                    SecureField("Hugging Face token", text: $tokenDraft, prompt: Text("Only needed for gated repos"))
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
+                    Button("Save") {
+                        appState.setHFToken(tokenDraft)
+                        tokenDraft = appState.hfToken ?? ""
+                    }
+                    .disabled(tokenDraft.trimmingCharacters(in: .whitespaces).isEmpty)
+                    Button("Clear") {
+                        appState.clearHFToken()
+                        tokenDraft = ""
+                    }
+                    .disabled(appState.hfToken == nil)
+                }
+            }
+        } header: {
+            Text("Storage")
         }
-        .padding()
     }
 
     @ViewBuilder private var installProgress: some View {
@@ -362,7 +358,11 @@ struct ModelsPane: View {
             if states[id] == "loaded" || states[id] == nil {
                 return
             }
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            do {
+                try await Task.sleep(for: .seconds(1))
+            } catch {
+                return
+            }
         }
     }
 

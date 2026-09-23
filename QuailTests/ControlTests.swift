@@ -71,6 +71,8 @@ struct AppStateControlTests {
             .appendingPathComponent("quail-control-tests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
         let appState = AppState(
+            // Not the default `.load()` — that reads the real config.json.
+            config: Config(),
             configURL: scratch.appendingPathComponent("config.json"),
             secretStore: FakeSecretStore(),
             runtime: FakeRuntime(launchSpec: LaunchSpec(

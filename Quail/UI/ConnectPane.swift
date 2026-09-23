@@ -16,7 +16,6 @@ struct ConnectPane: View {
     @State private var fromAnotherDevice = false
     @State private var testOutcome: ConnectionTester.Outcome?
     @State private var testing = false
-    @State private var copied = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -35,19 +34,19 @@ struct ConnectPane: View {
 
             Divider()
 
-            ScrollView {
-                if let integration = selected {
-                    detail(for: integration)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(20)
-                } else {
-                    Text("Choose a tool.")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 300)
-                }
+            if let integration = selected {
+                detail(for: integration)
+            } else {
+                Text("Choose a tool.")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(minHeight: 520)
+        // Fixed, not min: the Settings window sizes to its tab, and a
+        // grouped Form's ideal height is all of its content — a long
+        // snippet plus notes made the window taller than the screen.
+        // The Form scrolls within this.
+        .frame(height: 600)
         .onAppear {
             if selectedID == nil {
                 selectedID = Self.integrations.first?.id
@@ -97,91 +96,144 @@ struct ConnectPane: View {
     // MARK: - Detail
 
     private func detail(for integration: Integration) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(integration.name).font(.title2.bold())
-                Link("Official setup docs", destination: integration.docsURL).font(.callout)
-            }
-
-            Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
-                GridRow {
-                    Text("Model").foregroundStyle(.secondary).gridColumnAlignment(.trailing)
-                    if installedModels.isEmpty {
+        Form {
+            Section {
+                if installedModels.isEmpty {
+                    LabeledContent("Model") {
                         Text("No models installed — add one in Models.").foregroundStyle(.secondary)
-                    } else {
-                        Picker("Model", selection: $model) {
-                            ForEach(installedModels, id: \.self) { Text($0).tag($0) }
-                        }
-                        .labelsHidden()
-                        .frame(maxWidth: 280)
+                    }
+                } else {
+                    Picker("Model", selection: $model) {
+                        ForEach(installedModels, id: \.self) { Text($0).tag($0) }
                     }
                 }
-                GridRow {
-                    Text("Used from").foregroundStyle(.secondary)
-                    Picker("Used from", selection: $fromAnotherDevice) {
-                        Text("This Mac").tag(false)
-                        Text("Another device").tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(maxWidth: 280)
+                Picker("Used from", selection: $fromAnotherDevice) {
+                    Text("This Mac").tag(false)
+                    Text("Another device").tag(true)
                 }
-                GridRow {
-                    Text("Goes in").foregroundStyle(.secondary)
-                    Text(integration.where).textSelection(.enabled)
-                }
+                .pickerStyle(.segmented)
+                .fixedSize()
+            } header: {
+                header(for: integration)
             }
 
-            if fromAnotherDevice {
-                networkNote
-            }
-
-            if let needed = integration.minContext, let running = contextSize(of: model), running < needed {
-                Label(
-                    "\(integration.name) needs at least \(RemoteFitBadge.contextLabel(needed)) of context; \(model) runs at \(RemoteFitBadge.contextLabel(running)). Raise it in Models (the “ctx” menu on its row), then restart the server.",
-                    systemImage: "exclamationmark.triangle.fill"
-                )
-                .foregroundStyle(.orange)
-                .fixedSize(horizontal: false, vertical: true)
-            }
+            warnings(for: integration)
 
             if let values {
                 let rendered = SnippetRenderer.render(integration.snippet, with: values)
-                ScrollView(.horizontal) {
-                    Text(rendered)
-                        .font(.system(.callout, design: .monospaced))
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: true, vertical: true)
-                        .padding(12)
+                Section {
+                    ScrollView(.horizontal) {
+                        Text(rendered)
+                            .font(.system(.callout, design: .monospaced))
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: true, vertical: true)
+                            .padding(.vertical, 4)
+                    }
+                    HStack(spacing: 10) {
+                        CopyButton(text: rendered)
+                            .keyboardShortcut("c", modifiers: [.command, .shift])
+                        Button("Test") { Task { await runTest(integration, values: values) } }
+                            .disabled(testing || appState.serverController.phase != .ready || model.isEmpty)
+                            .help(appState.serverController.phase == .ready
+                                ? "Send one tiny request exactly as this tool would"
+                                : "Start the server to test")
+                        testStatus
+                        Spacer()
+                    }
+                } header: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Configuration")
+                        Text("Goes in: \(integration.where)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fontWeight(.regular)
+                            .textSelection(.enabled)
+                    }
+                    .textCase(nil)
+                } footer: {
+                    if appState.serverController.phase != .ready {
+                        Text("Start the server to test the connection.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
 
-                HStack(spacing: 10) {
-                    Button(copied ? "Copied" : "Copy") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(rendered, forType: .string)
-                        copied = true
-                        Task {
-                            try? await Task.sleep(for: .seconds(1.5))
-                            copied = false
+                #if !APPSTORE
+                    if let launch = integration.launch {
+                        let command = "quail launch \(launch.aliases?.first ?? integration.id) -m \(model)"
+                        Section {
+                            LabeledContent {
+                                CopyButton(text: command)
+                            } label: {
+                                Text(command)
+                                    .font(.system(.callout, design: .monospaced))
+                                    .textSelection(.enabled)
+                            }
+                        } header: {
+                            Text("Or let Quail start it")
+                        } footer: {
+                            Text(
+                                "Runs \(integration.name) pointed at Quail for that session only — your own config is untouched."
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         }
                     }
-                    .keyboardShortcut("c", modifiers: [.command, .shift])
-                    Button("Test") { Task { await runTest(integration, values: values) } }
-                        .disabled(testing || appState.serverController.phase != .ready || model.isEmpty)
-                        .help(appState.serverController.phase == .ready
-                            ? "Send one tiny request exactly as this tool would"
-                            : "Start the server to test")
-                    testStatus
+                #endif
+
+                if let notes = integration.notes {
+                    Section("Notes") {
+                        Text(SnippetRenderer.render(notes, with: values))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
+        }
+        .formStyle(.grouped)
+    }
 
-            if let notes = integration.notes, let values {
-                Text(SnippetRenderer.render(notes, with: values))
+    private func header(for integration: Integration) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(integration.name)
+                    .font(.title2.bold())
+                    .foregroundStyle(.primary)
+                Text("\(integration.category.singular) · speaks \(integration.api.title)")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Link(destination: integration.docsURL) {
+                Label("Setup docs", systemImage: "arrow.up.right.square")
+            }
+            .font(.callout)
+        }
+        .textCase(nil)
+        .padding(.bottom, 6)
+    }
+
+    @ViewBuilder private func warnings(for integration: Integration) -> some View {
+        let contextShort: (needed: Int, running: Int)? = {
+            guard let needed = integration.minContext, let running = contextSize(of: model), running < needed
+            else { return nil }
+            return (needed, running)
+        }()
+        let networkWarning = fromAnotherDevice && (networkBase == nil || !appState.config.apiKeyEnabled)
+        if networkWarning || contextShort != nil {
+            Section {
+                if networkWarning {
+                    networkNote
+                }
+                if let contextShort {
+                    Label(
+                        "\(integration.name) needs at least \(RemoteFitBadge.contextLabel(contextShort.needed)) of context; \(model) runs at \(RemoteFitBadge.contextLabel(contextShort.running)). Raise it in Models (the “ctx” menu on its row), then restart the server.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }
@@ -233,5 +285,44 @@ struct ConnectPane: View {
         }
         testOutcome = await ConnectionTester.test(api: integration.api, values: local)
         testing = false
+    }
+}
+
+/// A Copy button that briefly reads "Copied".
+private struct CopyButton: View {
+    let text: String
+    @State private var copied = false
+
+    var body: some View {
+        Button(copied ? "Copied" : "Copy") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(text, forType: .string)
+            copied = true
+            Task {
+                try? await Task.sleep(for: .seconds(1.5))
+                copied = false
+            }
+        }
+    }
+}
+
+private extension Integration.Category {
+    var singular: String {
+        switch self {
+        case .codingAgent: "Coding agent"
+        case .editor: "Editor"
+        case .chatApp: "Chat app"
+        case .sdk: "Code"
+        }
+    }
+}
+
+private extension Integration.API {
+    var title: String {
+        switch self {
+        case .openAIChat: "OpenAI Chat Completions"
+        case .openAIResponses: "OpenAI Responses"
+        case .anthropic: "Anthropic Messages"
+        }
     }
 }

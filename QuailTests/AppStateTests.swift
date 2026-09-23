@@ -42,7 +42,8 @@ struct AppStateTests {
         // to an empty catalog outside `Quail.app` (see
         // `userCatalogRepoRoundTripThroughAppState`'s own expectation).
         catalogSeed: String? = nil,
-        downloader: HFDownloader = HFDownloader()
+        downloader: HFDownloader = HFDownloader(),
+        runtime: FakeRuntime? = nil
     )
         -> AppState
     {
@@ -65,7 +66,7 @@ struct AppStateTests {
             config: config,
             configURL: scratchDir.appendingPathComponent("config.json"),
             secretStore: secretStore,
-            runtime: FakeRuntime(launchSpec: launchSpec),
+            runtime: runtime ?? FakeRuntime(launchSpec: launchSpec),
             logStore: LogStore(),
             modelsRootURL: scratchDir.appendingPathComponent("Models", isDirectory: true),
             catalogLocations: .init(bundle: bundle, directory: scratchDir),
@@ -94,6 +95,40 @@ struct AppStateTests {
 
         await appState.stop()
         #expect(appState.statusLabel == "Stopped")
+    }
+
+    /// The live bug: the Models tab's poll, written as `while ready {
+    /// try? await Task.sleep … }`, kept spinning after SwiftUI cancelled
+    /// its `.task` — the cancelled sleep returns instantly — and hammered
+    /// `/models` until the Mac ran out of ephemeral ports.
+    @Test("pollLoadedStates stops calling the server once its task is cancelled")
+    func pollStopsOnCancel() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let runtime = FakeRuntime(launchSpec: LaunchSpec(
+            executableURL: URL(fileURLWithPath: "/bin/sleep"),
+            arguments: ["30"],
+            environment: [:],
+            currentDirectoryURL: nil
+        ))
+        let appState = makeAppState(scratchDir: scratch, runtime: runtime)
+        try writeFixtureGGUF(named: "Alpha", to: appState.modelStore)
+        await appState.start()
+        #expect(appState.serverController.phase == .ready)
+
+        let poll = Task { await appState.pollLoadedStates(every: .milliseconds(10)) { _ in } }
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(await runtime.listModelsCallCount > 2, "the poll should be running")
+
+        poll.cancel()
+        await poll.value
+        let afterCancel = await runtime.listModelsCallCount
+        try await Task.sleep(for: .milliseconds(300))
+        // AppState's own 2 s menu poll may add one call; a runaway loop
+        // adds thousands.
+        #expect(await runtime.listModelsCallCount - afterCancel <= 1)
+
+        await appState.stop()
     }
 
     private static func served(_ id: String, _ value: String, failed: Bool? = nil, exit: Int? = nil) -> ServedModel {

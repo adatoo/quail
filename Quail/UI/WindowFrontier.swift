@@ -25,6 +25,7 @@ struct WindowFrontier: NSViewRepresentable {
             super.viewDidMoveToWindow()
             guard let window else { return }
             window.collectionBehavior.formUnion([.moveToActiveSpace, .fullScreenAuxiliary])
+            WindowPresence.shared.track(window)
             DispatchQueue.main.async {
                 window.orderFrontRegardless()
                 window.makeKey()

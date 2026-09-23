@@ -18,6 +18,9 @@ actor FakeRuntime: Runtime {
     private var healthCallIndex = 0
     private var listModelsResult: Result<[ServedModel], Error> = .success([])
     private var selectResult: Result<SelectAction, Error> = .success(.hotSwapped)
+    /// How many times `listModels` has been called — lets a test prove a
+    /// poll really stopped, not just that it produced the right result.
+    private(set) var listModelsCallCount = 0
 
     /// - Parameters:
     ///   - launchSpec: returned unconditionally from `launchSpec(config:model:)`.
@@ -44,7 +47,8 @@ actor FakeRuntime: Runtime {
     }
 
     func listModels(base _: URL, apiKey _: String?) async throws -> [ServedModel] {
-        try listModelsResult.get()
+        listModelsCallCount += 1
+        return try listModelsResult.get()
     }
 
     func select(model _: ModelRef, base _: URL, apiKey _: String?) async throws -> SelectAction {

@@ -103,6 +103,21 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
 
 ### Fixed
 
+- Leaving the Models tab left its 2-second poll running flat out — the
+  cancelled sleep returned instantly — hammering `GET /models` until the Mac
+  ran out of local ports, so other connections (a second `quail run` turn,
+  even `git fetch`) failed with "Could not connect". Every poll loop now
+  exits on cancel.
+- `quail run` survives a server restart or a new API key mid-chat (it asks
+  Quail for the endpoint again and retries once), a failed turn no longer
+  leaves an unanswered message in the conversation, and connection errors
+  read as one line instead of an NSError dump.
+- Settings → General no longer jumps in size as the quail command is
+  installed or removed.
+- Quail's windows no longer get lost behind other apps after switching
+  desktops and back: a Quail window on the Space you return to is brought
+  back to the front.
+- The llama-server smoke test wrote into the user's real server log.
 - Start could go green for a server that wasn't Quail's: a `llama-server`
   orphaned by an earlier run (Xcode Stop, crash, `kill -9`) kept port 8080,
   Quail's new process failed to bind, but the orphan answered `/health`.

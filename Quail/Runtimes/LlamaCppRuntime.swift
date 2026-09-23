@@ -10,10 +10,15 @@ import Foundation
 struct LlamaCppRuntime: Runtime {
     let executableURL: URL
     private let urlSession: URLSession
+    /// Where llama-server writes its log; `nil` is the real one
+    /// (`Paths.logFile`). Tests that launch a real server pass their own,
+    /// so they never write into (or truncate) the user's log.
+    private let logFile: URL?
 
-    init(executableURL: URL, urlSession: URLSession = .shared) {
+    init(executableURL: URL, urlSession: URLSession = .shared, logFile: URL? = nil) {
         self.executableURL = executableURL
         self.urlSession = urlSession
+        self.logFile = logFile
     }
 
     var id: RuntimeID {
@@ -36,7 +41,7 @@ struct LlamaCppRuntime: Runtime {
             "--port", String(config.port),
             "--models-dir", config.modelsDirectory.path,
             "--models-max", String(config.modelsMax),
-            "--log-file", Paths.logFile(for: id).path,
+            "--log-file", (logFile ?? Paths.logFile(for: id)).path,
         ]
         if let apiKey = config.apiKey, !apiKey.isEmpty {
             args += ["--api-key", apiKey]

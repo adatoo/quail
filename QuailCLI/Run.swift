@@ -19,23 +19,19 @@ struct Run: AsyncParsableCommand {
     @Flag(help: "Hide a reasoning model's thinking.") var hideThinking = false
 
     func run() async throws {
-        try await AppLink.ensureRunning()
-        let endpointResponse = try await AppLink.request(ControlRequest(command: .endpoint))
-        try AppLink.check(endpointResponse)
-        guard let endpoint = endpointResponse.endpoint, let base = URL(string: endpoint.baseURL) else {
-            throw CLIError("No endpoint from Quail.")
-        }
+        let endpoint = try await Self.endpoint()
+        guard let base = URL(string: endpoint.baseURL) else { throw CLIError("No endpoint from Quail.") }
         guard let model = model ?? endpoint.defaultModel else {
             throw CLIError("No model given and no default set. See `quail list`.")
         }
         let chat = Chat(base: base, apiKey: endpoint.apiKey, model: model, showThinking: !hideThinking)
 
         if !prompt.isEmpty {
-            return try await chat.send(prompt.joined(separator: " "))
+            return try await Self.send(prompt.joined(separator: " "), with: chat)
         }
         if isatty(STDIN_FILENO) == 0 {
             let piped = String(decoding: FileHandle.standardInput.readDataToEndOfFile(), as: UTF8.self)
-            return try await chat.send(piped)
+            return try await Self.send(piped, with: chat)
         }
 
         print(Output.dim("Chatting with \(model). /clear to forget, /bye to exit."))
@@ -52,11 +48,44 @@ struct Run: AsyncParsableCommand {
                 print(Output.dim("Forgot the conversation."))
             default:
                 do {
-                    try await chat.send(text)
+                    try await Self.send(text, with: chat)
                 } catch {
                     FileHandle.standardError.write(Data("Error: \(error)\n".utf8))
                 }
             }
+        }
+    }
+
+    /// Makes sure Quail's server is up, then asks the app where it is.
+    private static func endpoint() async throws -> EndpointInfo {
+        try await AppLink.ensureRunning()
+        let response = try await AppLink.request(ControlRequest(command: .endpoint))
+        try AppLink.check(response)
+        guard let endpoint = response.endpoint else { throw CLIError("No endpoint from Quail.") }
+        return endpoint
+    }
+
+    /// Sends one turn; if the server couldn't be reached or refused the
+    /// key — it was restarted, stopped, or given a new key since the chat
+    /// began — asks the app for the endpoint again (starting the server
+    /// if need be) and retries once, keeping the conversation.
+    private static func send(_ text: String, with chat: Chat) async throws {
+        do {
+            try await chat.send(text)
+        } catch where Chat.isReconnectable(error) {
+            let endpoint = try await endpoint()
+            guard let base = URL(string: endpoint.baseURL) else { throw CLIError("No endpoint from Quail.") }
+            chat.retarget(base: base, apiKey: endpoint.apiKey)
+            do {
+                try await chat.send(text)
+            } catch let error as URLError {
+                throw CLIError(
+                    "Can't reach Quail's server at \(base.absoluteString) (\(error.localizedDescription)). See `quail status`."
+                )
+            }
+        } catch let error as URLError {
+            // URLError's own description is an NSError dump.
+            throw CLIError(error.localizedDescription)
         }
     }
 }
@@ -64,8 +93,8 @@ struct Run: AsyncParsableCommand {
 /// One conversation's worth of messages, streamed from
 /// `/v1/chat/completions`.
 final class Chat: @unchecked Sendable {
-    private let base: URL
-    private let apiKey: String?
+    private var base: URL
+    private var apiKey: String?
     private let model: String
     private let showThinking: Bool
     private var messages: [[String: String]] = []
@@ -81,8 +110,38 @@ final class Chat: @unchecked Sendable {
         messages = []
     }
 
+    /// Points the rest of the conversation at a (possibly new) endpoint.
+    func retarget(base: URL, apiKey: String?) {
+        self.base = base
+        self.apiKey = apiKey
+    }
+
+    /// Errors worth re-asking Quail for the endpoint over: nothing
+    /// listening (server stopped or restarting) or a stale API key.
+    static func isReconnectable(_ error: Error) -> Bool {
+        if let error = error as? HTTPStatusError {
+            return error.status == 401
+        }
+        guard let error = error as? URLError else { return false }
+        return [.cannotConnectToHost, .networkConnectionLost, .cannotFindHost, .notConnectedToInternet]
+            .contains(error.code)
+    }
+
+    /// Sends one user turn and streams the reply. A failed turn leaves the
+    /// conversation as it was — not with an unanswered user message that
+    /// the next request would carry.
     func send(_ text: String) async throws {
         messages.append(["role": "user", "content": text])
+        do {
+            let reply = try await stream()
+            messages.append(["role": "assistant", "content": reply])
+        } catch {
+            messages.removeLast()
+            throw error
+        }
+    }
+
+    private func stream() async throws -> String {
         var request = URLRequest(url: base.appending(path: "v1/chat/completions"))
         request.httpMethod = "POST"
         request.timeoutInterval = 600
@@ -103,7 +162,7 @@ final class Chat: @unchecked Sendable {
             }
             let message = (try? JSONSerialization.jsonObject(with: body) as? [String: Any])
                 .flatMap { ($0["error"] as? [String: Any])?["message"] as? String }
-            throw CLIError("HTTP \(http.statusCode)\(message.map { ": \($0)" } ?? "")")
+            throw HTTPStatusError(status: http.statusCode, message: message)
         }
 
         var reply = ""
@@ -140,6 +199,15 @@ final class Chat: @unchecked Sendable {
         if let stats {
             print(Output.dim(stats))
         }
-        messages.append(["role": "assistant", "content": reply])
+        return reply
+    }
+}
+
+struct HTTPStatusError: Error, CustomStringConvertible {
+    let status: Int
+    let message: String?
+
+    var description: String {
+        "HTTP \(status)\(message.map { ": \($0)" } ?? "")"
     }
 }
