@@ -62,7 +62,7 @@ struct MenuView: View {
                 .disabled(true)
             Button("Add model…") {
                 appState.settingsTab = .models
-                openSettings()
+                bringToFront { openSettings() }
             }
         } else if appState.canStart {
             Button("Start") {
@@ -76,18 +76,18 @@ struct MenuView: View {
         }
 
         Button("Test…") {
-            openWindow(id: "ping")
+            bringToFront { openWindow(id: "ping") }
         }
         .disabled(appState.serverController.phase != .ready)
 
         Button("Logs…") {
-            openWindow(id: "logs")
+            bringToFront { openWindow(id: "logs") }
         }
 
         Divider()
 
         Button("Settings…") {
-            openSettings()
+            bringToFront { openSettings() }
         }
         .keyboardShortcut(",")
 
@@ -97,5 +97,44 @@ struct MenuView: View {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")
+    }
+
+    /// Opens a window *in front*. Quail is a menu-bar-only app
+    /// (`LSUIElement`); on macOS 14+ `NSApp.activate()` is only a request
+    /// the frontmost app may decline, so Settings/Logs/Test used to open
+    /// behind other apps or on another Space (user-reported; confirmed via
+    /// the window server — the Settings window existed but wasn't
+    /// onscreen, because the frontmost app was full-screen on its own
+    /// Space). After opening, each visible Quail window is allowed onto
+    /// the current (possibly full-screen) Space and ordered front
+    /// regardless of activation, and the newest is made key.
+    private func bringToFront(_ open: () -> Void) {
+        let before = Set(NSApp.windows.filter(\.isVisible).map(ObjectIdentifier.init))
+        NSApp.activate()
+        open()
+        // SwiftUI shows the window a few run-loop turns later, so poll
+        // briefly for it rather than acting on the very next turn.
+        Task { @MainActor in
+            for _ in 0 ..< 20 {
+                let visible = NSApp.windows.filter { $0.isVisible && $0.canBecomeKey && $0.level == .normal }
+                let opened = visible.filter { !before.contains(ObjectIdentifier($0)) }
+                if let target = opened.last ?? (visible.isEmpty ? nil : visible.last) {
+                    for window in visible {
+                        // .fullScreenAuxiliary: may appear on a full-screen
+                        // app's Space — otherwise, with e.g. a full-screen
+                        // terminal in front, the window opens on the desktop
+                        // Space and seems to vanish (the user-reported case).
+                        window.collectionBehavior.formUnion([.moveToActiveSpace, .fullScreenAuxiliary])
+                    }
+                    target.orderFrontRegardless()
+                    target.makeKey()
+                    NSApp.activate()
+                    if !opened.isEmpty {
+                        return
+                    }
+                }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+        }
     }
 }

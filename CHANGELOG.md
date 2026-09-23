@@ -95,6 +95,13 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   from what the server was actually launched with.
 - The generated API key was a 32-character hex string that overflowed
   the Endpoint settings field; it's now 16-character base64url.
+- Settings, Logs and Test opened out of sight when another app was
+  full-screen: a menu-bar-only app can't force activation on macOS 14+, and
+  the window landed on the desktop Space. Windows opened from the menu now
+  join the current (full-screen) Space and are ordered front. The Models
+  pane's footer is redesigned (labelled "Models folder" and "Hugging Face
+  token" rows; Clean Up / Move Folder / Reload in a ⋯ menu; Add Model…
+  moved to the top) — five buttons in one row had truncated.
 - Models changed outside Quail (deleted or copied in Finder) are now
   picked up live: a folder watcher waits for copies to finish, then
   reconciles — `catalog.json` follows the disk, `presets.ini` is

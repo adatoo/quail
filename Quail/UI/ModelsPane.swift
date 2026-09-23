@@ -47,17 +47,33 @@ struct ModelsPane: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Picker("Show", selection: $formatFilter) {
-                ForEach(FormatFilter.allCases) { filter in
-                    Text(filter.rawValue).tag(filter)
+            HStack {
+                Picker("Show", selection: $formatFilter) {
+                    ForEach(FormatFilter.allCases) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 220)
+                Spacer()
+                Button("Add Model…") {
+                    preselectFamily = nil
+                    showAddSheet = true
+                }
+                .buttonStyle(.borderedProminent)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 220)
             .padding([.horizontal, .top])
 
             installedList
+
+            if !rows.isEmpty {
+                Text("Send \"model\": \"<id>\" in a request to pick a model — right-click a row to copy its id.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
+            }
 
             Divider()
 
@@ -199,54 +215,66 @@ struct ModelsPane: View {
         }
     }
 
+    /// Two labelled rows — the store folder and the Hugging Face token —
+    /// with the rarely used actions (Clean Up, Move, Reload) in a menu.
+    /// Redesigned after user feedback: five buttons in one row truncated
+    /// ("Show in Fin…") and squeezed the path to "/Users/…/Models".
     private var storeSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             installProgress
 
-            HStack {
-                Text("Store:")
-                    .foregroundStyle(.secondary)
-                Text(appState.modelStore.rootURL.path)
-                    .font(.system(.caption, design: .monospaced))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer()
-                Button("Show in Finder") {
-                    NSWorkspace.shared.open(appState.modelStore.ggufDirectory)
+            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
+                GridRow {
+                    Text("Models folder")
+                        .foregroundStyle(.secondary)
+                        .gridColumnAlignment(.trailing)
+                    HStack(spacing: 8) {
+                        Text((appState.modelStore.rootURL.path as NSString).abbreviatingWithTildeInPath)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                            .help(appState.modelStore.rootURL.path)
+                        Spacer(minLength: 8)
+                        Button("Show in Finder") {
+                            NSWorkspace.shared.open(appState.modelStore.ggufDirectory)
+                        }
+                        .help("Open the GGUF models folder. Models added or deleted there show up here automatically.")
+                        Menu {
+                            Button("Clean Up…") { showCleanUp = true }
+                            Button("Move Folder…") { relocate() }
+                                .disabled(
+                                    appState.installs.isDownloading
+                                        || !appState.serverController.phase.isStoppedForRelocation
+                                )
+                            Divider()
+                            Button("Reload") { Task { await refresh() } }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                        .menuStyle(.borderlessButton)
+                        .menuIndicator(.hidden)
+                        .fixedSize()
+                        .help("Clean up leftovers, move the folder, reload")
+                    }
                 }
-                .help("Open the GGUF models folder. Models added or deleted there show up here automatically.")
-                Button("Clean Up…") { showCleanUp = true }
-                    .help("Find leftover projector files and abandoned downloads")
-                Button("Add model…") {
-                    preselectFamily = nil
-                    showAddSheet = true
+                GridRow {
+                    Text("Hugging Face token")
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        SecureField("Only needed for gated repos", text: $tokenDraft)
+                            .textFieldStyle(.roundedBorder)
+                        Button("Save") {
+                            appState.setHFToken(tokenDraft)
+                            tokenDraft = appState.hfToken ?? ""
+                        }
+                        .disabled(tokenDraft.trimmingCharacters(in: .whitespaces).isEmpty)
+                        Button("Clear") {
+                            appState.clearHFToken()
+                            tokenDraft = ""
+                        }
+                        .disabled(appState.hfToken == nil)
+                    }
                 }
-                Button("Relocate…") { relocate() }
-                    .disabled(
-                        appState.installs.isDownloading
-                            || !appState.serverController.phase.isStoppedForRelocation
-                    )
-            }
-
-            if !rows.isEmpty {
-                Text("Send \"model\": \"<id>\" in a request to select one — right-click a row to copy its id.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            HStack {
-                SecureField("Hugging Face token (for gated repos)", text: $tokenDraft)
-                    .textFieldStyle(.roundedBorder)
-                Button("Save") {
-                    appState.setHFToken(tokenDraft)
-                    tokenDraft = appState.hfToken ?? ""
-                }
-                .disabled(tokenDraft.trimmingCharacters(in: .whitespaces).isEmpty)
-                Button("Clear") {
-                    appState.clearHFToken()
-                    tokenDraft = ""
-                }
-                .disabled(appState.hfToken == nil)
             }
         }
         .padding()
