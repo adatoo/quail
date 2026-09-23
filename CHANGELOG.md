@@ -36,6 +36,19 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
 - Settings: the endpoint API key is now editable, copyable, regenerable
   (and visibly so — fixing a stored-vs-computed observation bug), generated
   shorter, and there's a slot for a Hugging Face token in Keychain.
+- `Recommender` + `Catalog.tier(forMemoryBytes:)`: the Add-model sheet now
+  shows a "Recommended for this Mac" section (curated, in-tier, Comfortable
+  families, sorted by rank) ahead of the full list, with a fit verdict and
+  ~tok/s per row fetched via `AppState.loadCatalogVerdicts()`. The Models
+  pane's empty state names the top pick instead of a bare "Add model…"
+  button.
+- A "This Mac" Settings tab: chip, core counts, unified memory, GPU
+  working-set ceiling, free memory, memory bandwidth, RAM tier, marketing
+  name, model identifier, GPU core count, and macOS version — new
+  `DeviceInfo` fields read via IOKit, with a "Copy Details" button.
+- Start now refuses to run with no installed GGUF (`AppState.canStart`/
+  `hasServableModel`); the menu shows "No model installed" and an "Add
+  model…" shortcut into Settings instead of starting an empty router.
 
 ### Changed
 
