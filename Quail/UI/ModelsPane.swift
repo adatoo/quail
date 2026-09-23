@@ -217,6 +217,12 @@ struct ModelsPane: View {
                     )
             }
 
+            if !rows.isEmpty {
+                Text("Send \"model\": \"<id>\" in a request to select one — right-click a row to copy its id.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             HStack {
                 SecureField("Hugging Face token (for gated repos)", text: $tokenDraft)
                     .textFieldStyle(.roundedBorder)
@@ -360,6 +366,19 @@ private struct ModelRow: View {
             Text(entry.id)
                 .lineLimit(1)
                 .truncationMode(.middle)
+                // Confirmed undiscoverable otherwise: `entry.id` is
+                // exactly the string a client must send as `"model"` in
+                // its request body (the preset alias — ModelStore.
+                // regeneratePresets), but nothing in the app said so
+                // anywhere. A context menu on the id itself, right where
+                // you'd look for it.
+                .contextMenu {
+                    Button("Copy Model ID") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(entry.id, forType: .string)
+                    }
+                }
+                .help("Send \"model\": \"\(entry.id)\" in requests to select this one")
             Badge(text: entry.format == .gguf ? "GGUF" : "MLX", color: entry.format == .gguf ? .blue : .purple)
             if loaded == "loaded" {
                 Badge(text: "loaded", color: .green)
