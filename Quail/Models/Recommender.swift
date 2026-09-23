@@ -65,10 +65,29 @@ enum Recommender {
     /// whatever quant `AppState.loadCatalogVerdicts` resolved (the
     /// catalog's own recommended default) — one verdict per family is
     /// what "is this worth recommending" needs, not every quant's.
+    ///
+    /// Ordered by `rank`, then by estimated speed on this Mac (faster
+    /// first), then size — so among equally good models a fast MoE beats
+    /// a slow dense one. Size alone used to break ties, which put an
+    /// older Qwen3 32B above its successor Qwen3.8 27B.
     static func finalize(candidates: [Catalog.Family], verdicts: [String: FitEstimate]) -> [Catalog.Family] {
-        Array(candidates.filter { family in
-            guard let repo = family.gguf?.repo, let verdict = verdicts[repo] else { return false }
-            return verdict.verdict == .comfortable
-        }.prefix(limit))
+        let comfortable: [(family: Catalog.Family, speed: Double)] = candidates.compactMap { family in
+            guard let repo = family.gguf?.repo, let verdict = verdicts[repo], verdict.verdict == .comfortable else {
+                return nil
+            }
+            return (family, verdict.estimatedTokensPerSecond ?? -1)
+        }
+        let ordered = comfortable.enumerated().sorted { lhs, rhs in
+            let (l, r) = (lhs.element, rhs.element)
+            let (lr, rr) = (l.family.rank ?? .max, r.family.rank ?? .max)
+            if lr != rr {
+                return lr < rr
+            }
+            if l.speed != r.speed {
+                return l.speed > r.speed
+            }
+            return lhs.offset < rhs.offset // keep `candidates`' own order (rank, then size)
+        }
+        return Array(ordered.prefix(limit).map(\.element.family))
     }
 }

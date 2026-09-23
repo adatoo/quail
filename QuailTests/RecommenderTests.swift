@@ -118,4 +118,26 @@ struct RecommenderTests {
 
         #expect(finalized.map(\.id) == ["SmallB"])
     }
+
+    @Test("finalize: within a rank, faster on this Mac comes first; rank still dominates")
+    func finalizeTieBreaksBySpeed() {
+        let candidates = [
+            Self.family(id: "Dense32B", paramsB: 32, rank: 1), // candidates' own order: larger first
+            Self.family(id: "MoE26B", paramsB: 26, rank: 1),
+            Self.family(id: "Fast8B", paramsB: 8, rank: 2),
+        ]
+        func verdict(_ speed: Double) -> FitEstimate {
+            FitEstimate(verdict: .comfortable, ramNeededBytes: 1, estimatedTokensPerSecond: speed)
+        }
+        let verdicts = [
+            "org/Dense32B-GGUF": verdict(10),
+            "org/MoE26B-GGUF": verdict(180),
+            "org/Fast8B-GGUF": verdict(400),
+        ]
+        #expect(Recommender.finalize(candidates: candidates, verdicts: verdicts).map(\.id) == [
+            "MoE26B",
+            "Dense32B",
+            "Fast8B",
+        ])
+    }
 }
