@@ -69,8 +69,11 @@ struct DeviceInfoTests {
     func gpuCoreCountIsPositiveWhenPresent() {
         let info = DeviceInfo.current()
 
-        // Absent in a headless CI environment with no GPU accelerator
-        // service registered is acceptable; zero or negative isn't.
+        // Absent on a CI VM's paravirtual GPU is acceptable; on a real Mac
+        // it isn't — an `if let` here once hid a lookup that never worked.
+        if ProcessInfo.processInfo.environment["CI"] == nil {
+            #expect(info.gpuCoreCount != nil)
+        }
         if let cores = info.gpuCoreCount {
             #expect(cores > 0)
         }

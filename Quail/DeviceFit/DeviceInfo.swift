@@ -131,10 +131,14 @@ struct DeviceInfo: Sendable, Equatable {
 
     /// See `gpuCoreCount`'s doc comment for why this walks the registry
     /// rather than matching a known class name.
+    /// Matches the generic `IOAccelerator` base class, which IOKit matching
+    /// extends to every per-generation subclass. (An earlier version passed
+    /// the main port to `IORegistryEntryCreateIterator`, which wants a
+    /// registry *entry* — it never found anything, and the pane showed "—".)
     private static func currentGPUCoreCount() -> Int? {
         var iterator: io_iterator_t = 0
-        guard IORegistryEntryCreateIterator(
-            kIOMainPortDefault, kIOServicePlane, IOOptionBits(kIORegistryIterateRecursively), &iterator
+        guard IOServiceGetMatchingServices(
+            kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &iterator
         ) == KERN_SUCCESS else { return nil }
         defer { IOObjectRelease(iterator) }
 

@@ -12,30 +12,51 @@ struct ThisMacPane: View {
 
     var body: some View {
         Form {
-            LabeledContent("Mac", value: device.marketingName ?? "Unknown")
-            LabeledContent("Identifier", value: device.modelIdentifier ?? "—")
-            LabeledContent("Chip", value: device.chipName ?? "—")
-            LabeledContent("CPU cores", value: coreCountLine)
-            LabeledContent("GPU cores", value: device.gpuCoreCount.map(String.init) ?? "—")
+            Section("Hardware") {
+                LabeledContent("Mac", value: device.marketingName ?? "Unknown")
+                LabeledContent("Chip", value: device.chipName ?? "—")
+                LabeledContent("CPU cores", value: coreCountLine)
+                LabeledContent("GPU cores", value: device.gpuCoreCount.map(String.init) ?? "—")
+                LabeledContent("Model identifier", value: device.modelIdentifier ?? "—")
+            }
 
-            Divider()
+            Section {
+                LabeledContent("Unified memory", value: byteCount(device.unifiedMemoryBytes))
+                LabeledContent("Available to the GPU", value: byteCount(device.gpuWorkingSetCeilingBytes))
+                LabeledContent("Free right now", value: byteCount(device.freeMemoryBytes))
+                LabeledContent("Memory bandwidth", value: bandwidthLine)
+            } header: {
+                Text("Memory")
+            }
 
-            LabeledContent("Unified memory", value: byteCount(device.unifiedMemoryBytes))
-            LabeledContent("GPU working-set ceiling", value: byteCount(device.gpuWorkingSetCeilingBytes))
-            LabeledContent("Free right now", value: byteCount(device.freeMemoryBytes))
-            LabeledContent("Memory bandwidth", value: bandwidthLine)
-            LabeledContent("RAM tier", value: tierLine)
+            Section {
+                LabeledContent("Comfortable", value: comfortableLine)
+                LabeledContent("Largest that fits", value: largestLine)
+                LabeledContent("Catalog tier", value: tierName)
+            } header: {
+                Text("Model size")
+            } footer: {
+                Text(
+                    "Estimates for 4-bit (Q4_K_M) models at the default 8K context. Each model's own verdict in Models uses its real size."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
 
-            Divider()
-
-            LabeledContent("macOS", value: device.osVersion ?? "—")
+            Section("Software") {
+                LabeledContent("macOS", value: device.osVersion ?? "—")
+            }
 
             HStack {
                 Spacer()
                 Button("Copy Details") { copyDetails() }
             }
         }
-        .padding()
+        .formStyle(.grouped)
+        // A grouped Form scrolls, so its ideal height is tiny; the Settings
+        // window sizes to it (`fixedSize` in SettingsView). Tall enough to
+        // show every section without scrolling.
+        .frame(minHeight: 660)
         // Free memory in particular changes constantly (DeviceInfo's own
         // doc comment) — re-read on the same 2 s cadence the Models pane
         // polls loaded-state at, only while this tab is actually visible.
@@ -66,19 +87,27 @@ struct ThisMacPane: View {
         return "~\(Int(bandwidth)) GB/s"
     }
 
-    private var tierLine: String {
+    /// Just the tier's name. Its upper parameter bound is deliberately not
+    /// shown: the top tier's is an open-ended sentinel (999B in
+    /// catalog.json), which once displayed as "~35–999B models". The size
+    /// lines above come from this Mac's measured GPU ceiling instead.
+    private var tierName: String {
         guard let bytes = device.unifiedMemoryBytes,
-              let (name, tier) = appState.catalog.tier(forMemoryBytes: bytes)
+              let (name, _) = appState.catalog.tier(forMemoryBytes: bytes)
         else {
             return "—"
         }
-        let label = name.prefix(1).uppercased() + name.dropFirst()
-        guard let range = tier.recommendedRange else { return label }
-        return "\(label) · comfortable with ~\(formatParams(range.lowerBound))–\(formatParams(range.upperBound))B models"
+        return name.prefix(1).uppercased() + name.dropFirst()
     }
 
-    private func formatParams(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(value)) : String(format: "%.1f", value)
+    private var comfortableLine: String {
+        guard let ceiling = device.gpuWorkingSetCeilingBytes else { return "—" }
+        return "up to ~\(FitEstimator.approxMaxParamsB(gpuCeilingBytes: ceiling, comfortable: true))B parameters"
+    }
+
+    private var largestLine: String {
+        guard let ceiling = device.gpuWorkingSetCeilingBytes else { return "—" }
+        return "~\(FitEstimator.approxMaxParamsB(gpuCeilingBytes: ceiling, comfortable: false))B parameters (tight)"
     }
 
     private func byteCount(_ bytes: Int64?) -> String {
@@ -94,10 +123,12 @@ struct ThisMacPane: View {
             "CPU cores: \(coreCountLine)",
             "GPU cores: \(device.gpuCoreCount.map(String.init) ?? "—")",
             "Unified memory: \(byteCount(device.unifiedMemoryBytes))",
-            "GPU working-set ceiling: \(byteCount(device.gpuWorkingSetCeilingBytes))",
+            "Available to the GPU: \(byteCount(device.gpuWorkingSetCeilingBytes))",
             "Free right now: \(byteCount(device.freeMemoryBytes))",
             "Memory bandwidth: \(bandwidthLine)",
-            "RAM tier: \(tierLine)",
+            "Comfortable (4-bit): \(comfortableLine)",
+            "Largest that fits (4-bit): \(largestLine)",
+            "Catalog tier: \(tierName)",
             "macOS: \(device.osVersion ?? "—")",
         ]
         NSPasteboard.general.clearContents()

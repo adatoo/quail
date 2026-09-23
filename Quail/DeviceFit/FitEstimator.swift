@@ -142,6 +142,24 @@ enum FitEstimator {
         }
     }
 
+    /// Rough size (billions of parameters) of the largest model that fits
+    /// on a machine, for the "This Mac" pane — not for verdicts, which use
+    /// each model's real shape. Assumes a 4-bit quant (Q4_K_M, ~4.8 bits
+    /// or ~0.6 bytes per weight), a ~1.5 GB KV cache at the default
+    /// context, and llama.cpp's overhead.
+    ///
+    /// - Parameter comfortable: `true` for the comfortable bound (70% of
+    ///   the ceiling, as in `estimate`), `false` for "fits at all".
+    static func approxMaxParamsB(gpuCeilingBytes: Int64, comfortable: Bool) -> Int {
+        let bytesPerParam = 0.6
+        let kvAllowance = 1_500_000_000.0
+        let budget = Double(gpuCeilingBytes) * (comfortable ? comfortableFraction : 1.0)
+            - kvAllowance - Double(overheadBytes(for: .llamaCpp))
+        let params = max(0, budget / bytesPerParam / 1e9)
+        // Round down to a figure that doesn't claim false precision.
+        return params >= 20 ? Int(params / 5) * 5 : Int(params)
+    }
+
     /// RAM_needed = W + 2 · L · H_kv · d · b · C + O
     ///
     /// `kvCacheBytesPerElement` is `b` — 2 for an f16 KV cache, 1 for q8.

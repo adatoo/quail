@@ -95,6 +95,11 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   from what the server was actually launched with.
 - The generated API key was a 32-character hex string that overflowed
   the Endpoint settings field; it's now 16-character base64url.
+- This Mac: GPU cores always showed "—" (the IOKit lookup passed the
+  main port where a registry entry was expected), and the RAM tier line
+  printed the catalog's open-ended sentinel as "~35–999B models". Model
+  size is now estimated from the measured GPU ceiling (comfortable /
+  largest at 4-bit), and the pane uses grouped sections.
 - The menu's status came from config, not the server: "no default model"
   showed yellow even though requests worked, and a default model that
   failed to load still showed green. It now polls the router's `/models`

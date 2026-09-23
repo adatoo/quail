@@ -334,4 +334,13 @@ struct FitEstimatorTests {
         #expect((bandwidthTable["Apple M4 Pro"] as? Double) == 273)
         #expect(bandwidthTable.count >= 10)
     }
+
+    @Test("approxMaxParamsB: a 64 GB Mac's real ceiling gives ~55B comfortable, ~85B max — never a sentinel like 999")
+    func approxMaxParams() {
+        let ceiling: Int64 = 55_662_805_000 // 51.84 GB, as measured on a 64 GB M4 Pro
+        #expect(FitEstimator.approxMaxParamsB(gpuCeilingBytes: ceiling, comfortable: true) == 55)
+        #expect(FitEstimator.approxMaxParamsB(gpuCeilingBytes: ceiling, comfortable: false) == 85)
+        #expect(FitEstimator.approxMaxParamsB(gpuCeilingBytes: 16_000_000_000, comfortable: true) == 13)
+        #expect(FitEstimator.approxMaxParamsB(gpuCeilingBytes: 1_000_000_000, comfortable: true) == 0)
+    }
 }
