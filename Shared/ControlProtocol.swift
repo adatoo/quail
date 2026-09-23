@@ -23,6 +23,23 @@ enum ControlCommand: String, Codable, Sendable {
     case benchProgress
     /// Saved benchmark results, newest first.
     case benchHistory
+    /// Downloads `model` (a catalog name or owner/repo, `:quant` optional)
+    /// and answers when it's installed.
+    case pull
+    /// The running download's progress — polled while `pull` waits.
+    case pullProgress
+    case pullCancel
+    /// The downloadable catalog, with what's recommended and installed.
+    case catalog
+    /// Deletes the installed model `model`.
+    case remove
+    /// Sets (`model`), clears (`clear`) or reads the default model.
+    case setDefault
+    /// Sets `model`'s context (`contextSize`, or `automatic`), or reads
+    /// its options when neither is given.
+    case context
+    /// Where things are: endpoint, key, store, logs, settings.
+    case config
 }
 
 struct ControlRequest: Codable, Sendable, Equatable {
@@ -35,6 +52,12 @@ struct ControlRequest: Codable, Sendable, Equatable {
     var lines: Int?
     /// `service`: `nil` reads; true/false sets "always on".
     var enabled: Bool?
+    /// `context`: a fixed size in tokens.
+    var contextSize: Int?
+    /// `context`: back to Automatic.
+    var automatic: Bool?
+    /// `setDefault`: clear it.
+    var clear: Bool?
 }
 
 struct ControlResponse: Codable, Sendable, Equatable {
@@ -49,6 +72,12 @@ struct ControlResponse: Codable, Sendable, Equatable {
     var benchmark: BenchmarkResult?
     var benchmarks: [BenchmarkResult]?
     var benchProgress: BenchProgress?
+    var pullProgress: PullProgress?
+    var catalog: [CatalogEntryInfo]?
+    var contextOptions: ContextOptionsInfo?
+    var config: ConfigInfo?
+    /// A one-line outcome for commands that change something.
+    var message: String?
 
     static func failure(_ message: String) -> ControlResponse {
         ControlResponse(ok: false, error: message)
@@ -104,6 +133,63 @@ struct BenchProgress: Codable, Sendable, Equatable {
     var model: String?
     var step: String
     var fraction: Double
+}
+
+struct PullProgress: Codable, Sendable, Equatable {
+    var running: Bool
+    var repo: String?
+    var quant: String?
+    var bytesWritten: Int64
+    var totalBytes: Int64
+    var currentFile: String?
+}
+
+struct CatalogEntryInfo: Codable, Sendable, Equatable {
+    /// What `quail pull` takes, e.g. "qwen3-8b".
+    var id: String
+    var name: String
+    var paramsB: Double?
+    var role: String?
+    var ggufRepo: String?
+    var quants: [String]
+    var defaultQuant: String?
+    /// Among this Mac's recommendations (Recommender).
+    var recommended: Bool
+    /// Installed quants.
+    var installed: [String]
+}
+
+struct ContextOptionsInfo: Codable, Sendable, Equatable {
+    var model: String
+    var current: Int
+    var isAutomatic: Bool
+    /// What Automatic resolves to on this Mac.
+    var automatic: Int?
+    var options: [Option]
+
+    struct Option: Codable, Sendable, Equatable {
+        var tokens: Int
+        /// "Comfortable" | "Tight" | "Won't fit" | nil
+        var fit: String?
+    }
+}
+
+struct ConfigInfo: Codable, Sendable, Equatable {
+    var version: String
+    var runtime: String
+    var host: String
+    var port: Int
+    var baseURL: String
+    var apiKeyEnabled: Bool
+    var apiKey: String?
+    var modelsMax: Int
+    var defaultModel: String?
+    var modelsDirectory: String
+    var logFile: String
+    var configFile: String
+    var openAtLogin: Bool
+    var autoStartServer: Bool
+    var running: Bool
 }
 
 struct ServiceInfo: Codable, Sendable, Equatable {

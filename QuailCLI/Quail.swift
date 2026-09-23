@@ -13,7 +13,8 @@ struct Quail: AsyncParsableCommand {
         version: AppLink.appVersion,
         subcommands: [
             Status.self, Start.self, Stop.self, Restart.self,
-            List.self, PS.self, Run.self, Bench.self, Launch.self, Logs.self, Service.self,
+            List.self, PS.self, Pull.self, Remove.self, Default.self, Ctx.self,
+            Run.self, Bench.self, Launch.self, Logs.self, Service.self, ConfigCommand.self,
         ]
     )
 }
