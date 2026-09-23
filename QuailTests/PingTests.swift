@@ -35,6 +35,24 @@ struct PingTests {
         return URLSession(configuration: config)
     }
 
+    private static func model(_ id: String, _ status: String) -> ServedModel {
+        ServedModel(id: id, status: .init(value: status, failed: nil, exitCode: nil))
+    }
+
+    @Test("choose prefers loaded, then loading, then the default, then the first listed")
+    func chooseOrder() {
+        let tiny = Self.model("Qwen3-0.6B", "unloaded")
+        let def = Self.model("Qwen3-8B", "unloaded")
+        let loading = Self.model("Gemma", "loading")
+        let loaded = Self.model("Mistral", "loaded")
+
+        #expect(PingRunner.choose(from: [tiny, def, loading, loaded], preferred: "Qwen3-8B")?.id == "Mistral")
+        #expect(PingRunner.choose(from: [tiny, def, loading], preferred: "Qwen3-8B")?.id == "Gemma")
+        #expect(PingRunner.choose(from: [tiny, def], preferred: "Qwen3-8B")?.id == "Qwen3-8B")
+        #expect(PingRunner.choose(from: [tiny, def], preferred: nil)?.id == "Qwen3-0.6B")
+        #expect(PingRunner.choose(from: [], preferred: "Qwen3-8B") == nil)
+    }
+
     @Test("all three steps succeed: healthy runtime, a model on disk (even if not yet loaded), a real SSE stream")
     func allStepsSucceed() async {
         let runtime = FakeRuntime(launchSpec: Self.dummySpec)

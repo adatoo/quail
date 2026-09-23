@@ -187,6 +187,25 @@ struct ModelInstallControllerTests {
         #expect(controller.target?.repo == "org/a")
     }
 
+    @Test("acknowledgeFinished clears installed back to idle")
+    func acknowledgeFinished() async throws {
+        let content = Data("gguf".utf8)
+        let file = HFFile(remotePath: "M-Q8_0.gguf", sizeBytes: Int64(content.count), sha256: Self.shaHex(content))
+        let (controller, store) = Self.makeController { _ in StubResponse(statusCode: 200, body: content) }
+        defer { try? FileManager.default.removeItem(at: store.rootURL) }
+
+        controller.acknowledgeFinished() // idle: no-op
+        #expect(controller.phase == .idle)
+
+        let task = try #require(controller.install(repo: "org/M-GGUF", files: [file], format: .gguf))
+        await task.value
+        #expect(controller.phase == .installed(modelID: "M-Q8_0"))
+
+        // Used to persist, leaving the next Add-model sheet stuck on "Installed · Done".
+        controller.acknowledgeFinished()
+        #expect(controller.phase == .idle)
+    }
+
     @Test("describe() covers every HFDownloadError case")
     func describeCoverage() {
         #expect(ModelInstallController.describe(.invalidRepoID) == "invalid repo id")

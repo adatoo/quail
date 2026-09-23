@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// The observable download state `ModelStore`'s UI (docs/IMPLEMENTATION_
 /// PLAN.md Phase 2 step 7's Models pane and "Add model…" sheet) binds to.
@@ -133,9 +134,26 @@ final class ModelInstallController {
                 )
             } else if let failure {
                 phase = .failed(message: Self.describe(failure))
+                Logger(subsystem: "com.datoos.quail", category: "Install")
+                    .error("install of \(repo, privacy: .public) failed: \(Self.describe(failure), privacy: .public)")
             }
         }
         return task
+    }
+
+    /// Clears a finished (`.installed`/`.failed`) phase back to `.idle` once
+    /// the user has seen it — called when the Add-model sheet opens or its
+    /// selection changes. Found by live testing: the terminal phase used to
+    /// persist, so the next time the sheet opened it still said
+    /// "Installed · Done" with no Download button for anything else.
+    func acknowledgeFinished() {
+        switch phase {
+        case .installed, .failed:
+            phase = .idle
+            target = nil
+        case .idle, .downloading:
+            break
+        }
     }
 
     /// Stops the transfer; partial bytes stay under `.partial/` for a
@@ -209,6 +227,7 @@ final class ModelInstallController {
             try? modelStore.regeneratePresets(catalog: catalog)
         }
         phase = .installed(modelID: id)
+        Logger(subsystem: "com.datoos.quail", category: "Install").notice("installed \(id, privacy: .public)")
     }
 
     /// Per-file progress → cumulative bytes across the whole task: add

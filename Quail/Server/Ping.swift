@@ -34,10 +34,14 @@ final class PingRunner {
     private(set) var serverUp: PingStepState = .pending
     private(set) var modelLoaded: PingStepState = .pending
     private(set) var firstToken: PingStepState = .pending
+    /// The model the first-token step actually talked to — shown in the
+    /// sheet so a pass/fail is about a named model, not an anonymous one.
+    private(set) var modelID: String?
 
     private let runtime: any Runtime
     private let base: URL
     private let apiKey: String?
+    private let preferredModelID: String?
     private let urlSession: URLSession
 
     enum PingError: Error, Sendable, Equatable, CustomStringConvertible {
@@ -54,17 +58,41 @@ final class PingRunner {
         }
     }
 
-    init(runtime: any Runtime, base: URL, apiKey: String?, urlSession: URLSession = .shared) {
+    /// - Parameter preferredModelID: the configured default model
+    ///   (`Config.defaultModelID`), used when nothing is loaded yet.
+    init(
+        runtime: any Runtime,
+        base: URL,
+        apiKey: String?,
+        preferredModelID: String? = nil,
+        urlSession: URLSession = .shared
+    ) {
         self.runtime = runtime
         self.base = base
         self.apiKey = apiKey
+        self.preferredModelID = preferredModelID
         self.urlSession = urlSession
+    }
+
+    /// Which listed model to ping: one that's already loaded (or loading)
+    /// first, then the configured default, then whatever's listed first.
+    /// Found by live testing: always taking `models.first` pinged the
+    /// alphabetically-first model (e.g. a 0.6B smoke-test model) — and with
+    /// the default `modelsMax` of 1, that request made the router *evict*
+    /// the user's actual default model to load it. A test shouldn't change
+    /// what's loaded.
+    static func choose(from models: [ServedModel], preferred: String?) -> ServedModel? {
+        models.first { $0.status.value == "loaded" }
+            ?? models.first { $0.status.value == "loading" }
+            ?? models.first { $0.id == preferred }
+            ?? models.first
     }
 
     func run() async {
         serverUp = .running
         modelLoaded = .pending
         firstToken = .pending
+        modelID = nil
 
         serverUp = await Self.timed {
             let health = try await self.runtime.health(base: self.base, apiKey: self.apiKey)
@@ -73,16 +101,19 @@ final class PingRunner {
         guard case .succeeded = serverUp else { return }
 
         modelLoaded = .running
-        var firstModelID: String?
+        var chosenID: String?
         modelLoaded = await Self.timed {
             let models = try await self.runtime.listModels(base: self.base, apiKey: self.apiKey)
-            guard let first = models.first else { throw PingError.noModelLoaded }
-            firstModelID = first.id
+            guard let chosen = Self.choose(from: models, preferred: self.preferredModelID) else {
+                throw PingError.noModelLoaded
+            }
+            chosenID = chosen.id
         }
-        guard case .succeeded = modelLoaded, let modelID = firstModelID else { return }
+        modelID = chosenID
+        guard case .succeeded = modelLoaded, let chosenID else { return }
 
         firstToken = .running
-        firstToken = await Self.timed { try await self.streamFirstToken(modelID: modelID) }
+        firstToken = await Self.timed { try await self.streamFirstToken(modelID: chosenID) }
     }
 
     /// Times `body`, turning it into a `.succeeded`/`.failed` state — the
@@ -99,9 +130,7 @@ final class PingRunner {
 
     /// - Parameter modelID: router mode 400s with "model name is missing
     ///   from the request" without this — confirmed against a real b11081
-    ///   build. Phase 1 has no model picker yet, so this is always the
-    ///   first id `modelLoaded` saw; Phase 2's Models pane will let this be
-    ///   a specific selection instead.
+    ///   build. Chosen by `choose(from:preferred:)`.
     private func streamFirstToken(modelID: String) async throws {
         var request = URLRequest(url: base.appending(path: "v1/chat/completions"))
         request.httpMethod = "POST"

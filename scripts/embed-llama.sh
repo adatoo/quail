@@ -28,7 +28,12 @@ if [ "${CODE_SIGNING_ALLOWED:-YES}" = "NO" ]; then
   echo "note: CODE_SIGNING_ALLOWED=NO — ad-hoc signing embedded llama.cpp binaries."
   SIGN_ARGS=(--force --sign -)
 elif [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ] && [ "${EXPANDED_CODE_SIGN_IDENTITY}" != "-" ]; then
-  SIGN_ARGS=(--force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --timestamp --options runtime)
+  SIGN_ARGS=(--force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --options runtime)
+  # A secure timestamp is a network round-trip to Apple, needed only for
+  # notarization — not on every local Debug build (Config/LocalSigning.xcconfig).
+  case "${CONFIGURATION:-}" in
+    Release*) SIGN_ARGS+=(--timestamp) ;;
+  esac
 else
   SIGN_ARGS=(--force --sign -)
 fi

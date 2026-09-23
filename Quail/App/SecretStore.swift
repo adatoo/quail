@@ -86,3 +86,24 @@ struct Keychain: SecretStore {
         ]
     }
 }
+
+/// Touches nothing — every operation is a silent no-op (`get` returns
+/// `nil`). For `AppDelegate`'s `appState` specifically, when this process
+/// is hosting `QuailTests` (`TEST_HOST` genuinely launches a live
+/// Quail.app to run the test bundle inside): confirmed that a real
+/// `Keychain()` there was popping a macOS "Quail wants to access your
+/// keychain" authorization prompt on every single `xcodebuild test` run
+/// — ad-hoc signing means every build gets a fresh signature, which
+/// Keychain treats as a new, unrecognized requester for whatever real API
+/// key `Config.apiKeyEnabled` has stored. No test ever reads this
+/// `AppDelegate`-owned `AppState` — every test builds its own with
+/// `FakeSecretStore` — so there's nothing to lose by keeping this one
+/// inert.
+struct NullSecretStore: SecretStore {
+    func set(_: String, account _: String) throws {}
+    func get(account _: String) throws -> String? {
+        nil
+    }
+
+    func delete(account _: String) throws {}
+}

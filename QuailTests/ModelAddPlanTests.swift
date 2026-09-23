@@ -110,6 +110,17 @@ struct ModelAddPlanTests {
         #expect(ModelAddPlan.ggufFiles(for: listing, quant: "Q4_K_M", mmproj: "mmproj-Q8_0.gguf").count == 1)
     }
 
+    @Test("the mmproj companion is saved under the model's own name, so two vision models can't collide")
+    func mmprojSavedUnderModelName() {
+        let listing = HFRepo(id: "r", files: [
+            Self.hfFile("gemma-4-12b-it-Q4_0.gguf"),
+            Self.hfFile("mmproj-F16.gguf"),
+        ])
+        let picked = ModelAddPlan.ggufFiles(for: listing, quant: "Q4_0", mmproj: "mmproj-F16.gguf")
+        #expect(picked.map(\.localFilename) == ["gemma-4-12b-it-Q4_0.gguf", "mmproj-gemma-4-12b-it-Q4_0.gguf"])
+        #expect(picked[1].remotePath == "mmproj-F16.gguf") // still fetched from its real path
+    }
+
     @Test("mmproj companions are never main files")
     func mmprojNeverMain() {
         let listing = HFRepo(id: "r", files: [Self.hfFile("mmproj-model-F16.gguf")])

@@ -228,4 +228,37 @@ struct GGUFMetadataTests {
             try GGUFMetadata.read(from: url)
         }
     }
+
+    /// Shaped like the live case: shape keys first, then a tokenizer array
+    /// far bigger than the ranged fetch — the buffer is cut mid-array.
+    @Test("parsePrefix returns the shape when only trailing tokenizer data is cut off; parse still throws")
+    func parsePrefixToleratesTruncatedTokenizer() throws {
+        var fixture = GGUFFixtureBuilder()
+        fixture.addString("general.architecture", "gemma4")
+        fixture.addUInt32("gemma4.block_count", 48)
+        fixture.addUInt32("gemma4.attention.head_count", 16)
+        fixture.addUInt32("gemma4.attention.head_count_kv", 8)
+        fixture.addUInt32("gemma4.attention.key_length", 256)
+        fixture.addStringArray("tokenizer.ggml.tokens", (0 ..< 5000).map { "token-\($0)" })
+        var data = fixture.build()
+        data.removeLast(data.count / 2)
+
+        let metadata = try GGUFMetadata.parsePrefix(data)
+        #expect(metadata.blockCount == 48)
+        #expect(metadata.headCountKV == 8)
+        #expect(metadata.keyLength == 256)
+        #expect(throws: GGUFMetadata.GGUFReadError.truncated) { try GGUFMetadata.parse(data) }
+    }
+
+    @Test("parsePrefix still throws when the cut lands before the shape keys")
+    func parsePrefixNeedsTheShape() {
+        var fixture = GGUFFixtureBuilder()
+        fixture.addString("general.architecture", "llama")
+        fixture.addStringArray("tokenizer.ggml.tokens", (0 ..< 5000).map { "token-\($0)" })
+        fixture.addUInt32("llama.block_count", 28)
+        var data = fixture.build()
+        data.removeLast(data.count / 2)
+
+        #expect(throws: GGUFMetadata.GGUFReadError.truncated) { try GGUFMetadata.parsePrefix(data) }
+    }
 }

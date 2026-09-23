@@ -177,6 +177,54 @@ struct ModelStoreTests {
         #expect(ini.isEmpty)
     }
 
+    @Test("regeneratePresets writes load-on-startup only for the default model's own section")
+    func regeneratePresetsWritesLoadOnStartupForDefaultOnly() throws {
+        let store = scratchStore()
+        defer { try? FileManager.default.removeItem(at: store.rootURL) }
+        try store.ensureDirectoriesExist()
+        try Data().write(to: store.ggufDirectory.appendingPathComponent("Alpha.gguf"))
+        try Data().write(to: store.ggufDirectory.appendingPathComponent("Beta.gguf"))
+
+        try store.regeneratePresets(catalog: StoreCatalog(), defaultModelID: "Beta")
+
+        let ini = try String(contentsOf: store.presetsFile, encoding: .utf8)
+        let alphaSection = ini.components(separatedBy: "[Beta]")[0]
+        #expect(!alphaSection.contains("load-on-startup"))
+        #expect(ini.contains("[Beta]\nmodel = ") && ini.contains("load-on-startup = true"))
+    }
+
+    @Test("regeneratePresets writes no load-on-startup key when there's no default model")
+    func regeneratePresetsOmitsLoadOnStartupWithNoDefault() throws {
+        let store = scratchStore()
+        defer { try? FileManager.default.removeItem(at: store.rootURL) }
+        try store.ensureDirectoriesExist()
+        try Data().write(to: store.ggufDirectory.appendingPathComponent("Alpha.gguf"))
+
+        try store.regeneratePresets(catalog: StoreCatalog())
+
+        let ini = try String(contentsOf: store.presetsFile, encoding: .utf8)
+        #expect(!ini.contains("load-on-startup"))
+    }
+
+    @Test("regeneratePresets attaches a model's projector as mmproj, and only its own")
+    func regeneratePresetsAttachesProjector() throws {
+        let store = scratchStore()
+        defer { try? FileManager.default.removeItem(at: store.rootURL) }
+        try store.ensureDirectoriesExist()
+        for name in ["Vision.gguf", "mmproj-Vision.gguf", "Text.gguf", "mmproj-F16.gguf"] {
+            try Data().write(to: store.ggufDirectory.appendingPathComponent(name))
+        }
+
+        try store.regeneratePresets(catalog: StoreCatalog())
+
+        let ini = try String(contentsOf: store.presetsFile, encoding: .utf8)
+        let projector = store.ggufDirectory.appendingPathComponent("mmproj-Vision.gguf").path
+        #expect(ini.contains("[Vision]"))
+        #expect(ini.components(separatedBy: "mmproj = ").count == 2) // exactly one, Vision's
+        #expect(ini.contains("mmproj = \(projector)"))
+        #expect(!ini.contains("[mmproj-")) // projectors never get their own section
+    }
+
     @Test("installedGGUFFiles keeps only the first shard of a split model")
     func installedGGUFFilesKeepsFirstShardOnly() throws {
         let store = scratchStore()

@@ -22,11 +22,21 @@ struct Config: Sendable, Equatable, Codable {
     /// store; `Paths.resolveModelsDirectory(bookmark:)` turns this back
     /// into a URL. `nil` means "use `Paths.defaultModelsDirectory`".
     var modelsDirectoryBookmark: Data?
+    /// The GGUF whose `presets.ini` section gets `load-on-startup = true`
+    /// (ADR D-017) — confirmed against the real vendored binary: router
+    /// mode loads that one model immediately at startup, with no client
+    /// request needed, unlike every other preset (which stays `unloaded`
+    /// until a Load click or a request names it). `nil` means "load
+    /// nothing automatically", today's behaviour. Set/cleared via
+    /// `AppState.setDefaultModel`; cleared automatically if the model is
+    /// deleted.
+    var defaultModelID: String?
 
     init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case runtimeID, host, port, modelsMax, apiKeyEnabled, openAtLogin, autoStartServer, modelsDirectoryBookmark
+        case runtimeID, host, port, modelsMax, apiKeyEnabled, openAtLogin, autoStartServer, modelsDirectoryBookmark,
+             defaultModelID
     }
 
     init(from decoder: Decoder) throws {
@@ -41,6 +51,7 @@ struct Config: Sendable, Equatable, Codable {
         autoStartServer = try container.decodeIfPresent(Bool.self, forKey: .autoStartServer) ?? fallback.autoStartServer
         modelsDirectoryBookmark = try container.decodeIfPresent(Data.self, forKey: .modelsDirectoryBookmark)
             ?? fallback.modelsDirectoryBookmark
+        defaultModelID = try container.decodeIfPresent(String.self, forKey: .defaultModelID) ?? fallback.defaultModelID
     }
 }
 

@@ -36,6 +36,13 @@ xcodebuild -scheme Quail -configuration Debug build
 xcodebuild -scheme Quail test
 ```
 
+Debug builds are ad-hoc signed by default, so macOS Keychain treats every
+rebuild as a new app and asks for your login password when Quail reads its
+stored API key. If you have a signing certificate, copy
+`Config/LocalSigning.local.xcconfig.example` to
+`Config/LocalSigning.local.xcconfig` (gitignored), fill in your team, and run
+`xcodegen generate`; click "Always Allow" once and it sticks across rebuilds.
+
 ## Reporting issues
 
 Use the bug report or feature request templates. For anything

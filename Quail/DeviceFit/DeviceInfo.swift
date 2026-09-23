@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import IOKit
 #if canImport(Metal)
     import Metal
 #endif
@@ -31,6 +32,31 @@ struct DeviceInfo: Sendable, Equatable {
     /// actually available right now, not the theoretical ceiling above.
     var freeMemoryBytes: Int64?
 
+    /// `sysctl hw.model` — e.g. `"Mac16,11"`. Apple's own stable model
+    /// identifier, distinct from `marketingName` below.
+    var modelIdentifier: String?
+
+    /// The `product-name` IORegistry property under `IODeviceTree:/product`
+    /// — e.g. `"Mac mini (2024)"`, the name a user would recognize.
+    /// Confirmed present at that exact path on this machine (a real Mac
+    /// mini) via `ioreg -p IODeviceTree -n product -r`.
+    var marketingName: String?
+
+    /// GPU core count, read from the `gpu-core-count` property carried by
+    /// whichever IOKit accelerator service is actually present — that
+    /// service's own class name changes every SoC generation (confirmed:
+    /// `AGXAcceleratorG16X` on the M4 Pro this was written on; earlier
+    /// chips use `AGXAcceleratorG13X`/`G14X`/etc.), so this walks the
+    /// whole `IOService` plane looking for the property itself rather
+    /// than matching a class name that would need updating every year.
+    var gpuCoreCount: Int?
+
+    /// `ProcessInfo.operatingSystemVersionString` — a human-readable
+    /// build string (e.g. `"Version 15.2 (Build 24C101)"`), not a
+    /// `Comparable` triple; nothing here compares against it, it's for
+    /// display only.
+    var osVersion: String?
+
     /// Reads every fact above fresh from the running machine.
     static func current() -> DeviceInfo {
         var info = DeviceInfo()
@@ -40,6 +66,10 @@ struct DeviceInfo: Sendable, Equatable {
         info.unifiedMemoryBytes = sysctlUInt64("hw.memsize").map(Int64.init)
         info.gpuWorkingSetCeilingBytes = currentGPUWorkingSetCeilingBytes()
         info.freeMemoryBytes = currentFreeMemoryBytes()
+        info.modelIdentifier = sysctlString("hw.model")
+        info.marketingName = currentMarketingName()
+        info.gpuCoreCount = currentGPUCoreCount()
+        info.osVersion = ProcessInfo.processInfo.operatingSystemVersionString
         return info
     }
 
@@ -80,6 +110,49 @@ struct DeviceInfo: Sendable, Equatable {
         #else
             return nil
         #endif
+    }
+
+    // MARK: - IORegistry
+
+    /// `product-name` at `IODeviceTree:/product` — the same node `ioreg -p
+    /// IODeviceTree -n product` shows; the value is a NUL-terminated C
+    /// string wrapped in `Data`, matching `product-description` and
+    /// `product-soc-name`'s sibling properties on that node.
+    private static func currentMarketingName() -> String? {
+        let entry = IORegistryEntryFromPath(kIOMainPortDefault, "IODeviceTree:/product")
+        guard entry != 0 else { return nil }
+        defer { IOObjectRelease(entry) }
+        guard let data = IORegistryEntryCreateCFProperty(
+            entry, "product-name" as CFString, kCFAllocatorDefault, 0
+        )?.takeRetainedValue() as? Data else { return nil }
+        return String(data: data, encoding: .utf8)?
+            .trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
+    }
+
+    /// See `gpuCoreCount`'s doc comment for why this walks the registry
+    /// rather than matching a known class name.
+    /// Matches the generic `IOAccelerator` base class, which IOKit matching
+    /// extends to every per-generation subclass. (An earlier version passed
+    /// the main port to `IORegistryEntryCreateIterator`, which wants a
+    /// registry *entry* — it never found anything, and the pane showed "—".)
+    private static func currentGPUCoreCount() -> Int? {
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(
+            kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &iterator
+        ) == KERN_SUCCESS else { return nil }
+        defer { IOObjectRelease(iterator) }
+
+        var entry = IOIteratorNext(iterator)
+        while entry != 0 {
+            defer { IOObjectRelease(entry) }
+            if let count = IORegistryEntryCreateCFProperty(
+                entry, "gpu-core-count" as CFString, kCFAllocatorDefault, 0
+            )?.takeRetainedValue() as? Int {
+                return count
+            }
+            entry = IOIteratorNext(iterator)
+        }
+        return nil
     }
 
     // MARK: - Free memory

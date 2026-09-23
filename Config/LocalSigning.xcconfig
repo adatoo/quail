@@ -1,0 +1,16 @@
+// Debug-build signing. Committed; pulls in an optional, gitignored
+// LocalSigning.local.xcconfig with a real identity.
+//
+// Without one, local builds stay ad-hoc ("Sign to Run Locally"), whose
+// designated requirement is the build's own cdhash — every rebuild is a
+// new app to Keychain, so reading the stored API key prompts for the
+// login password on every launch. With a real identity the requirement
+// is bundle id + team, stable across builds: "Always Allow" sticks.
+//
+// To opt in (needs the certificate in your login keychain):
+//   cp Config/LocalSigning.local.xcconfig.example Config/LocalSigning.local.xcconfig
+//   # edit DEVELOPMENT_TEAM / CODE_SIGN_IDENTITY, then xcodegen generate
+//
+// CI passes CODE_SIGNING_ALLOWED=NO, which overrides all of this.
+
+#include? "LocalSigning.local.xcconfig"

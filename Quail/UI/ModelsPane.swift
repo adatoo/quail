@@ -1,3 +1,4 @@
+import os
 import SwiftUI
 
 /// The Models settings tab (docs/IMPLEMENTATION_PLAN.md Phase 2 step 7):
@@ -27,6 +28,12 @@ struct ModelsPane: View {
     @State private var relocationError: String?
     @State private var loadError: String?
     @State private var tokenDraft = ""
+    /// Carried from `ContentUnavailable`'s recommendation button into the
+    /// sheet it opens, so the empty-state nudge (§7's own top pick for
+    /// this Mac) lands the user straight on that family rather than an
+    /// unselected list.
+    @State private var preselectFamily: Catalog.Family?
+    @State private var showCleanUp = false
 
     enum FormatFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -40,25 +47,44 @@ struct ModelsPane: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Picker("Show", selection: $formatFilter) {
-                ForEach(FormatFilter.allCases) { filter in
-                    Text(filter.rawValue).tag(filter)
+            HStack {
+                Picker("Show", selection: $formatFilter) {
+                    ForEach(FormatFilter.allCases) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 220)
+                Spacer()
+                Button("Add Model…") {
+                    preselectFamily = nil
+                    showAddSheet = true
+                }
+                .buttonStyle(.borderedProminent)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 220)
             .padding([.horizontal, .top])
 
             installedList
+
+            if !rows.isEmpty {
+                Text("Send \"model\": \"<id>\" in a request to pick a model — right-click a row to copy its id.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
+            }
 
             Divider()
 
             storeSection
         }
         .frame(minHeight: 320)
+        .sheet(isPresented: $showCleanUp) {
+            CleanUpSheet(appState: appState)
+        }
         .sheet(isPresented: $showAddSheet) {
-            AddModelSheet(appState: appState, defaultFilter: formatFilter)
+            AddModelSheet(appState: appState, defaultFilter: formatFilter, preselect: preselectFamily)
         }
         .alert(
             "Delete \(pendingDeletion ?? "")?",
@@ -109,11 +135,15 @@ struct ModelsPane: View {
                 loadedStates = await appState.loadedModelStates()
             }
         }
+        .onChange(of: appState.storeRevision) { _, _ in
+            Task { await refresh() }
+        }
         .onChange(of: appState.installs.phase) { _, newPhase in
             // Rows only appear/verify once an install reaches a terminal
             // phase; the downloading phase re-renders by observation.
             switch newPhase {
             case .installed, .failed:
+                Self.logger.notice("install reached \(String(describing: newPhase), privacy: .public); refreshing")
                 Task { await refresh() }
             default:
                 break
@@ -129,11 +159,28 @@ struct ModelsPane: View {
         }
     }
 
+    /// The top pick for this Mac, per §7's "Recommendations" — shown in
+    /// the empty-state nudge below without waiting on any network
+    /// verdict (that's `AddModelSheet`'s own job once opened); this is
+    /// just "what would head the recommended list", from catalog data
+    /// alone.
+    private var topRecommendation: Catalog.Family? {
+        Recommender.topPick(catalog: appState.catalog, device: DeviceInfo.current())
+    }
+
     @ViewBuilder private var installedList: some View {
         if entries.isEmpty {
             ContentUnavailable(
                 filter: formatFilter,
-                add: { showAddSheet = true }
+                recommended: topRecommendation,
+                add: {
+                    preselectFamily = nil
+                    showAddSheet = true
+                },
+                addRecommended: { family in
+                    preselectFamily = family
+                    showAddSheet = true
+                }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -143,6 +190,7 @@ struct ModelsPane: View {
                     verdict: verdicts[entry.id],
                     loaded: loadedStates[entry.id],
                     serverReady: appState.serverController.phase == .ready,
+                    isDefault: appState.config.defaultModelID == entry.id,
                     onLoad: {
                         Task {
                             do {
@@ -154,6 +202,9 @@ struct ModelsPane: View {
                             }
                         }
                     },
+                    onToggleDefault: {
+                        appState.setDefaultModel(appState.config.defaultModelID == entry.id ? nil : entry.id)
+                    },
                     onDelete: {
                         pendingDeletion = entry.id
                         showDeleteConfirm = true
@@ -164,43 +215,66 @@ struct ModelsPane: View {
         }
     }
 
+    /// Two labelled rows — the store folder and the Hugging Face token —
+    /// with the rarely used actions (Clean Up, Move, Reload) in a menu.
+    /// Redesigned after user feedback: five buttons in one row truncated
+    /// ("Show in Fin…") and squeezed the path to "/Users/…/Models".
     private var storeSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             installProgress
 
-            HStack {
-                Text("Store:")
-                    .foregroundStyle(.secondary)
-                Text(appState.modelStore.rootURL.path)
-                    .font(.system(.caption, design: .monospaced))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer()
-                Button("Reload") {
-                    Task { await refresh() }
+            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
+                GridRow {
+                    Text("Models folder")
+                        .foregroundStyle(.secondary)
+                        .gridColumnAlignment(.trailing)
+                    HStack(spacing: 8) {
+                        Text((appState.modelStore.rootURL.path as NSString).abbreviatingWithTildeInPath)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                            .help(appState.modelStore.rootURL.path)
+                        Spacer(minLength: 8)
+                        Button("Show in Finder") {
+                            NSWorkspace.shared.open(appState.modelStore.ggufDirectory)
+                        }
+                        .help("Open the GGUF models folder. Models added or deleted there show up here automatically.")
+                        Menu {
+                            Button("Clean Up…") { showCleanUp = true }
+                            Button("Move Folder…") { relocate() }
+                                .disabled(
+                                    appState.installs.isDownloading
+                                        || !appState.serverController.phase.isStoppedForRelocation
+                                )
+                            Divider()
+                            Button("Reload") { Task { await refresh() } }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                        .menuStyle(.borderlessButton)
+                        .menuIndicator(.hidden)
+                        .fixedSize()
+                        .help("Clean up leftovers, move the folder, reload")
+                    }
                 }
-                .help("Re-read the store and the server's loaded models")
-                Button("Add model…") { showAddSheet = true }
-                Button("Relocate…") { relocate() }
-                    .disabled(
-                        appState.installs.isDownloading
-                            || !appState.serverController.phase.isStoppedForRelocation
-                    )
-            }
-
-            HStack {
-                SecureField("Hugging Face token (for gated repos)", text: $tokenDraft)
-                    .textFieldStyle(.roundedBorder)
-                Button("Save") {
-                    appState.setHFToken(tokenDraft)
-                    tokenDraft = appState.hfToken ?? ""
+                GridRow {
+                    Text("Hugging Face token")
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        SecureField("Only needed for gated repos", text: $tokenDraft)
+                            .textFieldStyle(.roundedBorder)
+                        Button("Save") {
+                            appState.setHFToken(tokenDraft)
+                            tokenDraft = appState.hfToken ?? ""
+                        }
+                        .disabled(tokenDraft.trimmingCharacters(in: .whitespaces).isEmpty)
+                        Button("Clear") {
+                            appState.clearHFToken()
+                            tokenDraft = ""
+                        }
+                        .disabled(appState.hfToken == nil)
+                    }
                 }
-                .disabled(tokenDraft.trimmingCharacters(in: .whitespaces).isEmpty)
-                Button("Clear") {
-                    appState.clearHFToken()
-                    tokenDraft = ""
-                }
-                .disabled(appState.hfToken == nil)
             }
         }
         .padding()
@@ -287,7 +361,10 @@ struct ModelsPane: View {
         }
     }
 
+    private static let logger = Logger(subsystem: "com.datoos.quail", category: "ModelsPane")
+
     private func refresh() async {
+        Self.logger.notice("refresh: start")
         loadedStates = await appState.loadedModelStates()
         let store = appState.modelStore
         let device = DeviceInfo.current()
@@ -310,6 +387,7 @@ struct ModelsPane: View {
         }.value
         rows = result.0
         verdicts = result.1
+        Self.logger.notice("refresh: done, rows \(result.0.map(\.id), privacy: .public)")
     }
 }
 
@@ -319,7 +397,11 @@ private struct ModelRow: View {
     let verdict: FitEstimate?
     let loaded: String?
     let serverReady: Bool
+    /// Whether this is `Config.defaultModelID` — the one row gets
+    /// `load-on-startup = true` in `presets.ini` (ADR D-017).
+    let isDefault: Bool
     let onLoad: () -> Void
+    let onToggleDefault: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -327,28 +409,64 @@ private struct ModelRow: View {
             Text(entry.id)
                 .lineLimit(1)
                 .truncationMode(.middle)
-            badge(entry.format == .gguf ? "GGUF" : "MLX", entry.format == .gguf ? .blue : .purple)
+                // Confirmed undiscoverable otherwise: `entry.id` is
+                // exactly the string a client must send as `"model"` in
+                // its request body (the preset alias — ModelStore.
+                // regeneratePresets), but nothing in the app said so
+                // anywhere. A context menu on the id itself, right where
+                // you'd look for it.
+                .contextMenu {
+                    Button("Copy Model ID") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(entry.id, forType: .string)
+                    }
+                }
+                .help("Send \"model\": \"\(entry.id)\" in requests to select this one")
+            Badge(text: entry.format == .gguf ? "GGUF" : "MLX", color: entry.format == .gguf ? .blue : .purple)
             if loaded == "loaded" {
-                badge("loaded", .green)
+                Badge(text: "loaded", color: .green)
             } else if let loaded {
-                badge(loaded, .gray)
+                Badge(text: loaded, color: .gray)
             }
             Spacer()
             // Hot swap (step 8): an installed GGUF can be loaded into the
             // running router with a click. MLX rows get the badge-only
             // treatment — their runtimes are Phase 3, and offering a
             // button that must fail would be a lie about capability.
-            if serverReady, entry.format == .gguf, loaded != "loaded" {
+            if serverReady, entry.format == .gguf, loaded != nil, loaded != "loaded" {
                 Button("Load", action: onLoad)
                     .controlSize(.small)
+            } else if serverReady, entry.format == .gguf, loaded == nil {
+                // The router only knows the models it started with (it
+                // never rescans) — Load would 404 until a restart.
+                Badge(text: "Restart to load", color: .orange)
+                    .help("Added since the server started. Restart the server (menu) to use it.")
             }
             if let verdict {
-                verdictTag(verdict)
+                FitVerdictBadge(estimate: verdict)
+            } else {
+                // Never a blank: say it couldn't be judged, and why.
+                Badge(text: "Fit unknown", color: .secondary)
+                    .help(entry.format == .gguf
+                        ? "Couldn't read this model's header, or its architecture isn't supported by the estimate yet."
+                        : "Couldn't read this model's config.json.")
             }
             Text(ByteCountFormatter.string(fromByteCount: entry.bytes, countStyle: .file))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
+            // Usable while stopped (unlike Load) — it just sets what
+            // gets written into presets.ini on the next Start. GGUF
+            // only: `load-on-startup` is a llama.cpp router-mode
+            // preset key, and nothing can serve MLX yet (Phase 3).
+            if entry.format == .gguf {
+                Button(action: onToggleDefault) {
+                    Image(systemName: isDefault ? "star.fill" : "star")
+                        .foregroundStyle(isDefault ? .yellow : .secondary)
+                }
+                .buttonStyle(.borderless)
+                .help(isDefault ? "Default — loads automatically on Start" : "Load automatically on Start")
+            }
             Button(role: .destructive, action: onDelete) {
                 Image(systemName: "trash")
             }
@@ -357,31 +475,16 @@ private struct ModelRow: View {
         }
         .padding(.vertical, 2)
     }
-
-    @ViewBuilder private func verdictTag(_ estimate: FitEstimate) -> some View {
-        switch estimate.verdict {
-        case .comfortable:
-            badge("Comfortable", .green)
-        case let .tight(reduced):
-            badge("Tight · \(reduced)", .yellow)
-        case .wontFit:
-            badge("Won't fit", .red)
-        }
-    }
-
-    private func badge(_ text: String, _ color: Color) -> some View {
-        Text(text)
-            .font(.caption2.bold())
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.15), in: Capsule())
-            .foregroundStyle(color)
-    }
 }
 
 private struct ContentUnavailable: View {
     let filter: ModelsPane.FormatFilter
+    /// This Mac's top pick, if one's known — see `ModelsPane.
+    /// topRecommendation`'s doc comment for why this doesn't wait on a
+    /// network verdict.
+    let recommended: Catalog.Family?
     let add: () -> Void
+    let addRecommended: (Catalog.Family) -> Void
 
     var body: some View {
         VStack(spacing: 8) {
@@ -390,7 +493,11 @@ private struct ContentUnavailable: View {
                 .foregroundStyle(.secondary)
             Text(filter == .all ? "No models installed yet." : "No \(filter.rawValue) models installed yet.")
                 .foregroundStyle(.secondary)
-            Button("Add model…", action: add)
+            if let recommended, let quant = recommended.gguf?.defaultQuant {
+                Button("Recommended: \(recommended.name) (\(quant)) — Add…") { addRecommended(recommended) }
+            } else {
+                Button("Add model…", action: add)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)

@@ -36,6 +36,7 @@ final class ServerController {
     private let logStore: LogStore
     private let supervisor: ProcessSupervisor
     private let healthTimeout: TimeInterval
+    private let preflight: (@Sendable (EndpointConfig) async -> PreflightResult)?
     private var eventTask: Task<Void, Never>?
     private var config: EndpointConfig?
     private var generation = 0
@@ -44,16 +45,23 @@ final class ServerController {
     ///   up before giving up and moving to `.failed`. Defaults to the 90s
     ///   from docs/IMPLEMENTATION_PLAN.md Phase 1 step 4; tests pass a much
     ///   shorter value so failure-path tests don't take 90 real seconds.
+    /// - Parameter preflight: runs before anything is launched — see
+    ///   `ServerPreflight.live` (reaps orphaned servers from earlier runs,
+    ///   refuses a port someone else already holds). `nil` skips it, which
+    ///   is what tests want: the real one inspects this machine's actual
+    ///   processes and ports.
     init(
         runtime: any Runtime,
         logStore: LogStore,
         supervisor: ProcessSupervisor = ProcessSupervisor(),
-        healthTimeout: TimeInterval = 90
+        healthTimeout: TimeInterval = 90,
+        preflight: (@Sendable (EndpointConfig) async -> PreflightResult)? = nil
     ) {
         self.runtime = runtime
         self.logStore = logStore
         self.supervisor = supervisor
         self.healthTimeout = healthTimeout
+        self.preflight = preflight
     }
 
     /// The endpoint's base URL, once `start(config:)` has been called.
@@ -64,6 +72,15 @@ final class ServerController {
         components.host = config.host
         components.port = config.port
         return components.url
+    }
+
+    /// The API key the runtime was actually launched with — not whatever
+    /// Settings currently holds, which can drift (regenerated, toggled
+    /// off, a new custom key) while the server keeps running the old
+    /// one. `PingSheet` reads this rather than `AppState.apiKey` for
+    /// exactly that reason.
+    var apiKey: String? {
+        config?.apiKey
     }
 
     /// Starts the runtime and waits for it to become healthy. Returns once
@@ -83,6 +100,28 @@ final class ServerController {
             return
         }
 
+        if let preflight {
+            let result = await preflight(config)
+            for note in result.notes {
+                await logStore.append(stream: .stderr, text: "quail: \(note)")
+            }
+            if let failure = result.failure {
+                guard generation == thisGeneration, phase == .starting else { return }
+                await logStore.append(stream: .stderr, text: "quail: \(failure)")
+                recentFailureLogs = [failure]
+                phase = .failed(reason: failure)
+                return
+            }
+            // Stop pressed while preflight was still reaping/checking:
+            // nothing was launched yet, so there's nothing to wait for.
+            guard generation == thisGeneration, phase == .starting else {
+                if phase == .stopping {
+                    phase = .stopped
+                }
+                return
+            }
+        }
+
         let spec = runtime.launchSpec(config: config, model: nil)
         let events = await supervisor.start(spec: spec)
 
@@ -94,12 +133,24 @@ final class ServerController {
             }
         }
 
+        await waitForHealthAndSettle(base: base, apiKey: config.apiKey, generation: thisGeneration)
+    }
+
+    /// Polls `/health` until it reports up (or `healthTimeout` runs out),
+    /// then settles `phase` to `.ready`/`.failed` — the same "does the
+    /// phase this function is about to write still belong to this run"
+    /// guard `start(config:)` always used, now shared with a supervisor
+    /// restart's own re-check (`handle(event:)`, below).
+    private func waitForHealthAndSettle(base: URL, apiKey: String?, generation thisGeneration: Int) async {
         do {
             try await HealthProbe.waitUntilHealthy(
                 runtime: runtime,
                 base: base,
-                apiKey: config.apiKey,
-                timeout: healthTimeout
+                apiKey: apiKey,
+                timeout: healthTimeout,
+                // Only *our* process being up counts — see
+                // HealthProbe.waitUntilHealthy's doc comment.
+                isOwnProcessAlive: { [supervisor] in await supervisor.isRunning }
             )
             if generation == thisGeneration, phase == .starting {
                 phase = .ready
@@ -141,7 +192,27 @@ final class ServerController {
                 stream: .stderr,
                 text: "process exited with status \(status)\(willRestart ? ", restarting…" : "")"
             )
-            guard !willRestart else { return }
+            if willRestart {
+                // The supervisor is about to relaunch on its own after a
+                // backoff delay. `phase` used to just stay `.ready` for
+                // this whole window — confirmed via live testing that
+                // this is real: the menu kept saying "Running" and a
+                // Ping's "server up" step failed with "Could not connect"
+                // while the process was actually down mid-restart.
+                // Re-verify health the same way `start()` itself does,
+                // as an unawaited task so a slow/never-healthy re-check
+                // can't stall this event loop from processing whatever
+                // comes next (a further crash, or `stop()` finishing the
+                // stream) — `waitForHealthAndSettle`'s own generation +
+                // `phase == .starting` guard makes a late completion a
+                // safe no-op if something else already moved `phase` on.
+                guard phase == .ready || phase == .starting, let base = baseURL, let config else { return }
+                phase = .starting
+                Task { [weak self] in
+                    await self?.waitForHealthAndSettle(base: base, apiKey: config.apiKey, generation: eventGeneration)
+                }
+                return
+            }
 
             if phase == .stopping {
                 phase = .stopped

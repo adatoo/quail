@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Consumed by `xcodebuild -exportArchive` in scripts/sign-and-notarize.sh.
+	     "developer-id" is Apple's export method for direct (non-App-Store)
+	     distribution outside a Mac Catalog membership — see
+	     `xcodebuild -help` / Xcode's own Organizer "Distribute App" flow,
+	     which this replicates non-interactively. -->
+	<key>method</key>
+	<string>developer-id</string>
+	<key>teamID</key>
+	<string>QKAYS6D525</string>
+	<key>signingStyle</key>
+	<string>manual</string>
+	<key>signingCertificate</key>
+	<string>Developer ID Application</string>
+</dict>
+</plist>

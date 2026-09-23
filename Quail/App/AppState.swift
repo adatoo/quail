@@ -69,7 +69,9 @@ final class AppState {
         runtime: any Runtime = LlamaCppRuntime(executableURL: Paths.llamaServerExecutable),
         logStore: LogStore = LogStore(),
         modelsRootURL: URL? = nil,
-        catalogLocations: Catalog.Locations = .default
+        catalogLocations: Catalog.Locations = .default,
+        downloader: HFDownloader = HFDownloader(),
+        serverPreflight: (@Sendable (EndpointConfig) async -> PreflightResult)? = ServerPreflight.live
     ) {
         self.config = config
         self.configURL = configURL
@@ -83,22 +85,82 @@ final class AppState {
             ?? Paths.defaultModelsDirectory
         let store = ModelStore(rootURL: resolvedRoot)
         modelStore = store
-        installs = ModelInstallController(modelStore: store)
-        serverController = ServerController(runtime: runtime, logStore: logStore)
+        // So `Models/gguf` exists to drop a file into even before the
+        // first Start — `start()` alone used to be the only thing that
+        // created it, which meant a hand-placed model (Phase 1's own
+        // "Done when") needed one earlier, model-less Start just to
+        // create the folder. Now that a model-less Start is refused
+        // outright (`canStart`/`hasServableModel`, below), that chicken-
+        // and-egg would otherwise be permanent.
+        try? store.ensureDirectoriesExist()
+        installs = ModelInstallController(downloader: downloader, modelStore: store)
+        serverController = ServerController(runtime: runtime, logStore: logStore, preflight: serverPreflight)
         apiKey = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
         hfToken = try? secretStore.get(account: Self.hfTokenAccount)
     }
 
     // MARK: - Server state, as the menu wants to show it
 
+    /// What the running router reports about its models (`GET /models`),
+    /// refreshed every couple of seconds while running — see
+    /// `startModelPolling()`. Empty whenever the server isn't `.ready`.
+    private(set) var servedModels: [ServedModel] = []
+    private var modelPollTask: Task<Void, Never>?
+
+    /// How a `.ready` server looks in the menu, from what's actually
+    /// loaded rather than from config. Found by live testing: an earlier
+    /// version showed yellow for "no default model", which read as "broken"
+    /// while Test passed fine (router mode loads whatever model a request
+    /// names). Colour now means only: green = serving, yellow = a model is
+    /// still loading, red = the default model failed to load.
+    struct ReadyStatus: Equatable {
+        var label: String
+        var detail: String
+        var color: Color
+    }
+
+    static func readyStatus(models: [ServedModel], defaultModelID: String?) -> ReadyStatus {
+        if let defaultModelID,
+           let failed = models.first(where: { $0.id == defaultModelID && $0.status.failed == true })
+        {
+            let code = failed.status.exitCode.map { " (exit \($0))" } ?? ""
+            return ReadyStatus(
+                label: "Running — default model failed",
+                detail: "\(failed.id) failed to load\(code) — see Logs",
+                color: .red
+            )
+        }
+        if let loading = models.first(where: { $0.status.value == "loading" }) {
+            return ReadyStatus(label: "Loading model…", detail: "Loading \(loading.id)…", color: .yellow)
+        }
+        let loaded = models.filter { $0.status.value == "loaded" }.map(\.id)
+        if loaded.isEmpty {
+            return ReadyStatus(label: "Running", detail: "No model loaded — loads on first request", color: .green)
+        }
+        return ReadyStatus(label: "Running", detail: "Loaded: \(loaded.joined(separator: ", "))", color: .green)
+    }
+
+    private var currentReadyStatus: ReadyStatus {
+        Self.readyStatus(models: servedModels, defaultModelID: config.defaultModelID)
+    }
+
     var statusLabel: String {
         switch serverController.phase {
         case .stopped: "Stopped"
         case .starting: "Starting…"
-        case .ready: "Running"
+        case .ready: currentReadyStatus.label
         case .stopping: "Stopping…"
         case .failed: "Failed"
         }
+    }
+
+    /// The menu's model line: what's loaded while running; what *will*
+    /// load (the default) otherwise.
+    var modelStatusLine: String {
+        if serverController.phase == .ready {
+            return currentReadyStatus.detail
+        }
+        return config.defaultModelID.map { "Default model: \($0)" } ?? "No default model — loads on first request"
     }
 
     /// The menu bar icon is always the same bird glyph — only its colour
@@ -112,8 +174,35 @@ final class AppState {
         switch serverController.phase {
         case .stopped: .gray
         case .starting, .stopping: .yellow
-        case .ready: .green
+        case .ready: currentReadyStatus.color
         case .failed: .red
+        }
+    }
+
+    /// Re-reads `servedModels` from the running router; clears it when
+    /// the server isn't ready. A failed read keeps the last known list
+    /// rather than flickering the menu on one dropped request.
+    func refreshServedModels() async {
+        guard serverController.phase == .ready, let base = serverController.baseURL else {
+            servedModels = []
+            return
+        }
+        if let models = try? await runtime.listModels(base: base, apiKey: serverController.apiKey) {
+            servedModels = models
+        }
+    }
+
+    /// Polls for as long as a start is in effect (cancelled by `stop()`),
+    /// so the icon follows a model loading, finishing, being swapped by
+    /// a client request, or failing — none of which Quail itself causes.
+    private func startModelPolling() {
+        modelPollTask?.cancel()
+        modelPollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                await refreshServedModels()
+                try? await Task.sleep(for: .seconds(2))
+            }
         }
     }
 
@@ -131,42 +220,144 @@ final class AppState {
         return image
     }
 
+    /// Whether at least one GGUF is on disk and installable as a router
+    /// preset — only GGUF counts, since nothing can serve an MLX model
+    /// until Phase 3. Deliberately computed, not cached: it reads the
+    /// same disk scan `installedGGUFFiles()` already does for
+    /// `regeneratePresets`/`refreshedCatalog`, so there's one source of
+    /// truth and no cache to keep in sync across install/delete/relocate
+    /// — a hand-placed model (Phase 1's own "Done when") is picked up
+    /// the same way as one Quail downloaded itself.
+    var hasServableModel: Bool {
+        !modelStore.installedGGUFFiles().isEmpty
+    }
+
     var canStart: Bool {
-        serverController.phase == .stopped || serverController.phase.isFailed
+        (serverController.phase == .stopped || serverController.phase.isFailed) && hasServableModel
     }
 
     var canStop: Bool {
         serverController.phase == .ready || serverController.phase == .starting
     }
 
+    /// Which `SettingsView` tab is showing. Plain UI state, not
+    /// persisted — it lives here rather than as `SettingsView`'s own
+    /// `@State` only because the menu (`MenuView`'s "Add model…" item,
+    /// shown when `hasServableModel` is false) needs to steer the
+    /// Settings window to the Models tab before `openSettings()` opens
+    /// it; SwiftUI's `openSettings` action takes no arguments.
+    var settingsTab: SettingsTab = .general
+
     var baseURL: URL? {
         serverController.baseURL
     }
 
     func start() async {
+        // Guards callers other than the menu (the menu disables the
+        // button via canStart, which is the same check) — starting the
+        // router with no preset section is a server that binds and does
+        // nothing useful, not a real failure ServerController could
+        // report.
+        guard hasServableModel else { return }
         // Best-effort: if the store can't be created or presets.ini can't
         // be written (e.g. a relocated store's volume is unmounted), the
         // server itself will fail to bind and HealthProbe's timeout
         // surfaces that as .failed — there's no separate failure path for
         // this yet.
         try? modelStore.ensureDirectoriesExist()
-        // Reconcile the catalog with the disk (hand-placed models gain
-        // rows, deleted ones lose them) and set each model's per-device
-        // context size from FitEstimator before generating presets —
-        // Phase 2 step 4's deferred wiring. Reads device facts fresh
-        // every Start (free RAM changes; so should the verdicts).
-        let refreshed = modelStore.refreshedCatalog(
-            device: DeviceInfo.current(),
-            ggufRuntime: config.runtimeID,
-            bandwidthTable: ChipBandwidthTable.loadFromBundle()
-        )
-        try? modelStore.saveCatalog(refreshed)
-        try? modelStore.regeneratePresets(catalog: refreshed)
+        // Reconcile the catalog with the disk and set each model's
+        // per-device context size before generating presets — see
+        // `reconcileStore`. Reads device facts fresh every Start.
+        await reconcileStore()
+        signatureAtStart = modelStore.presetSignature()
         await serverController.start(config: endpointConfig())
+        await refreshServedModels() // so the first menu look after Start is already accurate
+        startModelPolling()
     }
 
     func stop() async {
+        modelPollTask?.cancel()
+        modelPollTask = nil
         await serverController.stop()
+        servedModels = []
+        signatureAtStart = nil
+    }
+
+    /// The menu's "Restart" for `modelsChangedSinceStart`.
+    func restart() async {
+        await stop()
+        await start()
+    }
+
+    // MARK: - Store reconciliation
+
+    /// `ModelStore.presetSignature()` as of the last Start — `nil` while
+    /// stopped.
+    private var signatureAtStart: [String]?
+
+    /// The store's models differ from what the running server was started
+    /// with — added, deleted (in Quail or in Finder), or a projector
+    /// changed. The router never rescans (confirmed against the real
+    /// binary), so these only take effect after a restart; the menu says so.
+    private(set) var modelsChangedSinceStart = false
+
+    private var storeWatcher: StoreWatcher?
+
+    /// Watches the current store's folders; call again after relocating.
+    /// Not started from `init` so tests' `AppState`s don't watch anything.
+    func startWatchingStore() {
+        let store = modelStore
+        storeWatcher?.stop()
+        storeWatcher = StoreWatcher(
+            directories: [store.ggufDirectory, store.mlxDirectory],
+            snapshot: { store.contentSnapshot() },
+            onSettled: { [weak self] in await self?.reconcileStore() }
+        )
+        storeWatcher?.start()
+    }
+
+    /// Brings every record in line with what's actually on disk — run at
+    /// launch, before each Start, and whenever the store's folders change
+    /// (so deleting a model in Finder is handled like deleting it here):
+    /// - `catalog.json` gains hand-placed models and loses missing ones.
+    /// - A default model whose file is gone is cleared, with a Logs line
+    ///   saying so (same as an in-app delete), rather than the menu naming
+    ///   a model that silently never loads.
+    /// - `presets.ini` is regenerated.
+    /// - `storeRevision` bumps so the Models pane and Add-model sheet
+    ///   refresh; `modelsChangedSinceStart` is set if the server is running
+    ///   on a now-different set of models.
+    /// Leftovers (unlinked projectors, abandoned partial downloads) are
+    /// never deleted here — see `ModelStore.leftovers`.
+    func reconcileStore() async {
+        let store = modelStore
+        let device = DeviceInfo.current()
+        let runtime = config.runtimeID
+        let bandwidth = ChipBandwidthTable.loadFromBundle()
+        let (refreshed, onDisk) = await Task.detached(priority: .utility) {
+            (
+                store.refreshedCatalog(device: device, ggufRuntime: runtime, bandwidthTable: bandwidth),
+                Set(store.installedGGUFFiles().map { $0.deletingPathExtension().lastPathComponent })
+            )
+        }.value
+        if refreshed != store.loadCatalog() {
+            try? store.saveCatalog(refreshed)
+        }
+        if let defaultID = config.defaultModelID, !onDisk.contains(defaultID) {
+            config.defaultModelID = nil
+            persist()
+            await logStore.append(
+                stream: .stderr,
+                text: "quail: default model \(defaultID) is no longer in the store (deleted outside Quail?) — cleared"
+            )
+        }
+        try? store.regeneratePresets(catalog: refreshed, defaultModelID: config.defaultModelID)
+        if let signatureAtStart {
+            modelsChangedSinceStart = store.presetSignature() != signatureAtStart
+        } else {
+            modelsChangedSinceStart = false
+        }
+        storeRevision += 1
     }
 
     // MARK: - Endpoint settings
@@ -304,6 +495,80 @@ final class AppState {
         }
     }
 
+    /// Pre-download fit verdicts for `Recommender.candidates`' families
+    /// (docs/ARCHITECTURE.md §7: "Both are read from the Hub file
+    /// listing before download, so the verdict shows in the picker") —
+    /// what lets the Add-model sheet show a "Recommended for this Mac"
+    /// section without the user clicking each family first. Keyed by
+    /// GGUF repo id; see `Recommender.finalize`'s doc comment for why
+    /// one verdict (at the catalog's default quant) is enough. Kept here
+    /// rather than as the sheet's own `@State` so reopening it doesn't
+    /// refetch — a sheet dismissed and reopened mid-browse shouldn't
+    /// re-hit the network for every family again.
+    /// Keyed by family id. A family with no entry hasn't been queued yet.
+    private(set) var catalogFits: [String: RemoteFit] = [:]
+
+    /// `catalogFits`' successful estimates, keyed by GGUF repo id — the
+    /// shape `Recommender.finalize` takes.
+    var catalogVerdicts: [String: FitEstimate] {
+        var result: [String: FitEstimate] = [:]
+        for family in catalog.families {
+            if case let .estimate(estimate)? = catalogFits[family.id], let repo = family.gguf?.repo {
+                result[repo] = estimate
+            }
+        }
+        return result
+    }
+
+    /// Looks up every family in the list — not just the in-tier
+    /// recommendation candidates, which is all an earlier version did,
+    /// leaving most rows blank — with those candidates first so the
+    /// Recommended section fills quickly. Up to 3 at once. Families
+    /// already resolved are skipped; ones that failed are retried (the
+    /// reason may have been transient, or a token since added).
+    func loadCatalogVerdicts() async {
+        let device = DeviceInfo.current()
+        let bandwidth = ChipBandwidthTable.loadFromBundle()
+        let ggufRuntime = config.runtimeID
+        let downloader = installs.downloader
+        let token = hfToken
+        let candidateIDs = Set(Recommender.candidates(catalog: catalog, device: device).map(\.id))
+        let families = catalog.families
+            .filter { family in
+                switch catalogFits[family.id] {
+                case .estimate?, .checking?: false
+                case .unknown?, nil: true
+                }
+            }
+            .sorted { candidateIDs.contains($0.id) && !candidateIDs.contains($1.id) }
+        for family in families {
+            catalogFits[family.id] = .checking
+        }
+
+        await withTaskGroup(of: (String, RemoteFit).self) { group in
+            var pending = families[...]
+
+            func addNext() {
+                guard let family = pending.popFirst() else { return }
+                group.addTask {
+                    let fit = await ModelPreview.catalogFit(
+                        family: family, downloader: downloader, device: device,
+                        ggufRuntime: ggufRuntime, bandwidthTable: bandwidth, token: token
+                    )
+                    return (family.id, fit)
+                }
+            }
+
+            for _ in 0 ..< 3 {
+                addNext()
+            }
+            for await (id, fit) in group {
+                catalogFits[id] = fit
+                addNext()
+            }
+        }
+    }
+
     // MARK: - Model store management
 
     /// Loaded-state for the Models pane's badges: model id -> status
@@ -364,6 +629,16 @@ final class AppState {
         persist()
     }
 
+    /// The model whose `presets.ini` section gets `load-on-startup = true`
+    /// (ADR D-017) — applies next Start, same as `modelsMax`; a running
+    /// server isn't reconfigured live. `id: nil` clears it (the star
+    /// toggle passing the already-default row's own id back off).
+    func setDefaultModel(_ id: String?) {
+        guard id != config.defaultModelID else { return }
+        config.defaultModelID = id
+        persist()
+    }
+
     /// Moves the whole store to a new folder and repoints at it — the
     /// point `Paths.makeModelsDirectoryBookmark` has existed for since
     /// PR 9 (docs/IMPLEMENTATION_PLAN.md step 7: "where it finally gets
@@ -400,6 +675,10 @@ final class AppState {
         installs.modelStore = modelStore
         config.modelsDirectoryBookmark = try Paths.makeModelsDirectoryBookmark(for: newRoot)
         persist()
+        storeRevision += 1
+        if storeWatcher != nil {
+            startWatchingStore()
+        }
     }
 
     enum RelocationError: Error, Equatable {
@@ -408,16 +687,24 @@ final class AppState {
 
     /// Removes a model: its files and its `catalog.json` row together
     /// (docs/ARCHITECTURE.md §6: "Deletion removes the files and the
-    /// catalog row"), plus `presets.ini` regeneration. A loaded model is
-    /// handled the §6-sanctioned "or a restart" way: the server is
-    /// stopped first (step 8's `POST /models/unload` equivalent will
-    /// make this gentler), and stays stopped — restarting it
+    /// catalog row"), plus `presets.ini` regeneration. A *loaded* (or
+    /// loading) model is handled the §6-sanctioned "or a restart" way: the
+    /// server is stopped first and stays stopped — restarting it
     /// automatically after an explicit destructive action is the
     /// surprising half of that choice, so the user presses Start again.
+    /// Deleting a model the server isn't using leaves it running (an
+    /// earlier version stopped it unconditionally, contradicting this
+    /// comment); the router keeps that preset until the next Start, and a
+    /// request naming it fails to load rather than finding stale weights.
     enum ModelDeletionError: Error, Equatable {
         case notInstalled
         case downloadInFlight
     }
+
+    /// Bumped whenever the store's contents change outside a download
+    /// (delete, relocate), so every view showing installed models can
+    /// refresh — the Models pane and the Add-model sheet both delete.
+    private(set) var storeRevision = 0
 
     func deleteInstalledModel(id: String) async throws {
         guard !installs.isDownloading else { throw ModelDeletionError.downloadInFlight }
@@ -426,15 +713,20 @@ final class AppState {
             throw ModelDeletionError.notInstalled
         }
         let entry = catalog.entries[index]
-        await serverController.stop()
+        await refreshServedModels()
+        let inUse = servedModels.contains { $0.id == id && ["loaded", "loading"].contains($0.status.value) }
+        if inUse {
+            await stop()
+        }
 
         let fm = FileManager.default
         switch entry.format {
         case .gguf:
             // The model plus every companion: split shards (a
             // `<id>-NNNNN-of-NNNNN.gguf` set, however many landed) and
-            // the name-paired vision projectors (`mmproj-<id>…`,
-            // ARCHITECTURE §6 "paired by name").
+            // its vision projector (`ModelStore.projectorFilename` — an
+            // exact name: a prefix match would also have taken
+            // `mmproj-<id>-Other.gguf`, another model's).
             let stem = id
             for file in (try? fm.contentsOfDirectory(at: modelStore.ggufDirectory, includingPropertiesForKeys: nil)) ??
                 []
@@ -442,7 +734,7 @@ final class AppState {
                 let name = file.deletingPathExtension().lastPathComponent
                 let isMain = name == stem
                 let isShard = name.hasPrefix("\(stem)-") && name.contains("-of-")
-                let isProjector = file.lastPathComponent.hasPrefix("mmproj-\(stem)")
+                let isProjector = file.lastPathComponent == ModelStore.projectorFilename(forModelID: stem)
                 if isMain || isShard || isProjector {
                     try? fm.removeItem(at: file)
                 }
@@ -453,7 +745,11 @@ final class AppState {
 
         catalog.entries.remove(at: index)
         try modelStore.saveCatalog(catalog)
-        try modelStore.regeneratePresets(catalog: catalog)
+        if config.defaultModelID == id {
+            setDefaultModel(nil)
+        }
+        try modelStore.regeneratePresets(catalog: catalog, defaultModelID: config.defaultModelID)
+        storeRevision += 1
     }
 
     // MARK: - Open at login
@@ -479,15 +775,22 @@ final class AppState {
         try? config.save(to: configURL)
     }
 
-    /// 16 random bytes, hex-encoded (128 bits of entropy — plenty for a
-    /// secret whose job is deterring casual access on a loopback/LAN
-    /// endpoint, see ADR D-010, not resisting a nation-state). Previously
-    /// 32 bytes (64 hex characters): needlessly long for that threat
-    /// model and awkward to read, select, or copy — shortened per user
-    /// feedback.
+    /// 12 random bytes, base64url-encoded without padding — exactly 16
+    /// characters (96 bits of entropy — still enormous for a secret
+    /// whose job is deterring casual access on a loopback/LAN endpoint,
+    /// see ADR D-010, not resisting a nation-state). Base64url (`-`/`_`,
+    /// no `+`/`/`) rather than plain base64: copy-pasted into a shell
+    /// `Authorization: Bearer …` header or a URL, `+`/`/` need escaping
+    /// and `=` padding is visual noise; none of that applies here.
+    /// Previously 32 hex characters (16 bytes) — shortened again, and
+    /// switched to base64, per user feedback that hex reads as
+    /// needlessly long and was overflowing the Endpoint settings field.
     private static func generateAPIKey() -> String {
-        var bytes = [UInt8](repeating: 0, count: 16)
+        var bytes = [UInt8](repeating: 0, count: 12)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        return bytes.map { String(format: "%02x", $0) }.joined()
+        return Data(bytes).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .trimmingCharacters(in: CharacterSet(charactersIn: "="))
     }
 }

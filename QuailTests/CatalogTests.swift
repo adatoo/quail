@@ -222,9 +222,11 @@ struct CatalogTests {
         let document = try decoder.decode(Catalog.Document.self, from: data)
         let catalog = document.catalog
 
-        // 8-12 families per the plan; every repo id and quant filename in
-        // it was verified against the live Hub API (see PR).
-        #expect((8 ... 12).contains(catalog.families.count))
+        // 13-17 families per the plan; every repo id and quant filename in
+        // it was verified against the live Hub API (see PR; revision 2
+        // added Qwen3.6/Qwen3.8, three Gemma 4 sizes, and the DeepSeek-R1
+        // distills, replacing qwen3-30b-a3b and the two Gemma 3 entries).
+        #expect((13 ... 17).contains(catalog.families.count))
         #expect(catalog.ramTiers.keys.sorted() == ["large", "medium", "small"])
         #expect(catalog.chipBandwidthGBps["Apple M4 Pro"] == 273)
 
@@ -246,11 +248,11 @@ struct CatalogTests {
         let qwen3 = try #require(catalog.families.first { $0.id == "qwen3-0.6b" })
         #expect(qwen3.gguf?.repo == "Qwen/Qwen3-0.6B-GGUF")
         #expect(qwen3.mlx?.repo == "mlx-community/Qwen3-0.6B-4bit")
-        let coder = try #require(catalog.families.first { $0.id == "qwen3-30b-a3b" })
-        #expect(coder.activeParamsB == 3)
+        let moe = try #require(catalog.families.first { $0.id == "qwen3.6-35b-a3b" })
+        #expect(moe.activeParamsB == 3)
         let embed = try #require(catalog.families.first { $0.id == "nomic-embed-v1.5" })
         #expect(embed.mlx == nil, "embedding family ships GGUF only")
-        let gemma = try #require(catalog.families.first { $0.id == "gemma-3-12b" })
+        let gemma = try #require(catalog.families.first { $0.id == "gemma-4-12b" })
         #expect(gemma.gguf?.mmproj == "mmproj-F16.gguf")
     }
 }

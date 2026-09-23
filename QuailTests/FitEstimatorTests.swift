@@ -334,4 +334,31 @@ struct FitEstimatorTests {
         #expect((bandwidthTable["Apple M4 Pro"] as? Double) == 273)
         #expect(bandwidthTable.count >= 10)
     }
+
+    @Test("approxMaxParamsB: a 64 GB Mac's real ceiling gives ~55B comfortable, ~85B max — never a sentinel like 999")
+    func approxMaxParams() {
+        let ceiling: Int64 = 55_662_805_000 // 51.84 GB, as measured on a 64 GB M4 Pro
+        #expect(FitEstimator.approxMaxParamsB(gpuCeilingBytes: ceiling, comfortable: true) == 55)
+        #expect(FitEstimator.approxMaxParamsB(gpuCeilingBytes: ceiling, comfortable: false) == 85)
+        #expect(FitEstimator.approxMaxParamsB(gpuCeilingBytes: 16_000_000_000, comfortable: true) == 13)
+        #expect(FitEstimator.approxMaxParamsB(gpuCeilingBytes: 1_000_000_000, comfortable: true) == 0)
+    }
+
+    @Test("a GGUF without head_count_kv (BERT-style) uses head_count, as llama.cpp does")
+    func missingKVHeadsFallsBackToHeadCount() throws {
+        var metadata = GGUFMetadata()
+        metadata.architecture = "nomic-bert"
+        metadata.blockCount = 12
+        metadata.headCount = 12
+        metadata.embeddingLength = 768
+        let shape = try #require(ModelShape.from(gguf: metadata, weightBytes: 140_000_000))
+        #expect(shape.kvHeadCount == 12)
+        #expect(shape.headDim == 64)
+    }
+
+    @Test("contextLabel renders token counts as K")
+    func contextLabel() {
+        #expect(RemoteFitBadge.contextLabel(4096) == "4K")
+        #expect(RemoteFitBadge.contextLabel(1536) == "1.5K")
+    }
 }
