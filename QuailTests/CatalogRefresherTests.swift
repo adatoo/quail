@@ -63,13 +63,24 @@ struct CatalogRefresherTests {
         #expect(!FileManager.default.fileExists(atPath: locations.refreshCacheFile.path))
     }
 
-    @Test("remoteURL reads QuailCatalogURL from the bundle's Info.plist")
-    func remoteURLFromInfoPlist() {
-        // Bundle.main is the xctest runner here — the key is unset, and
-        // the app's Info.plist (GENERATE_INFOPLIST_FILE) doesn't set it
-        // either until an update host exists. Assert the not-set case
-        // plus the parse rules directly rather than faking an Info.plist.
-        #expect(CatalogRefresher.remoteURL(in: .main) == nil)
+    @Test("remoteURL reads QuailCatalogURL from a bundle's Info.plist, and is nil when unset")
+    func remoteURLFromInfoPlist() throws {
+        // A bare directory works as an empty-Info.plist Bundle
+        // (CatalogTests' own trick) — no QuailCatalogURL key at all, so
+        // this is a genuinely independent check of the unset case, not
+        // a hope that some other bundle happens to have nothing set.
+        let dir = Self.scratchDir()
+        let emptyBundle = try #require(Bundle(url: dir))
+        #expect(CatalogRefresher.remoteURL(in: emptyBundle) == nil)
+
+        // .main is the real, live Quail.app bundle this test process is
+        // hosted in (TEST_HOST) — confirms the real, shipped config,
+        // project.yml's `info.properties.QuailCatalogURL`: a catalog
+        // update ships with a `git push`, not an app release.
+        #expect(
+            CatalogRefresher.remoteURL(in: .main)?.absoluteString
+                == "https://raw.githubusercontent.com/adatoo/quail/main/Quail/Resources/catalog.json"
+        )
     }
 
     @Test("a successful fetch writes the cache and current() picks it up")

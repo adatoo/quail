@@ -1,5 +1,6 @@
 import AppKit
 import Dispatch
+import Foundation
 
 /// Owns the app's `AppState` and makes sure the bundled runtime's child
 /// process is actually stopped before Quail itself goes away, through
@@ -21,11 +22,28 @@ import Dispatch
 /// the signal) is what makes this a real guarantee.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let appState = AppState()
+    /// True when this process is hosting `QuailTests` — `TEST_HOST`
+    /// genuinely launches a live Quail.app to run the test bundle
+    /// inside it, so this `AppDelegate` really is constructed and
+    /// `applicationDidFinishLaunching` really does run, even though no
+    /// test ever looks at its `appState` (every test builds its own
+    /// with fakes). See `NullSecretStore`'s doc comment for why this
+    /// matters: a real `Keychain()` here was popping a macOS
+    /// authorization prompt on every single `xcodebuild test` run.
+    private static var isHostingUnitTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
+    let appState = isHostingUnitTests ? AppState(secretStore: NullSecretStore()) : AppState()
 
     private var sigtermSource: DispatchSourceSignal?
 
     func applicationDidFinishLaunching(_: Notification) {
+        // Nothing below matters for a process only hosting the test
+        // bundle — skip the SIGTERM plumbing and, more importantly,
+        // the real network call `refreshCatalog()` would otherwise
+        // make on every test run.
+        guard !Self.isHostingUnitTests else { return }
         signal(SIGTERM, SIG_IGN)
         let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
         source.setEventHandler { [weak self] in
