@@ -69,7 +69,10 @@ struct AppStateTests {
             logStore: LogStore(),
             modelsRootURL: scratchDir.appendingPathComponent("Models", isDirectory: true),
             catalogLocations: .init(bundle: bundle, directory: scratchDir),
-            downloader: downloader
+            downloader: downloader,
+            // The live preflight inspects this machine's real processes
+            // and ports (8080 is often taken on a dev machine).
+            serverPreflight: nil
         )
     }
 

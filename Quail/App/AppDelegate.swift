@@ -60,6 +60,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // until a `QuailCatalogURL` exists in Info.plist; see
         // `AppState.refreshCatalog` for the cadence rationale.
         Task { await appState.refreshCatalog() }
+
+        // A previous run killed without a chance to clean up (Xcode's
+        // Stop button, a crash, `kill -9`) leaves its llama-server — and
+        // whatever model it had loaded — running as an orphan. Stop it
+        // now rather than only at the next Start, so its RAM is freed
+        // and the port is clear. See ServerPreflight.swift.
+        let presetsPath = appState.modelStore.presetsFile.path
+        Task { await OrphanReaper.reap(signature: presetsPath) }
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

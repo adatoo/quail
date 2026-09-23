@@ -69,6 +69,17 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
 
 ### Fixed
 
+- Start could go green for a server that wasn't Quail's: a `llama-server`
+  orphaned by an earlier run (Xcode Stop, crash, `kill -9`) kept port 8080,
+  Quail's new process failed to bind, but the orphan answered `/health`.
+  Test then failed (older API key) and the icon went red once restarts ran
+  out. Now: orphans carrying this store's `presets.ini` are stopped at
+  launch and before every Start; Start refuses with a named reason if the
+  port is held by anything else; and `/health` only counts while Quail's
+  own process is alive. The Ping window shows the start failure reason and
+  which model it tested, and prefers an already-loaded model over the
+  alphabetically-first one (which, with `modelsMax` 1, evicted the default).
+  `llamaCpp.log` now keeps the previous run as `llamaCpp.previous.log`.
 - `project.yml`'s resources wiring never actually put `catalog.json` (or
   the app icon) into a built `Quail.app` — every build shipped an empty
   curated catalog and no recommendations. Added a CI check so this can't

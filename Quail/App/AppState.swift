@@ -70,7 +70,8 @@ final class AppState {
         logStore: LogStore = LogStore(),
         modelsRootURL: URL? = nil,
         catalogLocations: Catalog.Locations = .default,
-        downloader: HFDownloader = HFDownloader()
+        downloader: HFDownloader = HFDownloader(),
+        serverPreflight: (@Sendable (EndpointConfig) async -> PreflightResult)? = ServerPreflight.live
     ) {
         self.config = config
         self.configURL = configURL
@@ -93,7 +94,7 @@ final class AppState {
         // and-egg would otherwise be permanent.
         try? store.ensureDirectoriesExist()
         installs = ModelInstallController(downloader: downloader, modelStore: store)
-        serverController = ServerController(runtime: runtime, logStore: logStore)
+        serverController = ServerController(runtime: runtime, logStore: logStore, preflight: serverPreflight)
         apiKey = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
         hfToken = try? secretStore.get(account: Self.hfTokenAccount)
     }

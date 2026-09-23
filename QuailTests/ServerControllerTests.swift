@@ -219,4 +219,50 @@ struct ServerControllerTests {
 
         await controller.stop()
     }
+
+    @Test("a failing preflight moves straight to failed with its reason, without launching")
+    func preflightFailureBlocksLaunch() async {
+        let runtime = FakeRuntime(launchSpec: Self.sleepSpec())
+        let supervisor = ProcessSupervisor()
+        let controller = ServerController(
+            runtime: runtime,
+            logStore: LogStore(),
+            supervisor: supervisor,
+            healthTimeout: 5,
+            preflight: { _ in PreflightResult(failure: "Port 8080 is already in use by llama-server (pid 1).") }
+        )
+
+        await controller.start(config: Self.config)
+
+        #expect(controller.phase == .failed(reason: "Port 8080 is already in use by llama-server (pid 1)."))
+        #expect(controller.recentFailureLogs == ["Port 8080 is already in use by llama-server (pid 1)."])
+        #expect(await !supervisor.isRunning)
+    }
+
+    /// The live bug: an orphan on the same port answered `/health` while
+    /// Quail's own process had already died failing to bind — and the menu
+    /// went green. A healthy answer must not count once our process is gone.
+    @Test("health from someone else's server doesn't count once our own process has exited")
+    func healthWithoutOwnProcessIsNotReady() async {
+        // First poll fails (while our process may still be alive); every
+        // later one says "ok" — by then our process has exited and the
+        // supervisor is sitting in a long backoff, so "ok" can only be
+        // coming from someone else.
+        let runtime = FakeRuntime(
+            launchSpec: Self.crashSpec(),
+            healthResults: [.failure(RuntimeError.httpStatus(503)), .success(Health(status: "ok"))]
+        )
+        let supervisor = ProcessSupervisor(maxRestarts: 3, backoff: [30, 30, 30])
+        let controller = ServerController(
+            runtime: runtime,
+            logStore: LogStore(),
+            supervisor: supervisor,
+            healthTimeout: 1.5
+        )
+
+        await controller.start(config: Self.config)
+
+        #expect(controller.phase != .ready)
+        await controller.stop()
+    }
 }

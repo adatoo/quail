@@ -15,13 +15,22 @@ struct PingSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Ping").font(.title2).bold()
 
-            if !isServerReady {
+            if case let .failed(reason) = appState.serverController.phase {
+                Text("The server failed to start: \(reason)")
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if !isServerReady {
                 Text("Start the server first.")
                     .foregroundStyle(.secondary)
             } else if let runner {
                 row("Server up", runner.serverUp)
                 row("Model loaded", runner.modelLoaded)
                 row("First token", runner.firstToken)
+                if let modelID = runner.modelID {
+                    Text("Model: \(modelID)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             HStack {
@@ -56,7 +65,12 @@ struct PingSheet: View {
         // process was actually launched with, not `appState.apiKey`
         // (live Settings) — the two can drift while the server keeps
         // running the old key.
-        let runner = PingRunner(runtime: appState.runtime, base: base, apiKey: appState.serverController.apiKey)
+        let runner = PingRunner(
+            runtime: appState.runtime,
+            base: base,
+            apiKey: appState.serverController.apiKey,
+            preferredModelID: appState.config.defaultModelID
+        )
         self.runner = runner
         await runner.run()
     }

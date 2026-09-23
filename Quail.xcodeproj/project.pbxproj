@@ -13,6 +13,7 @@
 		16C023CA506F7A2439BD7726 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C313E49C170F38D115B7E22 /* SettingsView.swift */; };
 		2025E52063DD98DFCBE2947A /* GGUFMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F31B617CA8019BFAC6C2FF8 /* GGUFMetadata.swift */; };
 		2148459632998822C9866493 /* CatalogRefresherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A0207CABC73498170DE7FF0 /* CatalogRefresherTests.swift */; };
+		21A85D38ADE199D81B26E568 /* ServerPreflight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 286A71AC4A53D3524EF78AA9 /* ServerPreflight.swift */; };
 		294AAE9056D74B73DFA51C94 /* ModelAddPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B83D2B3E8DD5780934B2E1C5 /* ModelAddPlanTests.swift */; };
 		2AB54DF34364E60EB414F204 /* FakeRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */; };
 		3430F195CEBC5CF8261D57D2 /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB03FA5B5C74DB6E5B963EF2 /* AppStateTests.swift */; };
@@ -31,6 +32,7 @@
 		530F6395D5751008F12153DC /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653A70D18AA958C1F75CD511 /* AppState.swift */; };
 		53F6814074A23EEBB6544D90 /* ModelAddPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BD7CE4C9F99A17BB539706 /* ModelAddPlan.swift */; };
 		58924A4F3EE841D42D8D721E /* DeviceInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50419AA3D40B6B9BAEDBF837 /* DeviceInfoTests.swift */; };
+		61785C3C948D97D8B3D625C4 /* ServerPreflightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4311B4B49CBCCEBD0B21D7 /* ServerPreflightTests.swift */; };
 		66B3DA5DEF7A55577F3A8813 /* ProcessSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */; };
 		6B126F9831838833DFFDF628 /* RecommenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44BD939F5108C50DFEA61E7D /* RecommenderTests.swift */; };
 		702EF962A21D3A10FC5E62A8 /* StoreCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */; };
@@ -95,6 +97,7 @@
 		19B87DA34C1C3C10454DD9BC /* CatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTests.swift; sourceTree = "<group>"; };
 		202E2A8059B6ABFB4874ED71 /* PathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathsTests.swift; sourceTree = "<group>"; };
 		239E0D546E27423C906B3A80 /* StubURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubURLProtocol.swift; sourceTree = "<group>"; };
+		286A71AC4A53D3524EF78AA9 /* ServerPreflight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerPreflight.swift; sourceTree = "<group>"; };
 		291564F24C33308671BAC5F1 /* Recommender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recommender.swift; sourceTree = "<group>"; };
 		3082DD72FF9CE513E5A325D4 /* ModelPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPreviewTests.swift; sourceTree = "<group>"; };
 		351669FD912B75E519CAAF15 /* ModelsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsPane.swift; sourceTree = "<group>"; };
@@ -142,6 +145,7 @@
 		B81725CFCB6D74EB402C92CD /* AppInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfo.swift; sourceTree = "<group>"; };
 		B83D2B3E8DD5780934B2E1C5 /* ModelAddPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAddPlanTests.swift; sourceTree = "<group>"; };
 		BACE052AE6756F1062784F3F /* ModelInstallController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelInstallController.swift; sourceTree = "<group>"; };
+		BB4311B4B49CBCCEBD0B21D7 /* ServerPreflightTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerPreflightTests.swift; sourceTree = "<group>"; };
 		C1946EC80763A824682094C0 /* GGUFMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GGUFMetadataTests.swift; sourceTree = "<group>"; };
 		C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStoreTests.swift; sourceTree = "<group>"; };
 		C7BD7CE4C9F99A17BB539706 /* ModelAddPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAddPlan.swift; sourceTree = "<group>"; };
@@ -198,6 +202,7 @@
 				921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */,
 				44BD939F5108C50DFEA61E7D /* RecommenderTests.swift */,
 				1105E578FC33E291B560DFEE /* ServerControllerTests.swift */,
+				BB4311B4B49CBCCEBD0B21D7 /* ServerPreflightTests.swift */,
 				239E0D546E27423C906B3A80 /* StubURLProtocol.swift */,
 			);
 			path = QuailTests;
@@ -259,6 +264,7 @@
 				7C29DC0715805F71AA1A5599 /* Ping.swift */,
 				EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */,
 				81B6A68D6E8CFFF1B6142EB1 /* ServerController.swift */,
+				286A71AC4A53D3524EF78AA9 /* ServerPreflight.swift */,
 			);
 			path = Server;
 			sourceTree = "<group>";
@@ -467,6 +473,7 @@
 				FAAC603389E9A8652CD31502 /* Runtime.swift in Sources */,
 				A97EF1AD2BF0945DC2C70167 /* SecretStore.swift in Sources */,
 				D21903B2E76547FABF0D784A /* ServerController.swift in Sources */,
+				21A85D38ADE199D81B26E568 /* ServerPreflight.swift in Sources */,
 				16C023CA506F7A2439BD7726 /* SettingsView.swift in Sources */,
 				702EF962A21D3A10FC5E62A8 /* StoreCatalog.swift in Sources */,
 				A1550BA3B989C1800EA3489D /* ThisMacPane.swift in Sources */,
@@ -503,6 +510,7 @@
 				C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */,
 				6B126F9831838833DFFDF628 /* RecommenderTests.swift in Sources */,
 				430E89F9BAD4B4183FB1E2F8 /* ServerControllerTests.swift in Sources */,
+				61785C3C948D97D8B3D625C4 /* ServerPreflightTests.swift in Sources */,
 				803C82E9918ACE65750267CA /* StubURLProtocol.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
