@@ -69,10 +69,13 @@ struct DeviceInfoTests {
     func gpuCoreCountIsPositiveWhenPresent() {
         let info = DeviceInfo.current()
 
-        // Absent on a CI VM's paravirtual GPU is acceptable; on a real Mac
-        // it isn't — an `if let` here once hid a lookup that never worked.
-        if ProcessInfo.processInfo.environment["CI"] == nil {
-            #expect(info.gpuCoreCount != nil)
+        // Cross-checked against `ioreg`, independently of DeviceInfo's own
+        // IOKit code: whenever the machine exposes a count, DeviceInfo must
+        // report the same one. (A plain `if let` here once hid a lookup that
+        // never worked; a CI-env-var guard didn't work either — the variable
+        // doesn't reach the test host app. CI's VM has no count to expose.)
+        if let expected = Self.ioregGPUCoreCount() {
+            #expect(info.gpuCoreCount == expected)
         }
         if let cores = info.gpuCoreCount {
             #expect(cores > 0)
@@ -87,5 +90,25 @@ struct DeviceInfoTests {
             #expect(!name.isEmpty)
         }
         #expect(info.osVersion?.isEmpty == false)
+    }
+
+    /// `"gpu-core-count" = 20` from `ioreg -rc IOAccelerator -d1`, or `nil`
+    /// if no accelerator on this machine carries the property.
+    private static func ioregGPUCoreCount() -> Int? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/ioreg")
+        process.arguments = ["-rc", "IOAccelerator", "-d1"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        guard (try? process.run()) != nil else { return nil }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        for line in String(decoding: data, as: UTF8.self).split(separator: "\n")
+            where line.contains("\"gpu-core-count\"")
+        {
+            return line.split(separator: "=").last.flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+        }
+        return nil
     }
 }
