@@ -69,7 +69,8 @@ final class AppState {
         runtime: any Runtime = LlamaCppRuntime(executableURL: Paths.llamaServerExecutable),
         logStore: LogStore = LogStore(),
         modelsRootURL: URL? = nil,
-        catalogLocations: Catalog.Locations = .default
+        catalogLocations: Catalog.Locations = .default,
+        downloader: HFDownloader = HFDownloader()
     ) {
         self.config = config
         self.configURL = configURL
@@ -91,7 +92,7 @@ final class AppState {
         // outright (`canStart`/`hasServableModel`, below), that chicken-
         // and-egg would otherwise be permanent.
         try? store.ensureDirectoriesExist()
-        installs = ModelInstallController(modelStore: store)
+        installs = ModelInstallController(downloader: downloader, modelStore: store)
         serverController = ServerController(runtime: runtime, logStore: logStore)
         apiKey = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
         hfToken = try? secretStore.get(account: Self.hfTokenAccount)
@@ -335,6 +336,68 @@ final class AppState {
         let refresher = CatalogRefresher(locations: catalogLocations, urlSession: .shared)
         if case .updated = await refresher.refreshIfNeeded() {
             catalog = Catalog.current(locations: catalogLocations)
+        }
+    }
+
+    /// Pre-download fit verdicts for `Recommender.candidates`' families
+    /// (docs/ARCHITECTURE.md §7: "Both are read from the Hub file
+    /// listing before download, so the verdict shows in the picker") —
+    /// what lets the Add-model sheet show a "Recommended for this Mac"
+    /// section without the user clicking each family first. Keyed by
+    /// GGUF repo id; see `Recommender.finalize`'s doc comment for why
+    /// one verdict (at the catalog's default quant) is enough. Kept here
+    /// rather than as the sheet's own `@State` so reopening it doesn't
+    /// refetch — a sheet dismissed and reopened mid-browse shouldn't
+    /// re-hit the network for every family again.
+    private(set) var catalogVerdicts: [String: FitEstimate] = [:]
+
+    /// Runs up to 3 lookups at once (`HFDownloader.listFiles` + a
+    /// ranged header fetch per family); a failure for one family simply
+    /// leaves it out of `catalogVerdicts` rather than surfacing an
+    /// error — a missing badge for one row is a nicety lost, not a
+    /// broken flow. No-ops if there's nothing new to fetch.
+    func loadCatalogVerdicts() async {
+        let device = DeviceInfo.current()
+        let bandwidth = ChipBandwidthTable.loadFromBundle()
+        let ggufRuntime = config.runtimeID
+        let downloader = installs.downloader
+        let token = hfToken
+        let families = Recommender.candidates(catalog: catalog, device: device)
+            .filter { catalogVerdicts[$0.gguf?.repo ?? ""] == nil }
+
+        await withTaskGroup(of: (String, FitEstimate?).self) { group in
+            var pending = families[...]
+
+            func addNext() {
+                guard let family = pending.popFirst(), let gguf = family.gguf else { return }
+                group.addTask {
+                    do {
+                        let listing = try await downloader.listFiles(repo: gguf.repo, token: token)
+                        let quant = gguf.defaultQuant ?? gguf.quants.first
+                        let file = quant.flatMap {
+                            ModelAddPlan.ggufFiles(for: listing, quant: $0, mmproj: gguf.mmproj).first
+                        }
+                        let verdict = try await ModelPreview.remote(
+                            repo: gguf.repo, format: .gguf, listing: listing, ggufFile: file,
+                            downloader: downloader, device: device, ggufRuntime: ggufRuntime,
+                            bandwidthTable: bandwidth, token: token
+                        )
+                        return (gguf.repo, verdict)
+                    } catch {
+                        return (gguf.repo, nil)
+                    }
+                }
+            }
+
+            for _ in 0 ..< 3 {
+                addNext()
+            }
+            for await (repo, verdict) in group {
+                if let verdict {
+                    catalogVerdicts[repo] = verdict
+                }
+                addNext()
+            }
         }
     }
 

@@ -15,8 +15,13 @@ struct AddModelSheet: View {
     /// Starts where the pane's filter left off — the user asked for the
     /// MLX-preferred browse to survive into the sheet, not reset.
     var defaultFilter: ModelsPane.FormatFilter = .all
+    /// Set when the sheet was opened from `ModelsPane`'s empty-state
+    /// recommendation button — selects that family immediately rather
+    /// than waiting for `loadRecommendedSelection()`'s own pick.
+    var preselect: Catalog.Family?
 
     @Environment(\.dismiss) private var dismiss
+    private let device = DeviceInfo.current()
 
     @State private var filter: ModelsPane.FormatFilter = .all
     @State private var pasteField = ""
@@ -42,7 +47,14 @@ struct AddModelSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Add model").font(.headline)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Add model").font(.headline)
+                    if let tierHeaderLine {
+                        Text(tierHeaderLine)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Spacer()
                 Picker("Show", selection: $filter) {
                     ForEach(ModelsPane.FormatFilter.allCases) { Text($0.rawValue).tag($0) }
@@ -62,39 +74,43 @@ struct AddModelSheet: View {
                 .padding()
         }
         .frame(width: 560, height: 560)
-        .onAppear { filter = defaultFilter }
+        .onAppear {
+            filter = defaultFilter
+            if let preselect {
+                selection = .curated(preselect)
+            }
+        }
         // Keyed on the resolved repo, not just the selection: flipping a
         // curated family's format points at a different repo/listing.
         .task(id: loadKey) { await loadListing() }
         .task(id: resolvedPick) { await loadVerdict() }
+        // §7: "Recommendations ... filtered to Comfortable" — runs once
+        // per sheet lifetime (`AppState.loadCatalogVerdicts` itself skips
+        // anything already fetched, so reopening the sheet is free).
+        .task {
+            await appState.loadCatalogVerdicts()
+            if selection == nil, let first = recommendedFamilies.first {
+                selection = .curated(first)
+            }
+        }
     }
 
     // MARK: - Left: the picker
 
     @ViewBuilder private var familyList: some View {
         List(selection: $selection) {
-            ForEach(filteredFamilies) { family in
-                HStack {
-                    Text(family.name)
-                    if !family.isCurated {
-                        Text("user-added")
-                            .font(.caption2.bold())
-                            .padding(.horizontal, 5).padding(.vertical, 1)
-                            .background(.secondary.opacity(0.2), in: Capsule())
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if family.gguf != nil {
-                        Text("GGUF").font(.caption2).foregroundStyle(.blue)
-                    }
-                    if family.mlx != nil {
-                        Text("MLX").font(.caption2).foregroundStyle(.purple)
-                    }
+            if recommendedFamilies.isEmpty {
+                ForEach(filteredFamilies) { family in familyRow(family) }
+                pastedRow
+            } else {
+                Section("Recommended for this Mac") {
+                    ForEach(recommendedFamilies) { family in familyRow(family) }
                 }
-                .tag(Selection.curated(family))
-            }
-            if case let .pasted(repo)? = selection, !filteredFamilies.contains(where: { $0.id == repo }) {
-                Label(repo, systemImage: "link").tag(Selection.pasted(repo))
+                let rest = filteredFamilies.filter { family in !recommendedFamilies.contains { $0.id == family.id } }
+                Section("All Models") {
+                    ForEach(rest) { family in familyRow(family) }
+                    pastedRow
+                }
             }
         }
         .frame(maxHeight: 220)
@@ -109,6 +125,41 @@ struct AddModelSheet: View {
         .padding([.horizontal, .bottom])
     }
 
+    @ViewBuilder private var pastedRow: some View {
+        if case let .pasted(repo)? = selection, !filteredFamilies.contains(where: { $0.id == repo }) {
+            Label(repo, systemImage: "link").tag(Selection.pasted(repo))
+        }
+    }
+
+    private func familyRow(_ family: Catalog.Family) -> some View {
+        HStack {
+            Text(family.name)
+            if !family.isCurated {
+                Text("user-added")
+                    .font(.caption2.bold())
+                    .padding(.horizontal, 5).padding(.vertical, 1)
+                    .background(.secondary.opacity(0.2), in: Capsule())
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let repo = family.gguf?.repo, let verdict = appState.catalogVerdicts[repo] {
+                FitVerdictBadge(estimate: verdict)
+                if let speed = verdict.estimatedTokensPerSecond {
+                    Text("~\(speed.rounded()) tok/s")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if family.gguf != nil {
+                Text("GGUF").font(.caption2).foregroundStyle(.blue)
+            }
+            if family.mlx != nil {
+                Text("MLX").font(.caption2).foregroundStyle(.purple)
+            }
+        }
+        .tag(Selection.curated(family))
+    }
+
     private var filteredFamilies: [Catalog.Family] {
         appState.catalog.families.filter { family in
             switch filter {
@@ -117,6 +168,29 @@ struct AddModelSheet: View {
             case .mlx: family.mlx != nil
             }
         }
+    }
+
+    /// §7's "Recommendations": curated, in-tier, GGUF-capable families
+    /// verified Comfortable, honouring whatever format filter the user
+    /// already has selected (an MLX-only browse shouldn't recommend a
+    /// GGUF model it won't show anywhere else in the list).
+    private var recommendedFamilies: [Catalog.Family] {
+        let finalized = Recommender.finalize(
+            candidates: Recommender.candidates(catalog: appState.catalog, device: device),
+            verdicts: appState.catalogVerdicts
+        )
+        let allowed = Set(filteredFamilies.map(\.id))
+        return finalized.filter { allowed.contains($0.id) }
+    }
+
+    private var tierHeaderLine: String? {
+        guard let bytes = device.unifiedMemoryBytes,
+              let (_, tier) = appState.catalog.tier(forMemoryBytes: bytes),
+              let range = tier.recommendedRange
+        else { return nil }
+        let chip = device.chipName.map { "\($0) · " } ?? ""
+        let gb = Int(Double(bytes) / 1_073_741_824)
+        return "\(chip)\(gb) GB · showing \(Int(range.lowerBound))–\(Int(range.upperBound))B models"
     }
 
     private func lookupPasted() {

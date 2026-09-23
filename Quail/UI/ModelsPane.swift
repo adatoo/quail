@@ -27,6 +27,11 @@ struct ModelsPane: View {
     @State private var relocationError: String?
     @State private var loadError: String?
     @State private var tokenDraft = ""
+    /// Carried from `ContentUnavailable`'s recommendation button into the
+    /// sheet it opens, so the empty-state nudge (§7's own top pick for
+    /// this Mac) lands the user straight on that family rather than an
+    /// unselected list.
+    @State private var preselectFamily: Catalog.Family?
 
     enum FormatFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -58,7 +63,7 @@ struct ModelsPane: View {
         }
         .frame(minHeight: 320)
         .sheet(isPresented: $showAddSheet) {
-            AddModelSheet(appState: appState, defaultFilter: formatFilter)
+            AddModelSheet(appState: appState, defaultFilter: formatFilter, preselect: preselectFamily)
         }
         .alert(
             "Delete \(pendingDeletion ?? "")?",
@@ -129,11 +134,28 @@ struct ModelsPane: View {
         }
     }
 
+    /// The top pick for this Mac, per §7's "Recommendations" — shown in
+    /// the empty-state nudge below without waiting on any network
+    /// verdict (that's `AddModelSheet`'s own job once opened); this is
+    /// just "what would head the recommended list", from catalog data
+    /// alone.
+    private var topRecommendation: Catalog.Family? {
+        Recommender.candidates(catalog: appState.catalog, device: DeviceInfo.current()).first
+    }
+
     @ViewBuilder private var installedList: some View {
         if entries.isEmpty {
             ContentUnavailable(
                 filter: formatFilter,
-                add: { showAddSheet = true }
+                recommended: topRecommendation,
+                add: {
+                    preselectFamily = nil
+                    showAddSheet = true
+                },
+                addRecommended: { family in
+                    preselectFamily = family
+                    showAddSheet = true
+                }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -180,7 +202,10 @@ struct ModelsPane: View {
                     Task { await refresh() }
                 }
                 .help("Re-read the store and the server's loaded models")
-                Button("Add model…") { showAddSheet = true }
+                Button("Add model…") {
+                    preselectFamily = nil
+                    showAddSheet = true
+                }
                 Button("Relocate…") { relocate() }
                     .disabled(
                         appState.installs.isDownloading
@@ -327,11 +352,11 @@ private struct ModelRow: View {
             Text(entry.id)
                 .lineLimit(1)
                 .truncationMode(.middle)
-            badge(entry.format == .gguf ? "GGUF" : "MLX", entry.format == .gguf ? .blue : .purple)
+            Badge(text: entry.format == .gguf ? "GGUF" : "MLX", color: entry.format == .gguf ? .blue : .purple)
             if loaded == "loaded" {
-                badge("loaded", .green)
+                Badge(text: "loaded", color: .green)
             } else if let loaded {
-                badge(loaded, .gray)
+                Badge(text: loaded, color: .gray)
             }
             Spacer()
             // Hot swap (step 8): an installed GGUF can be loaded into the
@@ -343,7 +368,7 @@ private struct ModelRow: View {
                     .controlSize(.small)
             }
             if let verdict {
-                verdictTag(verdict)
+                FitVerdictBadge(estimate: verdict)
             }
             Text(ByteCountFormatter.string(fromByteCount: entry.bytes, countStyle: .file))
                 .font(.caption)
@@ -357,31 +382,16 @@ private struct ModelRow: View {
         }
         .padding(.vertical, 2)
     }
-
-    @ViewBuilder private func verdictTag(_ estimate: FitEstimate) -> some View {
-        switch estimate.verdict {
-        case .comfortable:
-            badge("Comfortable", .green)
-        case let .tight(reduced):
-            badge("Tight · \(reduced)", .yellow)
-        case .wontFit:
-            badge("Won't fit", .red)
-        }
-    }
-
-    private func badge(_ text: String, _ color: Color) -> some View {
-        Text(text)
-            .font(.caption2.bold())
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.15), in: Capsule())
-            .foregroundStyle(color)
-    }
 }
 
 private struct ContentUnavailable: View {
     let filter: ModelsPane.FormatFilter
+    /// This Mac's top pick, if one's known — see `ModelsPane.
+    /// topRecommendation`'s doc comment for why this doesn't wait on a
+    /// network verdict.
+    let recommended: Catalog.Family?
     let add: () -> Void
+    let addRecommended: (Catalog.Family) -> Void
 
     var body: some View {
         VStack(spacing: 8) {
@@ -390,7 +400,11 @@ private struct ContentUnavailable: View {
                 .foregroundStyle(.secondary)
             Text(filter == .all ? "No models installed yet." : "No \(filter.rawValue) models installed yet.")
                 .foregroundStyle(.secondary)
-            Button("Add model…", action: add)
+            if let recommended, let quant = recommended.gguf?.defaultQuant {
+                Button("Recommended: \(recommended.name) (\(quant)) — Add…") { addRecommended(recommended) }
+            } else {
+                Button("Add model…", action: add)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)

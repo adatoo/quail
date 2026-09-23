@@ -32,6 +32,7 @@
 		53F6814074A23EEBB6544D90 /* ModelAddPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BD7CE4C9F99A17BB539706 /* ModelAddPlan.swift */; };
 		58924A4F3EE841D42D8D721E /* DeviceInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50419AA3D40B6B9BAEDBF837 /* DeviceInfoTests.swift */; };
 		66B3DA5DEF7A55577F3A8813 /* ProcessSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */; };
+		6B126F9831838833DFFDF628 /* RecommenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44BD939F5108C50DFEA61E7D /* RecommenderTests.swift */; };
 		702EF962A21D3A10FC5E62A8 /* StoreCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */; };
 		711387A1DA5998F40B757612 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7109E7D7686B314F8156BAC7 /* LoginItem.swift */; };
 		78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */; };
@@ -55,8 +56,10 @@
 		BB9E9F4BD5FCE9643645DFC3 /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF5343FFDFED49C8EFF6B3C /* Catalog.swift */; };
 		BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F86147309B95CB624585AB /* Paths.swift */; };
 		C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */; };
+		C6EF40DBA037399CA71834C6 /* FitBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC663973B4AF633BDBC0B64C /* FitBadge.swift */; };
 		CB7CA9A2F895FD0B2EB70E10 /* GGUFFixtureBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 649E93D9E6DF446442533B00 /* GGUFFixtureBuilder.swift */; };
 		D14CDB94C0DC992397CDE352 /* AppInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70BF19344F23B98FA299585E /* AppInfoTests.swift */; };
+		D2121BF380DDA22CCA8B83CE /* Recommender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291564F24C33308671BAC5F1 /* Recommender.swift */; };
 		D21903B2E76547FABF0D784A /* ServerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B6A68D6E8CFFF1B6142EB1 /* ServerController.swift */; };
 		D577E84C9E4191CBAED0D203 /* ConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0456E0B59C5B4A2C4303E13 /* ConfigTests.swift */; };
 		D852BFCB8112DD76D6DBEB44 /* ModelInstallController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BACE052AE6756F1062784F3F /* ModelInstallController.swift */; };
@@ -90,12 +93,14 @@
 		19B87DA34C1C3C10454DD9BC /* CatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTests.swift; sourceTree = "<group>"; };
 		202E2A8059B6ABFB4874ED71 /* PathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathsTests.swift; sourceTree = "<group>"; };
 		239E0D546E27423C906B3A80 /* StubURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubURLProtocol.swift; sourceTree = "<group>"; };
+		291564F24C33308671BAC5F1 /* Recommender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recommender.swift; sourceTree = "<group>"; };
 		3082DD72FF9CE513E5A325D4 /* ModelPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPreviewTests.swift; sourceTree = "<group>"; };
 		351669FD912B75E519CAAF15 /* ModelsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsPane.swift; sourceTree = "<group>"; };
 		391271ECA995DA68CF47E1B8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreCatalog.swift; sourceTree = "<group>"; };
 		3C313E49C170F38D115B7E22 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		425E81D2DAC331A359585A0F /* HFRepo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HFRepo.swift; sourceTree = "<group>"; };
+		44BD939F5108C50DFEA61E7D /* RecommenderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommenderTests.swift; sourceTree = "<group>"; };
 		47FBAC880A6D514BBF7B4851 /* ThisMacPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThisMacPane.swift; sourceTree = "<group>"; };
 		4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthProbe.swift; sourceTree = "<group>"; };
 		5017B60F5810B38F0C09B7F3 /* DeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfo.swift; sourceTree = "<group>"; };
@@ -145,6 +150,7 @@
 		E5340652668A6D7507752E82 /* QuailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailApp.swift; sourceTree = "<group>"; };
 		EB9482F330D14ABD97C3CB8A /* LogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStore.swift; sourceTree = "<group>"; };
 		EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSupervisor.swift; sourceTree = "<group>"; };
+		FC663973B4AF633BDBC0B64C /* FitBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitBadge.swift; sourceTree = "<group>"; };
 		FDE8BD6ECEA9B7B53DBF2DEB /* HFDownloaderSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HFDownloaderSmokeTest.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -185,6 +191,7 @@
 				202E2A8059B6ABFB4874ED71 /* PathsTests.swift */,
 				5907867E917EAA9CB82DDAAF /* PingTests.swift */,
 				921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */,
+				44BD939F5108C50DFEA61E7D /* RecommenderTests.swift */,
 				1105E578FC33E291B560DFEE /* ServerControllerTests.swift */,
 				239E0D546E27423C906B3A80 /* StubURLProtocol.swift */,
 			);
@@ -204,6 +211,7 @@
 				BACE052AE6756F1062784F3F /* ModelInstallController.swift */,
 				7E759DC17C4FF2B390C8C830 /* ModelPreview.swift */,
 				7E932070B21FCE331F0977B5 /* ModelStore.swift */,
+				291564F24C33308671BAC5F1 /* Recommender.swift */,
 				3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */,
 			);
 			path = Models;
@@ -213,6 +221,7 @@
 			isa = PBXGroup;
 			children = (
 				12DE6B42A661984D99734823 /* AddModelSheet.swift */,
+				FC663973B4AF633BDBC0B64C /* FitBadge.swift */,
 				8373F07EB148CC4C08D0EC8A /* LogsWindow.swift */,
 				174474DD711C1D0D6ACAE912 /* MenuView.swift */,
 				351669FD912B75E519CAAF15 /* ModelsPane.swift */,
@@ -403,6 +412,7 @@
 				9A5972B30A98BFE94BF8A2F5 /* CatalogRefresher.swift in Sources */,
 				798F1C09C23FA25832FFAC3B /* Config.swift in Sources */,
 				3BCA43382C343027C7FB0981 /* DeviceInfo.swift in Sources */,
+				C6EF40DBA037399CA71834C6 /* FitBadge.swift in Sources */,
 				78FECD20C76D7176307998ED /* FitEstimator.swift in Sources */,
 				2025E52063DD98DFCBE2947A /* GGUFMetadata.swift in Sources */,
 				9E7A072989A42AFD0CF6C555 /* HFDownloader.swift in Sources */,
@@ -424,6 +434,7 @@
 				03B5E452B94DA5386DC74A36 /* PingSheet.swift in Sources */,
 				66B3DA5DEF7A55577F3A8813 /* ProcessSupervisor.swift in Sources */,
 				FE3F1D8FFB1AB2BA257B7DD5 /* QuailApp.swift in Sources */,
+				D2121BF380DDA22CCA8B83CE /* Recommender.swift in Sources */,
 				FAAC603389E9A8652CD31502 /* Runtime.swift in Sources */,
 				A97EF1AD2BF0945DC2C70167 /* SecretStore.swift in Sources */,
 				D21903B2E76547FABF0D784A /* ServerController.swift in Sources */,
@@ -461,6 +472,7 @@
 				78A0C100BA7CBC5B2B1F3FA8 /* PathsTests.swift in Sources */,
 				AF8F824B4E7AD00629E4BEC8 /* PingTests.swift in Sources */,
 				C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */,
+				6B126F9831838833DFFDF628 /* RecommenderTests.swift in Sources */,
 				430E89F9BAD4B4183FB1E2F8 /* ServerControllerTests.swift in Sources */,
 				803C82E9918ACE65750267CA /* StubURLProtocol.swift in Sources */,
 			);

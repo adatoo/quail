@@ -34,7 +34,15 @@ struct AppStateTests {
     private func makeAppState(
         config: Config = Config(),
         scratchDir: URL,
-        secretStore: FakeSecretStore = FakeSecretStore()
+        secretStore: FakeSecretStore = FakeSecretStore(),
+        // A `Resources/catalog.json`-shaped document, written to
+        // `scratchDir` and used as the bundled seed — `CatalogTests`'
+        // own trick (a bare directory works as a `Bundle` for resource
+        // lookup). `nil` keeps the real `.main` bundle, which resolves
+        // to an empty catalog outside `Quail.app` (see
+        // `userCatalogRepoRoundTripThroughAppState`'s own expectation).
+        catalogSeed: String? = nil,
+        downloader: HFDownloader = HFDownloader()
     )
         -> AppState
     {
@@ -44,6 +52,15 @@ struct AppStateTests {
             environment: [:],
             currentDirectoryURL: nil
         )
+        let bundle: Bundle
+        if let catalogSeed {
+            try? catalogSeed.write(
+                to: scratchDir.appendingPathComponent("catalog.json"), atomically: true, encoding: .utf8
+            )
+            bundle = Bundle(url: scratchDir)!
+        } else {
+            bundle = .main
+        }
         return AppState(
             config: config,
             configURL: scratchDir.appendingPathComponent("config.json"),
@@ -51,7 +68,8 @@ struct AppStateTests {
             runtime: FakeRuntime(launchSpec: launchSpec),
             logStore: LogStore(),
             modelsRootURL: scratchDir.appendingPathComponent("Models", isDirectory: true),
-            catalogLocations: .init(bundle: .main, directory: scratchDir)
+            catalogLocations: .init(bundle: bundle, directory: scratchDir),
+            downloader: downloader
         )
     }
 
@@ -281,6 +299,69 @@ struct AppStateTests {
         #expect(Catalog.loadUserEntries(from: scratch.appendingPathComponent("user-catalog.json")).isEmpty)
     }
 
+    @Test("loadCatalogVerdicts: fetches a Comfortable verdict per curated candidate, keyed by GGUF repo")
+    func loadCatalogVerdictsFetchesPerFamily() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+
+        // A single tier covering every real machine's memory, so this
+        // doesn't depend on how much RAM the test happens to run on —
+        // only the tiny fixture model's own shape decides Comfortable.
+        let seed = """
+        {
+          "revision": 1,
+          "ramTiersGB": { "any": { "max": 999999, "recommendParamsB": [0, 999] } },
+          "chipBandwidthGBps": {},
+          "families": [
+            { "id": "tiny", "name": "Tiny", "paramsB": 0.5, "role": "general", "rank": 1,
+              "variants": { "gguf": { "repo": "org/Tiny-GGUF", "quants": ["Q8_0"], "default": "Q8_0" } } },
+            { "id": "embed", "name": "Embed", "paramsB": 0.5, "role": "embedding", "rank": 1,
+              "variants": { "gguf": { "repo": "org/Embed-GGUF", "quants": ["Q8_0"], "default": "Q8_0" } } }
+          ]
+        }
+        """
+
+        var fixture = GGUFFixtureBuilder()
+        fixture.addString("general.architecture", "llama")
+        fixture.addUInt32("llama.block_count", 2)
+        fixture.addUInt32("llama.attention.head_count", 2)
+        fixture.addUInt32("llama.attention.head_count_kv", 2)
+        fixture.addUInt32("llama.embedding_length", 64)
+        let headerBytes = fixture.data()
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        let listingRequestCount = LockedCount()
+        StubURLProtocol.handler = { request in
+            if request.url?.path.contains("/api/models/") == true {
+                listingRequestCount.increment()
+                let body = Data("""
+                {"siblings":[{"rfilename":"Tiny-Q8_0.gguf","size":50000000}]}
+                """.utf8)
+                return StubResponse(statusCode: 200, body: body)
+            }
+            return StubResponse(statusCode: 200, body: headerBytes)
+        }
+        let downloader = try HFDownloader(
+            urlSession: URLSession(configuration: config), hubBaseURL: #require(URL(string: "http://hub.test"))
+        )
+        let appState = makeAppState(scratchDir: scratch, catalogSeed: seed, downloader: downloader)
+        #expect(appState.catalog.families.count == 2)
+
+        await appState.loadCatalogVerdicts()
+
+        // "embed" is excluded by role before any network call happens —
+        // Recommender.candidates, not loadCatalogVerdicts, is the guard.
+        #expect(listingRequestCount.value == 1)
+        let verdict = try #require(appState.catalogVerdicts["org/Tiny-GGUF"])
+        #expect(verdict.verdict == .comfortable)
+        #expect(appState.catalogVerdicts["org/Embed-GGUF"] == nil)
+
+        // Reopening (a second call) doesn't refetch what's already known.
+        await appState.loadCatalogVerdicts()
+        #expect(listingRequestCount.value == 1)
+    }
+
     @Test("selectModel: refused stopped/uninstalled/MLX; hot-swaps an installed GGUF while running")
     func selectModelGuards() async throws {
         let scratch = scratchDirectory()
@@ -435,5 +516,22 @@ struct AppStateTests {
         #expect(fm.fileExists(atPath: appState.modelStore.presetsFile.path))
 
         await appState.stop()
+    }
+}
+
+/// A thread-safe counter for `StubURLProtocol.handler` closures that need
+/// to track how many times a concurrent (`TaskGroup`-driven) call hit a
+/// particular endpoint — see `HFDownloaderTests`' own `CapturedValue` for
+/// the same rationale (the handler can run off the main thread).
+private final class LockedCount: @unchecked Sendable {
+    private var count = 0
+    private let lock = NSLock()
+
+    var value: Int {
+        lock.withLock { count }
+    }
+
+    func increment() {
+        lock.withLock { count += 1 }
     }
 }
