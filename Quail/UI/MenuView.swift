@@ -26,6 +26,16 @@ struct MenuView: View {
                 .disabled(true)
         }
 
+        // Answers "what will actually be loaded" before you even hit
+        // Start — the default model, if one's set, or an explicit
+        // admission there isn't one (paired with `statusLabel`/
+        // `statusColor` no longer claiming a plain, fully-ready "Running"
+        // for a start with nothing configured behind it).
+        if appState.hasServableModel {
+            Text(appState.config.defaultModelID.map { "Model: \($0)" } ?? "No default model")
+                .disabled(true)
+        }
+
         Divider()
 
         // `hasServableModel` reads the filesystem directly (deliberately

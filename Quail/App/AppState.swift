@@ -100,11 +100,20 @@ final class AppState {
 
     // MARK: - Server state, as the menu wants to show it
 
+    /// Distinguishes "the router process is up" from "the router process
+    /// is up *and* there's a model actually configured to be behind it"
+    /// — confirmed by live testing that these look identical without
+    /// this: Start with no default model shows exactly the same green
+    /// "Running" as a normal run, even though nothing will answer a
+    /// request that doesn't itself name a model. Not a claim that
+    /// nothing works (router mode auto-loads a model the moment a
+    /// request names one — see ARCHITECTURE.md's concurrency note), just
+    /// that this run isn't backed by a model the way a defaulted one is.
     var statusLabel: String {
         switch serverController.phase {
         case .stopped: "Stopped"
         case .starting: "Starting…"
-        case .ready: "Running"
+        case .ready: config.defaultModelID == nil ? "Running — no default model" : "Running"
         case .stopping: "Stopping…"
         case .failed: "Failed"
         }
@@ -121,7 +130,7 @@ final class AppState {
         switch serverController.phase {
         case .stopped: .gray
         case .starting, .stopping: .yellow
-        case .ready: .green
+        case .ready: config.defaultModelID == nil ? .yellow : .green
         case .failed: .red
         }
     }
@@ -589,15 +598,22 @@ final class AppState {
         try? config.save(to: configURL)
     }
 
-    /// 16 random bytes, hex-encoded (128 bits of entropy — plenty for a
-    /// secret whose job is deterring casual access on a loopback/LAN
-    /// endpoint, see ADR D-010, not resisting a nation-state). Previously
-    /// 32 bytes (64 hex characters): needlessly long for that threat
-    /// model and awkward to read, select, or copy — shortened per user
-    /// feedback.
+    /// 12 random bytes, base64url-encoded without padding — exactly 16
+    /// characters (96 bits of entropy — still enormous for a secret
+    /// whose job is deterring casual access on a loopback/LAN endpoint,
+    /// see ADR D-010, not resisting a nation-state). Base64url (`-`/`_`,
+    /// no `+`/`/`) rather than plain base64: copy-pasted into a shell
+    /// `Authorization: Bearer …` header or a URL, `+`/`/` need escaping
+    /// and `=` padding is visual noise; none of that applies here.
+    /// Previously 32 hex characters (16 bytes) — shortened again, and
+    /// switched to base64, per user feedback that hex reads as
+    /// needlessly long and was overflowing the Endpoint settings field.
     private static func generateAPIKey() -> String {
-        var bytes = [UInt8](repeating: 0, count: 16)
+        var bytes = [UInt8](repeating: 0, count: 12)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        return bytes.map { String(format: "%02x", $0) }.joined()
+        return Data(bytes).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .trimmingCharacters(in: CharacterSet(charactersIn: "="))
     }
 }

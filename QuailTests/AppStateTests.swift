@@ -78,7 +78,8 @@ struct AppStateTests {
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
         let appState = makeAppState(scratchDir: scratch)
-        try writeFixtureGGUF(to: appState.modelStore)
+        try writeFixtureGGUF(named: "Alpha", to: appState.modelStore)
+        appState.setDefaultModel("Alpha")
 
         #expect(appState.statusLabel == "Stopped")
         #expect(appState.canStart)
@@ -90,6 +91,27 @@ struct AppStateTests {
 
         await appState.stop()
         #expect(appState.statusLabel == "Stopped")
+    }
+
+    @Test("statusLabel/statusColor distinguish a start with no default model from a normal one")
+    func statusDistinguishesNoDefaultModel() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(to: appState.modelStore)
+        #expect(appState.config.defaultModelID == nil)
+
+        await appState.start()
+        #expect(appState.statusLabel == "Running — no default model")
+        #expect(appState.statusColor == .yellow)
+
+        await appState.stop()
+        appState.setDefaultModel("Fixture-Q8_0")
+        await appState.start()
+        #expect(appState.statusLabel == "Running")
+        #expect(appState.statusColor == .green)
+
+        await appState.stop()
     }
 
     @Test("canStart requires at least one installed GGUF; an mmproj companion alone doesn't count")
@@ -176,7 +198,7 @@ struct AppStateTests {
         #expect(first != second)
     }
 
-    @Test("regenerateAPIKey produces a 32-character hex string (16 bytes)")
+    @Test("regenerateAPIKey produces a 16-character base64url string (12 bytes), no padding")
     func regenerateAPIKeyLength() throws {
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
@@ -185,11 +207,15 @@ struct AppStateTests {
         appState.setAPIKeyEnabled(true)
         let key = try #require(appState.apiKey)
 
-        // 16 random bytes, hex-encoded — see AppState.generateAPIKey's doc
-        // comment for why this was shortened from 32 bytes/64 characters.
-        #expect(key.count == 32)
-        // swiftformat:disable:next preferKeyPath
-        #expect(key.allSatisfy { $0.isHexDigit })
+        // 12 random bytes, base64url-encoded — see AppState.generateAPIKey's
+        // doc comment for why this moved from 32 hex characters.
+        #expect(key.count == 16)
+        #expect(!key.contains("+"))
+        #expect(!key.contains("/"))
+        #expect(!key.contains("="))
+        let base64urlAlphabet =
+            CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
+        #expect(key.unicodeScalars.allSatisfy(base64urlAlphabet.contains))
     }
 
     @Test("setAPIKey stores a user-chosen key while enabled")
@@ -252,7 +278,7 @@ struct AppStateTests {
 
         // Doesn't crash or hang — start() must tolerate a nil key here.
         await appState.start()
-        #expect(appState.statusLabel == "Running")
+        #expect(appState.serverController.phase == .ready)
         await appState.stop()
     }
 
