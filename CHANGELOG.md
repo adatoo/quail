@@ -53,6 +53,19 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   defaultModelID`, which `presets.ini` gets a `load-on-startup = true`
   key for (ADR D-017) — that model now loads automatically on Start, with
   no manual Load click or inbound request required.
+- "Copy Model ID" on each Models-pane row, plus a hint: the `"model"`
+  field a client sends to pick among several loaded models is the
+  installed model's own id — previously undiscoverable from the app.
+- Refreshed the curated catalog against the live Hub (Gemma 4, Qwen3.6/
+  Qwen3.8, DeepSeek-R1-Distill) and made the weekly remote-refresh
+  mechanism live for the first time — `QuailCatalogURL` now points at
+  this repo's own `catalog.json`, so future catalog updates ship with a
+  `git push`, not an app release.
+- Developer ID signing (ADR D-018): `scripts/sign-and-notarize.sh`,
+  `scripts/make-dmg.sh`, and a local entry point `scripts/install.sh`
+  (archive → sign → notarize → staple → `~/Apps/Quail.app`), plus
+  `.github/workflows/release.yml` reusing the same scripts on a `v*` tag
+  push. Completes Phase 1 step 11.
 
 ### Fixed
 
@@ -69,6 +82,14 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
 - `PingSheet` reused a stale `PingRunner` (old host/port/API key) across
   `Run Again` and reopening the window; it now always builds a fresh one
   from what the server was actually launched with.
+- The generated API key was a 32-character hex string that overflowed
+  the Endpoint settings field; it's now 16-character base64url.
+- Starting with no default model showed the exact same green "Running"
+  as a normal run; the menu now distinguishes the two.
+- `xcodebuild test` was popping a macOS Keychain-authorization prompt on
+  every run — it genuinely launches Quail.app to host the test bundle,
+  and that real app was reading the real stored API key from Keychain.
+  `AppDelegate` now detects test-hosting and uses a no-op secret store.
 
 ### Changed
 
