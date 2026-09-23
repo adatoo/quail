@@ -16,16 +16,23 @@ on:
 jobs:
   release:
     name: sign-and-release
-    runs-on: macos-26
+    # vars.MAC_SIGNING_RUNNER (repo variable) moves this job onto a self-hosted
+    # Mac. Point it at a runner running as its OWN macOS user: the certificate
+    # step below replaces that user's default keychain.
+    runs-on: ${{ vars.MAC_SIGNING_RUNNER || 'macos-26' }}
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: ${{ vars.MAC_SIGNING_RUNNER && '/Applications/Xcode.app/Contents/Developer' || '/Applications/Xcode_26.6.app/Contents/Developer' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Select Xcode
         run: |
-          sudo xcode-select -s "$DEVELOPER_DIR"
+          # DEVELOPER_DIR already selects Xcode for every step; the global
+          # switch needs passwordless sudo, which only hosted runners have.
+          if [ -z "${{ vars.MAC_SIGNING_RUNNER }}" ]; then
+            sudo xcode-select -s "$DEVELOPER_DIR"
+          fi
           xcodebuild -version
 
       - name: Import Developer ID Application certificate
