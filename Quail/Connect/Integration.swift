@@ -49,6 +49,19 @@ struct Integration: Sendable, Equatable, Identifiable, Decodable {
     /// The smallest model context (tokens) the tool works with — the
     /// Connect tab warns when the chosen model runs smaller (ADR D-020).
     let minContext: Int?
+    /// How `quail launch` starts the tool pointed at Quail — `nil` for
+    /// tools configured in their own settings screens.
+    let launch: LaunchRecipe?
+
+    struct LaunchRecipe: Sendable, Equatable, Decodable {
+        let command: String
+        let args: [String]
+        let env: [String: String]
+        /// File name → contents, written to a temp dir (`{{tempDir}}`).
+        let files: [String: String]?
+        /// Short names for `quail launch` ("claude" for "claude-code").
+        let aliases: [String]?
+    }
 
     private struct File: Decodable {
         let integrations: [Integration]

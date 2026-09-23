@@ -789,6 +789,15 @@ final class AppState {
 
     // MARK: - Open at login
 
+    /// Start the server when Quail launches (`quail service enable`, and
+    /// Settings → General). Stored for a long time but never acted on until
+    /// the CLI's "always on" needed it — see `AppDelegate`.
+    func setAutoStartServer(_ enabled: Bool) {
+        guard enabled != config.autoStartServer else { return }
+        config.autoStartServer = enabled
+        persist()
+    }
+
     func setOpenAtLogin(_ enabled: Bool) {
         LoginItem.setEnabled(enabled)
         config.openAtLogin = LoginItem.isEnabled // reflect the actual outcome, not the request

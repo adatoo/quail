@@ -90,6 +90,17 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
 - Store audit trail: in-app deletes and models appearing/disappearing on
   disk are written to the Logs window and the persistent unified log.
 
+- `quail` command-line tool (ADRs D-021, D-022), "like ollama": `start`,
+  `stop`, `restart`, `status [--json]`, `list`, `ps`, `run <model> [prompt]`
+  (terminal chat with streaming and tok/s; one-shot or piped), `launch
+  claude|codex|aider|goose` (starts the tool pointed at Quail — env vars,
+  args and temp files, never the tool's own config), `logs [-f]`, and
+  `service enable|disable` (open at login + start the server
+  automatically). A thin client of the app over a user-only Unix socket;
+  launches Quail if it isn't running. Shipped inside the app (direct build
+  only); Settings → General installs it to ~/.local/bin. "Start the server
+  when Quail opens" is now a real setting.
+
 ### Fixed
 
 - Start could go green for a server that wasn't Quail's: a `llama-server`

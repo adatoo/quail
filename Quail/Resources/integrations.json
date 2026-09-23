@@ -1,5 +1,5 @@
 {
-  "_comment": "Connect tab tools (docs/IMPLEMENTATION_PLAN.md Phase 2b step 1). Placeholders: {{baseURL}} (no /v1), {{apiKey}}, {{model}}, {{host}}, {{port}}. Verified against each tool's docs on 2026-09-23 — re-check docsURL when editing. minContext (optional): the smallest model context the tool works with — Claude Code's first request measured 15,114 tokens, Codex's about 7,000; Cline/Roo per their docs.",
+  "_comment": "Connect tab tools (docs/IMPLEMENTATION_PLAN.md Phase 2b step 1). Placeholders: {{baseURL}} (no /v1), {{apiKey}}, {{model}}, {{host}}, {{port}}. Verified against each tool's docs on 2026-09-23 — re-check docsURL when editing. minContext (optional): the smallest model context the tool works with — Claude Code's first request measured 15,114 tokens, Codex's about 7,000; Cline/Roo per their docs. launch (optional): how `quail launch <id|alias>` starts the tool pointed at Quail — command, args, env, and files written to a temp dir ({{tempDir}}); never the user's own config files.",
   "integrations": [
     {
       "id": "claude-code",
@@ -11,7 +11,24 @@
       "snippet": "export ANTHROPIC_BASE_URL={{baseURL}}\nexport ANTHROPIC_AUTH_TOKEN={{apiKey}}\nexport ANTHROPIC_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_OPUS_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_SONNET_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_HAIKU_MODEL={{model}}\nexport CLAUDE_CODE_SUBAGENT_MODEL={{model}}\nexport CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1\nclaude",
       "docsURL": "https://code.claude.com/docs/en/llm-gateway-connect",
       "notes": "Best-effort: Anthropic doesn't support Claude Code with non-Claude models, so tool use depends on the model. The base URL has no /v1 — Claude Code adds /v1/messages itself. Every model variable points at this model because Claude Code also asks for separate background and sub-agent models, which the server would reject. Needs a large context; Quail sets it per model from this Mac's memory. Don't put this in a project's committed .claude/settings.json.",
-      "minContext": 32768
+      "minContext": 32768,
+      "launch": {
+        "command": "claude",
+        "args": [],
+        "env": {
+          "ANTHROPIC_BASE_URL": "{{baseURL}}",
+          "ANTHROPIC_AUTH_TOKEN": "{{apiKey}}",
+          "ANTHROPIC_MODEL": "{{model}}",
+          "ANTHROPIC_DEFAULT_OPUS_MODEL": "{{model}}",
+          "ANTHROPIC_DEFAULT_SONNET_MODEL": "{{model}}",
+          "ANTHROPIC_DEFAULT_HAIKU_MODEL": "{{model}}",
+          "CLAUDE_CODE_SUBAGENT_MODEL": "{{model}}",
+          "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+        },
+        "aliases": [
+          "claude"
+        ]
+      }
     },
     {
       "id": "codex-cli",
@@ -23,7 +40,30 @@
       "snippet": "model = \"{{model}}\"\nmodel_provider = \"quail\"\n\n[model_providers.quail]\nname = \"Quail (llama.cpp)\"\nbase_url = \"{{baseURL}}/v1\"\nenv_key = \"QUAIL_API_KEY\"\nwire_api = \"responses\"\n\n# and in your shell:\n# export QUAIL_API_KEY={{apiKey}}",
       "docsURL": "https://learn.chatgpt.com/docs/config-file/config-advanced",
       "notes": "Codex only speaks the Responses API now; llama.cpp serves /v1/responses, but agent-loop support (tools, reasoning items) is newer than its chat API. The provider id can't be openai, ollama or lmstudio. Add model_context_window = <tokens> so compaction works for a model Codex doesn't know.",
-      "minContext": 16384
+      "minContext": 16384,
+      "launch": {
+        "command": "codex",
+        "args": [
+          "-c",
+          "model_provider=\"quail\"",
+          "-c",
+          "model_providers.quail.name=\"Quail\"",
+          "-c",
+          "model_providers.quail.base_url=\"{{baseURL}}/v1\"",
+          "-c",
+          "model_providers.quail.env_key=\"QUAIL_API_KEY\"",
+          "-c",
+          "model_providers.quail.wire_api=\"responses\"",
+          "-m",
+          "{{model}}"
+        ],
+        "env": {
+          "QUAIL_API_KEY": "{{apiKey}}"
+        },
+        "aliases": [
+          "codex"
+        ]
+      }
     },
     {
       "id": "continue",
@@ -80,7 +120,19 @@
       "format": "shell",
       "snippet": "export OPENAI_API_BASE={{baseURL}}/v1\nexport OPENAI_API_KEY={{apiKey}}\naider --model openai/{{model}}",
       "docsURL": "https://aider.chat/docs/llms/openai-compat.html",
-      "notes": "The openai/ prefix on the model is required. aider warns about an unknown model's context size; --no-show-model-warnings silences it."
+      "notes": "The openai/ prefix on the model is required. aider warns about an unknown model's context size; --no-show-model-warnings silences it.",
+      "launch": {
+        "command": "aider",
+        "args": [
+          "--model",
+          "openai/{{model}}"
+        ],
+        "env": {
+          "OPENAI_API_BASE": "{{baseURL}}/v1",
+          "OPENAI_API_KEY": "{{apiKey}}"
+        },
+        "aliases": []
+      }
     },
     {
       "id": "opencode",
@@ -91,7 +143,7 @@
       "format": "json",
       "snippet": "{\n  \"$schema\": \"https://opencode.ai/config.json\",\n  \"provider\": {\n    \"quail\": {\n      \"npm\": \"@ai-sdk/openai-compatible\",\n      \"name\": \"Quail (llama.cpp)\",\n      \"options\": {\n        \"baseURL\": \"{{baseURL}}/v1\",\n        \"apiKey\": \"{{apiKey}}\"\n      },\n      \"models\": {\n        \"{{model}}\": {\n          \"name\": \"{{model}}\",\n          \"limit\": { \"context\": 32768, \"output\": 8192 }\n        }\n      }\n    }\n  },\n  \"model\": \"quail/{{model}}\"\n}",
       "docsURL": "https://opencode.ai/docs/providers/",
-      "notes": "If your global opencode config sets a default model, it wins over this file's \"model\" — pick Quail's with /models in the TUI, or opencode run -m quail/{{model}}. List every model you want under models; limit.context drives compaction. \"{env:QUAIL_API_KEY}\" keeps the key out of the file."
+      "notes": "If your global opencode config sets a default model, it wins over this file's \"model\" — pick Quail's with /models in the TUI, or opencode run -m quail/{{model}}. List every model you want under models; limit.context drives compaction. Known issue under investigation: in one test opencode reported \"Cannot connect to API\" against Quail's endpoint even though other clients reached it — if you hit this, please report it."
     },
     {
       "id": "goose",
@@ -102,7 +154,20 @@
       "format": "shell",
       "snippet": "export GOOSE_PROVIDER=openai\nexport GOOSE_MODEL={{model}}\nexport OPENAI_HOST={{baseURL}}\nexport OPENAI_API_KEY={{apiKey}}\ngoose session",
       "docsURL": "https://github.com/aaif-goose/goose/blob/main/documentation/docs/getting-started/providers.md",
-      "notes": "OPENAI_HOST has no /v1 — Goose adds v1/chat/completions itself."
+      "notes": "OPENAI_HOST has no /v1 — Goose adds v1/chat/completions itself.",
+      "launch": {
+        "command": "goose",
+        "args": [
+          "session"
+        ],
+        "env": {
+          "GOOSE_PROVIDER": "openai",
+          "GOOSE_MODEL": "{{model}}",
+          "OPENAI_HOST": "{{baseURL}}",
+          "OPENAI_API_KEY": "{{apiKey}}"
+        },
+        "aliases": []
+      }
     },
     {
       "id": "open-webui",

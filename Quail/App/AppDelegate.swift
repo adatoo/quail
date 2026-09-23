@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = isHostingUnitTests ? AppState(secretStore: NullSecretStore()) : AppState()
 
     private var sigtermSource: DispatchSourceSignal?
+    private var controlServer: ControlServer?
 
     func applicationDidFinishLaunching(_: Notification) {
         // Nothing below matters for a process only hosting the test
@@ -74,7 +75,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             await appState.reconcileStore()
             appState.startWatchingStore()
+            // "Always on" (`quail service enable` / Settings): start the
+            // server as soon as Quail launches — at login, with openAtLogin.
+            if appState.config.autoStartServer, appState.canStart {
+                await appState.start()
+            }
         }
+
+        // The `quail` command-line tool talks to the app over this socket.
+        let appState = appState
+        controlServer = ControlServer { request in await appState.handleControl(request) }
+        do {
+            try controlServer?.start()
+        } catch {
+            NSLog("Quail: control socket unavailable: \(error)")
+        }
+    }
+
+    func applicationWillTerminate(_: Notification) {
+        controlServer?.stop()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
