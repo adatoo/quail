@@ -151,6 +151,7 @@
 		D54B98A3385069A2422F5027 /* Quail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Quail.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D69BCA84C093F9E62CA1941F /* Quail.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Quail.entitlements; sourceTree = "<group>"; };
 		D8CD21849DF52BA5CDB319AC /* FitEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitEstimator.swift; sourceTree = "<group>"; };
+		DB831B371971B98463F75E57 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E5340652668A6D7507752E82 /* QuailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailApp.swift; sourceTree = "<group>"; };
 		EB9482F330D14ABD97C3CB8A /* LogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStore.swift; sourceTree = "<group>"; };
 		EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSupervisor.swift; sourceTree = "<group>"; };
@@ -265,6 +266,7 @@
 		5CBAB557AA869416BB79A458 /* Quail */ = {
 			isa = PBXGroup;
 			children = (
+				DB831B371971B98463F75E57 /* Info.plist */,
 				B472EFE40DDB9C26209BE18D /* Quail-AppStore.entitlements */,
 				D69BCA84C093F9E62CA1941F /* Quail.entitlements */,
 				E5340652668A6D7507752E82 /* QuailApp.swift */,
@@ -771,7 +773,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Quail/Quail-AppStore.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Quail;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Quail/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -789,7 +792,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Quail/Quail-AppStore.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Quail;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Quail/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -891,7 +895,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Quail/Quail.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Quail;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Quail/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -909,7 +914,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Quail/Quail.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Quail;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Quail/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

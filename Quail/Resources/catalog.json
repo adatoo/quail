@@ -1,7 +1,7 @@
 {
-  "revision": 1,
-  "asOf": "2026-09-21",
-  "notes": "Seed catalog. Verify each repo id and file name on Hugging Face before shipping; sizes and bandwidths are approximate and used only for fit/speed estimates.",
+  "revision": 2,
+  "asOf": "2026-09-23",
+  "notes": "Revision 2: refreshed against the live Hub (repo id resolves, quant filenames match case-insensitively, mmproj exists for vision families — same bar as revision 1's own verification). Replaced qwen3-30b-a3b with its direct successor qwen3.6-35b-a3b (fills the large RAM tier, previously empty); replaced the gemma-3-12b/27b entries with three Gemma 4 sizes (Apache-2.0 as of this generation, not the old Gemma license); added qwen3.8-27b (vision) and the DeepSeek-R1-Distill 8B/32B reasoning distills. Sizes and bandwidths remain approximate, used only for fit/speed estimates.",
   "ramTiersGB": {
     "small": { "max": 24, "recommendParamsB": [0, 9] },
     "medium": { "max": 48, "recommendParamsB": [9, 35] },
@@ -12,7 +12,7 @@
     "Apple M2": 100, "Apple M2 Pro": 200, "Apple M2 Max": 400, "Apple M2 Ultra": 800,
     "Apple M3": 100, "Apple M3 Pro": 150, "Apple M3 Max": 400, "Apple M3 Ultra": 800,
     "Apple M4": 120, "Apple M4 Pro": 273, "Apple M4 Max": 546,
-    "Apple M5": 153
+    "Apple M5": 153, "Apple M5 Pro": 307, "Apple M5 Max": 460, "Apple M5 Ultra": 1200
   },
   "families": [
     {
@@ -52,16 +52,16 @@
       }
     },
     {
-      "id": "qwen3-30b-a3b",
-      "name": "Qwen3 30B-A3B (MoE)",
-      "paramsB": 30,
+      "id": "qwen3.6-35b-a3b",
+      "name": "Qwen3.6 35B-A3B (MoE)",
+      "paramsB": 35,
       "activeParamsB": 3,
       "role": "general",
       "rank": 1,
       "license": "Apache-2.0",
       "variants": {
-        "gguf": { "repo": "Qwen/Qwen3-30B-A3B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
-        "mlx": { "repo": "mlx-community/Qwen3-30B-A3B-4bit" }
+        "gguf": { "repo": "unsloth/Qwen3.6-35B-A3B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
+        "mlx": { "repo": "mlx-community/Qwen3.6-35B-A3B-4bit" }
       }
     },
     {
@@ -90,27 +90,52 @@
       }
     },
     {
-      "id": "gemma-3-12b",
-      "name": "Gemma 3 12B (vision)",
-      "paramsB": 12,
+      "id": "qwen3.8-27b",
+      "name": "Qwen3.8 27B (vision)",
+      "paramsB": 27,
       "role": "general",
-      "rank": 3,
-      "license": "Gemma",
+      "rank": 2,
+      "license": "Apache-2.0",
       "variants": {
-        "gguf": { "repo": "unsloth/gemma-3-12b-it-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
-        "mlx": { "repo": "mlx-community/gemma-3-12b-it-4bit" }
+        "gguf": { "repo": "unsloth/Qwen3.8-27B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
+        "mlx": { "repo": "mlx-community/Qwen3.8-27B-4bit" }
       }
     },
     {
-      "id": "gemma-3-27b",
-      "name": "Gemma 3 27B (vision)",
-      "paramsB": 27,
+      "id": "gemma-4-12b",
+      "name": "Gemma 4 12B (vision)",
+      "paramsB": 12,
       "role": "general",
       "rank": 3,
-      "license": "Gemma",
+      "license": "Apache-2.0",
       "variants": {
-        "gguf": { "repo": "unsloth/gemma-3-27b-it-GGUF", "quants": ["Q4_K_M", "Q5_K_M"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
-        "mlx": { "repo": "mlx-community/gemma-3-27b-it-4bit" }
+        "gguf": { "repo": "unsloth/gemma-4-12b-it-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
+        "mlx": { "repo": "mlx-community/gemma-4-12B-it-4bit" }
+      }
+    },
+    {
+      "id": "gemma-4-26b-a4b",
+      "name": "Gemma 4 26B-A4B (MoE, vision)",
+      "paramsB": 26,
+      "activeParamsB": 4,
+      "role": "general",
+      "rank": 2,
+      "license": "Apache-2.0",
+      "variants": {
+        "gguf": { "repo": "unsloth/gemma-4-26B-A4B-it-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
+        "mlx": { "repo": "mlx-community/gemma-4-26b-a4b-it-4bit" }
+      }
+    },
+    {
+      "id": "gemma-4-31b",
+      "name": "Gemma 4 31B (vision)",
+      "paramsB": 31,
+      "role": "general",
+      "rank": 3,
+      "license": "Apache-2.0",
+      "variants": {
+        "gguf": { "repo": "unsloth/gemma-4-31B-it-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
+        "mlx": { "repo": "mlx-community/gemma-4-31b-it-4bit" }
       }
     },
     {
@@ -136,6 +161,30 @@
       "variants": {
         "gguf": { "repo": "ggml-org/gpt-oss-20b-GGUF", "quants": ["mxfp4"], "default": "mxfp4" },
         "mlx": { "repo": "mlx-community/gpt-oss-20b-MXFP4-Q8" }
+      }
+    },
+    {
+      "id": "deepseek-r1-distill-llama-8b",
+      "name": "DeepSeek-R1-Distill-Llama 8B (reasoning)",
+      "paramsB": 8,
+      "role": "reasoning",
+      "rank": 3,
+      "license": "MIT",
+      "variants": {
+        "gguf": { "repo": "bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M" },
+        "mlx": { "repo": "mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit" }
+      }
+    },
+    {
+      "id": "deepseek-r1-distill-qwen-32b",
+      "name": "DeepSeek-R1-Distill-Qwen 32B (reasoning)",
+      "paramsB": 32,
+      "role": "reasoning",
+      "rank": 2,
+      "license": "MIT",
+      "variants": {
+        "gguf": { "repo": "bartowski/DeepSeek-R1-Distill-Qwen-32B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M" },
+        "mlx": { "repo": "mlx-community/DeepSeek-R1-Distill-Qwen-32B-4bit" }
       }
     },
     {

@@ -34,11 +34,37 @@ targets:
     platform: macOS
     sources:
       - path: Quail
+    # A real, XcodeGen-written Info.plist, not GENERATE_INFOPLIST_FILE:
+    # confirmed empirically that INFOPLIST_KEY_<CustomKey> only works
+    # for Apple-recognized keys — an arbitrary one like QuailCatalogURL
+    # (below) never made it into the generated plist. Quail/Info.plist
+    # is written by `xcodegen generate` from `properties:` here (same
+    # as Quail.xcodeproj, don't hand-edit it — it gets overwritten) and
+    # committed, restating every key GENERATE_INFOPLIST_FILE used to
+    # carry (LSUIElement, the copyright/category strings, display name)
+    # plus the new one.
+    info:
+      path: Quail/Info.plist
+      properties:
+        CFBundleDisplayName: Quail
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: "Copyright © 2026 Arif Datoo. MIT Licence."
+        LSApplicationCategoryType: "public.app-category.developer-tools"
+        # CatalogRefresher.remoteURL(in:) reads this — this repo's own
+        # catalog.json on `main`, so a catalog update ships with a
+        # plain `git push` instead of a signed app release. Revision-
+        # gated (CatalogRefresher never accepts a lower revision than
+        # what's already bundled), so a bad push can't degrade the app
+        # below its own shipped seed.
+        QuailCatalogURL: "https://raw.githubusercontent.com/adatoo/quail/main/Quail/Resources/catalog.json"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.datoos.quail
         PRODUCT_NAME: Quail
-        INFOPLIST_KEY_CFBundleDisplayName: Quail
+        GENERATE_INFOPLIST_FILE: NO
       configs:
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG"
