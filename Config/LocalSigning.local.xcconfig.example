@@ -1,0 +1,6 @@
+// Copy to LocalSigning.local.xcconfig (gitignored) — see LocalSigning.xcconfig.
+// The Quail app and its test bundle must share a team: the hardened
+// runtime refuses to load a test bundle signed by anyone else.
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Developer ID Application
+DEVELOPMENT_TEAM = YOURTEAMID

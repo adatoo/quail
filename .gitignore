@@ -25,3 +25,6 @@ sparkle_private_key*
 dist/
 *.dmg
 *.zip
+
+# Per-developer signing identity (see Config/LocalSigning.xcconfig)
+Config/LocalSigning.local.xcconfig

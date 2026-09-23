@@ -34,6 +34,11 @@ targets:
     platform: macOS
     sources:
       - path: Quail
+    # Debug builds sign with a developer's own identity when they've set
+    # one up — see Config/LocalSigning.xcconfig for why (Keychain prompt).
+    configFiles:
+      Debug: Config/LocalSigning.xcconfig
+      Debug-AppStore: Config/LocalSigning.xcconfig
     # A real, XcodeGen-written Info.plist, not GENERATE_INFOPLIST_FILE:
     # confirmed empirically that INFOPLIST_KEY_<CustomKey> only works
     # for Apple-recognized keys — an arbitrary one like QuailCatalogURL
@@ -92,6 +97,9 @@ targets:
     platform: macOS
     sources:
       - path: QuailTests
+    configFiles:
+      Debug: Config/LocalSigning.xcconfig
+      Debug-AppStore: Config/LocalSigning.xcconfig
     dependencies:
       - target: Quail
         embed: false

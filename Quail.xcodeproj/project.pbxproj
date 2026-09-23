@@ -157,6 +157,7 @@
 		D69BCA84C093F9E62CA1941F /* Quail.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Quail.entitlements; sourceTree = "<group>"; };
 		D8CD21849DF52BA5CDB319AC /* FitEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitEstimator.swift; sourceTree = "<group>"; };
 		DB831B371971B98463F75E57 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		DE33A51190D5756E19BE8E5B /* LocalSigning.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = LocalSigning.xcconfig; sourceTree = "<group>"; };
 		E5340652668A6D7507752E82 /* QuailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailApp.swift; sourceTree = "<group>"; };
 		EB9482F330D14ABD97C3CB8A /* LogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStore.swift; sourceTree = "<group>"; };
 		EBBFBBA9586B95FE9249C699 /* CatalogFitSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogFitSmokeTest.swift; sourceTree = "<group>"; };
@@ -169,6 +170,7 @@
 		0A3866BDF1D39166A44D0FFD = {
 			isa = PBXGroup;
 			children = (
+				FA548AB404E49C307DF163E0 /* Config */,
 				5CBAB557AA869416BB79A458 /* Quail */,
 				1658C70BFCCEFC530EFAB42E /* QuailTests */,
 				C8777405539D489A674465B9 /* Products */,
@@ -324,6 +326,14 @@
 				5BF75DEC1D436363C620CA16 /* Runtime.swift */,
 			);
 			path = Runtimes;
+			sourceTree = "<group>";
+		};
+		FA548AB404E49C307DF163E0 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				DE33A51190D5756E19BE8E5B /* LocalSigning.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -623,6 +633,7 @@
 		};
 		66458A2713858A8E5BDCED6C /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = DE33A51190D5756E19BE8E5B /* LocalSigning.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
@@ -800,6 +811,7 @@
 		};
 		A560C72B73A7821B49DA992D /* Debug-AppStore */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = DE33A51190D5756E19BE8E5B /* LocalSigning.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Quail/Quail-AppStore.entitlements";
@@ -903,6 +915,7 @@
 		};
 		E05BB0ABA726CBB3AA02B04F /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = DE33A51190D5756E19BE8E5B /* LocalSigning.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Quail/Quail.entitlements;
@@ -940,6 +953,7 @@
 		};
 		EB7351F2145DF0ADF4580307 /* Debug-AppStore */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = DE33A51190D5756E19BE8E5B /* LocalSigning.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
