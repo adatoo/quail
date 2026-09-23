@@ -54,9 +54,13 @@ enum ModelAddPlan {
                 quant: quant
             ) }
             .sorted { $0.localFilename < $1.localFilename }
-        if let mmprojName = mmproj {
+        if let mmprojName = mmproj, let main = files.first {
             let want = URL(fileURLWithPath: mmprojName).lastPathComponent
-            if let companion = listing.files.first(where: { $0.localFilename == want }) {
+            if var companion = listing.files.first(where: { $0.localFilename == want }) {
+                // Saved under the model's own name, so it's unambiguously
+                // this model's (presets.ini points at it; delete removes it).
+                let modelID = URL(fileURLWithPath: main.localFilename).deletingPathExtension().lastPathComponent
+                companion.localNameOverride = ModelStore.projectorFilename(forModelID: modelID)
                 files.append(companion)
             }
         }

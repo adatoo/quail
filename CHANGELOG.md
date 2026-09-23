@@ -95,6 +95,13 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   from what the server was actually launched with.
 - The generated API key was a 32-character hex string that overflowed
   the Endpoint settings field; it's now 16-character base64url.
+- Vision models ran text-only: their projector (`mmproj`) was downloaded
+  but never passed to the server, and every repo names it `mmproj-F16.gguf`,
+  so a second vision model overwrote the first's. Projectors are now saved
+  as `mmproj-<model id>.gguf` and written into that model's preset as
+  `mmproj =`; delete matches them exactly (a prefix match could remove
+  another model's). Verified live: an image request that failed with "image
+  input is not supported" now answers correctly.
 - Add-model sheet: rows now say "Installed" (per quant in the picker), and
   an installed pick offers Delete instead of a second download. A failed
   download is shown in the sheet (it used to reset silently), and a

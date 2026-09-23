@@ -650,8 +650,9 @@ final class AppState {
         case .gguf:
             // The model plus every companion: split shards (a
             // `<id>-NNNNN-of-NNNNN.gguf` set, however many landed) and
-            // the name-paired vision projectors (`mmproj-<id>…`,
-            // ARCHITECTURE §6 "paired by name").
+            // its vision projector (`ModelStore.projectorFilename` — an
+            // exact name: a prefix match would also have taken
+            // `mmproj-<id>-Other.gguf`, another model's).
             let stem = id
             for file in (try? fm.contentsOfDirectory(at: modelStore.ggufDirectory, includingPropertiesForKeys: nil)) ??
                 []
@@ -659,7 +660,7 @@ final class AppState {
                 let name = file.deletingPathExtension().lastPathComponent
                 let isMain = name == stem
                 let isShard = name.hasPrefix("\(stem)-") && name.contains("-of-")
-                let isProjector = file.lastPathComponent.hasPrefix("mmproj-\(stem)")
+                let isProjector = file.lastPathComponent == ModelStore.projectorFilename(forModelID: stem)
                 if isMain || isShard || isProjector {
                     try? fm.removeItem(at: file)
                 }

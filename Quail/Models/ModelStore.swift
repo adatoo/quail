@@ -86,9 +86,9 @@ struct ModelStore: Sendable, Equatable {
 
     /// Every `.gguf` file directly inside `gguf/`, excluding vision
     /// projector companions (`mmproj-*`, per docs/ARCHITECTURE.md §6's
-    /// "paired by name" note) — those load implicitly alongside their
-    /// matching main model and don't get their own preset section or
-    /// router-mode entry — and excluding every shard but the first of a
+    /// "paired by name" note) — those are attached to their model's preset
+    /// section via `mmproj =` (see `regeneratePresets`), not given one of
+    /// their own — and excluding every shard but the first of a
     /// multi-file split model (`...-00002-of-00007.gguf`), which
     /// llama.cpp loads implicitly by following the split manifest from
     /// `...-00001-of-...`; a preset per later shard would have the router
@@ -311,6 +311,13 @@ struct ModelStore: Sendable, Equatable {
     ///   no client request needed. `nil`/not-installed writes no such
     ///   key anywhere, today's behaviour (every preset stays unloaded
     ///   until a Load click or a request names it).
+    /// `mmproj-<modelID>.gguf`: the name Quail saves a model's vision
+    /// projector under. Repos all ship theirs as `mmproj-F16.gguf` (or
+    /// BF16/F32), which can't live side by side in one flat folder.
+    static func projectorFilename(forModelID id: String) -> String {
+        "mmproj-\(id).gguf"
+    }
+
     func regeneratePresets(
         catalog: StoreCatalog,
         defaultContextSize: Int = 8192,
@@ -330,6 +337,13 @@ struct ModelStore: Sendable, Equatable {
             // n-gpu-layers (matching --n-gpu-layers) doesn't.
             ini += "n-gpu-layers = 99\n"
             ini += "ctx-size = \(contextSize)\n"
+            // A vision model's projector: without this the router loads
+            // the model text-only, even though the projector was
+            // downloaded next to it (found by review — nothing wrote it).
+            let projector = ggufDirectory.appendingPathComponent(Self.projectorFilename(forModelID: alias))
+            if FileManager.default.fileExists(atPath: projector.path) {
+                ini += "mmproj = \(projector.path)\n"
+            }
             if alias == defaultModelID {
                 ini += "load-on-startup = true\n"
             }

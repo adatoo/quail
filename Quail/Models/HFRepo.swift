@@ -18,14 +18,19 @@ struct HFFile: Sendable, Equatable {
     /// `vocab.json`, `merges.txt` etc. have no checksum at all, so
     /// verification for those can only ever be size-only.
     var sha256: String?
+    /// Saves the file under this name instead — used for a vision
+    /// projector, which every repo calls `mmproj-F16.gguf`: two vision
+    /// models in the flat `gguf/` folder would overwrite each other's.
+    /// See `ModelStore.projectorFilename(forModelID:)`.
+    var localNameOverride: String?
 
     /// What Quail actually writes to disk: `remotePath` flattened to its
-    /// last path component. Router-mode llama-server's flat directory
-    /// scan of `gguf/` would never see a file preserved under a
-    /// subdirectory, and MLX directories (ARCHITECTURE.md §6) are flat
-    /// too.
+    /// last path component (or `localNameOverride`). Router-mode
+    /// llama-server's flat directory scan of `gguf/` would never see a
+    /// file preserved under a subdirectory, and MLX directories
+    /// (ARCHITECTURE.md §6) are flat too.
     var localFilename: String {
-        URL(fileURLWithPath: remotePath).lastPathComponent
+        localNameOverride ?? URL(fileURLWithPath: remotePath).lastPathComponent
     }
 }
 

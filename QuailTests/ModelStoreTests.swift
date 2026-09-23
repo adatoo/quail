@@ -206,6 +206,25 @@ struct ModelStoreTests {
         #expect(!ini.contains("load-on-startup"))
     }
 
+    @Test("regeneratePresets attaches a model's projector as mmproj, and only its own")
+    func regeneratePresetsAttachesProjector() throws {
+        let store = scratchStore()
+        defer { try? FileManager.default.removeItem(at: store.rootURL) }
+        try store.ensureDirectoriesExist()
+        for name in ["Vision.gguf", "mmproj-Vision.gguf", "Text.gguf", "mmproj-F16.gguf"] {
+            try Data().write(to: store.ggufDirectory.appendingPathComponent(name))
+        }
+
+        try store.regeneratePresets(catalog: StoreCatalog())
+
+        let ini = try String(contentsOf: store.presetsFile, encoding: .utf8)
+        let projector = store.ggufDirectory.appendingPathComponent("mmproj-Vision.gguf").path
+        #expect(ini.contains("[Vision]"))
+        #expect(ini.components(separatedBy: "mmproj = ").count == 2) // exactly one, Vision's
+        #expect(ini.contains("mmproj = \(projector)"))
+        #expect(!ini.contains("[mmproj-")) // projectors never get their own section
+    }
+
     @Test("installedGGUFFiles keeps only the first shard of a split model")
     func installedGGUFFilesKeepsFirstShardOnly() throws {
         let store = scratchStore()

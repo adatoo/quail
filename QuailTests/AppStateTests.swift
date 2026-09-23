@@ -595,8 +595,11 @@ struct AppStateTests {
         try store.ensureDirectoriesExist()
         let fm = FileManager.default
         try Data("a".utf8).write(to: store.ggufDirectory.appendingPathComponent("Gone.gguf"))
-        try Data("b".utf8).write(to: store.ggufDirectory.appendingPathComponent("mmproj-Gone-F16.gguf"))
+        try Data("b".utf8).write(to: store.ggufDirectory.appendingPathComponent("mmproj-Gone.gguf"))
         try Data("c".utf8).write(to: store.ggufDirectory.appendingPathComponent("Gone-Mate.gguf"))
+        // Another model's projector whose name starts with "mmproj-Gone" —
+        // a prefix match used to delete it along with Gone's.
+        try Data("d".utf8).write(to: store.ggufDirectory.appendingPathComponent("mmproj-Gone-Mate.gguf"))
         try store.saveCatalog(StoreCatalog(entries: [
             InstalledModel(id: "Gone", format: .gguf, bytes: 1, addedAt: .init()),
             InstalledModel(id: "Gone-Mate", format: .gguf, bytes: 1, addedAt: .init()),
@@ -610,7 +613,8 @@ struct AppStateTests {
         try await appState.deleteInstalledModel(id: "Gone")
 
         #expect(!fm.fileExists(atPath: store.ggufDirectory.appendingPathComponent("Gone.gguf").path))
-        #expect(!fm.fileExists(atPath: store.ggufDirectory.appendingPathComponent("mmproj-Gone-F16.gguf").path))
+        #expect(!fm.fileExists(atPath: store.ggufDirectory.appendingPathComponent("mmproj-Gone.gguf").path))
+        #expect(fm.fileExists(atPath: store.ggufDirectory.appendingPathComponent("mmproj-Gone-Mate.gguf").path))
         #expect(fm.fileExists(atPath: store.ggufDirectory.appendingPathComponent("Gone-Mate.gguf").path))
         let catalog = store.loadCatalog()
         #expect(catalog.entries.map(\.id) == ["Gone-Mate"])
