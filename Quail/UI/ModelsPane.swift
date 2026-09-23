@@ -140,7 +140,7 @@ struct ModelsPane: View {
     /// just "what would head the recommended list", from catalog data
     /// alone.
     private var topRecommendation: Catalog.Family? {
-        Recommender.candidates(catalog: appState.catalog, device: DeviceInfo.current()).first
+        Recommender.topPick(catalog: appState.catalog, device: DeviceInfo.current())
     }
 
     @ViewBuilder private var installedList: some View {

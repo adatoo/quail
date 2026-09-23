@@ -95,6 +95,9 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   from what the server was actually launched with.
 - The generated API key was a 32-character hex string that overflowed
   the Endpoint settings field; it's now 16-character base64url.
+- "Recommended for this Mac" was limited to the Mac's RAM tier — on a
+  64 GB Mac that's 35B+, which hid comfortable 27–31B models. It now lists
+  the top 5 models that run comfortably here, any size (D-019).
 - Add-model sheet: most rows showed no fit badge. Only in-tier
   recommendation candidates were ever looked up, and 6 of 15 catalog
   models (Gemma 4, Qwen3.6/3.8, gpt-oss) have GGUF headers larger than the

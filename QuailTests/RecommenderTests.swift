@@ -35,63 +35,71 @@ struct RecommenderTests {
         Catalog(ramTiers: tiers, families: families)
     }
 
-    private static func device(memoryGB: Int) -> DeviceInfo {
+    /// A 64 GB M4 Pro's measured ceiling: ~85B fits at all, ~55B comfortably.
+    private static let ceiling64GB: Int64 = 55_662_805_000
+
+    private static func device(ceiling: Int64?) -> DeviceInfo {
         var info = DeviceInfo()
-        info.unifiedMemoryBytes = Int64(memoryGB) * 1_073_741_824
+        info.gpuWorkingSetCeilingBytes = ceiling
         return info
     }
 
-    @Test("candidates: only curated, GGUF-capable, in-tier, non-excluded-role families, sorted by rank")
+    @Test("candidates: curated, GGUF-capable, non-excluded roles, any size that might fit; rank then larger first")
     func candidatesFiltersAndSorts() {
         let families = [
             Self.family(id: "SmokeTest", paramsB: 0.6, role: "smoke-test", rank: 1),
             Self.family(id: "Embedding", paramsB: 4, role: "embedding", rank: 1),
-            Self.family(id: "SmallA", paramsB: 8, rank: 2),
-            Self.family(id: "SmallB", paramsB: 4, rank: 1),
-            Self.family(id: "MediumOnly", paramsB: 20, rank: 1),
+            Self.family(id: "Small", paramsB: 8, rank: 2),
+            Self.family(id: "Mid", paramsB: 31, rank: 2),
+            Self.family(id: "Top", paramsB: 4, rank: 1),
+            Self.family(id: "TooBig", paramsB: 120, rank: 1),
             Self.family(id: "MLXOnly", paramsB: 8, rank: 1, gguf: false, mlx: true),
             Self.family(id: "Uncurated", paramsB: 8, rank: 1, curated: false),
         ]
-        let catalog = Self.catalog(families)
 
-        let candidates = Recommender.candidates(catalog: catalog, device: Self.device(memoryGB: 16))
+        let candidates = Recommender.candidates(
+            catalog: Self.catalog(families),
+            device: Self.device(ceiling: Self.ceiling64GB)
+        )
 
-        #expect(candidates.map(\.id) == ["SmallB", "SmallA"])
+        // Not tier-gated: a 64 GB Mac's "35B+" tier would have hidden all three.
+        #expect(candidates.map(\.id) == ["Top", "Mid", "Small"])
     }
 
-    @Test("candidates: a machine bigger than every tier's maxGB falls back to the largest tier")
-    func candidatesFallsBackToLargestTier() {
-        let families = [
-            Self.family(id: "Huge", paramsB: 70, rank: 1),
-            Self.family(id: "Small", paramsB: 4, rank: 1),
-        ]
-        let catalog = Self.catalog(families)
-
-        let candidates = Recommender.candidates(catalog: catalog, device: Self.device(memoryGB: 20000))
-
-        #expect(candidates.map(\.id) == ["Huge"])
-    }
-
-    @Test("candidates: picks the medium tier for a 32-48 GB machine, not small")
-    func candidatesPicksMediumTier() {
-        let families = [
-            Self.family(id: "SmallOnly", paramsB: 8, rank: 1),
-            Self.family(id: "MediumOnly", paramsB: 20, rank: 1),
-        ]
-        let catalog = Self.catalog(families)
-
-        let candidates = Recommender.candidates(catalog: catalog, device: Self.device(memoryGB: 40))
-
-        #expect(candidates.map(\.id) == ["MediumOnly"])
-    }
-
-    @Test("candidates: empty when the device's memory is unknown")
-    func candidatesEmptyWithoutMemory() {
+    @Test("candidates: empty when the GPU ceiling is unknown")
+    func candidatesEmptyWithoutCeiling() {
         let catalog = Self.catalog([Self.family(id: "SmallA", paramsB: 8, rank: 1)])
+        #expect(Recommender.candidates(catalog: catalog, device: Self.device(ceiling: nil)).isEmpty)
+    }
 
-        let candidates = Recommender.candidates(catalog: catalog, device: DeviceInfo())
+    @Test("topPick: the best-ranked candidate expected to run comfortably, skipping ones that would be tight")
+    func topPickSkipsTight() {
+        let families = [
+            Self.family(id: "Tight70B", paramsB: 70, rank: 1),
+            Self.family(id: "Comfy32B", paramsB: 32, rank: 2),
+        ]
+        let pick = Recommender.topPick(catalog: Self.catalog(families), device: Self.device(ceiling: Self.ceiling64GB))
+        #expect(pick?.id == "Comfy32B")
+    }
 
-        #expect(candidates.isEmpty)
+    @Test("finalize: caps the shortlist at Recommender.limit")
+    func finalizeCaps() {
+        let candidates = (1 ... 8).map { (i: Int) in Self.family(id: "M\(i)", paramsB: 8, rank: i) }
+        var verdicts: [String: FitEstimate] = [:]
+        for family in candidates {
+            verdicts["org/\(family.id)-GGUF"] = FitEstimate(
+                verdict: .comfortable,
+                ramNeededBytes: 1,
+                estimatedTokensPerSecond: nil
+            )
+        }
+        #expect(Recommender.finalize(candidates: candidates, verdicts: verdicts).map(\.id) == [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5",
+        ])
     }
 
     @Test("finalize: keeps only Comfortable verdicts, drops missing ones, preserves order")

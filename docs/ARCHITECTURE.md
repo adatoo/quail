@@ -196,7 +196,7 @@ Verdicts: **Comfortable** (needed < 70% of the GPU ceiling), **Tight** (fits at 
 
 **Speed estimate** is decode-bound on Apple Silicon: `tok/s ≈ 0.7 × bandwidth / active_bytes_per_token`, where active bytes is the full weight size for dense models and only the active experts for MoE. Shown as "~35 tok/s" and calibrated over time: after each ping test the measured TTFT and tok/s are stored against the model and chip, replacing the estimate for that pair.
 
-**Recommendations** in the picker are the curated catalog filtered to Comfortable, sorted by a hand-set quality-per-GB rank. Three tiers: 16 GB machines see 4B–8B models, 32–48 GB see 14B–32B and 30B-A3B MoE, 64 GB+ see 70B-class and large MoE. Tier boundaries are catalog data, not code.
+**Recommendations** in the picker are the curated catalog filtered to Comfortable on this Mac — any size — sorted by a hand-set quality-per-GB rank (larger first on ties), top 5 (D-019). The catalog's RAM tiers remain as data (shown as a label in This Mac) but no longer gate recommendations: a 64 GB Mac's "35B+" tier hid comfortable 27–31B models.
 
 **Runtime hint:** when a family has both formats, the picker suggests MLX for large dense or MoE models on 32 GB+ machines (decode roughly 1.4–1.8× faster) and llama.cpp for small models or long-context work.
 
