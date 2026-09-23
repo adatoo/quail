@@ -1,0 +1,32 @@
+name: Auto-merge
+
+# Turns on auto-merge (merge commit — the only method main allows) for every
+# PR, so it merges itself once the required checks pass (ADR D-024).
+#
+# Uses BOT_TOKEN, not GITHUB_TOKEN: a merge made with GITHUB_TOKEN starts no
+# workflows, so release.yml would never run. BOT_TOKEN is a fine-grained PAT
+# (this repo; Contents + Pull requests: read and write), added as a secret
+# in both the Actions and the Dependabot secret stores.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, ready_for_review]
+
+permissions: {}
+
+jobs:
+  enable:
+    name: enable-auto-merge
+    if: github.event.pull_request.draft == false
+    runs-on: ${{ vars.MAC_RUNNER || 'macos-26' }}
+    steps:
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::BOT_TOKEN isn't set — enable auto-merge on this PR by hand (gh pr merge --auto --merge)."
+            exit 0
+          fi
+          gh pr merge --auto --merge "$PR_URL"

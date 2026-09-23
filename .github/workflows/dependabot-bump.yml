@@ -1,0 +1,53 @@
+name: Dependabot bump
+
+# Dependabot PRs need a version bump like every other PR (ADR D-024): this
+# commits a patch bump to the PR branch. Pushed with BOT_TOKEN so the push
+# re-runs the required checks (a GITHUB_TOKEN push wouldn't). Dependabot's
+# workflows read the Dependabot secret store, so BOT_TOKEN must be there.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  bump:
+    name: bump-version
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ${{ vars.MAC_RUNNER || 'macos-26' }}
+    steps:
+      - name: Check for BOT_TOKEN
+        id: token
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          if [ -z "$BOT_TOKEN" ]; then
+            echo "::notice::BOT_TOKEN isn't in the Dependabot secrets — bump this PR by hand: scripts/bump-version.sh patch"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout the PR branch
+        if: steps.token.outputs.present == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.BOT_TOKEN }}
+          fetch-depth: 0
+
+      - name: Bump and push
+        if: steps.token.outputs.present == 'true'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if scripts/check-version.sh "$PR_TITLE" > /dev/null 2>&1; then
+            echo "Already bumped."
+            exit 0
+          fi
+          scripts/bump-version.sh --title "$PR_TITLE"
+          git config user.name "quail-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): bump version for ${PR_TITLE}"
+          git push

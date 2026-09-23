@@ -1,0 +1,34 @@
+name: Version
+
+# Every PR carries its own SemVer bump, matching its Conventional Commits
+# title (ADR D-024): feat → minor, anything else → patch, `!` → major
+# (minor while 0.x). Required on main next to build-and-test. `edited` is
+# here so changing the title re-checks.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+concurrency:
+  group: version-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  version:
+    name: version
+    runs-on: ${{ vars.MAC_RUNNER || 'macos-26' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # origin/main and tags, to compare against
+
+      - name: Versioning script tests
+        run: scripts/test-versioning.sh
+
+      - name: Check this PR's bump
+        env:
+          # Via env, never interpolated into the script: titles are user input.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: scripts/check-version.sh "$PR_TITLE" "$PR_BODY"

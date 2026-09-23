@@ -20,3 +20,5 @@
       a listed item
 - [ ] `docs/DECISIONS.md` has a new `D-nnn` entry if this changes a recorded
       decision
+- [ ] Conventional Commits title, and the version bumped for it
+      (`scripts/bump-version.sh --title "<PR title>"`)

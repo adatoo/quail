@@ -14,13 +14,36 @@ recorded there.
 
 ## Workflow
 
-1. Branch from `main`: `feat/…`, `fix/…`, or `chore/…`.
+1. Branch from `main`: `feat/…`, `fix/…`, `ci/…` or `chore/…`.
 2. Keep commits scoped and use [Conventional Commits](https://www.conventionalcommits.org/)-style
    messages (`feat:`, `fix:`, `docs:`, `chore:`, `test:`).
-3. Open a PR against `main`. CI (`build-and-test`) must pass before merge.
-4. `main` is protected: no force-push, no direct deletion, status checks
-   required.
-5. Squash-merge PRs so `main` has one commit per unit of work.
+3. Give the PR a Conventional Commits **title** — it decides the version
+   bump (ADR D-024):
+
+   | Title | Bump |
+   | --- | --- |
+   | `feat: …` / `feat(scope): …` | minor |
+   | `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`, `revert:`, `style:` | patch |
+   | `type!: …`, or `BREAKING CHANGE:` in the body | major (minor while 0.x) |
+
+4. Bump the version **in the PR**: `scripts/bump-version.sh --title "<PR title>"`.
+   It sets `project.yml`'s `MARKETING_VERSION` and build number from `main`'s,
+   cuts `CHANGELOG.md`'s `[Unreleased]` into the new version's section, and
+   regenerates the Xcode project. Commit the result. `1.0.0` is a deliberate
+   `scripts/bump-version.sh 1.0.0`.
+5. Open the PR against `main` with auto-merge on (`gh pr merge --auto --merge`;
+   the Auto-merge workflow does this too when `BOT_TOKEN` is set). It merges
+   itself once `build-and-test` and `version` pass.
+6. `main` accepts changes only through PRs, merged with a **merge commit** —
+   no squash, no rebase, no force-push, no direct pushes (admins included).
+7. Every merge is a release: the Release workflow tags the merge commit
+   `vX.Y.Z` and publishes a GitHub Release with that CHANGELOG section (a
+   pre-release while 0.x); the signed DMG is attached when
+   `vars.SIGNING_ENABLED` is `true`.
+
+If `main` moves while your PR is open, merging it in conflicts on the version
+lines: take `main`'s side, re-run `scripts/bump-version.sh --title "<PR title>"`,
+and commit — the `version` check tells you when it's needed.
 
 ## Definition of done
 

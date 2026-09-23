@@ -1,21 +1,85 @@
 name: Release
 
-# Tag push (e.g. `v0.2.0`) builds a Developer ID-signed, notarized DMG and
-# attaches it to a GitHub Release — docs/ARCHITECTURE.md §9's pipeline
-# diagram, docs/IMPLEMENTATION_PLAN.md Phase 1 step 11, ADR D-018. Reuses
-# the exact same scripts/sign-and-notarize.sh and scripts/make-dmg.sh a
-# developer runs locally via scripts/install.sh — the only CI-specific
-# part is importing the certificate into a dedicated keychain first (the
-# same pattern the documail project uses for its own Developer ID signing).
+# Every merge to main is a release (ADR D-024): the PR already carried its
+# SemVer bump (version.yml checked it), so this tags the merge commit
+# vX.Y.Z and publishes a GitHub Release with that version's CHANGELOG
+# section. 0.x releases are pre-releases.
+#
+# The signed, notarized DMG (docs/ARCHITECTURE.md §9, ADR D-018) is built
+# and attached only when vars.SIGNING_ENABLED is 'true' — set it once the
+# Apple signing secrets are in the repo. It reuses the same
+# scripts/sign-and-notarize.sh and scripts/make-dmg.sh a developer runs
+# locally via scripts/install.sh.
+#
+# Triggered by the push a merge makes. Merges must be made as a person or
+# with BOT_TOKEN — a merge made with GITHUB_TOKEN starts no workflows.
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
   workflow_dispatch: {}
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
 jobs:
-  release:
-    name: sign-and-release
+  tag:
+    name: tag-and-release
+    runs-on: ${{ vars.MAC_RUNNER || 'macos-26' }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      created: ${{ steps.version.outputs.created }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: version
+        run: |
+          version="$(scripts/version.sh current)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$version" > /dev/null; then
+            echo "v$version already exists — nothing to release."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Release notes from CHANGELOG
+        if: steps.version.outputs.created == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md || echo "Release $VERSION." > release-notes.md
+
+      - name: Tag and publish
+        if: steps.version.outputs.created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Quail $VERSION" "$GITHUB_SHA"
+          git push origin "v$VERSION"
+          prerelease=()
+          case "$VERSION" in 0.*) prerelease=(--prerelease) ;; esac
+          gh release create "v$VERSION" --title "Quail $VERSION" --notes-file release-notes.md "${prerelease[@]}"
+
+  dmg:
+    name: sign-and-attach-dmg
+    needs: tag
+    if: needs.tag.outputs.created == 'true' && vars.SIGNING_ENABLED == 'true'
     # vars.MAC_SIGNING_RUNNER (repo variable) moves this job onto a self-hosted
     # Mac. Point it at a runner running as its OWN macOS user: the certificate
     # step below replaces that user's default keychain.
@@ -25,6 +89,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: v${{ needs.tag.outputs.version }}
 
       - name: Select Xcode
         run: |
@@ -94,9 +160,8 @@ jobs:
           path: build/Quail-*.dmg
           retention-days: 90
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Attach DMG to the release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.tag.outputs.version }}
           files: build/Quail-*.dmg
-          generate_release_notes: true

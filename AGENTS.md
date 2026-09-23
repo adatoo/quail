@@ -34,6 +34,7 @@ Smoke test after any change to Server/ or Runtimes/: place a small GGUF in the s
 - Unit tests pass; new logic in `Models/`, `DeviceFit/`, `Server/` has tests using a fake `Runtime` where a process would otherwise be needed.
 - No absolute paths from the build machine end up in the bundle.
 - `docs/IMPLEMENTATION_PLAN.md` checkbox or phase status updated if the task completes a listed item.
+- The PR has a Conventional Commits title and carries its own version bump (`scripts/bump-version.sh --title "<PR title>"`, ADR D-024); open it with `gh pr merge --auto --merge`.
 
 ## Things not to do
 

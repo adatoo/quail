@@ -10,7 +10,7 @@ struct Quail: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "quail",
         abstract: "Run and use local models served by Quail.",
-        version: "0.1.0",
+        version: AppLink.appVersion,
         subcommands: [
             Status.self, Start.self, Stop.self, Restart.self,
             List.self, PS.self, Run.self, Bench.self, Launch.self, Logs.self, Service.self,

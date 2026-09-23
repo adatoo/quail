@@ -73,6 +73,16 @@ enum AppLink {
         }
     }
 
+    /// The version of the Quail.app this CLI ships inside ("0.2.0 (2)"),
+    /// so `quail --version` can't drift from the app (ADR D-024).
+    static var appVersion: String {
+        guard let app = enclosingApp(),
+              let info = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist")),
+              let version = info["CFBundleShortVersionString"] as? String
+        else { return "unknown (not running from inside Quail.app)" }
+        return (info["CFBundleVersion"] as? String).map { "\(version) (\($0))" } ?? version
+    }
+
     static func enclosingApp() -> URL? {
         guard let executable = Bundle.main.executableURL?.resolvingSymlinksInPath() else { return nil }
         var url = executable
