@@ -39,14 +39,20 @@ struct StoreHousekeepingTests {
         #expect(found.first?.kind == .partialDownload)
     }
 
-    @Test("presetSignature records each model and whether it has a projector")
+    @Test("presetSignature follows presets.ini: models, projectors and context sizes")
     func presetSignature() throws {
         let store = try scratchStore()
         defer { try? FileManager.default.removeItem(at: store.rootURL) }
         try write("A.gguf", in: store.ggufDirectory)
-        try write("B.gguf", in: store.ggufDirectory)
-        try write("mmproj-B.gguf", in: store.ggufDirectory)
-        #expect(store.presetSignature() == ["A", "B+mmproj"])
+        try store.regeneratePresets(catalog: StoreCatalog())
+        let before = store.presetSignature()
+        #expect(before.contains("[A]"))
+
+        try store.regeneratePresets(catalog: StoreCatalog(entries: [
+            InstalledModel(id: "A", format: .gguf, bytes: 4, userContextSize: 32768, addedAt: .init()),
+        ]))
+        #expect(store.presetSignature() != before)
+        #expect(store.presetSignature().contains("ctx-size = 32768"))
     }
 
     @Test("StoreWatcher reports a change once the folder settles")

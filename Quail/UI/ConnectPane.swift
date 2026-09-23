@@ -69,6 +69,12 @@ struct ConnectPane: View {
         return appState.modelStore.installedGGUFFiles().map { $0.deletingPathExtension().lastPathComponent }
     }
 
+    /// The context `model` will run at (what presets.ini says).
+    private func contextSize(of model: String) -> Int? {
+        _ = appState.storeRevision // re-read when the store changes
+        return appState.modelStore.loadCatalog().entries.first { $0.id == model }?.effectiveContextSize
+    }
+
     // MARK: - Values
 
     private var localBase: URL? {
@@ -128,6 +134,15 @@ struct ConnectPane: View {
 
             if fromAnotherDevice {
                 networkNote
+            }
+
+            if let needed = integration.minContext, let running = contextSize(of: model), running < needed {
+                Label(
+                    "\(integration.name) needs at least \(RemoteFitBadge.contextLabel(needed)) of context; \(model) runs at \(RemoteFitBadge.contextLabel(running)). Raise it in Models (the “ctx” menu on its row), then restart the server.",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
             }
 
             if let values {

@@ -21,6 +21,7 @@ struct ModelsPane: View {
     @State private var formatFilter: FormatFilter = .all
     @State private var rows: [InstalledModel] = []
     @State private var verdicts: [String: FitEstimate] = [:]
+    @State private var contextChoices: [String: [ContextChoice]] = [:]
     @State private var loadedStates: [String: String] = [:]
     @State private var showAddSheet = false
     @State private var pendingDeletion: String?
@@ -191,6 +192,10 @@ struct ModelsPane: View {
                     loaded: loadedStates[entry.id],
                     serverReady: appState.serverController.phase == .ready,
                     isDefault: appState.config.defaultModelID == entry.id,
+                    contextChoices: contextChoices[entry.id] ?? [],
+                    onSetContext: { tokens in
+                        Task { await appState.setContextSize(tokens, forModel: entry.id) }
+                    },
                     onLoad: {
                         Task {
                             do {
@@ -377,16 +382,21 @@ struct ModelsPane: View {
         let result = await Task.detached(priority: .utility) {
             let catalog = store.refreshedCatalog(device: device, ggufRuntime: runtime, bandwidthTable: bandwidth)
             var verdicts: [String: FitEstimate] = [:]
+            var choices: [String: [ContextChoice]] = [:]
             for entry in catalog.entries {
                 verdicts[entry.id] = ModelPreview.installed(
                     entry: entry, store: store, device: device,
                     ggufRuntime: runtime, bandwidthTable: bandwidth
                 )
+                choices[entry.id] = ModelPreview.contextChoices(
+                    entry: entry, store: store, device: device, ggufRuntime: runtime
+                ).map { ContextChoice(tokens: $0.tokens, verdict: $0.verdict) }
             }
-            return (catalog.entries, verdicts)
+            return (catalog.entries, verdicts, choices)
         }.value
         rows = result.0
         verdicts = result.1
+        contextChoices = result.2
         Self.logger.notice("refresh: done, rows \(result.0.map(\.id), privacy: .public)")
     }
 }
@@ -400,6 +410,8 @@ private struct ModelRow: View {
     /// Whether this is `Config.defaultModelID` — the one row gets
     /// `load-on-startup = true` in `presets.ini` (ADR D-017).
     let isDefault: Bool
+    let contextChoices: [ContextChoice]
+    let onSetContext: (Int?) -> Void
     let onLoad: () -> Void
     let onToggleDefault: () -> Void
     let onDelete: () -> Void
@@ -451,6 +463,7 @@ private struct ModelRow: View {
                         ? "Couldn't read this model's header, or its architecture isn't supported by the estimate yet."
                         : "Couldn't read this model's config.json.")
             }
+            contextMenuButton
             Text(ByteCountFormatter.string(fromByteCount: entry.bytes, countStyle: .file))
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -474,6 +487,40 @@ private struct ModelRow: View {
             .help("Delete model")
         }
         .padding(.vertical, 2)
+    }
+
+    /// Per-model context size (ADR D-020): Automatic, or a fixed size —
+    /// each option labelled with its fit on this Mac.
+    private var contextMenuButton: some View {
+        Menu {
+            Button {
+                onSetContext(nil)
+            } label: {
+                let auto = entry.contextSize.map { " (\(RemoteFitBadge.contextLabel($0)))" } ?? ""
+                Label("Automatic\(auto)", systemImage: entry.userContextSize == nil ? "checkmark" : "")
+            }
+            Divider()
+            ForEach(contextChoices) { choice in
+                Button {
+                    onSetContext(choice.tokens)
+                } label: {
+                    Label(
+                        "\(RemoteFitBadge.contextLabel(choice.tokens)) — \(choice.verdictLabel)",
+                        systemImage: entry.userContextSize == choice.tokens ? "checkmark" : ""
+                    )
+                }
+                .disabled(choice.verdict == .wontFit)
+            }
+        } label: {
+            Text("\(RemoteFitBadge.contextLabel(entry.effectiveContextSize)) ctx")
+                .font(.caption)
+                .monospacedDigit()
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help(
+            "Context size — how much text the model can work with at once. Coding agents need 32K or more. Applies on the next Start."
+        )
     }
 }
 
@@ -509,5 +556,24 @@ extension ServerController.Phase {
     /// as stopped for file purposes.
     var isStoppedForRelocation: Bool {
         self == .stopped || isFailed
+    }
+}
+
+/// One option in a model's context picker.
+struct ContextChoice: Identifiable, Equatable {
+    let tokens: Int
+    let verdict: FitVerdict?
+
+    var id: Int {
+        tokens
+    }
+
+    var verdictLabel: String {
+        switch verdict {
+        case .comfortable: "Comfortable"
+        case .tight: "Tight"
+        case .wontFit: "Won't fit"
+        case nil: "fit unknown"
+        }
     }
 }

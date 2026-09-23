@@ -55,6 +55,7 @@
 		8C4232B0FBE3A73AEAFF506E /* HFRepo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 425E81D2DAC331A359585A0F /* HFRepo.swift */; };
 		8D88704579DC44780C153B31 /* GGUFMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1946EC80763A824682094C0 /* GGUFMetadataTests.swift */; };
 		9317F0C660C4BDE4BC7A980E /* FitEstimatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AE0E33AD95285152C0DD917 /* FitEstimatorTests.swift */; };
+		94952E76182AF42444C11CF9 /* WindowFrontier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C02ACC573E973DD1E33553 /* WindowFrontier.swift */; };
 		9A5972B30A98BFE94BF8A2F5 /* CatalogRefresher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EABED4CD61813C8D19A53F6 /* CatalogRefresher.swift */; };
 		9E7A072989A42AFD0CF6C555 /* HFDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49BE1EF5FB53B825FC562F0 /* HFDownloader.swift */; };
 		A1550BA3B989C1800EA3489D /* ThisMacPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47FBAC880A6D514BBF7B4851 /* ThisMacPane.swift */; };
@@ -128,6 +129,7 @@
 		4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthProbe.swift; sourceTree = "<group>"; };
 		5017B60F5810B38F0C09B7F3 /* DeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfo.swift; sourceTree = "<group>"; };
 		50419AA3D40B6B9BAEDBF837 /* DeviceInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfoTests.swift; sourceTree = "<group>"; };
+		52C02ACC573E973DD1E33553 /* WindowFrontier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowFrontier.swift; sourceTree = "<group>"; };
 		5907867E917EAA9CB82DDAAF /* PingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PingTests.swift; sourceTree = "<group>"; };
 		5BF75DEC1D436363C620CA16 /* Runtime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Runtime.swift; sourceTree = "<group>"; };
 		5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXMetadataTests.swift; sourceTree = "<group>"; };
@@ -285,6 +287,7 @@
 				B44B50F18DB9B66BCFEB8060 /* PingSheet.swift */,
 				3C313E49C170F38D115B7E22 /* SettingsView.swift */,
 				47FBAC880A6D514BBF7B4851 /* ThisMacPane.swift */,
+				52C02ACC573E973DD1E33553 /* WindowFrontier.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -543,6 +546,7 @@
 				4E1B1E162EF15798C7BEEDBB /* StoreHousekeeping.swift in Sources */,
 				79297D51C2C829D38C70D8D0 /* StoreWatcher.swift in Sources */,
 				A1550BA3B989C1800EA3489D /* ThisMacPane.swift in Sources */,
+				94952E76182AF42444C11CF9 /* WindowFrontier.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

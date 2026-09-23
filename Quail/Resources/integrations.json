@@ -1,5 +1,5 @@
 {
-  "_comment": "Connect tab tools (docs/IMPLEMENTATION_PLAN.md Phase 2b step 1). Placeholders: {{baseURL}} (no /v1), {{apiKey}}, {{model}}, {{host}}, {{port}}. Verified against each tool's docs on 2026-09-23 — re-check docsURL when editing.",
+  "_comment": "Connect tab tools (docs/IMPLEMENTATION_PLAN.md Phase 2b step 1). Placeholders: {{baseURL}} (no /v1), {{apiKey}}, {{model}}, {{host}}, {{port}}. Verified against each tool's docs on 2026-09-23 — re-check docsURL when editing. minContext (optional): the smallest model context the tool works with — Claude Code's first request measured 15,114 tokens, Codex's about 7,000; Cline/Roo per their docs.",
   "integrations": [
     {
       "id": "claude-code",
@@ -10,7 +10,8 @@
       "format": "shell",
       "snippet": "export ANTHROPIC_BASE_URL={{baseURL}}\nexport ANTHROPIC_AUTH_TOKEN={{apiKey}}\nexport ANTHROPIC_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_OPUS_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_SONNET_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_HAIKU_MODEL={{model}}\nexport CLAUDE_CODE_SUBAGENT_MODEL={{model}}\nexport CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1\nclaude",
       "docsURL": "https://code.claude.com/docs/en/llm-gateway-connect",
-      "notes": "Best-effort: Anthropic doesn't support Claude Code with non-Claude models, so tool use depends on the model. The base URL has no /v1 — Claude Code adds /v1/messages itself. Every model variable points at this model because Claude Code also asks for separate background and sub-agent models, which the server would reject. Needs a large context; Quail sets it per model from this Mac's memory. Don't put this in a project's committed .claude/settings.json."
+      "notes": "Best-effort: Anthropic doesn't support Claude Code with non-Claude models, so tool use depends on the model. The base URL has no /v1 — Claude Code adds /v1/messages itself. Every model variable points at this model because Claude Code also asks for separate background and sub-agent models, which the server would reject. Needs a large context; Quail sets it per model from this Mac's memory. Don't put this in a project's committed .claude/settings.json.",
+      "minContext": 32768
     },
     {
       "id": "codex-cli",
@@ -21,7 +22,8 @@
       "format": "toml",
       "snippet": "model = \"{{model}}\"\nmodel_provider = \"quail\"\n\n[model_providers.quail]\nname = \"Quail (llama.cpp)\"\nbase_url = \"{{baseURL}}/v1\"\nenv_key = \"QUAIL_API_KEY\"\nwire_api = \"responses\"\n\n# and in your shell:\n# export QUAIL_API_KEY={{apiKey}}",
       "docsURL": "https://learn.chatgpt.com/docs/config-file/config-advanced",
-      "notes": "Codex only speaks the Responses API now; llama.cpp serves /v1/responses, but agent-loop support (tools, reasoning items) is newer than its chat API. The provider id can't be openai, ollama or lmstudio. Add model_context_window = <tokens> so compaction works for a model Codex doesn't know."
+      "notes": "Codex only speaks the Responses API now; llama.cpp serves /v1/responses, but agent-loop support (tools, reasoning items) is newer than its chat API. The provider id can't be openai, ollama or lmstudio. Add model_context_window = <tokens> so compaction works for a model Codex doesn't know.",
+      "minContext": 16384
     },
     {
       "id": "continue",
@@ -43,7 +45,8 @@
       "format": "text",
       "snippet": "API Provider: OpenAI Compatible\nBase URL: {{baseURL}}/v1\nAPI Key: {{apiKey}}\nModel ID: {{model}}",
       "docsURL": "https://docs.cline.bot/provider-config/openai-compatible",
-      "notes": "Set up in Cline's own settings screen, not a file. Under Model Configuration, set Context Window to the model's context so Cline's large prompts fit."
+      "notes": "Set up in Cline's own settings screen, not a file. Under Model Configuration, set Context Window to the model's context so Cline's large prompts fit.",
+      "minContext": 32768
     },
     {
       "id": "roo-code",
@@ -54,7 +57,8 @@
       "format": "text",
       "snippet": "API Provider: OpenAI Compatible\nBase URL: {{baseURL}}/v1\nAPI Key: {{apiKey}}\nModel: {{model}}",
       "docsURL": "https://roocodeinc.github.io/Roo-Code/providers/openai-compatible",
-      "notes": "Roo Code relies on native tool calling, so pick a model that handles tools well. Set the context window under Model Configuration."
+      "notes": "Roo Code relies on native tool calling, so pick a model that handles tools well. Set the context window under Model Configuration.",
+      "minContext": 32768
     },
     {
       "id": "zed",

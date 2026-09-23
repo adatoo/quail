@@ -45,6 +45,10 @@ struct GGUFMetadata: Sendable, Equatable {
     /// `<arch>.expert_used_count` — experts activated per token, for MoE
     /// architectures. `nil` for dense models.
     var expertUsedCount: Int?
+    /// `<arch>.context_length` — the context the model was trained for;
+    /// caps the per-model context setting (a larger `ctx-size` makes
+    /// llama.cpp warn and quality degrade past it).
+    var contextLength: Int?
 
     enum GGUFReadError: Error, Equatable {
         case notAGGUFFile
@@ -154,6 +158,9 @@ struct GGUFMetadata: Sendable, Equatable {
                     continue
                 case "\(arch).expert_used_count":
                     result.expertUsedCount = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).context_length":
+                    result.contextLength = try cursor.readScalarAsInt(type: type)
                     continue
                 default:
                     break

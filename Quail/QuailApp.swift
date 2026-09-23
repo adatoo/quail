@@ -23,19 +23,19 @@ struct QuailApp: App {
         // which looked and behaved unlike every other menu bar app.
 
         Settings {
-            SettingsView(appState: appDelegate.appState)
+            SettingsView(appState: appDelegate.appState).opensInFront()
         }
 
         // Real windows, not `.sheet`s presented from the MenuBarExtra's
         // content — see PingSheet.swift's doc comment for why.
         Window("Ping", id: "ping") {
-            PingSheet(appState: appDelegate.appState)
+            PingSheet(appState: appDelegate.appState).opensInFront()
         }
         .defaultSize(width: 360, height: 220)
         .windowResizability(.contentSize)
 
         Window("Logs", id: "logs") {
-            LogsWindow(appState: appDelegate.appState)
+            LogsWindow(appState: appDelegate.appState).opensInFront()
         }
         .defaultSize(width: 640, height: 420)
     }

@@ -225,6 +225,23 @@ struct ModelStoreTests {
         #expect(!ini.contains("[mmproj-")) // projectors never get their own section
     }
 
+    @Test("a user-chosen context survives refreshes and wins in presets.ini")
+    func userContextSizeWins() throws {
+        let store = scratchStore()
+        defer { try? FileManager.default.removeItem(at: store.rootURL) }
+        try store.ensureDirectoriesExist()
+        try Data().write(to: store.ggufDirectory.appendingPathComponent("Alpha.gguf"))
+        try store.saveCatalog(StoreCatalog(entries: [
+            InstalledModel(id: "Alpha", format: .gguf, bytes: 0, userContextSize: 65536, addedAt: .init()),
+        ]))
+
+        let refreshed = store.refreshedCatalog(device: DeviceInfo(), ggufRuntime: .llamaCpp, bandwidthTable: [:])
+        #expect(refreshed.entries.first?.userContextSize == 65536)
+        try store.regeneratePresets(catalog: refreshed)
+        let ini = try String(contentsOf: store.presetsFile, encoding: .utf8)
+        #expect(ini.contains("ctx-size = 65536"))
+    }
+
     @Test("installedGGUFFiles keeps only the first shard of a split model")
     func installedGGUFFilesKeepsFirstShardOnly() throws {
         let store = scratchStore()
@@ -286,9 +303,9 @@ struct ModelStoreTests {
         #expect(row.id == "Hand-Placed")
         #expect(row.format == .gguf)
         #expect(row.bytes == 1_048_576)
-        // Comfortable leaves no per-row override — presets.ini's default
-        // governs; only .tight writes a reduced context.
-        #expect(row.contextSize == nil)
+        // Automatic context (ADR D-020): the largest of 32K/16K/8K that's
+        // comfortable — 32K for a tiny model on a comfortable device.
+        #expect(row.contextSize == 32768)
         #expect(row.sourceRepo == nil)
     }
 
@@ -366,7 +383,7 @@ struct ModelStoreTests {
         #expect(row.quant == "Q8_0")
         #expect(row.addedAt == Date(timeIntervalSince1970: 100))
         #expect(row.bytes == 1024) // re-measured
-        #expect(row.contextSize == nil) // recomputed: comfortable now
+        #expect(row.contextSize == 32768) // recomputed: comfortable at 32K now
     }
 
     @Test("refreshedCatalog drops rows whose file was deleted and adds rows for MLX dirs")
@@ -400,11 +417,10 @@ struct ModelStoreTests {
         #expect(catalog.entries.map(\.id) == ["Exists", "mlx-community--X-4bit"]) // sorted
         let mlx = try #require(catalog.entries.first { $0.id == "mlx-community--X-4bit" })
         #expect(mlx.format == .mlxSafetensors)
-        // ~2 kB of weights on a 16 GB-class device is comfortably under
-        // even a large context, so: no override. head_dim 8 × 1 layer ×
-        // 1 kv head × 2 (bytes/elem) × 8192 = 131,072 bytes of KV cache —
-        // parsed fine, which is the point of the fixture.
-        #expect(mlx.contextSize == nil)
+        // ~2 kB of weights on a 16 GB-class device is comfortable even at
+        // 32K, so Automatic picks 32K — config.json parsed fine, which is
+        // the point of the fixture.
+        #expect(mlx.contextSize == 32768)
         #expect(mlx.bytes >= 2048)
     }
 

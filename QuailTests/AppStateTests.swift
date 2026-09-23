@@ -690,6 +690,27 @@ struct AppStateTests {
         await appState.stop()
     }
 
+    @Test("setContextSize persists the choice, rewrites presets, and asks for a restart while running")
+    func setContextSize() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(named: "Model", to: appState.modelStore)
+        await appState.start()
+        #expect(!appState.modelsChangedSinceStart)
+
+        await appState.setContextSize(32768, forModel: "Model")
+
+        #expect(appState.modelStore.loadCatalog().entries.first?.userContextSize == 32768)
+        let ini = try String(contentsOf: appState.modelStore.presetsFile, encoding: .utf8)
+        #expect(ini.contains("ctx-size = 32768"))
+        #expect(appState.modelsChangedSinceStart)
+
+        await appState.setContextSize(nil, forModel: "Model") // back to Automatic
+        #expect(appState.modelStore.loadCatalog().entries.first?.userContextSize == nil)
+        await appState.stop()
+    }
+
     @Test("start() creates the model store's directories and a presets.ini")
     func startCreatesModelStore() async throws {
         let scratch = scratchDirectory()

@@ -46,6 +46,9 @@ struct Integration: Sendable, Equatable, Identifiable, Decodable {
     let snippet: String
     let docsURL: URL
     let notes: String?
+    /// The smallest model context (tokens) the tool works with — the
+    /// Connect tab warns when the chosen model runs smaller (ADR D-020).
+    let minContext: Int?
 
     private struct File: Decodable {
         let integrations: [Integration]

@@ -140,16 +140,13 @@ struct ModelStore: Sendable, Equatable {
     /// fed to `FitEstimator` against `device` under `ggufRuntime` (MLX
     /// directories always evaluate under `.omlx` — that's the only
     /// format-aware choice for them), and the resulting
-    /// `reducedContextSize` for a `.tight` verdict is what
-    /// `regeneratePresets` will write into `presets.ini`. Everything
-    /// else keeps the `defaultContextSize` fallback in
-    /// `regeneratePresets` rather than baking the number into the row —
-    /// a `.comfortable` model runs at the default, and `.wontFit` gets
-    /// no number at all (see `fitContextSize`'s doc comment).
+    /// resulting `FitEstimator.automaticContextSize` is stored as the
+    /// row's `contextSize` (ADR D-020) — what `presets.ini` uses unless the
+    /// user picked a size (`userContextSize`, never touched here).
     func refreshedCatalog(
         device: DeviceInfo,
         ggufRuntime: RuntimeID,
-        bandwidthTable: [String: Double],
+        bandwidthTable _: [String: Double],
         now: Date = .init()
     ) -> StoreCatalog {
         var result = loadCatalog()
@@ -158,19 +155,21 @@ struct ModelStore: Sendable, Equatable {
         for file in installedGGUFFiles() {
             let id = file.deletingPathExtension().lastPathComponent
             let bytes = fileSize(of: file)
-            let contextSize = fitContextSize(
-                for: (try? GGUFMetadata.read(from: file)).flatMap { ModelShape.from(gguf: $0, weightBytes: bytes) },
-                device: device,
-                runtime: ggufRuntime,
-                bandwidthTable: bandwidthTable
-            )
+            let shape = (try? GGUFMetadata.read(from: file)).flatMap { ModelShape.from(gguf: $0, weightBytes: bytes) }
+            let contextSize = shape.flatMap {
+                FitEstimator.automaticContextSize(model: $0, device: device, runtime: ggufRuntime)
+            }
             if let index = result.entries.firstIndex(where: { $0.id == id }) {
                 result.entries[index].bytes = bytes
                 result.entries[index].contextSize = contextSize
+                result.entries[index].trainedContext = shape?.trainedContext
                 remaining.remove(id)
             } else {
                 result.entries.append(
-                    InstalledModel(id: id, format: .gguf, bytes: bytes, contextSize: contextSize, addedAt: now)
+                    InstalledModel(
+                        id: id, format: .gguf, bytes: bytes, contextSize: contextSize,
+                        trainedContext: shape?.trainedContext, addedAt: now
+                    )
                 )
             }
         }
@@ -178,14 +177,9 @@ struct ModelStore: Sendable, Equatable {
         for directory in installedMLXDirectories() {
             let id = directory.lastPathComponent
             let bytes = directorySize(of: directory)
-            let contextSize = fitContextSize(
-                for: (try? MLXMetadata.read(from: directory.appendingPathComponent("config.json"))).flatMap {
-                    ModelShape.from(mlx: $0, weightBytes: bytes)
-                },
-                device: device,
-                runtime: .omlx,
-                bandwidthTable: bandwidthTable
-            )
+            let contextSize = (try? MLXMetadata.read(from: directory.appendingPathComponent("config.json")))
+                .flatMap { ModelShape.from(mlx: $0, weightBytes: bytes) }
+                .flatMap { FitEstimator.automaticContextSize(model: $0, device: device, runtime: .omlx) }
             if let index = result.entries.firstIndex(where: { $0.id == id }) {
                 result.entries[index].bytes = bytes
                 result.entries[index].contextSize = contextSize
@@ -206,39 +200,6 @@ struct ModelStore: Sendable, Equatable {
         result.entries.removeAll { remaining.contains($0.id) }
         result.entries.sort { $0.id < $1.id }
         return result
-    }
-
-    /// The `contextSize` a fit estimate implies: only `.tight` with a
-    /// positive reduced context writes one (the context the model can
-    /// actually run at — what ARCHITECTURE.md §7 says Quail "sets
-    /// automatically"). `.tight(reducedContextSize: 0)` — the D-013 edge
-    /// case where weights fit but weights-plus-overhead don't — and
-    /// `.comfortable` leave it `nil` so `regeneratePresets`'s
-    /// `defaultContextSize` still governs; a `ctx-size = 0` preset would
-    /// break the router at startup, not merely make the model unusable.
-    /// `.wontFit` deliberately also leaves `nil` — writing a reduced
-    /// context for a model whose weights alone exceed the ceiling would
-    /// pretend there's a working configuration when there isn't; the
-    /// Models pane (step 7) shows that verdict from the catalog row's
-    /// presence plus a fresh estimate instead.
-    private func fitContextSize(
-        for shape: ModelShape?,
-        device: DeviceInfo,
-        runtime: RuntimeID,
-        bandwidthTable: [String: Double]
-    ) -> Int? {
-        guard let shape,
-              let estimate = FitEstimator.estimate(
-                  model: shape,
-                  device: device,
-                  runtime: runtime,
-                  bandwidthTable: bandwidthTable
-              )
-        else { return nil }
-        if case let .tight(reduced) = estimate.verdict, reduced > 0 {
-            return reduced
-        }
-        return nil
     }
 
     /// Every MLX model directory inside `mlx/` — a subdirectory that
@@ -327,7 +288,7 @@ struct ModelStore: Sendable, Equatable {
         var ini = ""
         for file in installedGGUFFiles() {
             let alias = file.deletingPathExtension().lastPathComponent
-            let contextSize = catalog.entries.first { $0.id == alias }?.contextSize ?? defaultContextSize
+            let contextSize = catalog.entries.first { $0.id == alias }?.effectiveContextSize ?? defaultContextSize
             ini += "[\(alias)]\n"
             ini += "model = \(file.path)\n"
             // llama-server's --models-preset parser keys presets by the

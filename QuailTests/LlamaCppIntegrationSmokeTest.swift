@@ -130,8 +130,9 @@ struct LlamaCppIntegrationSmokeTest {
 
         let row = try #require(catalog.entries.first { $0.id == "Qwen3-0.6B-Q8_0" })
         #expect(row.bytes == 639_446_688)
-        // A 0.6B model on this machine is comfortably under the ceiling
-        // either way — comfortable leaves the row override-free.
-        #expect(row.contextSize == nil)
+        // A 0.6B model is comfortable at 32K on any real Mac; its trained
+        // context (40,960) doesn't cap that — Automatic picks 32K (D-020).
+        #expect(row.contextSize == 32768)
+        #expect(row.trainedContext == 40960)
     }
 }

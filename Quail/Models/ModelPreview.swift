@@ -112,27 +112,57 @@ enum ModelPreview {
         ggufRuntime: RuntimeID,
         bandwidthTable: [String: Double]
     ) -> FitEstimate? {
+        guard let shape = installedShape(entry: entry, store: store) else { return nil }
+        return FitEstimator.estimate(
+            model: shape,
+            device: device,
+            runtime: entry.format == .gguf ? ggufRuntime : .omlx,
+            // At the context the model will actually run at (ADR D-020),
+            // not a fixed default.
+            requestedContextSize: entry.effectiveContextSize,
+            bandwidthTable: bandwidthTable
+        )
+    }
+
+    /// An installed model's shape, read from its header / config.json.
+    static func installedShape(entry: InstalledModel, store: ModelStore) -> ModelShape? {
         switch entry.format {
         case .gguf:
             let url = store.ggufDirectory.appendingPathComponent("\(entry.id).gguf")
-            guard let metadata = try? GGUFMetadata.read(from: url),
-                  let shape = ModelShape.from(gguf: metadata, weightBytes: entry.bytes)
-            else { return nil }
-            return FitEstimator.estimate(
-                model: shape,
-                device: device,
-                runtime: ggufRuntime,
-                bandwidthTable: bandwidthTable
-            )
+            return (try? GGUFMetadata.read(from: url)).flatMap { ModelShape.from(gguf: $0, weightBytes: entry.bytes) }
         case .mlxSafetensors:
             let configURL = store.mlxDirectory
                 .appendingPathComponent(entry.id, isDirectory: true)
                 .appendingPathComponent("config.json")
-            guard let metadata = try? MLXMetadata.read(from: configURL),
-                  let shape = ModelShape.from(mlx: metadata, weightBytes: entry.bytes)
-            else { return nil }
-            return FitEstimator.estimate(model: shape, device: device, runtime: .omlx, bandwidthTable: bandwidthTable)
+            return (try? MLXMetadata.read(from: configURL))
+                .flatMap { ModelShape.from(mlx: $0, weightBytes: entry.bytes) }
         }
+    }
+
+    /// The context picker's options for an installed model, each with its
+    /// verdict on this Mac.
+    static func contextChoices(
+        entry: InstalledModel,
+        store: ModelStore,
+        device: DeviceInfo,
+        ggufRuntime: RuntimeID
+    ) -> [(tokens: Int, verdict: FitVerdict?)] {
+        let shape = installedShape(entry: entry, store: store)
+        return FitEstimator.contextOptions(trainedContext: entry.trainedContext ?? shape?.trainedContext)
+            .map { tokens in
+                var verdict = shape.flatMap {
+                    FitEstimator.estimate(
+                        model: $0, device: device, runtime: entry.format == .gguf ? ggufRuntime : .omlx,
+                        requestedContextSize: tokens
+                    )?.verdict
+                }
+                // `.tight(n)` means "fits under the full ceiling only up to n
+                // tokens" — an option above n doesn't fit at its own size.
+                if case let .tight(reduced)? = verdict, reduced < tokens {
+                    verdict = .wontFit
+                }
+                return (tokens, verdict)
+            }
     }
 
     /// A pre-download verdict for one not-yet-installed model. `files`

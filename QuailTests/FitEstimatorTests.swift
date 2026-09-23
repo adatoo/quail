@@ -361,4 +361,29 @@ struct FitEstimatorTests {
         #expect(RemoteFitBadge.contextLabel(4096) == "4K")
         #expect(RemoteFitBadge.contextLabel(1536) == "1.5K")
     }
+
+    // MARK: - Context size (ADR D-020)
+
+    @Test("automaticContextSize: largest comfortable of 32K/16K/8K — 16K for 8B Q4_K_M on a 16 GB Mac")
+    func automaticContext() {
+        #expect(FitEstimator
+            .automaticContextSize(model: Self.eightBQ4KM, device: Self.sixteenGB, runtime: .llamaCpp) == 16384)
+        var small = Self.eightBQ4KM
+        small.weightBytes = 700_000_000
+        #expect(FitEstimator.automaticContextSize(model: small, device: Self.sixteenGB, runtime: .llamaCpp) == 32768)
+        small.trainedContext = 8192 // never above what the model was trained for
+        #expect(FitEstimator.automaticContextSize(model: small, device: Self.sixteenGB, runtime: .llamaCpp) == 8192)
+        #expect(FitEstimator.automaticContextSize(
+            model: Self.thirtyTwoBQ4KM,
+            device: Self.sixteenGB,
+            runtime: .llamaCpp
+        ) == nil)
+    }
+
+    @Test("contextOptions: 4K–128K, capped at the trained context, which is itself offered")
+    func contextOptions() {
+        #expect(FitEstimator.contextOptions(trainedContext: nil) == [4096, 8192, 16384, 32768, 65536, 131_072])
+        #expect(FitEstimator.contextOptions(trainedContext: 40960) == [4096, 8192, 16384, 32768, 40960])
+        #expect(FitEstimator.contextOptions(trainedContext: 2048) == [2048])
+    }
 }

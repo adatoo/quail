@@ -80,6 +80,16 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   apps' config files. Also "Connect a Tool…" and "Open Chat in Browser"
   (the runtime's built-in web UI) in the menu.
 
+- Per-model context size (ADR D-020): each model's row has a "ctx" menu —
+  Automatic (the largest of 32K/16K/8K that's Comfortable on this Mac,
+  capped at the model's trained context) or 4K–128K, each option labelled
+  with its fit. The old fixed 8K overflowed coding agents on their first
+  request (Claude Code's measured 15,114 tokens). Fit badges are computed
+  at the context the model will actually run at; Connect warns when a
+  tool needs more context than the chosen model has.
+- Store audit trail: in-app deletes and models appearing/disappearing on
+  disk are written to the Logs window and the persistent unified log.
+
 ### Fixed
 
 - Start could go green for a server that wasn't Quail's: a `llama-server`
@@ -111,7 +121,9 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
 - Settings, Logs and Test opened out of sight when another app was
   full-screen: a menu-bar-only app can't force activation on macOS 14+, and
   the window landed on the desktop Space. Windows opened from the menu now
-  join the current (full-screen) Space and are ordered front. The Models
+  join the current (full-screen) Space and are ordered front — set as each
+  window is created (`WindowFrontier`), after a first attempt that adjusted
+  them afterwards only worked some of the time. The Models
   pane's footer is redesigned (labelled "Models folder" and "Hugging Face
   token" rows; Clean Up / Move Folder / Reload in a ⋯ menu; Add Model…
   moved to the top) — five buttons in one row had truncated.
