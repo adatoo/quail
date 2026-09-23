@@ -34,7 +34,13 @@ struct PingSheet: View {
         }
         .padding(20)
         .frame(width: 360)
-        .task { await run() }
+        // Keyed on `phase`, not a plain `.task`: a window left open
+        // across a stop/port-change/restart used to keep showing a
+        // stale result from a `PingRunner` built for the old address —
+        // this re-runs fresh on every transition into `.ready`,
+        // including a supervisor auto-restart's own re-verified one
+        // (`ServerController`'s `willRestart` handling).
+        .task(id: appState.serverController.phase) { await run() }
     }
 
     private var isServerReady: Bool {
@@ -43,7 +49,14 @@ struct PingSheet: View {
 
     private func run() async {
         guard isServerReady, let base = appState.baseURL else { return }
-        let runner = runner ?? PingRunner(runtime: appState.runtime, base: base, apiKey: appState.apiKey)
+        // Always fresh — never `self.runner ?? ...`. Reusing an old
+        // runner across `Run Again` or a `.task(id:)` re-fire pinned it
+        // to whatever base/key was current the first time this view
+        // appeared. The key comes from `serverController`, i.e. what the
+        // process was actually launched with, not `appState.apiKey`
+        // (live Settings) — the two can drift while the server keeps
+        // running the old key.
+        let runner = PingRunner(runtime: appState.runtime, base: base, apiKey: appState.serverController.apiKey)
         self.runner = runner
         await runner.run()
     }

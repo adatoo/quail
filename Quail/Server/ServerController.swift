@@ -66,6 +66,15 @@ final class ServerController {
         return components.url
     }
 
+    /// The API key the runtime was actually launched with — not whatever
+    /// Settings currently holds, which can drift (regenerated, toggled
+    /// off, a new custom key) while the server keeps running the old
+    /// one. `PingSheet` reads this rather than `AppState.apiKey` for
+    /// exactly that reason.
+    var apiKey: String? {
+        config?.apiKey
+    }
+
     /// Starts the runtime and waits for it to become healthy. Returns once
     /// the phase has settled to `.ready` or `.failed` — callers that only
     /// want to kick it off and observe `phase` separately can ignore the
@@ -94,11 +103,20 @@ final class ServerController {
             }
         }
 
+        await waitForHealthAndSettle(base: base, apiKey: config.apiKey, generation: thisGeneration)
+    }
+
+    /// Polls `/health` until it reports up (or `healthTimeout` runs out),
+    /// then settles `phase` to `.ready`/`.failed` — the same "does the
+    /// phase this function is about to write still belong to this run"
+    /// guard `start(config:)` always used, now shared with a supervisor
+    /// restart's own re-check (`handle(event:)`, below).
+    private func waitForHealthAndSettle(base: URL, apiKey: String?, generation thisGeneration: Int) async {
         do {
             try await HealthProbe.waitUntilHealthy(
                 runtime: runtime,
                 base: base,
-                apiKey: config.apiKey,
+                apiKey: apiKey,
                 timeout: healthTimeout
             )
             if generation == thisGeneration, phase == .starting {
@@ -141,7 +159,27 @@ final class ServerController {
                 stream: .stderr,
                 text: "process exited with status \(status)\(willRestart ? ", restarting…" : "")"
             )
-            guard !willRestart else { return }
+            if willRestart {
+                // The supervisor is about to relaunch on its own after a
+                // backoff delay. `phase` used to just stay `.ready` for
+                // this whole window — confirmed via live testing that
+                // this is real: the menu kept saying "Running" and a
+                // Ping's "server up" step failed with "Could not connect"
+                // while the process was actually down mid-restart.
+                // Re-verify health the same way `start()` itself does,
+                // as an unawaited task so a slow/never-healthy re-check
+                // can't stall this event loop from processing whatever
+                // comes next (a further crash, or `stop()` finishing the
+                // stream) — `waitForHealthAndSettle`'s own generation +
+                // `phase == .starting` guard makes a late completion a
+                // safe no-op if something else already moved `phase` on.
+                guard phase == .ready || phase == .starting, let base = baseURL, let config else { return }
+                phase = .starting
+                Task { [weak self] in
+                    await self?.waitForHealthAndSettle(base: base, apiKey: config.apiKey, generation: eventGeneration)
+                }
+                return
+            }
 
             if phase == .stopping {
                 phase = .stopped
