@@ -4,12 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Every PR adds its entries under [Unreleased] and cuts them into its own
+version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
+`main` is released as that version.
 
 ## [Unreleased]
 
-Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
+## [0.2.0] - 2026-09-23
 
 ### Added
+
+- SemVer releases (ADR D-024): every PR carries a version bump derived from
+  its Conventional Commits title (`scripts/bump-version.sh`, checked by the
+  new required `version` workflow); PRs auto-merge with a merge commit once
+  CI passes; every merge to `main` is tagged `vX.Y.Z` and published as a
+  GitHub Release with its CHANGELOG section (the signed DMG attaches once
+  signing is configured). `quail --version` reports the app's version.
 
 - `ModelStore`: the unified store folder layout, `catalog.json` index, and
   `presets.ini` generated from whatever `.gguf` files are actually on disk.

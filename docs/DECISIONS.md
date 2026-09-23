@@ -2,6 +2,14 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-024 · 2026-09-23 · SemVer from PR titles, bumped in every PR, released on every merge
+
+**Decision:** Quail's version is SemVer, kept in `project.yml` (`MARKETING_VERSION`, plus `CURRENT_PROJECT_VERSION` as a build number that rises with every release). Every PR carries its own bump, derived from its Conventional Commits title — `feat` → minor, other types → patch, `!`/`BREAKING CHANGE` → major (minor while 0.x) — made with `scripts/bump-version.sh` and enforced by the required `version` check. PRs merge only with merge commits (no squash, rebase, force-push or direct push; admins included) and auto-merge once `build-and-test` and `version` pass. Every merge to `main` tags `vX.Y.Z` and publishes a GitHub Release from that version's CHANGELOG section (pre-release while 0.x); the signed DMG is attached once signing is configured (`vars.SIGNING_ENABLED`).
+**Alternatives:** Bumping at release time on `main` (release-please style) — needs a bot to push to `main`, which "PRs only" forbids. A label per PR — one more thing to forget; the title is already required to be Conventional. Squash merges — the user chose merge commits.
+**Why:** User request: SemVer releases, a bump in every PR, auto-merge on green CI, and a `main` that only changes through merged PRs. Computing the bump from `main`'s version inside the PR keeps `main` untouched by bots and makes every merge commit a releasable version.
+**Trade-off:** Two open PRs conflict on the version lines once one merges; the second re-runs the bump script (the check says so). Anything automated that pushes or merges needs `BOT_TOKEN` (a fine-grained PAT) because actions taken with `GITHUB_TOKEN` start no workflows — without it, Dependabot PRs need a manual bump and auto-merge must be enabled by hand.
+**Revisit if:** PR volume makes version conflicts routine (a merge queue would serialize them), or Sparkle needs a different build-number scheme.
+
 ## D-023 · 2026-09-23 · A fixed, versioned benchmark suite; its result is the sharing format
 
 **Decision:** Benchmarks run one fixed suite, `quail-bench-1` (`BenchmarkSuite.swift`): exact-length prompts sent as token ids, the server's own `timings`, deterministic settings, no prompt cache, 1 warm-up + 3 runs. Any change to what it measures or how is a new suite id, never an edit. `BenchmarkResult` (schema v1, in `Shared/`) carries the hardware, model file (incl. sha256), engine build and conditions with the numbers, and is the format later sharing will upload.
