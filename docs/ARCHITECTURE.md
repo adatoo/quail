@@ -194,7 +194,7 @@ where W is weight bytes, L layers, H_kv KV heads, d head dim, b bytes per KV ele
 
 Verdicts: **Comfortable** (needed < 70% of the GPU ceiling), **Tight** (fits at a reduced context, which Quail sets automatically), **Won't fit** (weights alone exceed the ceiling). Verdicts are per runtime because overheads differ.
 
-**Speed estimate** is decode-bound on Apple Silicon: `tok/s ≈ 0.7 × bandwidth / active_bytes_per_token`, where active bytes is the full weight size for dense models and only the active experts for MoE. Shown as "~35 tok/s" and calibrated over time: after each ping test the measured TTFT and tok/s are stored against the model and chip, replacing the estimate for that pair.
+**Speed estimate** is decode-bound on Apple Silicon: `tok/s ≈ 0.7 × bandwidth / active_bytes_per_token`, where active bytes is the full weight size for dense models and only the active experts for MoE. Shown as "~35 tok/s" and calibrated over time: a Benchmark run (`quail-bench-1`, ADR D-023) stores measured TTFT and tok/s against the model and chip (`benchmarks.json`), and the Models tab shows the measured generation speed for that pair instead of the estimate. Each result keeps the estimate it was compared with, so estimate error per chip can be fed back into the formula later.
 
 **Recommendations** in the picker are the curated catalog filtered to Comfortable on this Mac — any size — sorted by a hand-set quality-per-GB rank (larger first on ties), top 5 (D-019). The catalog's RAM tiers remain as data (shown as a label in This Mac) but no longer gate recommendations: a 64 GB Mac's "35B+" tier hid comfortable 27–31B models.
 

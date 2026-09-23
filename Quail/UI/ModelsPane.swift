@@ -35,6 +35,10 @@ struct ModelsPane: View {
     /// unselected list.
     @State private var preselectFamily: Catalog.Family?
     @State private var showCleanUp = false
+    /// This Mac's chip, for matching benchmark results (read in `refresh`,
+    /// not per render — `DeviceInfo.current()` touches IOKit and Metal).
+    @State private var chip: String?
+    @Environment(\.openWindow) private var openWindow
 
     enum FormatFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -173,6 +177,10 @@ struct ModelsPane: View {
         Recommender.topPick(catalog: appState.catalog, device: DeviceInfo.current())
     }
 
+    private var measuredSpeeds: [String: Double] {
+        appState.benchmarks.measuredSpeeds(chip: chip)
+    }
+
     @ViewBuilder private var installedList: some View {
         if entries.isEmpty {
             ContentUnavailable(
@@ -198,6 +206,7 @@ struct ModelsPane: View {
                     serverReady: appState.serverController.phase == .ready,
                     isDefault: appState.config.defaultModelID == entry.id,
                     contextChoices: contextChoices[entry.id] ?? [],
+                    measuredSpeed: measuredSpeeds[entry.id],
                     onSetContext: { tokens in
                         Task { await appState.setContextSize(tokens, forModel: entry.id) }
                     },
@@ -218,6 +227,10 @@ struct ModelsPane: View {
                     onDelete: {
                         pendingDeletion = entry.id
                         showDeleteConfirm = true
+                    },
+                    onBenchmark: {
+                        appState.benchmarks.requestedModel = entry.id
+                        openWindow(id: "benchmark")
                     }
                 )
             }
@@ -373,6 +386,7 @@ struct ModelsPane: View {
         loadedStates = await appState.loadedModelStates()
         let store = appState.modelStore
         let device = DeviceInfo.current()
+        chip = device.chipName
         let runtime = appState.config.runtimeID
         let bandwidth = ChipBandwidthTable.loadFromBundle()
         // Disk reconciliation + verdicts off the main actor; the pane
@@ -411,10 +425,13 @@ private struct ModelRow: View {
     /// `load-on-startup = true` in `presets.ini` (ADR D-017).
     let isDefault: Bool
     let contextChoices: [ContextChoice]
+    /// Generation speed from this model's latest Benchmark on this Mac.
+    let measuredSpeed: Double?
     let onSetContext: (Int?) -> Void
     let onLoad: () -> Void
     let onToggleDefault: () -> Void
     let onDelete: () -> Void
+    let onBenchmark: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -431,6 +448,9 @@ private struct ModelRow: View {
                     Button("Copy Model ID") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(entry.id, forType: .string)
+                    }
+                    if entry.format == .gguf {
+                        Button("Benchmark…", action: onBenchmark)
                     }
                 }
                 .help("Send \"model\": \"\(entry.id)\" in requests to select this one")
@@ -464,6 +484,13 @@ private struct ModelRow: View {
                         : "Couldn't read this model's config.json.")
             }
             contextMenuButton
+            if let measuredSpeed {
+                Label(String(format: "%.0f tok/s", measuredSpeed), systemImage: "gauge.with.dots.needle.67percent")
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .help("Generation speed measured by Benchmark on this Mac")
+            }
             Text(ByteCountFormatter.string(fromByteCount: entry.bytes, countStyle: .file))
                 .font(.caption)
                 .foregroundStyle(.secondary)

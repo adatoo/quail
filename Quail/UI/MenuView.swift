@@ -80,6 +80,10 @@ struct MenuView: View {
         }
         .disabled(appState.serverController.phase != .ready)
 
+        Button("Benchmark…") {
+            bringToFront { openWindow(id: "benchmark") }
+        }
+
         Button("Connect a Tool…") {
             appState.settingsTab = .connect
             bringToFront { openSettings() }
