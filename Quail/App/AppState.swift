@@ -101,23 +101,66 @@ final class AppState {
 
     // MARK: - Server state, as the menu wants to show it
 
-    /// Distinguishes "the router process is up" from "the router process
-    /// is up *and* there's a model actually configured to be behind it"
-    /// — confirmed by live testing that these look identical without
-    /// this: Start with no default model shows exactly the same green
-    /// "Running" as a normal run, even though nothing will answer a
-    /// request that doesn't itself name a model. Not a claim that
-    /// nothing works (router mode auto-loads a model the moment a
-    /// request names one — see ARCHITECTURE.md's concurrency note), just
-    /// that this run isn't backed by a model the way a defaulted one is.
+    /// What the running router reports about its models (`GET /models`),
+    /// refreshed every couple of seconds while running — see
+    /// `startModelPolling()`. Empty whenever the server isn't `.ready`.
+    private(set) var servedModels: [ServedModel] = []
+    private var modelPollTask: Task<Void, Never>?
+
+    /// How a `.ready` server looks in the menu, from what's actually
+    /// loaded rather than from config. Found by live testing: an earlier
+    /// version showed yellow for "no default model", which read as "broken"
+    /// while Test passed fine (router mode loads whatever model a request
+    /// names). Colour now means only: green = serving, yellow = a model is
+    /// still loading, red = the default model failed to load.
+    struct ReadyStatus: Equatable {
+        var label: String
+        var detail: String
+        var color: Color
+    }
+
+    static func readyStatus(models: [ServedModel], defaultModelID: String?) -> ReadyStatus {
+        if let defaultModelID,
+           let failed = models.first(where: { $0.id == defaultModelID && $0.status.failed == true })
+        {
+            let code = failed.status.exitCode.map { " (exit \($0))" } ?? ""
+            return ReadyStatus(
+                label: "Running — default model failed",
+                detail: "\(failed.id) failed to load\(code) — see Logs",
+                color: .red
+            )
+        }
+        if let loading = models.first(where: { $0.status.value == "loading" }) {
+            return ReadyStatus(label: "Loading model…", detail: "Loading \(loading.id)…", color: .yellow)
+        }
+        let loaded = models.filter { $0.status.value == "loaded" }.map(\.id)
+        if loaded.isEmpty {
+            return ReadyStatus(label: "Running", detail: "No model loaded — loads on first request", color: .green)
+        }
+        return ReadyStatus(label: "Running", detail: "Loaded: \(loaded.joined(separator: ", "))", color: .green)
+    }
+
+    private var currentReadyStatus: ReadyStatus {
+        Self.readyStatus(models: servedModels, defaultModelID: config.defaultModelID)
+    }
+
     var statusLabel: String {
         switch serverController.phase {
         case .stopped: "Stopped"
         case .starting: "Starting…"
-        case .ready: config.defaultModelID == nil ? "Running — no default model" : "Running"
+        case .ready: currentReadyStatus.label
         case .stopping: "Stopping…"
         case .failed: "Failed"
         }
+    }
+
+    /// The menu's model line: what's loaded while running; what *will*
+    /// load (the default) otherwise.
+    var modelStatusLine: String {
+        if serverController.phase == .ready {
+            return currentReadyStatus.detail
+        }
+        return config.defaultModelID.map { "Default model: \($0)" } ?? "No default model — loads on first request"
     }
 
     /// The menu bar icon is always the same bird glyph — only its colour
@@ -131,8 +174,35 @@ final class AppState {
         switch serverController.phase {
         case .stopped: .gray
         case .starting, .stopping: .yellow
-        case .ready: config.defaultModelID == nil ? .yellow : .green
+        case .ready: currentReadyStatus.color
         case .failed: .red
+        }
+    }
+
+    /// Re-reads `servedModels` from the running router; clears it when
+    /// the server isn't ready. A failed read keeps the last known list
+    /// rather than flickering the menu on one dropped request.
+    func refreshServedModels() async {
+        guard serverController.phase == .ready, let base = serverController.baseURL else {
+            servedModels = []
+            return
+        }
+        if let models = try? await runtime.listModels(base: base, apiKey: serverController.apiKey) {
+            servedModels = models
+        }
+    }
+
+    /// Polls for as long as a start is in effect (cancelled by `stop()`),
+    /// so the icon follows a model loading, finishing, being swapped by
+    /// a client request, or failing — none of which Quail itself causes.
+    private func startModelPolling() {
+        modelPollTask?.cancel()
+        modelPollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                await refreshServedModels()
+                try? await Task.sleep(for: .seconds(2))
+            }
         }
     }
 
@@ -208,10 +278,15 @@ final class AppState {
         try? modelStore.saveCatalog(refreshed)
         try? modelStore.regeneratePresets(catalog: refreshed, defaultModelID: config.defaultModelID)
         await serverController.start(config: endpointConfig())
+        await refreshServedModels() // so the first menu look after Start is already accurate
+        startModelPolling()
     }
 
     func stop() async {
+        modelPollTask?.cancel()
+        modelPollTask = nil
         await serverController.stop()
+        servedModels = []
     }
 
     // MARK: - Endpoint settings

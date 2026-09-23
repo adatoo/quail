@@ -26,13 +26,10 @@ struct MenuView: View {
                 .disabled(true)
         }
 
-        // Answers "what will actually be loaded" before you even hit
-        // Start — the default model, if one's set, or an explicit
-        // admission there isn't one (paired with `statusLabel`/
-        // `statusColor` no longer claiming a plain, fully-ready "Running"
-        // for a start with nothing configured behind it).
+        // While running: what the server actually has loaded (polled —
+        // see `AppState.servedModels`). Otherwise: what Start will load.
         if appState.hasServableModel {
-            Text(appState.config.defaultModelID.map { "Model: \($0)" } ?? "No default model")
+            Text(appState.modelStatusLine)
                 .disabled(true)
         }
 

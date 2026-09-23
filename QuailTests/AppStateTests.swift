@@ -96,25 +96,60 @@ struct AppStateTests {
         #expect(appState.statusLabel == "Stopped")
     }
 
-    @Test("statusLabel/statusColor distinguish a start with no default model from a normal one")
-    func statusDistinguishesNoDefaultModel() async throws {
+    private static func served(_ id: String, _ value: String, failed: Bool? = nil, exit: Int? = nil) -> ServedModel {
+        ServedModel(id: id, status: .init(value: value, failed: failed, exitCode: exit))
+    }
+
+    @Test("readyStatus: green when serving (default or not), yellow while loading, red when the default failed")
+    func readyStatusRules() {
+        let none = AppState.readyStatus(models: [Self.served("A", "unloaded")], defaultModelID: nil)
+        #expect(none == .init(label: "Running", detail: "No model loaded — loads on first request", color: .green))
+
+        let loaded = AppState.readyStatus(
+            models: [Self.served("A", "loaded"), Self.served("B", "unloaded")],
+            defaultModelID: nil
+        )
+        #expect(loaded == .init(label: "Running", detail: "Loaded: A", color: .green))
+
+        let loading = AppState.readyStatus(models: [Self.served("A", "loading")], defaultModelID: "A")
+        #expect(loading == .init(label: "Loading model…", detail: "Loading A…", color: .yellow))
+
+        let failed = AppState.readyStatus(
+            models: [Self.served("A", "unloaded", failed: true, exit: 1), Self.served("B", "loaded")],
+            defaultModelID: "A"
+        )
+        #expect(failed.color == .red)
+        #expect(failed.detail == "A failed to load (exit 1) — see Logs")
+
+        // A non-default model failing (some client asked for it) doesn't
+        // turn the whole server red.
+        let otherFailed = AppState.readyStatus(
+            models: [Self.served("A", "loaded"), Self.served("B", "unloaded", failed: true)],
+            defaultModelID: "A"
+        )
+        #expect(otherFailed.color == .green)
+    }
+
+    @Test("start with no default model is plain green Running, with what's loaded read from the server")
+    func noDefaultModelIsGreen() async throws {
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
         let appState = makeAppState(scratchDir: scratch)
         try writeFixtureGGUF(to: appState.modelStore)
-        #expect(appState.config.defaultModelID == nil)
+        #expect(appState.modelStatusLine == "No default model — loads on first request")
 
-        await appState.start()
-        #expect(appState.statusLabel == "Running — no default model")
-        #expect(appState.statusColor == .yellow)
-
-        await appState.stop()
-        appState.setDefaultModel("Fixture-Q8_0")
         await appState.start()
         #expect(appState.statusLabel == "Running")
         #expect(appState.statusColor == .green)
+        #expect(appState.modelStatusLine == "No model loaded — loads on first request")
+
+        let runtime = try #require(appState.runtime as? FakeRuntime)
+        await runtime.setListModelsResult(.success([Self.served("Fixture-Q8_0", "loaded")]))
+        await appState.refreshServedModels()
+        #expect(appState.modelStatusLine == "Loaded: Fixture-Q8_0")
 
         await appState.stop()
+        #expect(appState.servedModels.isEmpty)
     }
 
     @Test("canStart requires at least one installed GGUF; an mmproj companion alone doesn't count")
