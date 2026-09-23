@@ -28,7 +28,16 @@ struct MenuView: View {
 
         Divider()
 
-        if appState.canStart {
+        if !appState.hasServableModel {
+            Text("No model installed")
+                .disabled(true)
+            Button("Start") {}
+                .disabled(true)
+            Button("Add model…") {
+                appState.settingsTab = .models
+                openSettings()
+            }
+        } else if appState.canStart {
             Button("Start") {
                 Task { await appState.start() }
             }

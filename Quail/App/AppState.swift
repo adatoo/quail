@@ -83,6 +83,14 @@ final class AppState {
             ?? Paths.defaultModelsDirectory
         let store = ModelStore(rootURL: resolvedRoot)
         modelStore = store
+        // So `Models/gguf` exists to drop a file into even before the
+        // first Start — `start()` alone used to be the only thing that
+        // created it, which meant a hand-placed model (Phase 1's own
+        // "Done when") needed one earlier, model-less Start just to
+        // create the folder. Now that a model-less Start is refused
+        // outright (`canStart`/`hasServableModel`, below), that chicken-
+        // and-egg would otherwise be permanent.
+        try? store.ensureDirectoriesExist()
         installs = ModelInstallController(modelStore: store)
         serverController = ServerController(runtime: runtime, logStore: logStore)
         apiKey = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
@@ -131,19 +139,45 @@ final class AppState {
         return image
     }
 
+    /// Whether at least one GGUF is on disk and installable as a router
+    /// preset — only GGUF counts, since nothing can serve an MLX model
+    /// until Phase 3. Deliberately computed, not cached: it reads the
+    /// same disk scan `installedGGUFFiles()` already does for
+    /// `regeneratePresets`/`refreshedCatalog`, so there's one source of
+    /// truth and no cache to keep in sync across install/delete/relocate
+    /// — a hand-placed model (Phase 1's own "Done when") is picked up
+    /// the same way as one Quail downloaded itself.
+    var hasServableModel: Bool {
+        !modelStore.installedGGUFFiles().isEmpty
+    }
+
     var canStart: Bool {
-        serverController.phase == .stopped || serverController.phase.isFailed
+        (serverController.phase == .stopped || serverController.phase.isFailed) && hasServableModel
     }
 
     var canStop: Bool {
         serverController.phase == .ready || serverController.phase == .starting
     }
 
+    /// Which `SettingsView` tab is showing. Plain UI state, not
+    /// persisted — it lives here rather than as `SettingsView`'s own
+    /// `@State` only because the menu (`MenuView`'s "Add model…" item,
+    /// shown when `hasServableModel` is false) needs to steer the
+    /// Settings window to the Models tab before `openSettings()` opens
+    /// it; SwiftUI's `openSettings` action takes no arguments.
+    var settingsTab: SettingsTab = .general
+
     var baseURL: URL? {
         serverController.baseURL
     }
 
     func start() async {
+        // Guards callers other than the menu (the menu disables the
+        // button via canStart, which is the same check) — starting the
+        // router with no preset section is a server that binds and does
+        // nothing useful, not a real failure ServerController could
+        // report.
+        guard hasServableModel else { return }
         // Best-effort: if the store can't be created or presets.ini can't
         // be written (e.g. a relocated store's volume is unmounted), the
         // server itself will fail to bind and HealthProbe's timeout

@@ -1,22 +1,41 @@
 import SwiftUI
 
+/// Which tab of `SettingsView` is showing — see `AppState.settingsTab`'s
+/// doc comment for why this is steerable from outside the view.
+enum SettingsTab: Hashable {
+    case general
+    case endpoint
+    case models
+    case thisMac
+}
+
 /// Root of the Settings window: `General` (open at login), `Endpoint`
-/// (runtime, host, port, API key) and `Models` (store, catalog,
-/// downloads). `Runtimes`, `Logs` and `About` land in later phases per
-/// docs/IMPLEMENTATION_PLAN.md.
+/// (runtime, host, port, API key), `Models` (store, catalog, downloads)
+/// and `This Mac` (device-fit facts). `Runtimes`, `Logs` and `About` land
+/// in later phases per docs/IMPLEMENTATION_PLAN.md.
 struct SettingsView: View {
     let appState: AppState
 
     var body: some View {
-        TabView {
+        TabView(selection: Binding(
+            get: { appState.settingsTab },
+            set: { appState.settingsTab = $0 }
+        )) {
             GeneralSettingsView(appState: appState)
                 .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(SettingsTab.general)
 
             EndpointSettingsView(appState: appState)
                 .tabItem { Label("Endpoint", systemImage: "network") }
+                .tag(SettingsTab.endpoint)
 
             ModelsPane(appState: appState)
                 .tabItem { Label("Models", systemImage: "shippingbox") }
+                .tag(SettingsTab.models)
+
+            ThisMacPane(appState: appState)
+                .tabItem { Label("This Mac", systemImage: "memorychip") }
+                .tag(SettingsTab.thisMac)
         }
         // 560, not 480: the Endpoint tab's stepper caption and API-key
         // row overflowed the narrower fixed width (user-reported) —

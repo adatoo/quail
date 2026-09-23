@@ -81,6 +81,21 @@ struct Catalog: Sendable, Equatable {
         }
     }
 
+    /// The smallest `ramTiers` entry whose `maxGB` covers `bytes` —
+    /// ARCHITECTURE.md §7's "Three tiers: 16 GB machines see 4B–8B
+    /// models, 32–48 GB see 14B–32B..." Falls back to the largest tier
+    /// (by `maxGB`) for a machine bigger than every tier covers, so a
+    /// 128 GB Mac still gets the "large" tier rather than nothing.
+    /// `nil` only if `ramTiers` itself is empty (a malformed catalog).
+    func tier(forMemoryBytes bytes: Int64) -> (name: String, tier: RAMTier)? {
+        let gigabytes = Double(bytes) / 1_073_741_824
+        let byMax = ramTiers.sorted { $0.value.maxGB < $1.value.maxGB }
+        if let fits = byMax.first(where: { Double($0.value.maxGB) >= gigabytes }) {
+            return (fits.key, fits.value)
+        }
+        return byMax.last.map { ($0.key, $0.value) }
+    }
+
     /// One user-pasted repo URL's worth of entry, as persisted in
     /// `user-catalog.json`. `format` is `nil` until whatever added it
     /// (step 7's "Add model…" sheet, which queries the Hub before

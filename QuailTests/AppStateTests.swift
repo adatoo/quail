@@ -19,6 +19,18 @@ struct AppStateTests {
         return dir
     }
 
+    /// A minimal stand-in for an installed GGUF — `hasServableModel` and
+    /// `installedGGUFFiles()` only look at the filename, never parse the
+    /// bytes, so content is irrelevant here (`GGUFMetadataTests` is where
+    /// real header bytes matter).
+    @discardableResult
+    private func writeFixtureGGUF(named name: String = "Fixture-Q8_0", to store: ModelStore) throws -> URL {
+        try store.ensureDirectoriesExist()
+        let url = store.ggufDirectory.appendingPathComponent("\(name).gguf")
+        try Data("fixture".utf8).write(to: url)
+        return url
+    }
+
     private func makeAppState(
         config: Config = Config(),
         scratchDir: URL,
@@ -44,10 +56,11 @@ struct AppStateTests {
     }
 
     @Test("starts stopped, and start() reaches ready against a fake runtime")
-    func startReachesReady() async {
+    func startReachesReady() async throws {
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
         let appState = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(to: appState.modelStore)
 
         #expect(appState.statusLabel == "Stopped")
         #expect(appState.canStart)
@@ -58,6 +71,37 @@ struct AppStateTests {
         #expect(appState.canStop)
 
         await appState.stop()
+        #expect(appState.statusLabel == "Stopped")
+    }
+
+    @Test("canStart requires at least one installed GGUF; an mmproj companion alone doesn't count")
+    func canStartRequiresAModel() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+
+        #expect(!appState.hasServableModel)
+        #expect(!appState.canStart)
+
+        try Data("companion only".utf8).write(
+            to: appState.modelStore.ggufDirectory.appendingPathComponent("mmproj-Something-F16.gguf")
+        )
+        #expect(!appState.hasServableModel)
+        #expect(!appState.canStart)
+
+        try writeFixtureGGUF(to: appState.modelStore)
+        #expect(appState.hasServableModel)
+        #expect(appState.canStart)
+    }
+
+    @Test("start() no-ops (stays stopped) when the store has no model")
+    func startNoOpsWithNoModel() async {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+
+        await appState.start()
+
         #expect(appState.statusLabel == "Stopped")
     }
 
@@ -180,12 +224,13 @@ struct AppStateTests {
     }
 
     @Test("a config loaded with apiKeyEnabled but no stored key starts the runtime without --api-key")
-    func endpointConfigOmitsAPIKeyWhenNoneStored() async {
+    func endpointConfigOmitsAPIKeyWhenNoneStored() async throws {
         var config = Config()
         config.apiKeyEnabled = true // e.g. Keychain access failed after the toggle was saved
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
         let appState = makeAppState(config: config, scratchDir: scratch)
+        try writeFixtureGGUF(to: appState.modelStore)
 
         // Doesn't crash or hang — start() must tolerate a nil key here.
         await appState.start()
@@ -247,8 +292,8 @@ struct AppStateTests {
             try await appState.selectModel(id: "Anything")
         }
 
+        try writeFixtureGGUF(named: "Big-Q8_0", to: appState.modelStore)
         await appState.start()
-        try appState.modelStore.ensureDirectoriesExist()
         try appState.modelStore.saveCatalog(StoreCatalog(entries: [
             InstalledModel(id: "Big-Q8_0", format: .gguf, bytes: 1, addedAt: .init()),
             InstalledModel(id: "Mlx-4bit", format: .mlxSafetensors, bytes: 1, addedAt: .init()),
@@ -282,10 +327,11 @@ struct AppStateTests {
     }
 
     @Test("loadedModelStates: empty while stopped, the router's statuses while running")
-    func loadedModelStates() async {
+    func loadedModelStates() async throws {
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
         let appState = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(to: appState.modelStore)
 
         #expect(await appState.loadedModelStates() == [:])
 
@@ -374,10 +420,11 @@ struct AppStateTests {
     }
 
     @Test("start() creates the model store's directories and a presets.ini")
-    func startCreatesModelStore() async {
+    func startCreatesModelStore() async throws {
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
         let appState = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(to: appState.modelStore)
 
         await appState.start()
 

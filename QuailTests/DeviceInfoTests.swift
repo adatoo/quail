@@ -53,4 +53,36 @@ struct DeviceInfoTests {
             #expect(ceiling > 0)
         }
     }
+
+    @Test("current() reads a model identifier matching sysctl hw.model's own shape")
+    func currentReadsModelIdentifier() {
+        let info = DeviceInfo.current()
+
+        // "Mac16,11"-shaped: a family name, a comma, a positive number —
+        // not asserting the exact model, which varies by test machine.
+        if let identifier = info.modelIdentifier {
+            #expect(identifier.contains(","))
+        }
+    }
+
+    @Test("current() reports a positive GPU core count when the IORegistry exposes one")
+    func gpuCoreCountIsPositiveWhenPresent() {
+        let info = DeviceInfo.current()
+
+        // Absent in a headless CI environment with no GPU accelerator
+        // service registered is acceptable; zero or negative isn't.
+        if let cores = info.gpuCoreCount {
+            #expect(cores > 0)
+        }
+    }
+
+    @Test("current() reads a non-empty marketing name and OS version string when available")
+    func currentReadsMarketingNameAndOSVersion() {
+        let info = DeviceInfo.current()
+
+        if let name = info.marketingName {
+            #expect(!name.isEmpty)
+        }
+        #expect(info.osVersion?.isEmpty == false)
+    }
 }
