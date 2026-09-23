@@ -646,6 +646,50 @@ struct AppStateTests {
         #expect(appState.serverController.phase == .stopped)
     }
 
+    @Test("reconcileStore: a default model deleted outside Quail is cleared and logged; catalog.json follows the disk")
+    func reconcileClearsStaleDefault() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        let kept = try writeFixtureGGUF(named: "Kept", to: appState.modelStore)
+        let gone = try writeFixtureGGUF(named: "Gone", to: appState.modelStore)
+        appState.setDefaultModel("Gone")
+        await appState.reconcileStore()
+        #expect(appState.modelStore.loadCatalog().entries.map(\.id) == ["Gone", "Kept"])
+
+        try FileManager.default.removeItem(at: gone) // "deleted in Finder"
+        let revision = appState.storeRevision
+        await appState.reconcileStore()
+
+        #expect(appState.config.defaultModelID == nil)
+        #expect(appState.modelStore.loadCatalog().entries.map(\.id) == ["Kept"])
+        #expect(appState.storeRevision == revision + 1)
+        let logged = await appState.logStore.recentLines.map(\.text)
+        #expect(logged.contains { $0.contains("default model Gone is no longer in the store") })
+        _ = kept
+    }
+
+    @Test("modelsChangedSinceStart: set when the store changes under a running server, cleared by restart")
+    func modelsChangedSinceStart() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(named: "First", to: appState.modelStore)
+        await appState.start()
+        #expect(appState.serverController.phase == .ready)
+
+        await appState.reconcileStore() // nothing changed
+        #expect(!appState.modelsChangedSinceStart)
+
+        try writeFixtureGGUF(named: "Added", to: appState.modelStore) // e.g. copied in via Finder
+        await appState.reconcileStore()
+        #expect(appState.modelsChangedSinceStart)
+
+        await appState.restart()
+        #expect(!appState.modelsChangedSinceStart)
+        await appState.stop()
+    }
+
     @Test("start() creates the model store's directories and a presets.ini")
     func startCreatesModelStore() async throws {
         let scratch = scratchDirectory()
@@ -669,7 +713,7 @@ struct AppStateTests {
 /// to track how many times a concurrent (`TaskGroup`-driven) call hit a
 /// particular endpoint — see `HFDownloaderTests`' own `CapturedValue` for
 /// the same rationale (the handler can run off the main thread).
-private final class LockedCount: @unchecked Sendable {
+final class LockedCount: @unchecked Sendable {
     private var count = 0
     private let lock = NSLock()
 

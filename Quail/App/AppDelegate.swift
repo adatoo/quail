@@ -68,6 +68,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // and the port is clear. See ServerPreflight.swift.
         let presetsPath = appState.modelStore.presetsFile.path
         Task { await OrphanReaper.reap(signature: presetsPath) }
+
+        // Pick up anything changed in the store while Quail wasn't running
+        // (a model deleted in Finder), then keep watching for more.
+        Task {
+            await appState.reconcileStore()
+            appState.startWatchingStore()
+        }
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

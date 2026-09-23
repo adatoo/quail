@@ -262,7 +262,7 @@ struct ModelStore: Sendable, Equatable {
     /// down — real MLX repos keep everything flat, and the one repo shape
     /// with nested content (`snapshots/` from an HF cache) never lands in
     /// this store, since Quail is the only thing that writes here.
-    private func directorySize(of directory: URL) -> Int64 {
+    func directorySize(of directory: URL) -> Int64 {
         let fm = FileManager.default
         guard let walker = fm.enumerator(
             at: directory,
@@ -280,7 +280,7 @@ struct ModelStore: Sendable, Equatable {
         return total
     }
 
-    private func fileSize(of url: URL) -> Int64 {
+    func fileSize(of url: URL) -> Int64 {
         let values = try? url.resourceValues(forKeys: [.fileSizeKey])
         return Int64(values?.fileSize ?? 0)
     }

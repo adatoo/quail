@@ -33,6 +33,7 @@ struct ModelsPane: View {
     /// this Mac) lands the user straight on that family rather than an
     /// unselected list.
     @State private var preselectFamily: Catalog.Family?
+    @State private var showCleanUp = false
 
     enum FormatFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -63,6 +64,9 @@ struct ModelsPane: View {
             storeSection
         }
         .frame(minHeight: 320)
+        .sheet(isPresented: $showCleanUp) {
+            CleanUpSheet(appState: appState)
+        }
         .sheet(isPresented: $showAddSheet) {
             AddModelSheet(appState: appState, defaultFilter: formatFilter, preselect: preselectFamily)
         }
@@ -207,10 +211,12 @@ struct ModelsPane: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer()
-                Button("Reload") {
-                    Task { await refresh() }
+                Button("Show in Finder") {
+                    NSWorkspace.shared.open(appState.modelStore.ggufDirectory)
                 }
-                .help("Re-read the store and the server's loaded models")
+                .help("Open the GGUF models folder. Models added or deleted there show up here automatically.")
+                Button("Clean Up…") { showCleanUp = true }
+                    .help("Find leftover projector files and abandoned downloads")
                 Button("Add model…") {
                     preselectFamily = nil
                     showAddSheet = true
@@ -399,9 +405,14 @@ private struct ModelRow: View {
             // running router with a click. MLX rows get the badge-only
             // treatment — their runtimes are Phase 3, and offering a
             // button that must fail would be a lie about capability.
-            if serverReady, entry.format == .gguf, loaded != "loaded" {
+            if serverReady, entry.format == .gguf, loaded != nil, loaded != "loaded" {
                 Button("Load", action: onLoad)
                     .controlSize(.small)
+            } else if serverReady, entry.format == .gguf, loaded == nil {
+                // The router only knows the models it started with (it
+                // never rescans) — Load would 404 until a restart.
+                Badge(text: "Restart to load", color: .orange)
+                    .help("Added since the server started. Restart the server (menu) to use it.")
             }
             if let verdict {
                 FitVerdictBadge(estimate: verdict)

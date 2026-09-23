@@ -86,6 +86,7 @@ struct AddModelSheet: View {
             }
         }
         .task { await reloadInstalled() }
+        .onChange(of: appState.storeRevision) { _, _ in Task { await reloadInstalled() } }
         .alert(
             "Delete \(pendingDelete?.id ?? "")?",
             isPresented: Binding(get: { pendingDelete != nil }, set: {

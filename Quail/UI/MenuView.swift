@@ -33,6 +33,16 @@ struct MenuView: View {
                 .disabled(true)
         }
 
+        // The router never rescans its models; a download, a delete, or a
+        // change in Finder since Start only takes effect after a restart.
+        if appState.serverController.phase == .ready, appState.modelsChangedSinceStart {
+            Text("Models changed — restart to apply")
+                .disabled(true)
+            Button("Restart Server") {
+                Task { await appState.restart() }
+            }
+        }
+
         Divider()
 
         // `hasServableModel` reads the filesystem directly (deliberately
@@ -44,6 +54,7 @@ struct MenuView: View {
         // finished download moves it to `.installed`, which is exactly
         // when a freshly re-read `hasServableModel` needs to be seen.
         let _ = appState.installs.phase
+        let _ = appState.storeRevision // likewise for Finder changes (StoreWatcher → reconcileStore)
         if !appState.hasServableModel {
             Text("No model installed")
                 .disabled(true)

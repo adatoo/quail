@@ -265,18 +265,11 @@ final class AppState {
         // surfaces that as .failed — there's no separate failure path for
         // this yet.
         try? modelStore.ensureDirectoriesExist()
-        // Reconcile the catalog with the disk (hand-placed models gain
-        // rows, deleted ones lose them) and set each model's per-device
-        // context size from FitEstimator before generating presets —
-        // Phase 2 step 4's deferred wiring. Reads device facts fresh
-        // every Start (free RAM changes; so should the verdicts).
-        let refreshed = modelStore.refreshedCatalog(
-            device: DeviceInfo.current(),
-            ggufRuntime: config.runtimeID,
-            bandwidthTable: ChipBandwidthTable.loadFromBundle()
-        )
-        try? modelStore.saveCatalog(refreshed)
-        try? modelStore.regeneratePresets(catalog: refreshed, defaultModelID: config.defaultModelID)
+        // Reconcile the catalog with the disk and set each model's
+        // per-device context size before generating presets — see
+        // `reconcileStore`. Reads device facts fresh every Start.
+        await reconcileStore()
+        signatureAtStart = modelStore.presetSignature()
         await serverController.start(config: endpointConfig())
         await refreshServedModels() // so the first menu look after Start is already accurate
         startModelPolling()
@@ -287,6 +280,84 @@ final class AppState {
         modelPollTask = nil
         await serverController.stop()
         servedModels = []
+        signatureAtStart = nil
+    }
+
+    /// The menu's "Restart" for `modelsChangedSinceStart`.
+    func restart() async {
+        await stop()
+        await start()
+    }
+
+    // MARK: - Store reconciliation
+
+    /// `ModelStore.presetSignature()` as of the last Start — `nil` while
+    /// stopped.
+    private var signatureAtStart: [String]?
+
+    /// The store's models differ from what the running server was started
+    /// with — added, deleted (in Quail or in Finder), or a projector
+    /// changed. The router never rescans (confirmed against the real
+    /// binary), so these only take effect after a restart; the menu says so.
+    private(set) var modelsChangedSinceStart = false
+
+    private var storeWatcher: StoreWatcher?
+
+    /// Watches the current store's folders; call again after relocating.
+    /// Not started from `init` so tests' `AppState`s don't watch anything.
+    func startWatchingStore() {
+        let store = modelStore
+        storeWatcher?.stop()
+        storeWatcher = StoreWatcher(
+            directories: [store.ggufDirectory, store.mlxDirectory],
+            snapshot: { store.contentSnapshot() },
+            onSettled: { [weak self] in await self?.reconcileStore() }
+        )
+        storeWatcher?.start()
+    }
+
+    /// Brings every record in line with what's actually on disk — run at
+    /// launch, before each Start, and whenever the store's folders change
+    /// (so deleting a model in Finder is handled like deleting it here):
+    /// - `catalog.json` gains hand-placed models and loses missing ones.
+    /// - A default model whose file is gone is cleared, with a Logs line
+    ///   saying so (same as an in-app delete), rather than the menu naming
+    ///   a model that silently never loads.
+    /// - `presets.ini` is regenerated.
+    /// - `storeRevision` bumps so the Models pane and Add-model sheet
+    ///   refresh; `modelsChangedSinceStart` is set if the server is running
+    ///   on a now-different set of models.
+    /// Leftovers (unlinked projectors, abandoned partial downloads) are
+    /// never deleted here — see `ModelStore.leftovers`.
+    func reconcileStore() async {
+        let store = modelStore
+        let device = DeviceInfo.current()
+        let runtime = config.runtimeID
+        let bandwidth = ChipBandwidthTable.loadFromBundle()
+        let (refreshed, onDisk) = await Task.detached(priority: .utility) {
+            (
+                store.refreshedCatalog(device: device, ggufRuntime: runtime, bandwidthTable: bandwidth),
+                Set(store.installedGGUFFiles().map { $0.deletingPathExtension().lastPathComponent })
+            )
+        }.value
+        if refreshed != store.loadCatalog() {
+            try? store.saveCatalog(refreshed)
+        }
+        if let defaultID = config.defaultModelID, !onDisk.contains(defaultID) {
+            config.defaultModelID = nil
+            persist()
+            await logStore.append(
+                stream: .stderr,
+                text: "quail: default model \(defaultID) is no longer in the store (deleted outside Quail?) — cleared"
+            )
+        }
+        try? store.regeneratePresets(catalog: refreshed, defaultModelID: config.defaultModelID)
+        if let signatureAtStart {
+            modelsChangedSinceStart = store.presetSignature() != signatureAtStart
+        } else {
+            modelsChangedSinceStart = false
+        }
+        storeRevision += 1
     }
 
     // MARK: - Endpoint settings
@@ -605,6 +676,9 @@ final class AppState {
         config.modelsDirectoryBookmark = try Paths.makeModelsDirectoryBookmark(for: newRoot)
         persist()
         storeRevision += 1
+        if storeWatcher != nil {
+            startWatchingStore()
+        }
     }
 
     enum RelocationError: Error, Equatable {

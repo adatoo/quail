@@ -95,6 +95,18 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   from what the server was actually launched with.
 - The generated API key was a 32-character hex string that overflowed
   the Endpoint settings field; it's now 16-character base64url.
+- Models changed outside Quail (deleted or copied in Finder) are now
+  picked up live: a folder watcher waits for copies to finish, then
+  reconciles — `catalog.json` follows the disk, `presets.ini` is
+  regenerated, and a default model whose file is gone is cleared with a Logs
+  line (it used to stay in `config.json`, named in the menu but never
+  loading). The router never rescans (confirmed live: a model added later
+  404s on load, a deleted one stays listed), so while running the menu
+  shows "Models changed — restart to apply" with a Restart button, and new
+  models show "Restart to load" instead of a Load button that would 404.
+  Models pane: "Show in Finder" opens the GGUF folder; "Clean Up…" lists
+  unlinked projectors and abandoned partial downloads with sizes and moves
+  the chosen ones to the Trash — nothing is removed automatically.
 - Vision models ran text-only: their projector (`mmproj`) was downloaded
   but never passed to the server, and every repo names it `mmproj-F16.gguf`,
   so a second vision model overwrote the first's. Projectors are now saved
