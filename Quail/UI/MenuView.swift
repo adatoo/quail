@@ -80,6 +80,26 @@ struct MenuView: View {
         }
         .disabled(appState.serverController.phase != .ready)
 
+        Button("Connect a Tool…") {
+            appState.settingsTab = .connect
+            bringToFront { openSettings() }
+        }
+
+        // D-001: runtimes ship their own chat UIs — link to them. llama.cpp's
+        // lets you pick any installed model; with an API key set, enter it
+        // in the web UI's settings.
+        Button("Open Chat in Browser") {
+            // The address the server was launched on (not live Settings,
+            // which can differ until a restart), made browsable.
+            if let launched = appState.serverController.baseURL, let host = launched.host(), let port = launched.port,
+               let base = EndpointAddress.localBase(host: host, port: port),
+               let url = appState.runtime.webUIURL(base: base)
+            {
+                NSWorkspace.shared.open(url)
+            }
+        }
+        .disabled(appState.serverController.phase != .ready)
+
         Button("Logs…") {
             bringToFront { openWindow(id: "logs") }
         }

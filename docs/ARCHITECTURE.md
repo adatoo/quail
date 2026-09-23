@@ -190,7 +190,7 @@ Quail answers two questions per model before download: will it fit, and roughly 
 
     RAM_needed = W + 2 · L · H_kv · d · b · C + O
 
-where W is weight bytes, L layers, H_kv KV heads, d head dim, b bytes per KV element (2 for f16, 1 for q8), C context tokens, O a fixed overhead (~1.5 GB for llama.cpp, ~2.5 GB for the Python runtimes). Default C is 8,192; the picker shows the largest context that still fits.
+where W is weight bytes, L layers, H_kv KV heads, d head dim, b bytes per KV element (2 for f16, 1 for q8), C context tokens, O a fixed overhead (~1.5 GB for llama.cpp, ~2.5 GB for the Python runtimes). Each installed model has a context setting (D-020): **Automatic** — the largest of 32K / 16K / 8K that is Comfortable on this Mac, capped at the model's trained context (`<arch>.context_length`) — or a size the user picks from 4K–128K in the Models pane, each option labelled with its verdict. Verdicts are computed at the context the model will actually run at. Pre-download verdicts in the picker still use C = 8,192.
 
 Verdicts: **Comfortable** (needed < 70% of the GPU ceiling), **Tight** (fits at a reduced context, which Quail sets automatically), **Won't fit** (weights alone exceed the ceiling). Verdicts are per runtime because overheads differ.
 

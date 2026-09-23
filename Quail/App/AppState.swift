@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Observation
+import os
 import SwiftUI
 
 /// Observable root of the app's UI state. Owns the persisted `Config`, the
@@ -303,6 +304,17 @@ final class AppState {
 
     private var storeWatcher: StoreWatcher?
 
+    private static let storeLog = Logger(subsystem: "com.datoos.quail", category: "Store")
+
+    /// A store event for both the Logs window and the persistent unified
+    /// log (`log show --predicate 'subsystem == "com.datoos.quail"'`) —
+    /// the Logs window's buffer is in memory only, and "what happened to my
+    /// model?" needs an answer after a relaunch too.
+    private func note(_ text: String) async {
+        Self.storeLog.notice("\(text, privacy: .public)")
+        await logStore.append(stream: .stderr, text: "quail: \(text)")
+    }
+
     /// Watches the current store's folders; call again after relocating.
     /// Not started from `init` so tests' `AppState`s don't watch anything.
     func startWatchingStore() {
@@ -340,16 +352,25 @@ final class AppState {
                 Set(store.installedGGUFFiles().map { $0.deletingPathExtension().lastPathComponent })
             )
         }.value
-        if refreshed != store.loadCatalog() {
+        let previous = store.loadCatalog()
+        if refreshed != previous {
             try? store.saveCatalog(refreshed)
+        }
+        // An audit trail for the store: models appearing or disappearing
+        // outside Quail (Finder, another app) — found by live testing that
+        // "where did my model go?" had no answer anywhere.
+        let before = Set(previous.entries.map(\.id))
+        let after = Set(refreshed.entries.map(\.id))
+        for id in before.subtracting(after).sorted() {
+            await note("model \(id) is no longer in the store (removed outside Quail)")
+        }
+        for id in after.subtracting(before).sorted() {
+            await note("found model \(id) in the store")
         }
         if let defaultID = config.defaultModelID, !onDisk.contains(defaultID) {
             config.defaultModelID = nil
             persist()
-            await logStore.append(
-                stream: .stderr,
-                text: "quail: default model \(defaultID) is no longer in the store (deleted outside Quail?) — cleared"
-            )
+            await note("default model \(defaultID) is no longer in the store (deleted outside Quail?) — cleared")
         }
         try? store.regeneratePresets(catalog: refreshed, defaultModelID: config.defaultModelID)
         if let signatureAtStart {
@@ -639,6 +660,19 @@ final class AppState {
         persist()
     }
 
+    /// The Models pane's per-model context picker (ADR D-020). `nil` is
+    /// Automatic. Takes effect at the next Start — while running, the menu
+    /// shows "Models changed — restart to apply".
+    func setContextSize(_ tokens: Int?, forModel id: String) async {
+        var catalog = modelStore.loadCatalog()
+        guard let index = catalog.entries.firstIndex(where: { $0.id == id }),
+              catalog.entries[index].userContextSize != tokens
+        else { return }
+        catalog.entries[index].userContextSize = tokens
+        try? modelStore.saveCatalog(catalog)
+        await reconcileStore()
+    }
+
     /// Moves the whole store to a new folder and repoints at it — the
     /// point `Paths.makeModelsDirectoryBookmark` has existed for since
     /// PR 9 (docs/IMPLEMENTATION_PLAN.md step 7: "where it finally gets
@@ -745,6 +779,7 @@ final class AppState {
 
         catalog.entries.remove(at: index)
         try modelStore.saveCatalog(catalog)
+        await note("deleted model \(id) (from Quail)")
         if config.defaultModelID == id {
             setDefaultModel(nil)
         }
@@ -753,6 +788,15 @@ final class AppState {
     }
 
     // MARK: - Open at login
+
+    /// Start the server when Quail launches (`quail service enable`, and
+    /// Settings → General). Stored for a long time but never acted on until
+    /// the CLI's "always on" needed it — see `AppDelegate`.
+    func setAutoStartServer(_ enabled: Bool) {
+        guard enabled != config.autoStartServer else { return }
+        config.autoStartServer = enabled
+        persist()
+    }
 
     func setOpenAtLogin(_ enabled: Bool) {
         LoginItem.setEnabled(enabled)

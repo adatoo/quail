@@ -30,6 +30,9 @@ struct ModelShape: Sendable, Equatable {
     /// Good enough for an estimate that ARCHITECTURE.md §7 already says
     /// gets replaced by real measurement after the first ping test.
     var activeWeightBytes: Int64?
+    /// The context the model was trained for (`<arch>.context_length`),
+    /// when the header says — caps the per-model context setting.
+    var trainedContext: Int?
 
     /// Builds a `ModelShape` from a GGUF header. `headDim` prefers
     /// `keyLength` (`<arch>.attention.key_length`) when the architecture
@@ -68,7 +71,8 @@ struct ModelShape: Sendable, Equatable {
                 total: weightBytes,
                 used: metadata.expertUsedCount,
                 of: metadata.expertCount
-            )
+            ),
+            trainedContext: metadata.contextLength
         )
     }
 
@@ -145,6 +149,45 @@ enum FitEstimator {
         case .llamaCpp: 1_500_000_000
         case .omlx, .rapidMLX: 2_500_000_000
         }
+    }
+
+    /// The context sizes offered in a model's context picker: 4K–128K,
+    /// capped at what the model was trained for (plus that exact size, if
+    /// it isn't a power of two already offered).
+    static func contextOptions(trainedContext: Int?) -> [Int] {
+        let standard = [4096, 8192, 16384, 32768, 65536, 131_072]
+        guard let trained = trainedContext, trained > 0 else { return standard }
+        var options = standard.filter { $0 <= trained }
+        if !options.contains(trained), trained < 131_072 {
+            options.append(trained)
+        }
+        return options.isEmpty ? [trained] : options.sorted()
+    }
+
+    /// "Automatic" context (ADR D-020): the largest of 32K / 16K / 8K that
+    /// is Comfortable on this Mac, capped at the trained context; if none
+    /// is, the `.tight` reduced size at 8K (the old behaviour); `nil` when
+    /// nothing can be estimated. 8K alone — the old fixed default — was
+    /// too small for coding agents (Claude Code's first request measured
+    /// 15,114 tokens).
+    static func automaticContextSize(model: ModelShape, device: DeviceInfo, runtime: RuntimeID) -> Int? {
+        let cap = model.trainedContext ?? Int.max
+        for candidate in [32768, 16384, 8192] where candidate <= cap {
+            if estimate(model: model, device: device, runtime: runtime, requestedContextSize: candidate)?
+                .verdict == .comfortable
+            {
+                return candidate
+            }
+        }
+        if cap < 8192, estimate(model: model, device: device, runtime: runtime, requestedContextSize: cap)?
+            .verdict == .comfortable
+        {
+            return cap
+        }
+        if case let .tight(reduced)? = estimate(model: model, device: device, runtime: runtime)?.verdict, reduced > 0 {
+            return reduced
+        }
+        return nil
     }
 
     /// Rough size (billions of parameters) of the largest model that fits

@@ -261,4 +261,14 @@ struct GGUFMetadataTests {
 
         #expect(throws: GGUFMetadata.GGUFReadError.truncated) { try GGUFMetadata.parsePrefix(data) }
     }
+
+    @Test("reads <arch>.context_length as the trained context")
+    func readsContextLength() throws {
+        var fixture = GGUFFixtureBuilder()
+        fixture.addString("general.architecture", "qwen3")
+        fixture.addUInt32("qwen3.block_count", 28)
+        fixture.addUInt32("qwen3.context_length", 40960)
+        let metadata = try GGUFMetadata.parse(fixture.build())
+        #expect(metadata.contextLength == 40960)
+    }
 }

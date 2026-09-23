@@ -12,6 +12,12 @@ configs:
   Debug-AppStore: debug
   Release-AppStore: release
 
+packages:
+  # ADR D-022: the quail CLI's argument parsing — linked into QuailCLI only.
+  ArgumentParser:
+    url: https://github.com/apple/swift-argument-parser
+    exactVersion: 1.8.2
+
 settings:
   base:
     SWIFT_VERSION: 6.0
@@ -34,6 +40,13 @@ targets:
     platform: macOS
     sources:
       - path: Quail
+      # Shared with the quail CLI (the control protocol, socket, SSE parser).
+      - path: Shared
+    dependencies:
+      # Built first so "Embed quail CLI" can copy it into Contents/Helpers.
+      - target: QuailCLI
+        embed: false
+        link: false
     # Debug builds sign with a developer's own identity when they've set
     # one up — see Config/LocalSigning.xcconfig for why (Keychain prompt).
     configFiles:
@@ -87,10 +100,39 @@ targets:
         script: |
           "$SRCROOT/scripts/embed-llama.sh"
         basedOnDependencyAnalysis: false
+      - name: "Embed quail CLI"
+        script: |
+          "$SRCROOT/scripts/embed-cli.sh"
+        basedOnDependencyAnalysis: false
     scheme:
       testTargets:
         - QuailTests
       config: Debug
+
+  # The `quail` command-line tool (docs/IMPLEMENTATION_PLAN.md Phase 2b) —
+  # a thin client of the running app over ControlProtocol. Shipped inside
+  # Quail.app at Contents/Helpers/quail (not Contents/MacOS: on a
+  # case-insensitive disk "quail" would collide with the app's own "Quail").
+  QuailCLI:
+    type: tool
+    platform: macOS
+    sources:
+      - path: QuailCLI
+      - path: Shared
+    dependencies:
+      - package: ArgumentParser
+    settings:
+      base:
+        PRODUCT_NAME: quail
+        # The executable is `quail`, but the Swift module can't be: on a
+        # case-insensitive disk "quail" collides with the app's "Quail"
+        # module ("cannot load module 'quail' as 'Quail'").
+        PRODUCT_MODULE_NAME: QuailCLI
+        PRODUCT_BUNDLE_IDENTIFIER: com.datoos.quail.cli
+        SKIP_INSTALL: YES
+    configFiles:
+      Debug: Config/LocalSigning.xcconfig
+      Debug-AppStore: Config/LocalSigning.xcconfig
 
   QuailTests:
     type: bundle.unit-test

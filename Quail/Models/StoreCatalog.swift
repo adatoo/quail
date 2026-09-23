@@ -25,11 +25,22 @@ struct InstalledModel: Sendable, Equatable, Codable, Identifiable {
     var sourceRepo: String? = nil
     var params: String? = nil
     var quant: String? = nil
-    /// The context length Quail has decided this model should run at —
-    /// `nil` until Phase 2 step 4's `FitEstimator` sets one; `ModelStore`
-    /// falls back to a fixed default in `presets.ini` until then.
+    /// The "Automatic" context for this model on this Mac — recomputed by
+    /// `ModelStore.refreshedCatalog` (`FitEstimator.automaticContextSize`,
+    /// ADR D-020); `nil` when it can't be estimated.
     var contextSize: Int? = nil
+    /// The user's choice from the Models pane's context picker; `nil`
+    /// means Automatic. Never overwritten by a refresh.
+    var userContextSize: Int? = nil
+    /// The context the model was trained for, from its header — caps the
+    /// picker's options.
+    var trainedContext: Int? = nil
     var addedAt: Date
+
+    /// What `presets.ini` gets as `ctx-size`.
+    var effectiveContextSize: Int {
+        userContextSize ?? contextSize ?? FitEstimator.defaultContextSize
+    }
 }
 
 /// The store's installed-models index, `catalog.json`. A plain wrapper

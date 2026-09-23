@@ -2,6 +2,30 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-022 · 2026-09-23 · swift-argument-parser for the `quail` CLI
+
+**Decision:** The `quail` command-line tool uses Apple's `swift-argument-parser` (SPM), linked into the CLI target only — never the app.
+**Alternatives:** Hand-written argument parsing (no dependency).
+**Why:** A CLI with ~12 subcommands, flags and generated `--help` is exactly what the package exists for; hand-rolled parsing would be more code to get wrong for help text, errors and completions. It's Apple-maintained, source-only and has no transitive dependencies. User decision.
+**Trade-off:** The first dependency beyond Sparkle — AGENTS.md's rule now reads "Sparkle and swift-argument-parser (CLI only)".
+**Revisit if:** the package ever pulls in transitive dependencies.
+
+## D-021 · 2026-09-23 · Terminal chat (`quail run`) — narrowing D-001
+
+**Decision:** `quail run <model> [prompt]` chats with a model in the terminal: streaming output, one conversation per invocation, a tok/s line after each reply. It exists to judge a model, not to be a chat app: no saved history, no attachments, no system-prompt library, no tools. The menu-bar app itself still has no chat UI ("Open Chat in Browser" links to the runtime's own).
+**Alternatives:** Keep D-001 absolute (point users at the web UI or `curl`).
+**Why:** A CLI "like ollama" (user request) is expected to have `run`; trying a model from the terminal is the fastest way to judge it, and it costs one streaming request loop, not a UI.
+**Trade-off:** D-001's "never" is now "never in the app"; the list of things `quail run` will not do is the guard against scope creep.
+**Revisit if:** requests arrive for history, attachments or tools — the answer should stay no.
+
+## D-020 · 2026-09-23 · Per-model context size, defaulting to the largest comfortable
+
+**Decision:** Each installed model has a context setting in the Models pane: Automatic (the largest of 32K / 16K / 8K that is Comfortable on this Mac, capped at the model's trained context), or a user-chosen size from 4K–128K (options above the trained context aren't offered; options that don't fit at their own size are disabled). The choice lives in `catalog.json` (`userContextSize`) and survives store refreshes; `presets.ini` writes the effective size, and a change while running shows "restart to apply".
+**Alternatives:** Keep ARCHITECTURE §7's fixed C = 8,192 (only reduced for Tight models); fully automatic sizing with no user control (considered — user chose the explicit setting).
+**Why:** Measured live: Claude Code's first request is 15,114 tokens (system prompt + tool definitions), so every coding agent overflowed an 8K context before doing anything. A 64 GB Mac runs most catalog models comfortably at 32K+.
+**Trade-off:** A larger context reserves more KV-cache memory up front; Automatic stays within the Comfortable threshold, and a user picking beyond it sees the verdict first. The Connect tab warns when a tool's known minimum (`minContext`) exceeds the chosen model's context.
+**Revisit if:** llama.cpp gains dynamic context growth, or KV-cache quantization (q8) becomes the default — both change the memory maths.
+
 ## D-019 · 2026-09-23 · Recommend what runs comfortably, not what's in the RAM tier
 
 **Decision:** "Recommended for this Mac" is every curated, GGUF-capable, non-smoke-test/embedding family whose real fit verdict is Comfortable — any size — sorted by `rank` then larger-first, capped at 5. The cheap pre-filter is `FitEstimator.approxMaxParamsB` on the measured GPU ceiling, not the catalog's `ramTiersGB`.
@@ -147,4 +171,4 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 
 **Decision:** No chat, agent, image or audio UI. The ping test is a streamed one-token completion with timings, not a conversation.
 **Why:** The existing desktop apps are bloated precisely because they try to be everything. Runtimes already ship web UIs; link to them.
-**Revisit if:** never, for v1.
+**Revisit if:** never, for v1. *(Narrowed by D-021: `quail run` chats in the terminal; the app itself still has no chat UI.)*

@@ -72,17 +72,14 @@ extension ModelStore {
         return snapshot
     }
 
-    /// What a running router was started with, as far as the store is
-    /// concerned: each preset's model and whether it has a projector.
-    /// Compared against the current store to decide "restart to apply" —
+    /// What a running router was started with: the generated
+    /// `presets.ini`, line by line — models, projectors and context sizes.
+    /// Compared against the current file to decide "restart to apply" —
     /// confirmed against the real router that it never rescans: a model
-    /// added later isn't listed (loading it 404s), a deleted one stays.
+    /// added later isn't listed (loading it 404s), a deleted one stays,
+    /// and a changed `ctx-size` only applies to a fresh start.
     func presetSignature() -> [String] {
-        let fm = FileManager.default
-        return installedGGUFFiles().map { file in
-            let id = file.deletingPathExtension().lastPathComponent
-            let projector = ggufDirectory.appendingPathComponent(Self.projectorFilename(forModelID: id))
-            return fm.fileExists(atPath: projector.path) ? "\(id)+mmproj" : id
-        }
+        ((try? String(contentsOf: presetsFile, encoding: .utf8)) ?? "")
+            .split(separator: "\n").map(String.init)
     }
 }
