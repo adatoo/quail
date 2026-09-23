@@ -45,7 +45,10 @@ struct LlamaCppIntegrationSmokeTest {
             "Vendor/llama.cpp/llama-server not found — run scripts/vendor-llama.sh first"
         )
 
-        let runtime = LlamaCppRuntime(executableURL: vendorURL)
+        let runtime = LlamaCppRuntime(
+            executableURL: vendorURL,
+            logFile: FileManager.default.temporaryDirectory.appendingPathComponent("quail-smoke-llama.log")
+        )
         let controller = ServerController(runtime: runtime, logStore: LogStore(), healthTimeout: 30)
         let config = EndpointConfig(
             host: "127.0.0.1",
@@ -79,7 +82,10 @@ struct LlamaCppIntegrationSmokeTest {
             .appendingPathComponent("Vendor/llama.cpp/llama-server")
         try #require(FileManager.default.fileExists(atPath: vendorURL.path))
 
-        let runtime = LlamaCppRuntime(executableURL: vendorURL)
+        let runtime = LlamaCppRuntime(
+            executableURL: vendorURL,
+            logFile: FileManager.default.temporaryDirectory.appendingPathComponent("quail-smoke-llama.log")
+        )
         let controller = ServerController(runtime: runtime, logStore: LogStore(), healthTimeout: 30)
         let config = EndpointConfig(
             host: "127.0.0.1",

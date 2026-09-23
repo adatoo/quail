@@ -202,7 +202,11 @@ final class AppState {
             while !Task.isCancelled {
                 guard let self else { return }
                 await refreshServedModels()
-                try? await Task.sleep(for: .seconds(2))
+                do {
+                    try await Task.sleep(for: .seconds(2))
+                } catch {
+                    return
+                }
             }
         }
     }
@@ -601,6 +605,26 @@ final class AppState {
         guard let base = baseURL else { return [:] }
         guard let models = try? await runtime.listModels(base: base, apiKey: apiKey) else { return [:] }
         return Dictionary(uniqueKeysWithValues: models.map { ($0.id, $0.status.value) })
+    }
+
+    /// Hands `update` fresh `loadedModelStates()` every `interval` while
+    /// the server is ready; returns once it isn't, or once the calling
+    /// task is cancelled. The cancellation exit matters: a view's
+    /// `.task` loop written as `while ready { try? await Task.sleep … }`
+    /// never ends when the view goes away — the cancelled sleep returns
+    /// instantly and `try?` hides it — and spun on `GET /models` until
+    /// it used up every ephemeral port on the Mac (user-reported: a
+    /// `quail run` turn failing with `EADDRNOTAVAIL`).
+    func pollLoadedStates(every interval: Duration = .seconds(2), _ update: ([String: String]) -> Void) async {
+        while !Task.isCancelled, serverController.phase == .ready {
+            do {
+                try await Task.sleep(for: interval)
+            } catch {
+                return
+            }
+            guard serverController.phase == .ready else { return }
+            await update(loadedModelStates())
+        }
     }
 
     /// Hot-swap: ask the running router to load an installed GGUF

@@ -73,6 +73,7 @@
 		AF8F824B4E7AD00629E4BEC8 /* PingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5907867E917EAA9CB82DDAAF /* PingTests.swift */; };
 		B62BFE886200969B22216A6A /* LogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9482F330D14ABD97C3CB8A /* LogStore.swift */; };
 		BB9E9F4BD5FCE9643645DFC3 /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF5343FFDFED49C8EFF6B3C /* Catalog.swift */; };
+		BBE32F0B2674CB283476C0F0 /* WindowPresence.swift in Sources */ = {isa = PBXBuildFile; fileRef = C88C66F427EBF826F280BCAD /* WindowPresence.swift */; };
 		BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F86147309B95CB624585AB /* Paths.swift */; };
 		C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */; };
 		C682411485855C1BACB0423B /* CatalogFitSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBBFBBA9586B95FE9249C699 /* CatalogFitSmokeTest.swift */; };
@@ -207,6 +208,7 @@
 		C1946EC80763A824682094C0 /* GGUFMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GGUFMetadataTests.swift; sourceTree = "<group>"; };
 		C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStoreTests.swift; sourceTree = "<group>"; };
 		C7BD7CE4C9F99A17BB539706 /* ModelAddPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAddPlan.swift; sourceTree = "<group>"; };
+		C88C66F427EBF826F280BCAD /* WindowPresence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPresence.swift; sourceTree = "<group>"; };
 		CB03FA5B5C74DB6E5B963EF2 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
 		D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStore.swift; sourceTree = "<group>"; };
 		D49BE1EF5FB53B825FC562F0 /* HFDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HFDownloader.swift; sourceTree = "<group>"; };
@@ -360,6 +362,7 @@
 				7109E7D7686B314F8156BAC7 /* LoginItem.swift */,
 				94F86147309B95CB624585AB /* Paths.swift */,
 				D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */,
+				C88C66F427EBF826F280BCAD /* WindowPresence.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -695,6 +698,7 @@
 				79297D51C2C829D38C70D8D0 /* StoreWatcher.swift in Sources */,
 				A1550BA3B989C1800EA3489D /* ThisMacPane.swift in Sources */,
 				94952E76182AF42444C11CF9 /* WindowFrontier.swift in Sources */,
+				BBE32F0B2674CB283476C0F0 /* WindowPresence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
