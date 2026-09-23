@@ -1,0 +1,159 @@
+{
+  "_comment": "Connect tab tools (docs/IMPLEMENTATION_PLAN.md Phase 2b step 1). Placeholders: {{baseURL}} (no /v1), {{apiKey}}, {{model}}, {{host}}, {{port}}. Verified against each tool's docs on 2026-09-23 — re-check docsURL when editing.",
+  "integrations": [
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "category": "coding-agent",
+      "api": "anthropic",
+      "where": "Your shell (before running `claude`), or the \"env\" block of ~/.claude/settings.json",
+      "format": "shell",
+      "snippet": "export ANTHROPIC_BASE_URL={{baseURL}}\nexport ANTHROPIC_AUTH_TOKEN={{apiKey}}\nexport ANTHROPIC_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_OPUS_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_SONNET_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_HAIKU_MODEL={{model}}\nexport CLAUDE_CODE_SUBAGENT_MODEL={{model}}\nexport CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1\nclaude",
+      "docsURL": "https://code.claude.com/docs/en/llm-gateway-connect",
+      "notes": "Best-effort: Anthropic doesn't support Claude Code with non-Claude models, so tool use depends on the model. The base URL has no /v1 — Claude Code adds /v1/messages itself. Every model variable points at this model because Claude Code also asks for separate background and sub-agent models, which the server would reject. Needs a large context; Quail sets it per model from this Mac's memory. Don't put this in a project's committed .claude/settings.json."
+    },
+    {
+      "id": "codex-cli",
+      "name": "OpenAI Codex CLI",
+      "category": "coding-agent",
+      "api": "openai-responses",
+      "where": "~/.codex/config.toml, plus QUAIL_API_KEY in your shell",
+      "format": "toml",
+      "snippet": "model = \"{{model}}\"\nmodel_provider = \"quail\"\n\n[model_providers.quail]\nname = \"Quail (llama.cpp)\"\nbase_url = \"{{baseURL}}/v1\"\nenv_key = \"QUAIL_API_KEY\"\nwire_api = \"responses\"\n\n# and in your shell:\n# export QUAIL_API_KEY={{apiKey}}",
+      "docsURL": "https://learn.chatgpt.com/docs/config-file/config-advanced",
+      "notes": "Codex only speaks the Responses API now; llama.cpp serves /v1/responses, but agent-loop support (tools, reasoning items) is newer than its chat API. The provider id can't be openai, ollama or lmstudio. Add model_context_window = <tokens> so compaction works for a model Codex doesn't know."
+    },
+    {
+      "id": "continue",
+      "name": "Continue",
+      "category": "editor",
+      "api": "openai-chat",
+      "where": "~/.continue/config.yaml",
+      "format": "yaml",
+      "snippet": "name: Quail\nversion: 0.0.1\nschema: v1\n\nmodels:\n  - name: {{model}} (Quail)\n    provider: openai\n    model: {{model}}\n    apiBase: {{baseURL}}/v1\n    apiKey: {{apiKey}}\n    roles:\n      - chat\n      - edit\n      - apply",
+      "docsURL": "https://docs.continue.dev/customize/model-providers/top-level/openai",
+      "notes": "With provider: openai the apiBase includes /v1. Add a second model with the autocomplete role if you want tab completions."
+    },
+    {
+      "id": "cline",
+      "name": "Cline",
+      "category": "editor",
+      "api": "openai-chat",
+      "where": "Cline settings (gear icon) → API Provider: OpenAI Compatible",
+      "format": "text",
+      "snippet": "API Provider: OpenAI Compatible\nBase URL: {{baseURL}}/v1\nAPI Key: {{apiKey}}\nModel ID: {{model}}",
+      "docsURL": "https://docs.cline.bot/provider-config/openai-compatible",
+      "notes": "Set up in Cline's own settings screen, not a file. Under Model Configuration, set Context Window to the model's context so Cline's large prompts fit."
+    },
+    {
+      "id": "roo-code",
+      "name": "Roo Code",
+      "category": "editor",
+      "api": "openai-chat",
+      "where": "Roo Code settings (gear icon) → Providers → API Provider: OpenAI Compatible",
+      "format": "text",
+      "snippet": "API Provider: OpenAI Compatible\nBase URL: {{baseURL}}/v1\nAPI Key: {{apiKey}}\nModel: {{model}}",
+      "docsURL": "https://roocodeinc.github.io/Roo-Code/providers/openai-compatible",
+      "notes": "Roo Code relies on native tool calling, so pick a model that handles tools well. Set the context window under Model Configuration."
+    },
+    {
+      "id": "zed",
+      "name": "Zed",
+      "category": "editor",
+      "api": "openai-chat",
+      "where": "Zed settings.json (zed: open settings); the API key in the Agent panel's settings for \"quail\"",
+      "format": "json",
+      "snippet": "{\n  \"language_models\": {\n    \"openai_compatible\": {\n      \"quail\": {\n        \"api_url\": \"{{baseURL}}/v1\",\n        \"available_models\": [\n          {\n            \"name\": \"{{model}}\",\n            \"display_name\": \"{{model}} (Quail)\",\n            \"max_tokens\": 32768\n          }\n        ]\n      }\n    }\n  },\n  \"agent\": {\n    \"default_model\": {\n      \"provider\": \"quail\",\n      \"model\": \"{{model}}\"\n    }\n  }\n}",
+      "docsURL": "https://zed.dev/docs/ai/use-api-access",
+      "notes": "Zed keeps keys out of settings.json: enter {{apiKey}} in the Agent panel's provider settings, or launch Zed with QUAIL_API_KEY set. max_tokens is the context window — match the model's."
+    },
+    {
+      "id": "aider",
+      "name": "aider",
+      "category": "coding-agent",
+      "api": "openai-chat",
+      "where": "Your shell",
+      "format": "shell",
+      "snippet": "export OPENAI_API_BASE={{baseURL}}/v1\nexport OPENAI_API_KEY={{apiKey}}\naider --model openai/{{model}}",
+      "docsURL": "https://aider.chat/docs/llms/openai-compat.html",
+      "notes": "The openai/ prefix on the model is required. aider warns about an unknown model's context size; --no-show-model-warnings silences it."
+    },
+    {
+      "id": "opencode",
+      "name": "opencode",
+      "category": "coding-agent",
+      "api": "openai-chat",
+      "where": "~/.config/opencode/opencode.json (or opencode.json in a project)",
+      "format": "json",
+      "snippet": "{\n  \"$schema\": \"https://opencode.ai/config.json\",\n  \"provider\": {\n    \"quail\": {\n      \"npm\": \"@ai-sdk/openai-compatible\",\n      \"name\": \"Quail (llama.cpp)\",\n      \"options\": {\n        \"baseURL\": \"{{baseURL}}/v1\",\n        \"apiKey\": \"{{apiKey}}\"\n      },\n      \"models\": {\n        \"{{model}}\": {\n          \"name\": \"{{model}}\",\n          \"limit\": { \"context\": 32768, \"output\": 8192 }\n        }\n      }\n    }\n  },\n  \"model\": \"quail/{{model}}\"\n}",
+      "docsURL": "https://opencode.ai/docs/providers/",
+      "notes": "If your global opencode config sets a default model, it wins over this file's \"model\" — pick Quail's with /models in the TUI, or opencode run -m quail/{{model}}. List every model you want under models; limit.context drives compaction. \"{env:QUAIL_API_KEY}\" keeps the key out of the file."
+    },
+    {
+      "id": "goose",
+      "name": "Goose",
+      "category": "coding-agent",
+      "api": "openai-chat",
+      "where": "Your shell (or goose configure)",
+      "format": "shell",
+      "snippet": "export GOOSE_PROVIDER=openai\nexport GOOSE_MODEL={{model}}\nexport OPENAI_HOST={{baseURL}}\nexport OPENAI_API_KEY={{apiKey}}\ngoose session",
+      "docsURL": "https://github.com/aaif-goose/goose/blob/main/documentation/docs/getting-started/providers.md",
+      "notes": "OPENAI_HOST has no /v1 — Goose adds v1/chat/completions itself."
+    },
+    {
+      "id": "open-webui",
+      "name": "Open WebUI",
+      "category": "chat-app",
+      "api": "openai-chat",
+      "where": "Admin Settings → Connections → OpenAI API → Add Connection",
+      "format": "text",
+      "snippet": "URL: {{baseURL}}/v1\nAPI Key: {{apiKey}}\nModel IDs: leave empty (it reads /v1/models)\n\n# Running Open WebUI in Docker? Use this URL instead:\n# http://host.docker.internal:{{port}}/v1",
+      "docsURL": "https://docs.openwebui.com/getting-started/quick-start/connect-a-provider/starting-with-openai-compatible",
+      "notes": "Set it in the Admin UI: Open WebUI's OPENAI_API_* environment variables only apply on first launch. Choosing llama.cpp as the connection's provider adds model loading controls."
+    },
+    {
+      "id": "librechat",
+      "name": "LibreChat",
+      "category": "chat-app",
+      "api": "openai-chat",
+      "where": "librechat.yaml in the LibreChat folder, plus QUAIL_API_KEY in .env",
+      "format": "yaml",
+      "snippet": "version: 1.3.15\nendpoints:\n  custom:\n    - name: 'Quail'\n      apiKey: '${QUAIL_API_KEY}'\n      baseURL: '{{baseURL}}/v1'\n      models:\n        default: ['{{model}}']\n        fetch: true\n      titleConvo: true\n      modelDisplayLabel: 'Quail'\n\n# .env:\n# QUAIL_API_KEY={{apiKey}}",
+      "docsURL": "https://www.librechat.ai/docs/configuration/librechat_yaml/object_structure/custom_endpoint",
+      "notes": "In Docker, use http://host.docker.internal:{{port}}/v1 as the baseURL. fetch: true lists every model the server has."
+    },
+    {
+      "id": "curl",
+      "name": "curl",
+      "category": "sdk",
+      "api": "openai-chat",
+      "where": "Terminal",
+      "format": "shell",
+      "snippet": "curl {{baseURL}}/v1/chat/completions \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Authorization: Bearer {{apiKey}}\" \\\n  -d '{\n    \"model\": \"{{model}}\",\n    \"messages\": [{\"role\": \"user\", \"content\": \"Hello!\"}]\n  }'",
+      "docsURL": "https://github.com/ggml-org/llama.cpp/tree/master/tools/server",
+      "notes": "Add \"stream\": true for streamed output. {{baseURL}}/health needs no key — a quick first check."
+    },
+    {
+      "id": "python-openai",
+      "name": "Python",
+      "category": "sdk",
+      "api": "openai-chat",
+      "where": "Python (pip install openai)",
+      "format": "text",
+      "snippet": "from openai import OpenAI\n\nclient = OpenAI(\n    base_url=\"{{baseURL}}/v1\",\n    api_key=\"{{apiKey}}\",\n)\n\ncompletion = client.chat.completions.create(\n    model=\"{{model}}\",\n    messages=[{\"role\": \"user\", \"content\": \"Hello!\"}],\n)\nprint(completion.choices[0].message.content)",
+      "docsURL": "https://github.com/openai/openai-python",
+      "notes": "The SDK insists on a non-empty api_key even when the server has none."
+    },
+    {
+      "id": "js-openai",
+      "name": "JavaScript / TypeScript",
+      "category": "sdk",
+      "api": "openai-chat",
+      "where": "Node or TypeScript (npm install openai)",
+      "format": "text",
+      "snippet": "import OpenAI from 'openai';\n\nconst client = new OpenAI({\n  baseURL: '{{baseURL}}/v1',\n  apiKey: '{{apiKey}}',\n});\n\nconst completion = await client.chat.completions.create({\n  model: '{{model}}',\n  messages: [{ role: 'user', content: 'Hello!' }],\n});\nconsole.log(completion.choices[0].message.content);",
+      "docsURL": "https://github.com/openai/openai-node",
+      "notes": "apiKey must be non-empty even when the server has none."
+    }
+  ]
+}

@@ -6,6 +6,7 @@ enum SettingsTab: Hashable {
     case general
     case endpoint
     case models
+    case connect
     case thisMac
 }
 
@@ -33,16 +34,21 @@ struct SettingsView: View {
                 .tabItem { Label("Models", systemImage: "shippingbox") }
                 .tag(SettingsTab.models)
 
+            ConnectPane(appState: appState)
+                .tabItem { Label("Connect", systemImage: "cable.connector") }
+                .tag(SettingsTab.connect)
+
             ThisMacPane(appState: appState)
                 .tabItem { Label("This Mac", systemImage: "memorychip") }
                 .tag(SettingsTab.thisMac)
         }
+        // 680 (was 560): Connect's tool list + snippet needs the width.
         // 560, not 480: the Endpoint tab's stepper caption and API-key
         // row overflowed the narrower fixed width (user-reported) —
         // content wider than the frame is drawn centered and clipped
         // both edges, which no amount of internal wrapping fixes once
         // a row's minimum genuinely exceeds it.
-        .frame(width: 560)
+        .frame(width: 680)
         .fixedSize(horizontal: false, vertical: true)
     }
 }

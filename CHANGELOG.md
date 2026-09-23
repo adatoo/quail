@@ -67,6 +67,19 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   `.github/workflows/release.yml` reusing the same scripts on a `v*` tag
   push. Completes Phase 1 step 11.
 
+- Connect (Phase 2b step 1): a Settings tab with copy-ready configs for 14
+  tools — Claude Code, Codex CLI, Continue, Cline, Roo Code, Zed, aider,
+  opencode, Goose, Open WebUI, LibreChat, curl, Python and JS — filled with
+  this endpoint's address, key and a chosen model ("This Mac" or "Another
+  device", using the LAN address when listening on 0.0.0.0), plus a Test
+  that sends one request over the API the tool uses (chat completions,
+  Responses, or Anthropic `/v1/messages`). Defined as data
+  (`Resources/integrations.json`), verified against each tool's docs;
+  Claude Code, Codex, opencode and curl were run end-to-end against a real
+  llama-server with their snippets. Copy-only — Quail never edits other
+  apps' config files. Also "Connect a Tool…" and "Open Chat in Browser"
+  (the runtime's built-in web UI) in the menu.
+
 ### Fixed
 
 - Start could go green for a server that wasn't Quail's: a `llama-server`
