@@ -1013,6 +1013,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.quail.cli;
+				PRODUCT_MODULE_NAME = QuailCLI;
 				PRODUCT_NAME = quail;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -1029,6 +1030,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.quail.cli;
+				PRODUCT_MODULE_NAME = QuailCLI;
 				PRODUCT_NAME = quail;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -1167,6 +1169,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.quail.cli;
+				PRODUCT_MODULE_NAME = QuailCLI;
 				PRODUCT_NAME = quail;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -1239,6 +1242,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.quail.cli;
+				PRODUCT_MODULE_NAME = QuailCLI;
 				PRODUCT_NAME = quail;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;

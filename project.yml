@@ -124,6 +124,10 @@ targets:
     settings:
       base:
         PRODUCT_NAME: quail
+        # The executable is `quail`, but the Swift module can't be: on a
+        # case-insensitive disk "quail" collides with the app's "Quail"
+        # module ("cannot load module 'quail' as 'Quail'").
+        PRODUCT_MODULE_NAME: QuailCLI
         PRODUCT_BUNDLE_IDENTIFIER: com.datoos.quail.cli
         SKIP_INSTALL: YES
     configFiles:

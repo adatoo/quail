@@ -83,8 +83,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // The `quail` command-line tool talks to the app over this socket.
-        let appState = appState
-        controlServer = ControlServer { request in await appState.handleControl(request) }
+        let state = appState // not named appState: CI's Swift reads the Task above as capturing it before declaration
+        controlServer = ControlServer { request in await state.handleControl(request) }
         do {
             try controlServer?.start()
         } catch {
