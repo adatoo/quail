@@ -55,8 +55,10 @@ struct RemoteFitBadge: View {
         }
     }
 
-    /// 4096 → "4K", 1536 → "1.5K".
-    static func contextLabel(_ tokens: Int) -> String {
+    /// 4096 → "4K", 1536 → "1.5K". `nonisolated`: a `View`'s members are
+    /// main-actor-isolated, and Xcode 26.6 (CI) rejects calling this from a
+    /// nonisolated test, where newer toolchains let it through.
+    nonisolated static func contextLabel(_ tokens: Int) -> String {
         let k = Double(tokens) / 1024
         return k.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(k))K" : String(format: "%.1fK", k)
     }
