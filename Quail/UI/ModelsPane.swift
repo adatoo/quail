@@ -396,6 +396,12 @@ private struct ModelRow: View {
             }
             if let verdict {
                 FitVerdictBadge(estimate: verdict)
+            } else {
+                // Never a blank: say it couldn't be judged, and why.
+                Badge(text: "Fit unknown", color: .secondary)
+                    .help(entry.format == .gguf
+                        ? "Couldn't read this model's header, or its architecture isn't supported by the estimate yet."
+                        : "Couldn't read this model's config.json.")
             }
             Text(ByteCountFormatter.string(fromByteCount: entry.bytes, countStyle: .file))
                 .font(.caption)

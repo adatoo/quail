@@ -60,6 +60,7 @@
 		BB9E9F4BD5FCE9643645DFC3 /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF5343FFDFED49C8EFF6B3C /* Catalog.swift */; };
 		BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F86147309B95CB624585AB /* Paths.swift */; };
 		C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */; };
+		C682411485855C1BACB0423B /* CatalogFitSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBBFBBA9586B95FE9249C699 /* CatalogFitSmokeTest.swift */; };
 		C6EF40DBA037399CA71834C6 /* FitBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC663973B4AF633BDBC0B64C /* FitBadge.swift */; };
 		CB7CA9A2F895FD0B2EB70E10 /* GGUFFixtureBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 649E93D9E6DF446442533B00 /* GGUFFixtureBuilder.swift */; };
 		D14CDB94C0DC992397CDE352 /* AppInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70BF19344F23B98FA299585E /* AppInfoTests.swift */; };
@@ -158,6 +159,7 @@
 		DB831B371971B98463F75E57 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E5340652668A6D7507752E82 /* QuailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailApp.swift; sourceTree = "<group>"; };
 		EB9482F330D14ABD97C3CB8A /* LogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStore.swift; sourceTree = "<group>"; };
+		EBBFBBA9586B95FE9249C699 /* CatalogFitSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogFitSmokeTest.swift; sourceTree = "<group>"; };
 		EE937A9BCE8B1990D71C2304 /* ProcessSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSupervisor.swift; sourceTree = "<group>"; };
 		FC663973B4AF633BDBC0B64C /* FitBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitBadge.swift; sourceTree = "<group>"; };
 		FDE8BD6ECEA9B7B53DBF2DEB /* HFDownloaderSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HFDownloaderSmokeTest.swift; sourceTree = "<group>"; };
@@ -178,6 +180,7 @@
 			children = (
 				70BF19344F23B98FA299585E /* AppInfoTests.swift */,
 				CB03FA5B5C74DB6E5B963EF2 /* AppStateTests.swift */,
+				EBBFBBA9586B95FE9249C699 /* CatalogFitSmokeTest.swift */,
 				6A0207CABC73498170DE7FF0 /* CatalogRefresherTests.swift */,
 				19B87DA34C1C3C10454DD9BC /* CatalogTests.swift */,
 				B0456E0B59C5B4A2C4303E13 /* ConfigTests.swift */,
@@ -486,6 +489,7 @@
 			files = (
 				D14CDB94C0DC992397CDE352 /* AppInfoTests.swift in Sources */,
 				3430F195CEBC5CF8261D57D2 /* AppStateTests.swift in Sources */,
+				C682411485855C1BACB0423B /* CatalogFitSmokeTest.swift in Sources */,
 				2148459632998822C9866493 /* CatalogRefresherTests.swift in Sources */,
 				88F5F2F83DDE401E61BB38CF /* CatalogTests.swift in Sources */,
 				D577E84C9E4191CBAED0D203 /* ConfigTests.swift in Sources */,

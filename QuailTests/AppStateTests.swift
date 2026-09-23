@@ -372,7 +372,7 @@ struct AppStateTests {
         #expect(Catalog.loadUserEntries(from: scratch.appendingPathComponent("user-catalog.json")).isEmpty)
     }
 
-    @Test("loadCatalogVerdicts: fetches a Comfortable verdict per curated candidate, keyed by GGUF repo")
+    @Test("loadCatalogVerdicts: every family gets a verdict or a stated reason; reopening retries only failures")
     func loadCatalogVerdictsFetchesPerFamily() async throws {
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
@@ -406,6 +406,10 @@ struct AppStateTests {
         config.protocolClasses = [StubURLProtocol.self]
         let listingRequestCount = LockedCount()
         StubURLProtocol.handler = { request in
+            if request.url?.path.contains("/api/models/org/Embed-GGUF") == true {
+                listingRequestCount.increment()
+                return StubResponse(statusCode: 404, body: Data())
+            }
             if request.url?.path.contains("/api/models/") == true {
                 listingRequestCount.increment()
                 let body = Data("""
@@ -423,16 +427,16 @@ struct AppStateTests {
 
         await appState.loadCatalogVerdicts()
 
-        // "embed" is excluded by role before any network call happens —
-        // Recommender.candidates, not loadCatalogVerdicts, is the guard.
-        #expect(listingRequestCount.value == 1)
+        // Every family is looked up — not only in-tier recommendation
+        // candidates, which once left most Add-model rows blank.
+        #expect(listingRequestCount.value == 2)
         let verdict = try #require(appState.catalogVerdicts["org/Tiny-GGUF"])
         #expect(verdict.verdict == .comfortable)
-        #expect(appState.catalogVerdicts["org/Embed-GGUF"] == nil)
+        #expect(appState.catalogFits["embed"] == .unknown("Repo not found on Hugging Face"))
 
-        // Reopening (a second call) doesn't refetch what's already known.
+        // Reopening doesn't refetch what's known, but does retry a failure.
         await appState.loadCatalogVerdicts()
-        #expect(listingRequestCount.value == 1)
+        #expect(listingRequestCount.value == 3)
     }
 
     @Test("selectModel: refused stopped/uninstalled/MLX; hot-swaps an installed GGUF while running")

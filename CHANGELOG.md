@@ -95,6 +95,17 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   from what the server was actually launched with.
 - The generated API key was a 32-character hex string that overflowed
   the Endpoint settings field; it's now 16-character base64url.
+- Add-model sheet: most rows showed no fit badge. Only in-tier
+  recommendation candidates were ever looked up, and 6 of 15 catalog
+  models (Gemma 4, Qwen3.6/3.8, gpt-oss) have GGUF headers larger than the
+  8 MiB preview fetch — their tokenizer data comes after the shape keys the
+  estimate needs, so the parser now stops once it has those. Every row now
+  shows a verdict, "Checking…", or "Fit unknown" with the reason on hover;
+  a manual live-Hub smoke test (`CatalogFitSmokeTest`) checks the whole
+  catalog. The sheet is redesigned: two columns with search/paste, a
+  details pane naming the model with a spelled-out fit card (needs X of Y
+  GB, ~tok/s), quant sizes in the picker, a note that MLX can't be served
+  yet, and a standard Cancel / Download footer.
 - This Mac: GPU cores always showed "—" (the IOKit lookup passed the
   main port where a registry entry was expected), and the RAM tier line
   printed the catalog's open-ended sentinel as "~35–999B models". Model

@@ -343,4 +343,22 @@ struct FitEstimatorTests {
         #expect(FitEstimator.approxMaxParamsB(gpuCeilingBytes: 16_000_000_000, comfortable: true) == 13)
         #expect(FitEstimator.approxMaxParamsB(gpuCeilingBytes: 1_000_000_000, comfortable: true) == 0)
     }
+
+    @Test("a GGUF without head_count_kv (BERT-style) uses head_count, as llama.cpp does")
+    func missingKVHeadsFallsBackToHeadCount() throws {
+        var metadata = GGUFMetadata()
+        metadata.architecture = "nomic-bert"
+        metadata.blockCount = 12
+        metadata.headCount = 12
+        metadata.embeddingLength = 768
+        let shape = try #require(ModelShape.from(gguf: metadata, weightBytes: 140_000_000))
+        #expect(shape.kvHeadCount == 12)
+        #expect(shape.headDim == 64)
+    }
+
+    @Test("contextLabel renders token counts as K")
+    func contextLabel() {
+        #expect(RemoteFitBadge.contextLabel(4096) == "4K")
+        #expect(RemoteFitBadge.contextLabel(1536) == "1.5K")
+    }
 }

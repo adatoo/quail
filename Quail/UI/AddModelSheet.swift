@@ -7,6 +7,12 @@ import SwiftUI
 /// listing before download, so the verdict shows in the picker"), and
 /// download progress.
 ///
+/// Two columns: a searchable list on the left (every row carries a fit
+/// badge — or says why it can't), the selected model's details on the
+/// right, and a standard footer with Cancel / Download. Redesigned after
+/// user feedback: the earlier single-column version clipped the list,
+/// never named the selected model, and left most verdicts blank.
+///
 /// All the real decisions — which files a pick means, what the verdict
 /// is — live in `ModelAddPlan`/`ModelPreview` (unit-tested); this view
 /// sequences them.
@@ -16,21 +22,20 @@ struct AddModelSheet: View {
     /// MLX-preferred browse to survive into the sheet, not reset.
     var defaultFilter: ModelsPane.FormatFilter = .all
     /// Set when the sheet was opened from `ModelsPane`'s empty-state
-    /// recommendation button — selects that family immediately rather
-    /// than waiting for `loadRecommendedSelection()`'s own pick.
+    /// recommendation button — selects that family immediately.
     var preselect: Catalog.Family?
 
     @Environment(\.dismiss) private var dismiss
     private let device = DeviceInfo.current()
 
     @State private var filter: ModelsPane.FormatFilter = .all
-    @State private var pasteField = ""
+    @State private var query = ""
     @State private var selection: Selection?
     @State private var listing: HFRepo?
     @State private var listingError: String?
     @State private var format: ModelFormat = .gguf
     @State private var quant: String?
-    @State private var verdict: FitEstimate?
+    @State private var pickFit: RemoteFit = .checking
 
     /// The repo the listing currently corresponds to ("" when nothing
     /// is selectable) — changes when selection or format change.
@@ -45,45 +50,23 @@ struct AddModelSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Add model").font(.headline)
-                    if let tierHeaderLine {
-                        Text(tierHeaderLine)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer()
-                Picker("Show", selection: $filter) {
-                    ForEach(ModelsPane.FormatFilter.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 200)
-                // `.sheet` supplies no close chrome on macOS. `detail`
-                // already has its own "Cancel"/"Close"/"Done" once a
-                // download starts (`.downloading` cancels the transfer
-                // itself, not just the sheet) — this header button fills
-                // the gap for every state before that, which previously
-                // had no button at all, only Esc.
-                if !isDownloadingOrInstalled {
-                    Button("Cancel") { dismiss() }
-                        .keyboardShortcut(.cancelAction)
+        VStack(spacing: 0) {
+            header
+            Divider()
+            HStack(spacing: 0) {
+                sidebar
+                    .frame(width: 330)
+                Divider()
+                ScrollView {
+                    detail
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(20)
                 }
             }
-            .padding()
-
-            familyList
-
             Divider()
-
-            detail
-                .frame(minHeight: 150)
-                .padding()
+            footer
         }
-        .frame(width: 560, height: 560)
+        .frame(width: 820, height: 580)
         .onAppear {
             filter = defaultFilter
             if let preselect {
@@ -93,10 +76,10 @@ struct AddModelSheet: View {
         // Keyed on the resolved repo, not just the selection: flipping a
         // curated family's format points at a different repo/listing.
         .task(id: loadKey) { await loadListing() }
-        .task(id: resolvedPick) { await loadVerdict() }
-        // §7: "Recommendations ... filtered to Comfortable" — runs once
-        // per sheet lifetime (`AppState.loadCatalogVerdicts` itself skips
-        // anything already fetched, so reopening the sheet is free).
+        .task(id: resolvedPick) { await loadPickFit() }
+        // §7: "Recommendations ... filtered to Comfortable". Also fills
+        // every other row's badge; already-resolved families are skipped,
+        // so reopening the sheet is cheap.
         .task {
             await appState.loadCatalogVerdicts()
             if selection == nil, let first = recommendedFamilies.first {
@@ -105,69 +88,174 @@ struct AddModelSheet: View {
         }
     }
 
-    // MARK: - Left: the picker
+    // MARK: - Header / footer
 
-    @ViewBuilder private var familyList: some View {
-        List(selection: $selection) {
-            if recommendedFamilies.isEmpty {
-                ForEach(filteredFamilies) { family in familyRow(family) }
-                pastedRow
-            } else {
-                Section("Recommended for this Mac") {
-                    ForEach(recommendedFamilies) { family in familyRow(family) }
-                }
-                let rest = filteredFamilies.filter { family in !recommendedFamilies.contains { $0.id == family.id } }
-                Section("All Models") {
-                    ForEach(rest) { family in familyRow(family) }
-                    pastedRow
-                }
+    private var header: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Add Model").font(.title3.bold())
+                Text(deviceLine)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
+            Spacer()
+            Picker("Format", selection: $filter) {
+                ForEach(ModelsPane.FormatFilter.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 180)
         }
-        .frame(maxHeight: 220)
-
-        HStack {
-            TextField("…or paste a Hugging Face repo (owner/name)", text: $pasteField)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit(lookupPasted)
-            Button("Look up", action: lookupPasted)
-                .disabled(pasteField.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
-        .padding([.horizontal, .bottom])
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
     }
 
-    @ViewBuilder private var pastedRow: some View {
-        if case let .pasted(repo)? = selection, !filteredFamilies.contains(where: { $0.id == repo }) {
-            Label(repo, systemImage: "link").tag(Selection.pasted(repo))
+    /// "Apple M4 Pro · 64 GB · comfortable up to ~55B" — from the
+    /// measured GPU ceiling (see `FitEstimator.approxMaxParamsB`), never
+    /// the catalog tier's open-ended upper bound, which once rendered as
+    /// "showing 35–999B models".
+    private var deviceLine: String {
+        var parts: [String] = []
+        if let chip = device.chipName {
+            parts.append(chip)
+        }
+        if let bytes = device.unifiedMemoryBytes {
+            parts.append("\(Int(Double(bytes) / 1_073_741_824)) GB")
+        }
+        if let ceiling = device.gpuWorkingSetCeilingBytes {
+            let maxParams = FitEstimator.approxMaxParamsB(gpuCeilingBytes: ceiling, comfortable: true)
+            parts.append("comfortable up to ~\(maxParams)B")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private var footer: some View {
+        HStack {
+            switch appState.installs.phase {
+            case .downloading:
+                Spacer()
+                Button("Cancel Download", role: .destructive) { appState.installs.cancel() }
+                Button("Hide") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            case .installed:
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+            default:
+                if let total = pickBytes, total > 0 {
+                    Text("\(ByteCountFormatter.string(fromByteCount: total, countStyle: .file)) download")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                Spacer()
+                // `.sheet` supplies no close chrome on macOS.
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Download") { startDownload() }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!canDownload || appState.installs.isDownloading)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    // MARK: - Left: search + list
+
+    private var sidebar: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                TextField("Search, or paste owner/name from Hugging Face", text: $query)
+                    .textFieldStyle(.plain)
+                    .onSubmit(lookupPasted)
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(8)
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 7))
+            .padding(10)
+
+            List(selection: $selection) {
+                if let repo = pastedCandidate {
+                    Section("Hugging Face") {
+                        Label("Look up \(repo)", systemImage: "arrow.down.circle")
+                            .tag(Selection.pasted(repo))
+                    }
+                }
+                if case let .pasted(repo)? = selection, repo != pastedCandidate {
+                    Section("Hugging Face") {
+                        Label(repo, systemImage: "link").tag(Selection.pasted(repo))
+                    }
+                }
+                if !recommendedFamilies.isEmpty, query.isEmpty {
+                    Section("Recommended for This Mac") {
+                        ForEach(recommendedFamilies) { familyRow($0) }
+                    }
+                }
+                let rest = visibleFamilies.filter { family in
+                    !(query.isEmpty && recommendedFamilies.contains { $0.id == family.id })
+                }
+                Section(query.isEmpty ? "All Models" : "Matches") {
+                    ForEach(rest) { familyRow($0) }
+                    if rest.isEmpty {
+                        Text("No catalog models match.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .listStyle(.sidebar)
         }
     }
 
     private func familyRow(_ family: Catalog.Family) -> some View {
-        HStack {
-            Text(family.name)
-            if !family.isCurated {
-                Text("user-added")
-                    .font(.caption2.bold())
-                    .padding(.horizontal, 5).padding(.vertical, 1)
-                    .background(.secondary.opacity(0.2), in: Capsule())
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            if let repo = family.gguf?.repo, let verdict = appState.catalogVerdicts[repo] {
-                FitVerdictBadge(estimate: verdict)
-                if let speed = verdict.estimatedTokensPerSecond {
-                    Text("~\(speed.rounded()) tok/s")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(family.name).lineLimit(1)
+                    if !family.isCurated {
+                        Badge(text: "user-added", color: .secondary)
+                    }
                 }
+                Text(subtitle(for: family))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            if family.gguf != nil {
-                Text("GGUF").font(.caption2).foregroundStyle(.blue)
-            }
-            if family.mlx != nil {
-                Text("MLX").font(.caption2).foregroundStyle(.purple)
-            }
+            Spacer(minLength: 4)
+            RemoteFitBadge(fit: appState.catalogFits[family.id])
         }
+        .padding(.vertical, 2)
         .tag(Selection.curated(family))
+    }
+
+    /// "32B · 3B active · coding · GGUF, MLX"
+    private func subtitle(for family: Catalog.Family) -> String {
+        var parts: [String] = []
+        if let params = family.paramsB {
+            parts.append("\(Self.formatParams(params))B")
+        }
+        if let active = family.activeParamsB {
+            parts.append("\(Self.formatParams(active))B active")
+        }
+        if let role = family.role, role != "general" {
+            parts.append(role)
+        }
+        let formats = [family.gguf != nil ? "GGUF" : nil, family.mlx != nil ? "MLX" : nil].compactMap(\.self)
+        parts.append(formats.joined(separator: ", "))
+        return parts.joined(separator: " · ")
+    }
+
+    private static func formatParams(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(value)) : String(format: "%g", value)
     }
 
     private var filteredFamilies: [Catalog.Family] {
@@ -180,10 +268,30 @@ struct AddModelSheet: View {
         }
     }
 
+    /// `filteredFamilies` narrowed by the search text (name or repo).
+    private var visibleFamilies: [Catalog.Family] {
+        let needle = query.trimmingCharacters(in: .whitespaces)
+        guard !needle.isEmpty else { return filteredFamilies }
+        return filteredFamilies.filter { family in
+            family.name.localizedCaseInsensitiveContains(needle)
+                || (family.gguf?.repo.localizedCaseInsensitiveContains(needle) ?? false)
+                || (family.mlx?.repo.localizedCaseInsensitiveContains(needle) ?? false)
+        }
+    }
+
+    /// The search text as a repo id, when it looks like one
+    /// ("owner/name", or a huggingface.co URL).
+    private var pastedCandidate: String? {
+        let repo = query.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "https://huggingface.co/", with: "")
+        let parts = repo.split(separator: "/")
+        guard parts.count == 2, !repo.contains(" ") else { return nil }
+        return repo
+    }
+
     /// §7's "Recommendations": curated, in-tier, GGUF-capable families
     /// verified Comfortable, honouring whatever format filter the user
-    /// already has selected (an MLX-only browse shouldn't recommend a
-    /// GGUF model it won't show anywhere else in the list).
+    /// already has selected.
     private var recommendedFamilies: [Catalog.Family] {
         let finalized = Recommender.finalize(
             candidates: Recommender.candidates(catalog: appState.catalog, device: device),
@@ -193,49 +301,33 @@ struct AddModelSheet: View {
         return finalized.filter { allowed.contains($0.id) }
     }
 
-    private var tierHeaderLine: String? {
-        guard let bytes = device.unifiedMemoryBytes,
-              let (_, tier) = appState.catalog.tier(forMemoryBytes: bytes),
-              let range = tier.recommendedRange
-        else { return nil }
-        let chip = device.chipName.map { "\($0) · " } ?? ""
-        let gb = Int(Double(bytes) / 1_073_741_824)
-        return "\(chip)\(gb) GB · showing \(Int(range.lowerBound))–\(Int(range.upperBound))B models"
-    }
-
     private func lookupPasted() {
-        let repo = pasteField.trimmingCharacters(in: .whitespaces)
-            .replacingOccurrences(of: "https://huggingface.co/", with: "")
-        guard !repo.isEmpty else { return }
+        guard let repo = pastedCandidate else { return }
         selection = .pasted(repo)
     }
 
-    private var isDownloadingOrInstalled: Bool {
-        switch appState.installs.phase {
-        case .downloading, .installed: true
-        case .idle, .failed: false
-        }
-    }
-
-    // MARK: - Right: the pick + verdict + action
+    // MARK: - Right: the selected model
 
     @ViewBuilder private var detail: some View {
         switch appState.installs.phase {
         case let .downloading(written, total, file):
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Downloading \(file)")
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Downloading").font(.title3.bold())
+                Text(file).font(.callout).foregroundStyle(.secondary)
                 ProgressView(value: total > 0 ? Double(written) / Double(total) : 0)
                 Text(ByteCountFormatter.string(fromByteCount: written, countStyle: .file)
                     + " of " + ByteCountFormatter.string(fromByteCount: total, countStyle: .file))
+                    .font(.callout).foregroundStyle(.secondary).monospacedDigit()
+                Text("You can hide this window — the download continues in the background.")
                     .font(.caption).foregroundStyle(.secondary)
-                Button("Cancel") { appState.installs.cancel() }
-                Button("Close") { dismiss() }
             }
         case .installed:
-            VStack(alignment: .leading, spacing: 8) {
-                Label("Installed.", systemImage: "checkmark.circle.fill")
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Installed", systemImage: "checkmark.circle.fill")
+                    .font(.title3.bold())
                     .foregroundStyle(.green)
-                Button("Done") { dismiss() }
+                Text("It's in your Models list. Star it there to make it the default that loads on Start.")
+                    .foregroundStyle(.secondary)
             }
         default:
             detailForSelection
@@ -243,29 +335,60 @@ struct AddModelSheet: View {
     }
 
     @ViewBuilder private var detailForSelection: some View {
-        if selection == nil {
-            Text("Pick a family, or paste a repo.")
-                .foregroundStyle(.secondary)
-        } else if let listingError {
-            Label(listingError, systemImage: "exclamationmark.triangle")
-                .foregroundStyle(.red)
-                .font(.callout)
-        } else if listing == nil {
-            ProgressView().controlSize(.small)
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                availableFormatsPicker
-                quantPicker
-                verdictLine
-                Spacer()
-                HStack {
-                    Button("Download") { startDownload() }
-                        .disabled(!canDownload || appState.installs.isDownloading)
-                    if let total = pickBytes, total > 0 {
-                        Text(ByteCountFormatter.string(fromByteCount: total, countStyle: .file))
-                            .font(.caption).foregroundStyle(.secondary)
+        if let selection {
+            VStack(alignment: .leading, spacing: 16) {
+                titleBlock(for: selection)
+                if let listingError {
+                    Label(listingError, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                } else if listing == nil {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Reading the repo from Hugging Face…").foregroundStyle(.secondary)
                     }
+                } else {
+                    Form {
+                        availableFormatsPicker
+                        quantPicker
+                    }
+                    .formStyle(.columns)
+                    if format == .mlxSafetensors {
+                        Label(
+                            "Quail can download MLX models now, but can't serve them until MLX support ships. Choose GGUF to use it today.",
+                            systemImage: "info.circle"
+                        )
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    }
+                    FitCard(fit: pickFit, gpuCeilingBytes: device.gpuWorkingSetCeilingBytes)
                 }
+            }
+        } else {
+            VStack(spacing: 8) {
+                Image(systemName: "shippingbox").font(.largeTitle).foregroundStyle(.tertiary)
+                Text("Choose a model on the left, or paste a Hugging Face repo into the search field.")
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 300)
+        }
+    }
+
+    private func titleBlock(for selection: Selection) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            switch selection {
+            case let .curated(family):
+                Text(family.name).font(.title2.bold())
+                Text(subtitle(for: family)).foregroundStyle(.secondary)
+                if let license = family.license {
+                    Text("License: \(license)").font(.caption).foregroundStyle(.secondary)
+                }
+            case let .pasted(repo):
+                Text(repo).font(.title2.bold())
+                Text("From Hugging Face — not in Quail's curated catalog").foregroundStyle(.secondary)
+            }
+            if let repo = currentRepo(for: selection), let url = URL(string: "https://huggingface.co/\(repo)") {
+                Link(repo, destination: url).font(.caption)
             }
         }
     }
@@ -299,24 +422,44 @@ struct AddModelSheet: View {
                 }
             }
             .pickerStyle(.segmented)
-            .labelsHidden()
+            .frame(maxWidth: 280)
         } else if let only = formats.first {
             LabeledContent("Format", value: only == .gguf ? "GGUF (llama.cpp)" : "MLX")
                 .onAppear { format = only }
         }
     }
 
+    /// Each option shows its download size, and the catalog's own pick
+    /// is marked — "Q4_K_M" alone means nothing to most people.
     @ViewBuilder private var quantPicker: some View {
         let options = quantOptions
         if format == .gguf, !options.isEmpty {
-            Picker("Quant", selection: Binding(
+            Picker("Quantization", selection: Binding(
                 get: { quant ?? options.first ?? "" },
-                set: { quant = $0; verdict = nil }
+                set: { quant = $0 }
             )) {
-                ForEach(options, id: \.self) { Text($0).tag($0) }
+                ForEach(options, id: \.self) { option in
+                    Text(quantLabel(option)).tag(option)
+                }
             }
             .pickerStyle(.menu)
+            .frame(maxWidth: 320)
         }
+    }
+
+    private func quantLabel(_ option: String) -> String {
+        var label = option
+        if let listing {
+            let bytes = ModelAddPlan.ggufFiles(for: listing, quant: option, mmproj: mmprojName)
+                .reduce(0) { $0 + $1.sizeBytes }
+            if bytes > 0 {
+                label += " — " + ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+            }
+        }
+        if case let .curated(family)? = selection, family.gguf?.defaultQuant == option {
+            label += " (recommended)"
+        }
+        return label
     }
 
     private var quantOptions: [String] {
@@ -372,7 +515,7 @@ struct AddModelSheet: View {
         listing = nil
         listingError = nil
         quant = nil
-        verdict = nil
+        pickFit = .checking
         guard let selection else { return }
         let repo = currentRepo(for: selection)
         guard let repo else { return }
@@ -414,43 +557,41 @@ struct AddModelSheet: View {
         return quantOptions.first
     }
 
-    private func loadVerdict() async {
-        guard let listing, let pick = resolvedPick, canDownload else { verdict = nil; return }
-        verdict = try? await ModelPreview.remote(
-            repo: listing.id,
-            format: format,
-            listing: listing,
-            ggufFile: resolvedFiles?.first,
-            downloader: appState.installs.downloader,
-            device: DeviceInfo.current(),
-            ggufRuntime: appState.config.runtimeID,
-            bandwidthTable: ChipBandwidthTable.loadFromBundle(),
-            token: appState.hfToken
-        )
-        _ = pick
-    }
-
-    @ViewBuilder private var verdictLine: some View {
-        if let verdict {
-            switch verdict.verdict {
-            case .comfortable:
-                Label(
-                    "Comfortable on this Mac\(verdict.estimatedTokensPerSecond.map { " · ~\($0.rounded()) tok/s" } ?? "")",
-                    systemImage: "checkmark.circle"
+    /// The selected pick's verdict — always ends in an estimate or a
+    /// stated reason, never a silent blank.
+    private func loadPickFit() async {
+        pickFit = .checking
+        guard let listing, let files = resolvedFiles else {
+            if listing != nil {
+                pickFit = .unknown("Nothing downloadable for this choice")
+            }
+            return
+        }
+        let bandwidth = ChipBandwidthTable.loadFromBundle()
+        switch format {
+        case .gguf:
+            pickFit = await ModelPreview.remoteGGUFFit(
+                repo: listing.id, files: files, downloader: appState.installs.downloader,
+                device: DeviceInfo.current(), ggufRuntime: appState.config.runtimeID,
+                bandwidthTable: bandwidth, token: appState.hfToken
+            )
+        case .mlxSafetensors:
+            do {
+                let estimate = try await ModelPreview.remote(
+                    repo: listing.id, format: .mlxSafetensors, listing: listing, ggufFile: nil,
+                    downloader: appState.installs.downloader, device: DeviceInfo.current(),
+                    ggufRuntime: appState.config.runtimeID, bandwidthTable: bandwidth, token: appState.hfToken
                 )
-                .foregroundStyle(.green).font(.callout)
-            case let .tight(reduced):
-                Label("Tight — runs at \(reduced)-token context on this Mac", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.yellow).font(.callout)
-            case .wontFit:
-                Label("Won't fit on this Mac", systemImage: "xmark.circle")
-                    .foregroundStyle(.red).font(.callout)
+                pickFit = estimate.map(RemoteFit.estimate) ?? .unknown("Couldn't read this model's config.json")
+            } catch {
+                pickFit = .unknown("Couldn't reach Hugging Face")
             }
         }
     }
 
     private func startDownload() {
-        guard let files = resolvedFiles, let repo = listing?.id else { return }
+        guard canDownload, !appState.installs.isDownloading,
+              let files = resolvedFiles, let repo = listing?.id else { return }
         let familyID: String?
         if case let .curated(family)? = selection {
             familyID = family.id
@@ -463,5 +604,83 @@ struct AddModelSheet: View {
             quant: format == .gguf ? quant ?? quantOptions.first : nil,
             family: familyID
         )
+    }
+}
+
+/// The verdict for the selected pick, spelled out: what it needs, what
+/// this Mac has, how fast — or why there's no verdict.
+private struct FitCard: View {
+    let fit: RemoteFit
+    let gpuCeilingBytes: Int64?
+
+    var body: some View {
+        GroupBox {
+            HStack(alignment: .top, spacing: 12) {
+                icon.font(.title2)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(headline).font(.headline)
+                    if let explanation {
+                        Text(explanation)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(6)
+        }
+    }
+
+    @ViewBuilder private var icon: some View {
+        switch fit {
+        case .checking:
+            ProgressView().controlSize(.small)
+        case let .estimate(estimate):
+            switch estimate.verdict {
+            case .comfortable: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            case .tight: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+            case .wontFit: Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
+            }
+        case .unknown:
+            Image(systemName: "questionmark.circle.fill").foregroundStyle(.secondary)
+        }
+    }
+
+    private var headline: String {
+        switch fit {
+        case .checking: "Checking fit on this Mac…"
+        case let .estimate(estimate):
+            switch estimate.verdict {
+            case .comfortable: "Runs comfortably on this Mac"
+            case let .tight(reduced): "Tight fit — runs with a reduced \(RemoteFitBadge.contextLabel(reduced)) context"
+            case .wontFit: "Won't fit on this Mac"
+            }
+        case .unknown: "Fit unknown"
+        }
+    }
+
+    private var explanation: String? {
+        switch fit {
+        case .checking: return nil
+        case let .unknown(reason): return reason
+        case let .estimate(estimate):
+            let needed = ByteCountFormatter.string(fromByteCount: estimate.ramNeededBytes, countStyle: .memory)
+            let available = gpuCeilingBytes.map {
+                ByteCountFormatter.string(fromByteCount: $0, countStyle: .memory)
+            }
+            var line = "Needs about \(needed)"
+            if let available {
+                line += " of the \(available) this Mac's GPU can use"
+            }
+            line += "."
+            if let speed = estimate.estimatedTokensPerSecond, estimate.verdict != .wontFit {
+                line += " Roughly \(Int(speed.rounded())) tokens/s."
+            }
+            if estimate.verdict == .wontFit {
+                line += " Try a smaller quantization or a smaller model."
+            }
+            return line
+        }
     }
 }

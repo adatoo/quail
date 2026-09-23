@@ -434,53 +434,65 @@ final class AppState {
     /// rather than as the sheet's own `@State` so reopening it doesn't
     /// refetch — a sheet dismissed and reopened mid-browse shouldn't
     /// re-hit the network for every family again.
-    private(set) var catalogVerdicts: [String: FitEstimate] = [:]
+    /// Keyed by family id. A family with no entry hasn't been queued yet.
+    private(set) var catalogFits: [String: RemoteFit] = [:]
 
-    /// Runs up to 3 lookups at once (`HFDownloader.listFiles` + a
-    /// ranged header fetch per family); a failure for one family simply
-    /// leaves it out of `catalogVerdicts` rather than surfacing an
-    /// error — a missing badge for one row is a nicety lost, not a
-    /// broken flow. No-ops if there's nothing new to fetch.
+    /// `catalogFits`' successful estimates, keyed by GGUF repo id — the
+    /// shape `Recommender.finalize` takes.
+    var catalogVerdicts: [String: FitEstimate] {
+        var result: [String: FitEstimate] = [:]
+        for family in catalog.families {
+            if case let .estimate(estimate)? = catalogFits[family.id], let repo = family.gguf?.repo {
+                result[repo] = estimate
+            }
+        }
+        return result
+    }
+
+    /// Looks up every family in the list — not just the in-tier
+    /// recommendation candidates, which is all an earlier version did,
+    /// leaving most rows blank — with those candidates first so the
+    /// Recommended section fills quickly. Up to 3 at once. Families
+    /// already resolved are skipped; ones that failed are retried (the
+    /// reason may have been transient, or a token since added).
     func loadCatalogVerdicts() async {
         let device = DeviceInfo.current()
         let bandwidth = ChipBandwidthTable.loadFromBundle()
         let ggufRuntime = config.runtimeID
         let downloader = installs.downloader
         let token = hfToken
-        let families = Recommender.candidates(catalog: catalog, device: device)
-            .filter { catalogVerdicts[$0.gguf?.repo ?? ""] == nil }
+        let candidateIDs = Set(Recommender.candidates(catalog: catalog, device: device).map(\.id))
+        let families = catalog.families
+            .filter { family in
+                switch catalogFits[family.id] {
+                case .estimate?, .checking?: false
+                case .unknown?, nil: true
+                }
+            }
+            .sorted { candidateIDs.contains($0.id) && !candidateIDs.contains($1.id) }
+        for family in families {
+            catalogFits[family.id] = .checking
+        }
 
-        await withTaskGroup(of: (String, FitEstimate?).self) { group in
+        await withTaskGroup(of: (String, RemoteFit).self) { group in
             var pending = families[...]
 
             func addNext() {
-                guard let family = pending.popFirst(), let gguf = family.gguf else { return }
+                guard let family = pending.popFirst() else { return }
                 group.addTask {
-                    do {
-                        let listing = try await downloader.listFiles(repo: gguf.repo, token: token)
-                        let quant = gguf.defaultQuant ?? gguf.quants.first
-                        let file = quant.flatMap {
-                            ModelAddPlan.ggufFiles(for: listing, quant: $0, mmproj: gguf.mmproj).first
-                        }
-                        let verdict = try await ModelPreview.remote(
-                            repo: gguf.repo, format: .gguf, listing: listing, ggufFile: file,
-                            downloader: downloader, device: device, ggufRuntime: ggufRuntime,
-                            bandwidthTable: bandwidth, token: token
-                        )
-                        return (gguf.repo, verdict)
-                    } catch {
-                        return (gguf.repo, nil)
-                    }
+                    let fit = await ModelPreview.catalogFit(
+                        family: family, downloader: downloader, device: device,
+                        ggufRuntime: ggufRuntime, bandwidthTable: bandwidth, token: token
+                    )
+                    return (family.id, fit)
                 }
             }
 
             for _ in 0 ..< 3 {
                 addNext()
             }
-            for await (repo, verdict) in group {
-                if let verdict {
-                    catalogVerdicts[repo] = verdict
-                }
+            for await (id, fit) in group {
+                catalogFits[id] = fit
                 addNext()
             }
         }

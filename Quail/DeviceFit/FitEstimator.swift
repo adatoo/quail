@@ -39,7 +39,12 @@ struct ModelShape: Sendable, Equatable {
     /// explicit key is missing. Returns `nil` if a required field is
     /// missing.
     static func from(gguf metadata: GGUFMetadata, weightBytes: Int64) -> ModelShape? {
-        guard let layerCount = metadata.blockCount, let kvHeadCount = metadata.headCountKV else {
+        // A missing `head_count_kv` means "same as head_count" (plain
+        // multi-head attention) — llama.cpp's own loader defaults it that
+        // way; BERT-style embedding models (e.g. nomic-bert) omit it.
+        guard let layerCount = metadata.blockCount,
+              let kvHeadCount = metadata.headCountKV ?? metadata.headCount
+        else {
             return nil
         }
 

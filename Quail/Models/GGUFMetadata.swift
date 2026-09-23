@@ -73,6 +73,28 @@ struct GGUFMetadata: Sendable, Equatable {
     /// several megabytes on large models) throws `.truncated`, which
     /// callers should treat as "no verdict", not as an error.
     static func parse(_ data: Data) throws -> GGUFMetadata {
+        try parse(data, stopWhenShapeKnown: false)
+    }
+
+    /// `parse` for a buffer that holds only the *start* of a file (a
+    /// ranged pre-download fetch): a truncation after every field the fit
+    /// estimate needs has already been read returns what was read,
+    /// instead of throwing `.truncated`. Found by live testing: Gemma 4,
+    /// Qwen3.6/3.8 and gpt-oss headers exceed the 8 MiB fetch because of
+    /// their tokenizer arrays, which GGUF writers place *after* the
+    /// `<arch>.*` keys — so six of fifteen catalog models showed no
+    /// verdict despite the needed values sitting in the first few KB.
+    static func parsePrefix(_ data: Data) throws -> GGUFMetadata {
+        try parse(data, stopWhenShapeKnown: true)
+    }
+
+    /// Whether the fields `ModelShape.from(gguf:)` requires are present.
+    var hasShape: Bool {
+        blockCount != nil && (headCountKV ?? headCount) != nil
+            && (keyLength != nil || (embeddingLength != nil && headCount != nil))
+    }
+
+    private static func parse(_ data: Data, stopWhenShapeKnown: Bool) throws -> GGUFMetadata {
         let (version, kvCount, headerStart) = try readPreamble(data)
 
         let architecture = try findArchitecture(data, kvCount: kvCount, start: headerStart)
@@ -81,6 +103,24 @@ struct GGUFMetadata: Sendable, Equatable {
         result.architecture = architecture
 
         var cursor = Cursor(data: data, offset: headerStart)
+        do {
+            try readKeys(into: &result, cursor: &cursor, kvCount: kvCount, architecture: architecture)
+        } catch GGUFReadError.truncated where stopWhenShapeKnown && result.hasShape {
+            // The rest is tokenizer data the estimate doesn't use.
+        }
+        // Also silence the "version unused" warning while keeping it
+        // available for callers that might want to branch on it later.
+        _ = version
+
+        return result
+    }
+
+    private static func readKeys(
+        into result: inout GGUFMetadata,
+        cursor: inout Cursor,
+        kvCount: UInt64,
+        architecture: String?
+    ) throws {
         for _ in 0 ..< kvCount {
             let key = try cursor.readGGUFString()
             let type = try cursor.readUInt32()
@@ -121,11 +161,6 @@ struct GGUFMetadata: Sendable, Equatable {
             }
             try cursor.skipValue(ofType: type)
         }
-        // Also silence the "version unused" warning while keeping it
-        // available for callers that might want to branch on it later.
-        _ = version
-
-        return result
     }
 
     /// Reads the fixed-size preamble (magic, version, tensor_count,
