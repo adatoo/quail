@@ -28,6 +28,15 @@ struct MenuView: View {
 
         Divider()
 
+        // `hasServableModel` reads the filesystem directly (deliberately
+        // not cached — see its doc comment), which Swift's Observation
+        // can't track on its own: nothing here would ever re-render on
+        // a download completing without also reading some *stored*
+        // `@Observable` property that changes at that moment. Reading
+        // `installs.phase` (its value is unused) is that trigger — a
+        // finished download moves it to `.installed`, which is exactly
+        // when a freshly re-read `hasServableModel` needs to be seen.
+        let _ = appState.installs.phase
         if !appState.hasServableModel {
             Text("No model installed")
                 .disabled(true)
