@@ -275,7 +275,16 @@ struct AppStateTests {
     func userCatalogRepoRoundTripThroughAppState() throws {
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
-        let appState = makeAppState(scratchDir: scratch)
+        // An explicit empty seed, not a reliance on `.main` resolving to
+        // an empty catalog: `QuailTests` runs hosted inside `Quail.app`
+        // (TEST_HOST/BUNDLE_LOADER in the generated project), so
+        // `Bundle.main` genuinely carries the real bundled catalog.json
+        // once it's actually bundled (project.yml's Copy Bundle Resources
+        // omission, fixed alongside this test). This test is about
+        // user-added repos, not the curated catalog, so it starts from a
+        // known-empty one instead of depending on what happens to ship.
+        let emptySeed = #"{"revision":1,"ramTiersGB":{},"chipBandwidthGBps":{},"families":[]}"#
+        let appState = makeAppState(scratchDir: scratch, catalogSeed: emptySeed)
 
         #expect(appState.catalog.families.isEmpty)
 
@@ -289,7 +298,7 @@ struct AppStateTests {
         #expect(entry.gguf?.repo == "someone/New-GGUF")
 
         // Survives a fresh AppState pointed at the same directory.
-        let reloaded = makeAppState(scratchDir: scratch)
+        let reloaded = makeAppState(scratchDir: scratch, catalogSeed: emptySeed)
         #expect(reloaded.catalog.families.count == 1)
 
         reloaded.removeUserCatalogRepo("someone/New-GGUF")

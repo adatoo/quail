@@ -65,6 +65,24 @@ jobs:
             echo "Quail.app not found under DerivedData; skipping."
           fi
 
+      - name: Verify bundled resources
+        if: hashFiles('Quail.xcodeproj/**') != ''
+        run: |
+          APP="$(find ~/Library/Developer/Xcode/DerivedData -maxdepth 6 -name 'Quail.app' -path '*/Debug/*' -print -quit)"
+          if [ -z "$APP" ]; then
+            echo "Quail.app not found under DerivedData; skipping."
+          else
+            # Regression check for a real bug: project.yml's resources
+            # wiring once silently produced a Quail.app with no Copy
+            # Bundle Resources phase at all, so catalog.json (the
+            # curated model list) and the app icon were missing from
+            # every build without a single test noticing.
+            test -f "$APP/Contents/Resources/catalog.json" || {
+              echo "::error::catalog.json is missing from Quail.app/Contents/Resources — check project.yml's resources wiring"
+              exit 1
+            }
+          fi
+
       - name: Test (Quail)
         run: |
           if [ -e Quail.xcodeproj ] || [ -e Quail.xcworkspace ]; then

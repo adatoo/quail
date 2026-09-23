@@ -41,6 +41,7 @@
 		798F1C09C23FA25832FFAC3B /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5C298F9956FEEED5E539F2 /* Config.swift */; };
 		803C82E9918ACE65750267CA /* StubURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 239E0D546E27423C906B3A80 /* StubURLProtocol.swift */; };
 		845C332E6D75F8E7D4CF3E1A /* LogStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */; };
+		885278AAC772EC276047B930 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F48BA28C404D2950FDE1212 /* Assets.xcassets */; };
 		88F5F2F83DDE401E61BB38CF /* CatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B87DA34C1C3C10454DD9BC /* CatalogTests.swift */; };
 		8C4232B0FBE3A73AEAFF506E /* HFRepo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 425E81D2DAC331A359585A0F /* HFRepo.swift */; };
 		8D88704579DC44780C153B31 /* GGUFMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1946EC80763A824682094C0 /* GGUFMetadataTests.swift */; };
@@ -48,6 +49,7 @@
 		9A5972B30A98BFE94BF8A2F5 /* CatalogRefresher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EABED4CD61813C8D19A53F6 /* CatalogRefresher.swift */; };
 		9E7A072989A42AFD0CF6C555 /* HFDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49BE1EF5FB53B825FC562F0 /* HFDownloader.swift */; };
 		A1550BA3B989C1800EA3489D /* ThisMacPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47FBAC880A6D514BBF7B4851 /* ThisMacPane.swift */; };
+		A1C4B1467D7A3630EEB647DA /* catalog.json in Resources */ = {isa = PBXBuildFile; fileRef = 3A40ECAC39FAEEB12AC1A32E /* catalog.json */; };
 		A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */; };
 		A97EF1AD2BF0945DC2C70167 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */; };
 		AD84B88BEFC224DCB3B822A2 /* ModelInstallControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60CD26ED650B7D72E7C62559 /* ModelInstallControllerTests.swift */; };
@@ -97,6 +99,7 @@
 		3082DD72FF9CE513E5A325D4 /* ModelPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPreviewTests.swift; sourceTree = "<group>"; };
 		351669FD912B75E519CAAF15 /* ModelsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsPane.swift; sourceTree = "<group>"; };
 		391271ECA995DA68CF47E1B8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		3A40ECAC39FAEEB12AC1A32E /* catalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = catalog.json; sourceTree = "<group>"; };
 		3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreCatalog.swift; sourceTree = "<group>"; };
 		3C313E49C170F38D115B7E22 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		425E81D2DAC331A359585A0F /* HFRepo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HFRepo.swift; sourceTree = "<group>"; };
@@ -116,6 +119,7 @@
 		6A0207CABC73498170DE7FF0 /* CatalogRefresherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogRefresherTests.swift; sourceTree = "<group>"; };
 		6CF5343FFDFED49C8EFF6B3C /* Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalog.swift; sourceTree = "<group>"; };
 		6EABED4CD61813C8D19A53F6 /* CatalogRefresher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogRefresher.swift; sourceTree = "<group>"; };
+		6F48BA28C404D2950FDE1212 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		70BF19344F23B98FA299585E /* AppInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfoTests.swift; sourceTree = "<group>"; };
 		7109E7D7686B314F8156BAC7 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		7C29DC0715805F71AA1A5599 /* Ping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ping.swift; sourceTree = "<group>"; };
@@ -267,11 +271,21 @@
 				46B1875E207F95A8F989B8C9 /* App */,
 				DD8C8330D9D8560E53B9C0F3 /* DeviceFit */,
 				2E999F1E3ABC71EC44FB61BC /* Models */,
+				936DF595A64CDA4AB344B849 /* Resources */,
 				E253BF4A5D3962970AE9AF43 /* Runtimes */,
 				53B832DE71E161DCFCCB0CC3 /* Server */,
 				38E92C9FBB2A03ED7B29BE1B /* UI */,
 			);
 			path = Quail;
+			sourceTree = "<group>";
+		};
+		936DF595A64CDA4AB344B849 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				6F48BA28C404D2950FDE1212 /* Assets.xcassets */,
+				3A40ECAC39FAEEB12AC1A32E /* catalog.json */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		C8777405539D489A674465B9 /* Products */ = {
@@ -327,6 +341,7 @@
 			buildConfigurationList = 3B430F6F8BDF5060F21AEB71 /* Build configuration list for PBXNativeTarget "Quail" */;
 			buildPhases = (
 				770EE833D45FFC7C0F7EB829 /* Sources */,
+				50A74984A5750FE85CE76FE7 /* Resources */,
 				C2420F31802B4F92A73F8506 /* Embed llama.cpp */,
 			);
 			buildRules = (
@@ -376,6 +391,18 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		50A74984A5750FE85CE76FE7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				885278AAC772EC276047B930 /* Assets.xcassets in Resources */,
+				A1C4B1467D7A3630EEB647DA /* catalog.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		C2420F31802B4F92A73F8506 /* Embed llama.cpp */ = {
