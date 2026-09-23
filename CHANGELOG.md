@@ -10,6 +10,18 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-23
+
+### Added
+
+- `quail` CLI v2: `pull <name|owner/repo>[:quant]` downloads a catalog model
+  (`quail pull qwen3-8b:Q8_0`) or any Hugging Face GGUF repo with a progress
+  bar — Ctrl-C cancels, running it again resumes — and `pull --list` shows the
+  catalog with this Mac's recommendations and what's installed; `rm`,
+  `default [model|--clear]`, `ctx <model> [size|auto]` (with each size's fit),
+  and `config` (endpoint, API key, store, logs, settings). Model names accept a
+  unique prefix.
+
 ## [0.2.0] - 2026-09-23
 
 ### Added

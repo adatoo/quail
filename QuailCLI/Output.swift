@@ -36,6 +36,12 @@ enum Output {
         try print(String(decoding: encoder.encode(value), as: UTF8.self))
     }
 
+    /// Clears a progress line drawn on stderr.
+    static func clearStatusLine() {
+        guard isatty(STDERR_FILENO) != 0 else { return }
+        FileHandle.standardError.write(Data("\r\u{1B}[2K".utf8))
+    }
+
     /// ANSI dim, only when writing to a terminal.
     static func dim(_ text: String) -> String {
         isatty(STDOUT_FILENO) != 0 ? "\u{1B}[2m\(text)\u{1B}[0m" : text

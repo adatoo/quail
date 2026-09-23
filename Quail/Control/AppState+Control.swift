@@ -56,6 +56,26 @@ extension AppState {
             ))
         case .benchHistory:
             return ControlResponse(ok: true, benchmarks: benchmarks.results)
+        case .pull:
+            guard let spec = request.model else { return .failure("Name a model to pull.") }
+            return await pullModel(spec)
+        case .pullProgress:
+            return ControlResponse(ok: true, pullProgress: pullProgressInfo)
+        case .pullCancel:
+            installs.cancel()
+            return ControlResponse(ok: true, message: "Cancelled.")
+        case .catalog:
+            return ControlResponse(ok: true, catalog: catalogInfo())
+        case .remove:
+            guard let name = request.model else { return .failure("Name a model to delete.") }
+            return await removeModel(name)
+        case .setDefault:
+            return defaultModelCommand(name: request.model, clear: request.clear == true)
+        case .context:
+            guard let name = request.model else { return .failure("Name a model.") }
+            return await contextCommand(name: name, tokens: request.contextSize, automatic: request.automatic == true)
+        case .config:
+            return ControlResponse(ok: true, config: configInfo)
         case .service:
             if let enabled = request.enabled {
                 setOpenAtLogin(enabled)
