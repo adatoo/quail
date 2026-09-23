@@ -2,6 +2,14 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-017 · 2026-09-23 · Default model loads via the router's own `load-on-startup` preset key, not a post-start RPC
+
+**Decision:** A user-designated "default model" (`Config.defaultModelID`, set via a star toggle on its row in the Models pane) is applied by writing `load-on-startup = true` into that one section of `presets.ini` (`ModelStore.regeneratePresets`). Confirmed against the real vendored `llama-server` binary (found via `strings` on `libllama-common.dylib`, then verified live: router mode against a real GGUF, with the key set and no client request made at all — the model was already `"loaded"` on the very first `/models` poll after startup): this key is real, documented in the binary itself as *"in server router mode, autoload this model on startup"*, and does exactly that.
+**Alternative considered:** issuing `AppState.selectModel(id:)` (`POST /models/load`) right after `ServerController.start(...)` settles to `.ready`. Rejected: it would need re-issuing after every `ProcessSupervisor` auto-restart too (the preset file doesn't need that — the router re-reads it fresh on every launch, including a restart's), and it puts runtime-specific load semantics in `AppState` rather than in the one place (`presets.ini`) that already describes everything about how the router should start.
+**Why now:** raised directly by the user after live testing ("When we start, what model is loaded?") — `ARCHITECTURE.md` already described a "selected model" config field and restoring "the last runtime and model" at launch, but nothing had built it; today's router starts with every preset `unloaded` until a manual Load click or a client request names one.
+**Scope not covered:** MLX runtimes (Phase 3) will need their own mechanism — the star toggle is GGUF-only for now, matching the Load button's own Phase-3 gating. `autoStartServer` (`docs/IMPLEMENTATION_PLAN.md` Phase 1 step 10's still-unwired setting) is a separate, still-open piece — this ADR only covers *which model* loads once the server *does* start, not starting it automatically at app launch.
+**Revisit if:** a future llama.cpp release changes or drops `load-on-startup`'s behavior (re-run the same live verification before trusting a version bump), or Phase 3 needs a genuinely different mechanism for MLX that makes a runtime-agnostic approach worth revisiting.
+
 ## D-016 · 2026-09-23 · Multiple concurrent endpoints deferred to Phase 5, after MLX runtimes
 
 **Decision:** Quail serves one endpoint (one `ServerController`, one host:port) at a time, same as today, through Phase 3 and 4. Running several endpoints at once — e.g. llama.cpp on one port and an MLX runtime on another, or a loopback endpoint alongside a LAN one with its own API key — is deferred to a new Phase 5, added to docs/IMPLEMENTATION_PLAN.md.

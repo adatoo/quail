@@ -303,7 +303,19 @@ struct ModelStore: Sendable, Equatable {
     /// Settings surface yet to let anyone override them. Writing arbitrary
     /// chosen numbers with no UI behind them would be guessing, not a
     /// decision.
-    func regeneratePresets(catalog: StoreCatalog, defaultContextSize: Int = 8192) throws {
+    ///
+    /// - Parameter defaultModelID: `Config.defaultModelID` (ADR D-017) —
+    ///   that one section, if it's still actually installed, gets
+    ///   `load-on-startup = true`, confirmed against the real vendored
+    ///   binary to make router mode load it immediately at startup with
+    ///   no client request needed. `nil`/not-installed writes no such
+    ///   key anywhere, today's behaviour (every preset stays unloaded
+    ///   until a Load click or a request names it).
+    func regeneratePresets(
+        catalog: StoreCatalog,
+        defaultContextSize: Int = 8192,
+        defaultModelID: String? = nil
+    ) throws {
         try ensureDirectoriesExist()
         var ini = ""
         for file in installedGGUFFiles() {
@@ -318,6 +330,9 @@ struct ModelStore: Sendable, Equatable {
             // n-gpu-layers (matching --n-gpu-layers) doesn't.
             ini += "n-gpu-layers = 99\n"
             ini += "ctx-size = \(contextSize)\n"
+            if alias == defaultModelID {
+                ini += "load-on-startup = true\n"
+            }
             ini += "\n"
         }
         try ini.write(to: presetsFile, atomically: true, encoding: .utf8)

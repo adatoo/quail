@@ -416,6 +416,48 @@ struct AppStateTests {
         #expect(reloaded.modelsMax == 4)
     }
 
+    @Test("setDefaultModel persists and is reflected in presets.ini on the next Start")
+    func setDefaultModelPersistsAndAppliesAtStart() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(named: "Alpha", to: appState.modelStore)
+
+        #expect(appState.config.defaultModelID == nil)
+        appState.setDefaultModel("Alpha")
+        #expect(appState.config.defaultModelID == "Alpha")
+
+        let reloaded = Config.load(from: scratch.appendingPathComponent("config.json"))
+        #expect(reloaded.defaultModelID == "Alpha")
+
+        await appState.start()
+        let ini = try String(contentsOf: appState.modelStore.presetsFile, encoding: .utf8)
+        #expect(ini.contains("[Alpha]"))
+        #expect(ini.contains("load-on-startup = true"))
+        await appState.stop()
+
+        appState.setDefaultModel(nil)
+        #expect(appState.config.defaultModelID == nil)
+    }
+
+    @Test("deleting the default model clears defaultModelID too")
+    func deletingDefaultModelClearsIt() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(named: "Alpha", to: appState.modelStore)
+        try appState.modelStore.saveCatalog(StoreCatalog(entries: [
+            InstalledModel(id: "Alpha", format: .gguf, bytes: 1, addedAt: .init()),
+        ]))
+        appState.setDefaultModel("Alpha")
+
+        try await appState.deleteInstalledModel(id: "Alpha")
+
+        #expect(appState.config.defaultModelID == nil)
+        let reloaded = Config.load(from: scratch.appendingPathComponent("config.json"))
+        #expect(reloaded.defaultModelID == nil)
+    }
+
     @Test("loadedModelStates: empty while stopped, the router's statuses while running")
     func loadedModelStates() async throws {
         let scratch = scratchDirectory()

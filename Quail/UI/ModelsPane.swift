@@ -165,6 +165,7 @@ struct ModelsPane: View {
                     verdict: verdicts[entry.id],
                     loaded: loadedStates[entry.id],
                     serverReady: appState.serverController.phase == .ready,
+                    isDefault: appState.config.defaultModelID == entry.id,
                     onLoad: {
                         Task {
                             do {
@@ -175,6 +176,9 @@ struct ModelsPane: View {
                                 loadError = String(describing: error)
                             }
                         }
+                    },
+                    onToggleDefault: {
+                        appState.setDefaultModel(appState.config.defaultModelID == entry.id ? nil : entry.id)
                     },
                     onDelete: {
                         pendingDeletion = entry.id
@@ -344,7 +348,11 @@ private struct ModelRow: View {
     let verdict: FitEstimate?
     let loaded: String?
     let serverReady: Bool
+    /// Whether this is `Config.defaultModelID` — the one row gets
+    /// `load-on-startup = true` in `presets.ini` (ADR D-017).
+    let isDefault: Bool
     let onLoad: () -> Void
+    let onToggleDefault: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -374,6 +382,18 @@ private struct ModelRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
+            // Usable while stopped (unlike Load) — it just sets what
+            // gets written into presets.ini on the next Start. GGUF
+            // only: `load-on-startup` is a llama.cpp router-mode
+            // preset key, and nothing can serve MLX yet (Phase 3).
+            if entry.format == .gguf {
+                Button(action: onToggleDefault) {
+                    Image(systemName: isDefault ? "star.fill" : "star")
+                        .foregroundStyle(isDefault ? .yellow : .secondary)
+                }
+                .buttonStyle(.borderless)
+                .help(isDefault ? "Default — loads automatically on Start" : "Load automatically on Start")
+            }
             Button(role: .destructive, action: onDelete) {
                 Image(systemName: "trash")
             }

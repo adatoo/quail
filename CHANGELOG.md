@@ -49,6 +49,26 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
 - Start now refuses to run with no installed GGUF (`AppState.canStart`/
   `hasServableModel`); the menu shows "No model installed" and an "Add
   model…" shortcut into Settings instead of starting an empty router.
+- Default model: a star toggle on a Models-pane row sets `Config.
+  defaultModelID`, which `presets.ini` gets a `load-on-startup = true`
+  key for (ADR D-017) — that model now loads automatically on Start, with
+  no manual Load click or inbound request required.
+
+### Fixed
+
+- `project.yml`'s resources wiring never actually put `catalog.json` (or
+  the app icon) into a built `Quail.app` — every build shipped an empty
+  curated catalog and no recommendations. Added a CI check so this can't
+  silently regress again.
+- The Add-model sheet had no visible way to close it besides Esc in most
+  states; added a Cancel button.
+- `ServerController` kept claiming `.ready` through a supervisor
+  auto-restart instead of re-verifying `/health` — the menu said "Running"
+  and Ping's "server up" step failed while the process was actually down.
+  It now re-checks health on every restart, same as the initial Start.
+- `PingSheet` reused a stale `PingRunner` (old host/port/API key) across
+  `Run Again` and reopening the window; it now always builds a fresh one
+  from what the server was actually launched with.
 
 ### Changed
 

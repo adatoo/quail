@@ -196,7 +196,7 @@ final class AppState {
             bandwidthTable: ChipBandwidthTable.loadFromBundle()
         )
         try? modelStore.saveCatalog(refreshed)
-        try? modelStore.regeneratePresets(catalog: refreshed)
+        try? modelStore.regeneratePresets(catalog: refreshed, defaultModelID: config.defaultModelID)
         await serverController.start(config: endpointConfig())
     }
 
@@ -461,6 +461,16 @@ final class AppState {
         persist()
     }
 
+    /// The model whose `presets.ini` section gets `load-on-startup = true`
+    /// (ADR D-017) — applies next Start, same as `modelsMax`; a running
+    /// server isn't reconfigured live. `id: nil` clears it (the star
+    /// toggle passing the already-default row's own id back off).
+    func setDefaultModel(_ id: String?) {
+        guard id != config.defaultModelID else { return }
+        config.defaultModelID = id
+        persist()
+    }
+
     /// Moves the whole store to a new folder and repoints at it — the
     /// point `Paths.makeModelsDirectoryBookmark` has existed for since
     /// PR 9 (docs/IMPLEMENTATION_PLAN.md step 7: "where it finally gets
@@ -550,7 +560,10 @@ final class AppState {
 
         catalog.entries.remove(at: index)
         try modelStore.saveCatalog(catalog)
-        try modelStore.regeneratePresets(catalog: catalog)
+        if config.defaultModelID == id {
+            setDefaultModel(nil)
+        }
+        try modelStore.regeneratePresets(catalog: catalog, defaultModelID: config.defaultModelID)
     }
 
     // MARK: - Open at login
