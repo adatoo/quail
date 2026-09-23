@@ -36,6 +36,11 @@ struct AddModelSheet: View {
     @State private var format: ModelFormat = .gguf
     @State private var quant: String?
     @State private var pickFit: RemoteFit = .checking
+    /// What's on disk, so rows can say "Installed" and an installed pick
+    /// offers Delete instead of a second download.
+    @State private var installed: [InstalledModel] = []
+    @State private var pendingDelete: InstalledModel?
+    @State private var deleteError: String?
 
     /// The repo the listing currently corresponds to ("" when nothing
     /// is selectable) — changes when selection or format change.
@@ -69,9 +74,34 @@ struct AddModelSheet: View {
         .frame(width: 820, height: 580)
         .onAppear {
             filter = defaultFilter
+            appState.installs.acknowledgeFinished()
             if let preselect {
                 selection = .curated(preselect)
             }
+        }
+        .onChange(of: selection) { _, _ in appState.installs.acknowledgeFinished() }
+        .onChange(of: appState.installs.phase) { _, newPhase in
+            if case .installed = newPhase {
+                Task { await reloadInstalled() }
+            }
+        }
+        .task { await reloadInstalled() }
+        .alert(
+            "Delete \(pendingDelete?.id ?? "")?",
+            isPresented: Binding(get: { pendingDelete != nil }, set: {
+                if !$0 {
+                    pendingDelete = nil
+                }
+            })
+        ) {
+            Button("Delete", role: .destructive) {
+                if let entry = pendingDelete {
+                    Task { await delete(entry) }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Removes the model's files from this Mac. If it's loaded, the server is stopped first.")
         }
         // Keyed on the resolved repo, not just the selection: flipping a
         // curated family's format points at a different repo/listing.
@@ -142,20 +172,30 @@ struct AddModelSheet: View {
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.defaultAction)
             default:
-                if let total = pickBytes, total > 0 {
-                    Text("\(ByteCountFormatter.string(fromByteCount: total, countStyle: .file)) download")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                if let entry = installedPick {
+                    Button("Delete…", role: .destructive) { pendingDelete = entry }
+                    Spacer()
+                    Button("Close") { dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                    Button("Installed") {}
+                        .buttonStyle(.borderedProminent)
+                        .disabled(true)
+                } else {
+                    if let total = pickBytes, total > 0 {
+                        Text("\(ByteCountFormatter.string(fromByteCount: total, countStyle: .file)) download")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Spacer()
+                    // `.sheet` supplies no close chrome on macOS.
+                    Button("Cancel") { dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                    Button("Download") { startDownload() }
+                        .keyboardShortcut(.defaultAction)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(!canDownload || appState.installs.isDownloading)
                 }
-                Spacer()
-                // `.sheet` supplies no close chrome on macOS.
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button("Download") { startDownload() }
-                    .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!canDownload || appState.installs.isDownloading)
             }
         }
         .padding(.horizontal, 20)
@@ -231,6 +271,9 @@ struct AddModelSheet: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 4)
+            if !InstalledLookup.entries(for: family, in: installed).isEmpty {
+                Badge(text: "Installed", color: .blue)
+            }
             RemoteFitBadge(fit: appState.catalogFits[family.id])
         }
         .padding(.vertical, 2)
@@ -329,7 +372,14 @@ struct AddModelSheet: View {
                 Text("It's in your Models list. Star it there to make it the default that loads on Start.")
                     .foregroundStyle(.secondary)
             }
-        default:
+        case let .failed(message):
+            VStack(alignment: .leading, spacing: 16) {
+                Label("Download failed: \(message)", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                detailForSelection
+            }
+        case .idle:
             detailForSelection
         }
     }
@@ -359,6 +409,17 @@ struct AddModelSheet: View {
                         )
                         .font(.callout)
                         .foregroundStyle(.secondary)
+                    }
+                    if let entry = installedPick {
+                        Label(
+                            "Installed\(entry.bytes > 0 ? " · " + ByteCountFormatter.string(fromByteCount: entry.bytes, countStyle: .file) : "") — it's in your Models list as \(entry.id).",
+                            systemImage: "checkmark.circle.fill"
+                        )
+                        .foregroundStyle(.blue)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let deleteError {
+                        Label(deleteError, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.red)
                     }
                     FitCard(fit: pickFit, gpuCeilingBytes: device.gpuWorkingSetCeilingBytes)
                 }
@@ -458,6 +519,9 @@ struct AddModelSheet: View {
         }
         if case let .curated(family)? = selection, family.gguf?.defaultQuant == option {
             label += " (recommended)"
+        }
+        if installedEntry(format: .gguf, quant: option) != nil {
+            label += " — installed"
         }
         return label
     }
@@ -587,6 +651,44 @@ struct AddModelSheet: View {
                 pickFit = .unknown("Couldn't reach Hugging Face")
             }
         }
+    }
+
+    /// The installed entry for the current pick (format + quant), if any.
+    private var installedPick: InstalledModel? {
+        installedEntry(format: format, quant: format == .gguf ? (quant ?? quantOptions.first) : nil)
+    }
+
+    private func installedEntry(format: ModelFormat, quant: String?) -> InstalledModel? {
+        switch selection {
+        case let .curated(family)?:
+            InstalledLookup.entry(for: family, format: format, quant: quant, in: installed)
+        case let .pasted(repo)?:
+            InstalledLookup.entry(forRepo: listing?.id ?? repo, format: format, quant: quant, in: installed)
+        case nil:
+            nil
+        }
+    }
+
+    /// Disk-reconciled, like the Models pane — a hand-placed GGUF counts too.
+    private func reloadInstalled() async {
+        let store = appState.modelStore
+        let device = DeviceInfo.current()
+        let runtime = appState.config.runtimeID
+        let bandwidth = ChipBandwidthTable.loadFromBundle()
+        installed = await Task.detached(priority: .utility) {
+            store.refreshedCatalog(device: device, ggufRuntime: runtime, bandwidthTable: bandwidth).entries
+        }.value
+    }
+
+    private func delete(_ entry: InstalledModel) async {
+        pendingDelete = nil
+        do {
+            try await appState.deleteInstalledModel(id: entry.id)
+            deleteError = nil
+        } catch {
+            deleteError = "Couldn't delete \(entry.id): \(error)"
+        }
+        await reloadInstalled()
     }
 
     private func startDownload() {

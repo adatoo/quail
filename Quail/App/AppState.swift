@@ -604,6 +604,7 @@ final class AppState {
         installs.modelStore = modelStore
         config.modelsDirectoryBookmark = try Paths.makeModelsDirectoryBookmark(for: newRoot)
         persist()
+        storeRevision += 1
     }
 
     enum RelocationError: Error, Equatable {
@@ -612,16 +613,24 @@ final class AppState {
 
     /// Removes a model: its files and its `catalog.json` row together
     /// (docs/ARCHITECTURE.md §6: "Deletion removes the files and the
-    /// catalog row"), plus `presets.ini` regeneration. A loaded model is
-    /// handled the §6-sanctioned "or a restart" way: the server is
-    /// stopped first (step 8's `POST /models/unload` equivalent will
-    /// make this gentler), and stays stopped — restarting it
+    /// catalog row"), plus `presets.ini` regeneration. A *loaded* (or
+    /// loading) model is handled the §6-sanctioned "or a restart" way: the
+    /// server is stopped first and stays stopped — restarting it
     /// automatically after an explicit destructive action is the
     /// surprising half of that choice, so the user presses Start again.
+    /// Deleting a model the server isn't using leaves it running (an
+    /// earlier version stopped it unconditionally, contradicting this
+    /// comment); the router keeps that preset until the next Start, and a
+    /// request naming it fails to load rather than finding stale weights.
     enum ModelDeletionError: Error, Equatable {
         case notInstalled
         case downloadInFlight
     }
+
+    /// Bumped whenever the store's contents change outside a download
+    /// (delete, relocate), so every view showing installed models can
+    /// refresh — the Models pane and the Add-model sheet both delete.
+    private(set) var storeRevision = 0
 
     func deleteInstalledModel(id: String) async throws {
         guard !installs.isDownloading else { throw ModelDeletionError.downloadInFlight }
@@ -630,7 +639,11 @@ final class AppState {
             throw ModelDeletionError.notInstalled
         }
         let entry = catalog.entries[index]
-        await serverController.stop()
+        await refreshServedModels()
+        let inUse = servedModels.contains { $0.id == id && ["loaded", "loading"].contains($0.status.value) }
+        if inUse {
+            await stop()
+        }
 
         let fm = FileManager.default
         switch entry.format {
@@ -661,6 +674,7 @@ final class AppState {
             setDefaultModel(nil)
         }
         try modelStore.regeneratePresets(catalog: catalog, defaultModelID: config.defaultModelID)
+        storeRevision += 1
     }
 
     // MARK: - Open at login

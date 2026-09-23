@@ -95,6 +95,13 @@ Phase 2 progress (see docs/IMPLEMENTATION_PLAN.md), not yet a tagged release:
   from what the server was actually launched with.
 - The generated API key was a 32-character hex string that overflowed
   the Endpoint settings field; it's now 16-character base64url.
+- Add-model sheet: rows now say "Installed" (per quant in the picker), and
+  an installed pick offers Delete instead of a second download. A failed
+  download is shown in the sheet (it used to reset silently), and a
+  finished download no longer leaves the sheet stuck on "Installed · Done"
+  the next time it opens. Deleting a model only stops the server if that
+  model is loaded (it used to stop it unconditionally); the Models list
+  refreshes after a delete from either place.
 - "Recommended for this Mac" was limited to the Mac's RAM tier — on a
   64 GB Mac that's 35B+, which hid comfortable 27–31B models. It now lists
   the top 5 models that run comfortably here, any size (D-019), ordered by

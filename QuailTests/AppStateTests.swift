@@ -619,6 +619,29 @@ struct AppStateTests {
         #expect(ini.contains("[Gone-Mate]"))
     }
 
+    @Test("delete leaves the server running unless that model is loaded; bumps storeRevision")
+    func deleteStopsServerOnlyForLoadedModel() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(named: "Idle", to: appState.modelStore)
+        try writeFixtureGGUF(named: "Busy", to: appState.modelStore)
+        await appState.start()
+        try appState.modelStore.saveCatalog(appState.modelStore.refreshedCatalog(
+            device: DeviceInfo(), ggufRuntime: .llamaCpp, bandwidthTable: [:]
+        ))
+        let runtime = try #require(appState.runtime as? FakeRuntime)
+        await runtime.setListModelsResult(.success([Self.served("Idle", "unloaded"), Self.served("Busy", "loaded")]))
+        let revision = appState.storeRevision
+
+        try await appState.deleteInstalledModel(id: "Idle")
+        #expect(appState.serverController.phase == .ready)
+        #expect(appState.storeRevision == revision + 1)
+
+        try await appState.deleteInstalledModel(id: "Busy")
+        #expect(appState.serverController.phase == .stopped)
+    }
+
     @Test("start() creates the model store's directories and a presets.ini")
     func startCreatesModelStore() async throws {
         let scratch = scratchDirectory()

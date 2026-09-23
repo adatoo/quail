@@ -1,3 +1,4 @@
+import os
 import SwiftUI
 
 /// The Models settings tab (docs/IMPLEMENTATION_PLAN.md Phase 2 step 7):
@@ -114,11 +115,15 @@ struct ModelsPane: View {
                 loadedStates = await appState.loadedModelStates()
             }
         }
+        .onChange(of: appState.storeRevision) { _, _ in
+            Task { await refresh() }
+        }
         .onChange(of: appState.installs.phase) { _, newPhase in
             // Rows only appear/verify once an install reaches a terminal
             // phase; the downloading phase re-renders by observation.
             switch newPhase {
             case .installed, .failed:
+                Self.logger.notice("install reached \(String(describing: newPhase), privacy: .public); refreshing")
                 Task { await refresh() }
             default:
                 break
@@ -322,7 +327,10 @@ struct ModelsPane: View {
         }
     }
 
+    private static let logger = Logger(subsystem: "com.datoos.quail", category: "ModelsPane")
+
     private func refresh() async {
+        Self.logger.notice("refresh: start")
         loadedStates = await appState.loadedModelStates()
         let store = appState.modelStore
         let device = DeviceInfo.current()
@@ -345,6 +353,7 @@ struct ModelsPane: View {
         }.value
         rows = result.0
         verdicts = result.1
+        Self.logger.notice("refresh: done, rows \(result.0.map(\.id), privacy: .public)")
     }
 }
 
