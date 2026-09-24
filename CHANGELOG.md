@@ -10,6 +10,16 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-24
+
+### Added
+
+- Settings → General has an **About** section: the app version and build, whether
+  it's the direct download or the Mac App Store build, the bundled llama.cpp
+  release, the model catalog revision and your macOS version. **Copy Details**
+  puts them on the clipboard for a bug report, and **Open-source licences**
+  shows the llama.cpp MIT licence that ships with the app (ADR D-029).
+
 ## [0.5.0] - 2026-09-24
 
 ### Added

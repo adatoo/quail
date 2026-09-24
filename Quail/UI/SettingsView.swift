@@ -11,9 +11,9 @@ enum SettingsTab: Hashable {
     case thisMac
 }
 
-/// Root of the Settings window: `General` (open at login), `Endpoint`
+/// Root of the Settings window: `General` (open at login, the `quail` command, About), `Endpoint`
 /// (runtime, host, port, API key), `Models` (store, catalog, downloads),
-/// `Benchmark` (fixed suite, saved results) and `This Mac` (device-fit facts). `Runtimes`, `Logs` and `About` land
+/// `Benchmark` (fixed suite, saved results) and `This Mac` (device-fit facts). `Runtimes` and `Logs` land
 /// in later phases per docs/IMPLEMENTATION_PLAN.md.
 struct SettingsView: View {
     let appState: AppState
@@ -119,6 +119,8 @@ private struct GeneralSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             #endif
+
+            AboutSection(appState: appState)
         }
         .formStyle(.grouped)
         .onAppear {

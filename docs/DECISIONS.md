@@ -2,6 +2,13 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-029 · 2026-09-24 · About lives in Settings → General; no About menu item, tab or window
+
+**Decision:** Version, distribution channel, the bundled llama.cpp tag, the catalog revision, the macOS version, a "Copy Details" button for bug reports and the open-source licences all sit in one **About** section at the bottom of Settings → General, in both builds. Quail has no separate About window, tab or menu item. The llama.cpp tag reaches the app because `scripts/embed-llama.sh` copies `scripts/llama.version` (the pin `vendor-llama.sh` downloads) into `Contents/Resources`; CI fails the build if that file or `LICENSE-llama.cpp` is missing from the app.
+**Alternatives:** A dedicated About tab, or an "About Quail" item in the menu-bar menu (what Phase 4 step 6 planned). Rejected: Quail is an `LSUIElement` menu-bar agent, so it has no app menu with a conventional About item to be missing, and one place beats three for a person filing a bug.
+**App Store:** I know of no App Store rule that requires an in-app About screen, but I did not check Apple's current review guidelines, so treat that as unverified. What both builds do need is llama.cpp's MIT licence text to travel with the app; it's bundled and now readable in-app (General → Open-source licences).
+**Revisit if:** App Review asks for an About item, or Sparkle's update UI (Phase 4 step 1) wants a natural home of its own. Rows for things that don't exist yet (the `quail-server` version, runtime pins) join this section when they do.
+
 ## D-028 · 2026-09-24 · Dependencies for `quail-server`: mlx-swift-lm, swift-transformers, swift-jinja
 
 **Decision:** AGENTS.md's dependency rule gains a third exception beside Sparkle and swift-argument-parser (D-022): the `quail-server` target (D-027), and only that target, links `mlx-swift` and `mlx-swift-lm` (`MLXLLM`, `MLXLMCommon`), `swift-transformers` (`Tokenizers`, which brings `swift-jinja`) and `OrderedCollections`. The HTTP layer is hand-written on `Network.framework`, not swift-nio. None of them is linked into the app or the `quail` CLI. Three build facts, all found in the D-027 spike, are part of the decision:

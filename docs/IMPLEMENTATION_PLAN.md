@@ -158,7 +158,7 @@ Originally Phase 3 steps 4–10 (direct build only, per D-006). Deferred by D-02
 3. LAN binding one-time warning; API key strongly suggested when host is `0.0.0.0`.
 4. Measured-speed calibration: store TTFT and tok/s per (model, chip) — delivered by Phase 2b's benchmark, shown on installed models; still to do: feed measurements back into estimates for models not yet benchmarked (e.g. a per-chip correction factor).
 5. App Store scheme: sandbox entitlements, `llama-server` signed with `app-sandbox` + `inherit`, model store inside the container by default, `#if !APPSTORE` compiled out and verified by a CI grep that no uv/PyPI code survives in that binary.
-6. About pane with the full version matrix (app, llama.cpp tag, uv, runtime pins, catalog revision) and Acknowledgements.
+6. ~~About pane~~ — done as a section of Settings → General, not a pane (D-029): app version, distribution, llama.cpp tag, catalog revision, macOS, Copy Details and the open-source licences. Still to add there as they exist: the `quail-server` version, runtime pins, the update check.
 
 ## Phase 5 — Multiple endpoints
 
