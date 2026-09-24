@@ -1,0 +1,7 @@
+<|im_start|>user
+Hi there<|im_end|>
+<|im_start|>assistant
+Hello! How can I help?<|im_end|>
+<|im_start|>user
+Name a prime number.<|im_end|>
+<|im_start|>assistant

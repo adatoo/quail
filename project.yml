@@ -23,12 +23,21 @@ packages:
     url: https://github.com/apple/swift-argument-parser
     exactVersion: 1.8.2
 
+  # ADR D-028/D-035: quail-server's chat-template renderer (QuailServerCore only). The
+  # collections pin is D-028's: 1.7.0 built by Xcode 27 doesn't launch on macOS 26.
+  Jinja:
+    url: https://github.com/huggingface/swift-jinja
+    exactVersion: 2.5.1
+  Collections:
+    url: https://github.com/apple/swift-collections
+    exactVersion: 1.3.0
+
 settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "0.10.0"
-    CURRENT_PROJECT_VERSION: "19"
+    MARKETING_VERSION: "0.11.0"
+    CURRENT_PROJECT_VERSION: "20"
     ENABLE_HARDENED_RUNTIME: YES
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_LSUIElement: YES
@@ -195,6 +204,10 @@ targets:
     platform: macOS
     sources:
       - path: QuailServer/Core
+    dependencies:
+      - package: Jinja
+      - package: Collections
+        product: OrderedCollections
     settings:
       base:
         PRODUCT_NAME: QuailServerCore
@@ -218,6 +231,10 @@ targets:
       - path: QuailServer/Main
     dependencies:
       - target: QuailServerCore
+      # A static library doesn't carry its package products to whatever links it.
+      - package: Jinja
+      - package: Collections
+        product: OrderedCollections
     settings:
       base:
         PRODUCT_NAME: quail-server
@@ -248,6 +265,9 @@ targets:
       - target: Quail
         embed: false
       - target: QuailServerCore
+      - package: Jinja
+      - package: Collections
+        product: OrderedCollections
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.datoos.quail.tests

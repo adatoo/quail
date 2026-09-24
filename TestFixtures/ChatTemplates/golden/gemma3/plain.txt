@@ -1,0 +1,5 @@
+<|endoftext|><start_of_turn>user
+You are a terse assistant.
+
+What is the capital of France?<end_of_turn>
+<start_of_turn>model
