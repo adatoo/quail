@@ -10,6 +10,12 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-09-24
+
+### Changed
+
+- CI: `softprops/action-gh-release` 2 → 3 (Node 24 runtime; the inputs Quail uses are unchanged).
+
 ## [0.6.1] - 2026-09-24
 
 ### Changed
