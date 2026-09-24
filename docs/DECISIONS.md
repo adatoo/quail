@@ -2,6 +2,14 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-034 · 2026-09-24 · The app icon: an AI-generated quail, rendered to the macOS icon shape by a script
+
+**Decision:** The icon is a flying California quail on a yellow field, generated with ChatGPT's image tool from the maintainer's prompt and kept as `Design/AppIcon-source.png` (1254 px, flat colour). `Design/make-icon.py` (Python + Pillow) turns it into the ten `AppIcon.appiconset` sizes: a 824 px superellipse ("squircle") on the 1024 px canvas with the standard soft shadow, because a plain `.appiconset` isn't masked by the system. Re-run it after changing the source; the PNGs are committed so a build needs neither Python nor Pillow.
+**Provenance:** the image is AI-generated. Its copyright status is uncertain in most jurisdictions (purely machine-generated images may not be protected at all), and the generator's terms, not this repo's, decide what can be done with it. It sits under `Design/` and the asset catalog, apart from the MIT-licensed code, so it can be swapped for commissioned artwork without touching anything else.
+**Not done:** the menu-bar glyph is still an SF Symbol per state (stopped/starting/running/failed); a quail silhouette template image would need to read at 18 pt in both appearances and is separate work. No dark or tinted icon variants (macOS 26's Icon Composer `.icon` format would give layered artwork; the flat raster is the portable baseline).
+**Alternatives:** A hand-drawn vector quail (more control, more time); a lettermark.
+**Revisit if:** Quail gets commissioned artwork, or the Store submission wants an `.icon` file.
+
 ## D-033 · 2026-09-24 · Homebrew: a cask in `adatoo/homebrew-tap`, rendered and pushed by every release
 
 **Decision:** `brew install --cask adatoo/tap/quail-ai` installs the release DMG's `Quail.app` and links the bundled `quail` command-line tool (`Contents/Helpers/quail`) onto the PATH. The cask's source is `Config/quail-ai.rb.in` in this repo; `task release:cask` fills in the version and the sha256 of the DMG, and `task release:cask:publish` commits it to the tap's `Casks/quail-ai.rb`. The Release workflow's `homebrew` job (after `dmg`) downloads the DMG *as published*, so the hash brew checks is of what people download, and pushes with the `TAP_TOKEN` secret (a fine-grained token with contents:write on the tap only, passed to git through the environment so it never reaches argv, a URL or `.git/config`). A rejected push (two releases close together) is refetched and retried. The tap holds any number of casks and formulae, so future projects can share it.
