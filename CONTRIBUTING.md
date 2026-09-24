@@ -1,7 +1,7 @@
 # Contributing to Quail
 
-Quail is pre-alpha and developed in the open on a private repo until MVP; the
-process below is what we'll use once it's public too.
+Quail is pre-alpha and developed in the open. The process below applies to
+everyone, maintainers included.
 
 ## Before you start
 
