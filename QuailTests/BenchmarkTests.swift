@@ -140,7 +140,8 @@ struct BenchmarkTests {
         await #expect(throws: (any Error).self) { _ = try await run.value }
         #expect(!controller.isRunning)
         #expect(controller.results.isEmpty)
-        #expect(controller.lastError?.hasPrefix("Cancelled") == true)
+        #expect(controller.wasCancelled)
+        #expect(controller.lastError == nil)
     }
 
     @Test("elapsed time reads as minutes and seconds")

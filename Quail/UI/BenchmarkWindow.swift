@@ -103,6 +103,10 @@ struct BenchmarkWindow: View {
                             .controlSize(.small)
                     }
                 }
+            } else if benchmarks.wasCancelled {
+                Label("Cancelled — nothing was saved.", systemImage: "xmark.circle")
+                    .foregroundStyle(.secondary)
+                    .font(.callout)
             } else if let error = benchmarks.lastError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.red)
@@ -153,12 +157,14 @@ struct BenchmarkWindow: View {
                             .foregroundStyle(.secondary)
                             .help(result.date.formatted(date: .complete, time: .complete))
                         if comparison?.baseline.id == result.id {
+                            // Grey with white text: readable on a plain row and
+                            // on the selection's blue, which a blue tag isn't.
                             Text("Baseline")
                                 .font(.caption2.bold())
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1)
-                                .background(.blue.opacity(0.2), in: Capsule())
-                                .foregroundStyle(.blue)
+                                .background(Color.gray.opacity(0.65), in: Capsule())
+                                .foregroundStyle(.white)
                         }
                     }
                 }

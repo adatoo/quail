@@ -13,6 +13,8 @@ final class BenchmarkController {
     private(set) var fraction = 0.0
     private(set) var startedAt: Date?
     private(set) var lastError: String?
+    /// The last run was stopped by the user — not a failure.
+    private(set) var wasCancelled = false
     /// Set by "Benchmark" on a Models row, read by the window's picker.
     var requestedModel: String?
 
@@ -52,6 +54,7 @@ final class BenchmarkController {
         fraction = 0
         startedAt = Date()
         lastError = nil
+        wasCancelled = false
         let task = Task { try await work(self) }
         self.task = task
         defer {
@@ -63,9 +66,11 @@ final class BenchmarkController {
         do {
             return try await task.value
         } catch {
-            lastError = task.isCancelled
-                ? "Cancelled — nothing was saved."
-                : (error as? BenchmarkError)?.description ?? error.localizedDescription
+            if task.isCancelled {
+                wasCancelled = true
+            } else {
+                lastError = (error as? BenchmarkError)?.description ?? error.localizedDescription
+            }
             throw error
         }
     }
