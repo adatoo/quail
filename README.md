@@ -4,6 +4,14 @@
 
 Quail starts a runtime, exposes an OpenAI-compatible endpoint, and gets out of the way. It manages three runtimes behind one interface — **llama.cpp** (bundled), **oMLX** and **Rapid-MLX** (installed on demand) — with one shared model folder and one honest opinion about what fits on your machine.
 
+## Install
+
+```
+brew install --cask adatoo/tap/quail
+```
+
+or download the DMG from the [latest release](https://github.com/adatoo/quail/releases/latest). The build is signed and notarized. Quail then updates itself (Settings → General → Updates); Homebrew leaves that to Quail unless you run `brew upgrade --greedy`. The `brew` install also puts the `quail` command on your PATH.
+
 ## What it does
 
 - Start, stop and supervise one runtime at a time; status in the menu bar

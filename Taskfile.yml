@@ -214,7 +214,7 @@ tasks:
         echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp present"
 
   install:
-    desc: Build Release and install to ~/Apps/Quail.app (INSTALL_DIR=… to change; ad-hoc signed unless QUAIL_SIGN_IDENTITY is set)
+    desc: Build Release and install to ~/Apps/Quail.app (INSTALL_DIR=… to change; ad-hoc signed, without the hardened runtime, unless QUAIL_SIGN_IDENTITY is set)
     vars:
       # `task install INSTALL_DIR=/some/where` or INSTALL_DIR in the environment.
       TARGET_DIR: '{{if .INSTALL_DIR}}{{.INSTALL_DIR}}{{else}}{{.HOME}}/Apps{{end}}'
@@ -239,6 +239,7 @@ tasks:
           ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
           CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='{{.SIGN_IDENTITY}}' \
           DEVELOPMENT_TEAM="${QUAIL_TEAM_ID:-}" \
+          ENABLE_HARDENED_RUNTIME='{{if eq .SIGN_IDENTITY "-"}}NO{{else}}YES{{end}}' \
           | {{.PRETTY}}
       - |
         built='{{.DERIVED_DATA}}/Build/Products/Release/Quail.app'
@@ -250,6 +251,12 @@ tasks:
         # ditto, not cp -R: it keeps the code signature and extended attributes intact.
         ditto "$built" "$target"
         codesign --verify --deep --strict "$target"
+        # An ad-hoc app has no team, and the hardened runtime's library validation only loads
+        # frameworks from the same team, so it would die at launch on the embedded Sparkle.
+        # The ad-hoc build therefore drops the hardened runtime (a signed build keeps it).
+        if [ '{{.SIGN_IDENTITY}}' = '-' ] && codesign -d --verbose=2 "$target/Contents/MacOS/Quail" 2>&1 | grep -q 'flags=.*runtime'; then
+          echo "error: the ad-hoc build still has the hardened runtime, so it won't launch" >&2; exit 1
+        fi
         echo "installed. Launch it with: open '$target'"
         if [ '{{.SIGN_IDENTITY}}' = '-' ]; then
           echo "note: ad-hoc signed, so Keychain asks for your password after every rebuild — see CONTRIBUTING.md (LocalSigning)."
