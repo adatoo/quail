@@ -1515,7 +1515,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.quail;
 				PRODUCT_NAME = Quail;
 				SDKROOT = macosx;
-				SPARKLE_PUBLIC_ED_KEY = "";
+				SPARKLE_PUBLIC_ED_KEY = "oH+v2DZA8LRTu8SzGsRJSLwZAvyxRgppOiVU5eZ6xC0=";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = APPSTORE;
 			};
 			name = "Release-AppStore";
@@ -1536,7 +1536,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.quail;
 				PRODUCT_NAME = Quail;
 				SDKROOT = macosx;
-				SPARKLE_PUBLIC_ED_KEY = "";
+				SPARKLE_PUBLIC_ED_KEY = "oH+v2DZA8LRTu8SzGsRJSLwZAvyxRgppOiVU5eZ6xC0=";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG APPSTORE";
 			};
 			name = "Debug-AppStore";
@@ -1739,7 +1739,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.quail;
 				PRODUCT_NAME = Quail;
 				SDKROOT = macosx;
-				SPARKLE_PUBLIC_ED_KEY = "";
+				SPARKLE_PUBLIC_ED_KEY = "oH+v2DZA8LRTu8SzGsRJSLwZAvyxRgppOiVU5eZ6xC0=";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 			};
 			name = Debug;
@@ -1759,7 +1759,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.quail;
 				PRODUCT_NAME = Quail;
 				SDKROOT = macosx;
-				SPARKLE_PUBLIC_ED_KEY = "";
+				SPARKLE_PUBLIC_ED_KEY = "oH+v2DZA8LRTu8SzGsRJSLwZAvyxRgppOiVU5eZ6xC0=";
 			};
 			name = Release;
 		};

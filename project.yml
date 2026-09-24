@@ -112,8 +112,10 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.datoos.quail
         PRODUCT_NAME: Quail
         GENERATE_INFOPLIST_FILE: NO
-        # Replace with the real key (`generate_keys`) — override on the command line to test with another.
-        SPARKLE_PUBLIC_ED_KEY: ""
+        # The public half of the update-signing key (`generate_keys`; the private half is in the
+        # maintainer's keychain and the SPARKLE_ED_PRIVATE_KEY secret). Override on the command
+        # line to test with another. ADR D-032.
+        SPARKLE_PUBLIC_ED_KEY: "oH+v2DZA8LRTu8SzGsRJSLwZAvyxRgppOiVU5eZ6xC0="
       configs:
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG"
