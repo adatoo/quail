@@ -10,19 +10,17 @@ extension AppState {
     /// unique case-insensitive prefix (`quail rm qwen3-0.6b`).
     func installedEntry(named name: String) -> Result<InstalledModel, ControlError> {
         let entries = modelStore.loadCatalog().entries
-        if let exact = entries.first(where: { $0.id == name }) {
-            return .success(exact)
-        }
-        if let loose = entries.first(where: { $0.id.caseInsensitiveCompare(name) == .orderedSame }) {
-            return .success(loose)
-        }
-        let matches = entries.filter { $0.id.lowercased().hasPrefix(name.lowercased()) }
-        switch matches.count {
-        case 1: return .success(matches[0])
-        case 0: return .failure(ControlError("No installed model named '\(name)'. See `quail list`."))
-        default:
+        switch ModelNameMatch.match(name, in: entries.map(\.id)) {
+        case let .one(id):
+            guard let entry = entries.first(where: { $0.id == id }) else {
+                return .failure(ControlError("No installed model named '\(name)'. See `quail list`."))
+            }
+            return .success(entry)
+        case .none:
+            return .failure(ControlError("No installed model named '\(name)'. See `quail list`."))
+        case let .ambiguous(matches):
             return .failure(ControlError(
-                "'\(name)' matches \(matches.map(\.id).joined(separator: ", ")) — be more specific."
+                "'\(name)' matches \(matches.joined(separator: ", ")) — be more specific."
             ))
         }
     }

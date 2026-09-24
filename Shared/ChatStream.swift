@@ -2,7 +2,7 @@ import Foundation
 
 /// Parses an OpenAI-style `/v1/chat/completions` SSE stream line by line:
 /// content deltas, and llama-server's own `timings` (prompt/generation
-/// speed) on the final chunk. Shared by `quail run`; pure, so it's tested
+/// speed) on the final chunk. Shared by `quail chat`; pure, so it's tested
 /// without a server.
 struct ChatStreamParser: Sendable {
     enum Event: Sendable, Equatable {

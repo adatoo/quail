@@ -176,14 +176,14 @@ struct BenchmarkTests {
 
     // MARK: - Chat entry
 
-    @Test("a runtime with a web UI opens it; one without hands off to quail run")
+    @Test("a runtime with a web UI opens it; one without hands off to quail chat")
     func chatEntry() throws {
         let url = try #require(URL(string: "http://127.0.0.1:8080"))
         #expect(ChatEntry.resolve(webUI: url, model: "M") == .browser(url))
         let named = ChatEntry.resolve(webUI: nil, model: "Qwen3-8B-Q4_K_M")
-        #expect(named == .terminal(command: "quail run Qwen3-8B-Q4_K_M"))
-        #expect(ChatEntry.resolve(webUI: nil, model: nil) == .terminal(command: "quail run"))
-        #expect(ChatEntry.command(model: "my model's") == "quail run 'my model'\\''s'")
+        #expect(named == .terminal(command: "quail chat -m Qwen3-8B-Q4_K_M"))
+        #expect(ChatEntry.resolve(webUI: nil, model: nil) == .terminal(command: "quail chat"))
+        #expect(ChatEntry.command(model: "my model's") == "quail chat -m 'my model'\\''s'")
     }
 
     // MARK: - Result format and storage

@@ -2,32 +2,66 @@ import ArgumentParser
 import Darwin
 import Foundation
 
-/// `quail run <model> [prompt]` — chat with a model in the terminal
+/// `quail chat [model] [prompt…]` — chat with a model in the terminal
 /// (ADR D-021: for judging a model; no saved history, attachments or tools).
-struct Run: AsyncParsableCommand {
+/// Whether the first word is a model or the start of the prompt is decided
+/// by `ChatTarget` (ADR D-025).
+struct ChatCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
+        commandName: "chat",
         abstract: "Chat with a model. With a prompt (or piped input), answer once and exit.",
-        discussion: "In a chat: /clear forgets the conversation, /bye exits."
+        discussion: """
+        The first word is the model if it names an installed model (a unique \
+        prefix is enough); otherwise everything is the prompt and the default \
+        model answers. Use -m to name the model outright.
+
+        Examples:
+          quail chat                        default model, interactive
+          quail chat qwen3                  qwen3, interactive
+          quail chat why is the sky blue    default model, one answer
+          quail chat qwen3 why is the sky blue
+          quail chat -m qwen3 why is the sky blue
+
+        In a chat: /clear forgets the conversation, /bye exits.
+        """
     )
 
-    @Argument(help: "Model name (see `quail list`). Defaults to the default model.")
+    @Option(
+        name: .shortAndLong,
+        help: "Model name (see `quail list`); a unique prefix is enough. Defaults to the default model."
+    )
     var model: String?
 
-    @Argument(parsing: .remaining, help: "A prompt to answer once, then exit.")
-    var prompt: [String] = []
+    @Argument(parsing: .remaining, help: "[model] [prompt…] — a prompt is answered once, then exit.")
+    var words: [String] = []
 
     @Flag(help: "Hide a reasoning model's thinking.") var hideThinking = false
 
     func run() async throws {
         let endpoint = try await Self.endpoint()
         guard let base = URL(string: endpoint.baseURL) else { throw CLIError("No endpoint from Quail.") }
-        guard let model = model ?? endpoint.defaultModel else {
-            throw CLIError("No model given and no default set. See `quail list`.")
+
+        var target = ChatTarget.Resolved(model: nil, prompt: words)
+        if model != nil || !words.isEmpty {
+            let response = try await AppLink.request(ControlRequest(command: .list))
+            try AppLink.check(response)
+            do {
+                target = try ChatTarget.resolve(
+                    words: words,
+                    explicitModel: model,
+                    installed: (response.models ?? []).map(\.id)
+                )
+            } catch let failure as ChatTarget.Failure {
+                throw CLIError(failure.description)
+            }
+        }
+        guard let model = target.model ?? endpoint.defaultModel else {
+            throw CLIError("No model given and no default set. Use -m <model> (see `quail list`).")
         }
         let chat = Chat(base: base, apiKey: endpoint.apiKey, model: model, showThinking: !hideThinking)
 
-        if !prompt.isEmpty {
-            return try await Self.send(prompt.joined(separator: " "), with: chat)
+        if !target.prompt.isEmpty {
+            return try await Self.send(target.prompt.joined(separator: " "), with: chat)
         }
         if isatty(STDIN_FILENO) == 0 {
             let piped = String(decoding: FileHandle.standardInput.readDataToEndOfFile(), as: UTF8.self)

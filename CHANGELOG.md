@@ -10,6 +10,20 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-24
+
+### Changed
+
+- `quail run` is now `quail chat` (it only ever chatted; `run` reads as
+  starting a model). `run` is gone, with no alias. "Copy Terminal Chat
+  Command" copies `quail chat -m <model>`.
+
+### Fixed
+
+- `quail chat` takes a prompt without a model: `quail chat why is the sky
+  blue` asks the default model. The first word is the model only if it names
+  an installed model; `-m <model>` names it outright.
+
 ## [0.3.2] - 2026-09-24
 
 ## [0.3.1] - 2026-09-24
