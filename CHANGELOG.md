@@ -10,6 +10,27 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-24
+
+### Added
+
+- `quail-server`, the first piece of Phase 3's single server for GGUF and MLX
+  models (ADR D-027), shipped inside `Quail.app` in both builds. It has an
+  HTTP layer, a model router (`--models-max`, least-recently-used eviction, a
+  model is never unloaded under a request in flight) and the engine seam the
+  GGUF and MLX engines plug into, and answers `/health`, `/models`,
+  `/v1/models`, `/models/load` and `/models/unload` in the shapes
+  `llama-server` uses, so the existing adapter drives it unchanged. **Nothing
+  in the app starts it yet:** it has no inference engine until Phase 3 steps 4
+  and 5, and Quail still runs `llama-server`.
+
+### Changed
+
+- Phase 3 is replanned around one `quail-server` with a `libllama` engine and
+  an `mlx-swift-lm` engine instead of four MLX adapters: ADRs D-027 and D-028,
+  the dependency rule in `AGENTS.md`, and the plan and architecture docs. The
+  oMLX and Rapid-MLX runtimes are deferred.
+
 ## [0.4.1] - 2026-09-24
 
 ## [0.4.0] - 2026-09-24
