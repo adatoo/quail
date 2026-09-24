@@ -238,7 +238,7 @@ flowchart LR
 - The uv-installed Python runtimes are not part of the bundle and are never signed by us; they run as ordinary user processes. uv's managed Python is already signed by its builders.
 - App Store: `llama-server` is signed with `app-sandbox` + `inherit`; the app has `network.client`, `network.server`, and `files.user-selected.read-write` for a relocated model store.
 
-**Updates.** Sparkle 2 with an EdDSA key generated once and kept offline; the appcast lives on GitHub Releases (or the app's site). Quail checks daily and updates silently only for point releases. Runtime updates and catalog updates are separate channels with separate cadences.
+**Updates.** Sparkle 2 (ADR D-032) with an EdDSA key generated once; the appcast is a release asset (`releases/latest/download/appcast.xml`). Settings → General → Updates chooses Daily / Weekly / Monthly / Never, and whether updates install without asking (off by default: Quail asks first). Runtime updates and catalog updates are separate channels with separate cadences.
 
 **Versioning.** `MAJOR.MINOR.PATCH` for the app. The bundled llama.cpp tag, the uv version, the known-good oMLX and Rapid-MLX pins and the catalog revision are all listed in About and in the appcast notes, so a bug report carries the whole matrix.
 
@@ -250,7 +250,7 @@ flowchart LR
 - [ ] Rapid-MLX: confirm current `serve` accepts a local model directory and whether `/v1/models` exists in the pinned version.
 - [ ] oMLX: confirm the `/admin` load/unload endpoints are stable enough to use, or rely on auto-load only.
 - [x] Whether to let llama-server keep two models loaded (`--models-max 2`) for fast switching on 64 GB+ machines. **Resolved for Phase 1:** default is `1`; revisit once the Models pane can show loaded state — see ADR D-011.
-- [ ] Where the appcast and remote catalog live (GitHub Releases vs the app's own domain).
+- [x] Where the appcast and remote catalog live. **Resolved:** the appcast is a GitHub Releases asset and the catalog is served from this (now public) repo — see ADR D-031 and D-032.
 - [ ] Rapid-MLX ships its own model catalog and RAM-tier recommendation system (`rapid-mlx recipe --json`, `rapid-mlx models`/`info <alias>` — confirmed live at rapidmlx.com/docs/cli, "the same [catalog] the desktop app's picker reads"). Once Rapid-MLX is actually vendored, this could become a live, already-curated recommendation source Quail queries directly for MLX models, rather than maintaining a second, GGUF-only curated list in parallel forever. Not actionable before Phase 3 — GGUF/llama.cpp is Quail's only runtime today. **Confirmed against 0.14.3 (2026-09-24):** `rapid-mlx models --json` returns 191 text aliases with `hf_path` (145 under `mlx-community`) and `size_bytes`; `rapid-mlx recipe --json` returns per-Mac "smart"/"fast" picks (`schema_version` 1). Tracked as Phase 3 step 9.
 - [x] GGUF catalog source: could the Ollama registry (`registry.ollama.ai/v2/library/<name>/manifests/<tag>`) plus the ModelFit dataset (CC BY 4.0, ~105 Ollama-tagged local models) replace hand-curation? **Resolved:** no. Only 2 of 5 Ollama files loaded in the bundled llama-server (gemma3, gemma4 and gpt-oss are Ollama-engine builds it rejects), so downloads stay Hugging Face-only (D-002 stands) and ModelFit is a discovery feed for a maintainer script — see ADR D-026 and Phase 2b step 7.
 

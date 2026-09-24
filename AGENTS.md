@@ -5,12 +5,12 @@ Quail is a macOS menu bar app (SwiftUI, Swift 6, macOS 14+) that runs local LLM 
 ## Conventions
 
 - Swift 6 with strict concurrency. `Sendable` types, actors for the supervisor and model store, `@Observable` for UI state. No Combine.
-- No third-party UI. The only permitted dependencies are Sparkle (Phase 4, via SPM), swift-argument-parser, linked into the `quail` CLI target only (ADR D-022), and `mlx-swift-lm`, `swift-transformers` and `OrderedCollections`, linked into the `quail-server` target only (ADR D-028).
+- No third-party UI. The only permitted dependencies are Sparkle (SPM, pinned, linked into the Quail app target only — ADR D-032), swift-argument-parser, linked into the `quail` CLI target only (ADR D-022), and `mlx-swift-lm`, `swift-transformers` and `OrderedCollections`, linked into the `quail-server` target only (ADR D-028).
 - App Store build must compile with every uv/PyPI/runtime-install code path removed: wrap those files or sections in `#if !APPSTORE`.
 - Never inherit the user's shell environment when spawning a runtime. Build `environment` explicitly in `ProcessSupervisor`.
 - Runtimes are always given explicit paths (`--models-dir`, `--model-dir`, `HF_HOME`). Never rely on a runtime's default folder.
 - Never call `rapid-mlx launch` or `rapid-mlx service …`; Quail runs `serve` and `pull` only.
-- Vendored binaries live in `Vendor/` and are git-ignored; `task vendor:llama` and `task vendor:uv` are the only way they get there, and each pins a version and a sha256 (`Vendor/*.version`, `Vendor/llama.sha256`).
+- Vendored binaries live in `Vendor/` and are git-ignored; `task vendor:llama`, `task vendor:uv` and `task vendor:sparkle` (the release tools, not the framework) are the only way they get there, and each pins a version and a sha256 (`Vendor/*.version`, `Vendor/llama.sha256`).
 - Config is `~/Library/Application Support/Quail/config.json` (Codable). Secrets (API key, HF token) go in Keychain, never in the JSON.
 - Logs go to `~/Library/Logs/Quail/`. Use `os.Logger` for app logs, the `LogStore` for runtime stdout/stderr.
 

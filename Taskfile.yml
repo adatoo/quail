@@ -201,6 +201,16 @@ tasks:
             exit 1
           fi
         done
+        # A release must carry the Sparkle public key, or no installed copy could ever
+        # verify an update (ADR D-032). Local and CI builds have none, so it's opt-in.
+        if [ -n "${REQUIRE_UPDATE_KEY:-}" ]; then
+          KEY="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$APP/Contents/Info.plist" 2>/dev/null || true)"
+          if [ -z "$KEY" ]; then
+            echo "::error::SUPublicEDKey is empty in $APP — set SPARKLE_PUBLIC_ED_KEY in project.yml (the public half of the key printed by generate_keys)." >&2
+            exit 1
+          fi
+          echo "update key present: $KEY"
+        fi
         echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp present"
 
   install:

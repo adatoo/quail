@@ -14,6 +14,9 @@
 #   task release:all      archive → export → notarize → staple → verify   (build/export/Quail.app)
 #   task release:dmg      package it: build/Quail-<version>.dmg, signed, notarized, stapled (needs create-dmg)
 #   task release:notes    this version's CHANGELOG section → release-notes.md
+#   task release:appcast  the Sparkle update feed for that DMG → build/appcast.xml
+#                         signing key: SPARKLE_ED_PRIVATE_KEY (CI; read from stdin, never written to disk),
+#                         else the login keychain (SPARKLE_KEY_ACCOUNT, default "ed25519")
 #
 # Notarization is one task, release:notarize (FILE=… for what to submit).
 version: '3'
@@ -222,6 +225,56 @@ tasks:
         ' '{{.ROOT_DIR}}/CHANGELOG.md' > "$OUT"
         test -s "$OUT" || echo "Release $VERSION." > "$OUT"
         echo "wrote $OUT"
+
+  appcast:
+    desc: 'The Sparkle update feed for a release DMG (DMG=…, default build/Quail-<version>.dmg) → build/appcast.xml'
+    env:
+      VERSION: '{{.VERSION}}'
+      DMG: '{{.DMG}}'
+    preconditions:
+      - sh: test -x '{{.ROOT_DIR}}/Vendor/sparkle/bin/generate_appcast'
+        msg: 'Sparkle tools missing — run: task vendor:sparkle'
+    cmds:
+      - |
+        ROOT='{{.ROOT_DIR}}'
+        [ -n "${VERSION:-}" ] || VERSION="$('{{.TASK_EXE}}' --silent -d "$ROOT" version:current)"
+        [ -n "${DMG:-}" ] || DMG="{{.BUILD_DIR}}/Quail-$VERSION.dmg"
+        [ -f "$DMG" ] || { echo "error: $DMG not found — run: task release:dmg" >&2; exit 1; }
+        TAG="v$VERSION"
+        TOOLS="$ROOT/Vendor/sparkle/bin"
+        DIR='{{.BUILD_DIR}}/appcast'
+        rm -rf "$DIR" && mkdir -p "$DIR"
+        cp "$DMG" "$DIR/"
+        # generate_appcast embeds .md files named like the archive as the release notes
+        # (the CHANGELOG section for this version).
+        VERSION="$VERSION" OUT="$DIR/$(basename "$DMG" .dmg).md" '{{.TASK_EXE}}' --silent -d "$ROOT" release:notes > /dev/null
+
+        set -- \
+          --download-url-prefix "https://github.com/adatoo/quail/releases/download/$TAG/" \
+          --embed-release-notes \
+          --full-release-notes-url "https://github.com/adatoo/quail/releases/tag/$TAG" \
+          --link "https://github.com/adatoo/quail" \
+          --account "${SPARKLE_KEY_ACCOUNT:-ed25519}"
+        echo "==> generating the appcast for $(basename "$DMG")"
+        if [ -n "${SPARKLE_ED_PRIVATE_KEY:-}" ]; then
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | "$TOOLS/generate_appcast" --ed-key-file - "$@" "$DIR"
+        else
+          "$TOOLS/generate_appcast" "$@" "$DIR"
+        fi
+
+        FEED="$DIR/appcast.xml"
+        [ -f "$FEED" ] || { echo "error: generate_appcast wrote no appcast.xml" >&2; exit 1; }
+        # An unsigned or mis-pointed feed would be silently useless to every installed copy.
+        if ! grep -q 'sparkle:edSignature' "$FEED"; then
+          echo "error: the appcast has no EdDSA signature, so no installed copy could trust it." >&2
+          echo "       If generate_appcast warned that SUPublicEDKey does not match: the signing key" >&2
+          echo "       (SPARKLE_ED_PRIVATE_KEY, or the keychain) isn't the one whose public half is" >&2
+          echo "       SPARKLE_PUBLIC_ED_KEY in project.yml. Fix that; never ship this release's feed." >&2
+          exit 1
+        fi
+        grep -q "releases/download/$TAG/$(basename "$DMG")" "$FEED" || { echo "error: the appcast doesn't point at $TAG's DMG" >&2; exit 1; }
+        cp "$FEED" '{{.BUILD_DIR}}/appcast.xml'
+        echo "wrote {{.BUILD_DIR}}/appcast.xml"
 
   import-cert:
     desc: "[CI only] Import the Developer ID certificate into a dedicated build keychain"

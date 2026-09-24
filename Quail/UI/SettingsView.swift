@@ -17,13 +17,15 @@ enum SettingsTab: Hashable {
 /// in later phases per docs/IMPLEMENTATION_PLAN.md.
 struct SettingsView: View {
     let appState: AppState
+    /// `nil` in the App Store build, which has no in-app updater.
+    var updateSettings: UpdateSettings?
 
     var body: some View {
         TabView(selection: Binding(
             get: { appState.settingsTab },
             set: { appState.settingsTab = $0 }
         )) {
-            GeneralSettingsView(appState: appState)
+            GeneralSettingsView(appState: appState, updateSettings: updateSettings)
                 .tabItem { Label("General", systemImage: "gearshape") }
                 .tag(SettingsTab.general)
 
@@ -60,6 +62,7 @@ struct SettingsView: View {
 
 private struct GeneralSettingsView: View {
     let appState: AppState
+    let updateSettings: UpdateSettings?
 
     /// The outcome of the last Install/Uninstall; `nil` shows the
     /// installed state instead. Either way it's one caption line with
@@ -119,6 +122,10 @@ private struct GeneralSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             #endif
+
+            if let updateSettings {
+                UpdatesSection(settings: updateSettings)
+            }
 
             AboutSection(appState: appState)
         }

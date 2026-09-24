@@ -13,6 +13,11 @@ configs:
   Release-AppStore: release
 
 packages:
+  # ADR D-032: the in-app updater (direct build only — see Quail/App/Updater.swift).
+  # Pinned exactly: an updater is code Quail runs with the user's privileges.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
   # ADR D-022: the quail CLI's argument parsing — linked into QuailCLI only.
   ArgumentParser:
     url: https://github.com/apple/swift-argument-parser
@@ -22,8 +27,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "0.7.2"
-    CURRENT_PROJECT_VERSION: "15"
+    MARKETING_VERSION: "0.8.0"
+    CURRENT_PROJECT_VERSION: "16"
     ENABLE_HARDENED_RUNTIME: YES
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_LSUIElement: YES
@@ -33,6 +38,13 @@ settings:
     GCC_TREAT_WARNINGS_AS_ERRORS: YES
     CODE_SIGN_STYLE: Automatic
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+  configs:
+    # Shipped builds are Apple silicon only: the bundled llama-server is arm64-only
+    # and MLX (Phase 3) needs Apple silicon, so an x86_64 slice can't run the server.
+    Release:
+      ARCHS: arm64
+    Release-AppStore:
+      ARCHS: arm64
 
 targets:
   Quail:
@@ -43,6 +55,7 @@ targets:
       # Shared with the quail CLI (the control protocol, socket, SSE parser).
       - path: Shared
     dependencies:
+      - package: Sparkle
       # Built first so "Embed quail CLI" can copy it into Contents/Helpers.
       - target: QuailCLI
         embed: false
@@ -82,11 +95,25 @@ targets:
         # what's already bundled), so a bad push can't degrade the app
         # below its own shipped seed.
         QuailCatalogURL: "https://raw.githubusercontent.com/adatoo/quail/main/Quail/Resources/catalog.json"
+        # Sparkle (ADR D-032). The feed is the appcast.xml each release attaches;
+        # `releases/latest` always redirects to the newest full release.
+        SUFeedURL: "https://github.com/adatoo/quail/releases/latest/download/appcast.xml"
+        # The public half of the EdDSA key that signs every update. The private half
+        # lives in the maintainer's keychain and in the SPARKLE_ED_PRIVATE_KEY secret.
+        SUPublicEDKey: $(SPARKLE_PUBLIC_ED_KEY)
+        # Settings → General → Updates is the choice, so no first-launch "check
+        # automatically?" prompt: checks are on (daily) until the user says otherwise.
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
+        # Ask before installing, unless the user opts in to automatic installs.
+        SUAutomaticallyUpdate: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.datoos.quail
         PRODUCT_NAME: Quail
         GENERATE_INFOPLIST_FILE: NO
+        # Replace with the real key (`generate_keys`) — override on the command line to test with another.
+        SPARKLE_PUBLIC_ED_KEY: ""
       configs:
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG"

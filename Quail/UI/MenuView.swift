@@ -13,6 +13,8 @@ import SwiftUI
 /// rows).
 struct MenuView: View {
     let appState: AppState
+    /// `nil` in the App Store build, which has no in-app updater.
+    var updateSettings: UpdateSettings?
 
     @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
@@ -117,6 +119,10 @@ struct MenuView: View {
             bringToFront { openSettings() }
         }
         .keyboardShortcut(",")
+
+        if let updateSettings {
+            Button("Check for Updates…") { updateSettings.checkNow() }
+        }
 
         Divider()
 
