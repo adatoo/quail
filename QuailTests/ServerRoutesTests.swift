@@ -10,7 +10,12 @@ struct ServerRoutesTests {
         let router: ModelRouter
         let world: FakeEngineWorld
 
-        init(apiKey: String? = nil, ids: [String] = ["Alpha", "Beta"], max: Int = 1) {
+        init(
+            apiKey: String? = nil,
+            ids: [String] = ["Alpha", "Beta"],
+            max: Int = 1,
+            guardian: RequestGuard = RequestGuard(bindHost: "127.0.0.1")
+        ) {
             world = FakeEngineWorld()
             let log = ServerLog(toStandardError: false)
             router = ModelRouter(
@@ -19,7 +24,7 @@ struct ServerRoutesTests {
                 makeEngine: world.factory,
                 log: log
             )
-            routes = ServerRoutes(router: router, apiKey: apiKey, log: log)
+            routes = ServerRoutes(router: router, apiKey: apiKey, log: log, requestGuard: guardian)
         }
 
         func call(
@@ -35,6 +40,37 @@ struct ServerRoutesTests {
             let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
             return (response.status, json ?? [:])
         }
+    }
+
+    @Test("a cross-origin POST is refused before it reaches a route: nothing loads")
+    func crossOriginDoesNothing() async {
+        let harness = Harness()
+        let refused = await harness.call(
+            "POST", "/models/load",
+            headers: ["host": "127.0.0.1:8080", "origin": "https://evil.example", "content-type": "text/plain"],
+            body: #"{"model":"Alpha"}"#
+        )
+        #expect(refused.status == 403)
+        // A queued load flips the state to `loading` at once, so this would already show it.
+        #expect(await harness.router.snapshot("Alpha")?.state == .unloaded)
+
+        let allowed = await harness.call(
+            "POST", "/models/load",
+            headers: ["host": "127.0.0.1:8080"],
+            body: #"{"model":"Alpha"}"#
+        )
+        #expect(allowed.status == 200)
+    }
+
+    @Test("an allowed origin's response carries its Allow-Origin header")
+    func allowedOriginHeader() async {
+        let harness = Harness(guardian: RequestGuard(bindHost: "127.0.0.1", allowedOrigins: ["http://localhost:3000"]))
+        let response = await harness.routes.handle(HTTPRequest(
+            method: "GET", target: "/v1/models",
+            headers: ["host": "127.0.0.1:8080", "origin": "http://localhost:3000"], body: Data()
+        ))
+        #expect(response.status == 200)
+        #expect(response.headers.first { $0.name == "Access-Control-Allow-Origin" }?.value == "http://localhost:3000")
     }
 
     @Test("/health answers ok, with or without a key configured")

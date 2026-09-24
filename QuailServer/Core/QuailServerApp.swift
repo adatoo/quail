@@ -58,7 +58,12 @@ public enum QuailServerApp {
             makeEngine: engineFactory(for: arguments.engine),
             log: log
         )
-        let routes = ServerRoutes(router: router, apiKey: arguments.apiKey, log: log)
+        let routes = ServerRoutes(
+            router: router,
+            apiKey: arguments.apiKey,
+            log: log,
+            requestGuard: RequestGuard(bindHost: arguments.host, allowedOrigins: arguments.allowedOrigins)
+        )
         let server = HTTPServer(host: arguments.host, port: arguments.port, log: log)
 
         let port: Int

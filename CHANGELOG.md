@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-24
+
+### Security
+
+- `quail-server` refuses requests from web pages (cross-origin) and DNS-rebinding hosts unless allowed with
+  `--allow-origin` (ADR D-036). Not yet in use: the default runtime is still `llama-server`, which answers
+  every origin (see D-036).
+
 ## [0.11.0] - 2026-09-24
 
 ### Changed
