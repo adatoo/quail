@@ -8,7 +8,7 @@ import Testing
 /// in this one.
 ///
 /// **Not run as part of `xcodebuild test`** (and therefore not in CI):
-/// it needs `Vendor/llama.cpp` populated (`scripts/vendor-llama.sh`) and a
+/// it needs `Vendor/llama.cpp` populated (`task vendor:llama`) and a
 /// real GGUF placed by hand, and the first launch of a freshly-signed
 /// binary can take up to ~16s (see docs/DECISIONS.md D-009). Per AGENTS.md
 /// ("Smoke test after any change to Server/ or Runtimes/"), run this
@@ -18,7 +18,7 @@ import Testing
 /// the test runner process without scheme-level configuration):
 ///
 /// ```
-/// scripts/vendor-llama.sh
+/// task vendor:llama
 /// mkdir -p /tmp/quail-smoke-models/gguf
 /// curl -L -o /tmp/quail-smoke-models/gguf/Qwen3-0.6B-Q8_0.gguf \
 ///   https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf
@@ -42,7 +42,7 @@ struct LlamaCppIntegrationSmokeTest {
             .appendingPathComponent("Vendor/llama.cpp/llama-server")
         try #require(
             FileManager.default.fileExists(atPath: vendorURL.path),
-            "Vendor/llama.cpp/llama-server not found — run scripts/vendor-llama.sh first"
+            "Vendor/llama.cpp/llama-server not found — run `task vendor:llama` first"
         )
 
         let runtime = LlamaCppRuntime(

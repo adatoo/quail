@@ -19,9 +19,10 @@ jobs:
     runs-on: ${{ vars.MAC_RUNNER || 'macos-26' }}
     env:
       DEVELOPER_DIR: ${{ vars.MAC_RUNNER && '/Applications/Xcode.app/Contents/Developer' || '/Applications/Xcode_26.6.app/Contents/Developer' }}
-      # Per-workspace DerivedData so the Quail.app checks below can't pick up
-      # a stale build from the shared ~/Library DerivedData on a real Mac.
-      DERIVED_DATA: ${{ github.workspace }}/DerivedData
+    # Every step is a task from Taskfile.yml (ADR D-030), so `task ci` on a
+    # laptop runs exactly this list. Builds go in ./DerivedData in the workspace,
+    # so the Quail.app checks can't pick up a stale build from a shared
+    # ~/Library DerivedData on a real Mac.
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -35,81 +36,29 @@ jobs:
           fi
           xcodebuild -version
 
+      - name: Set up Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: SwiftFormat lint
-        run: |
-          if find . -name '*.swift' -not -path './Vendor/*' -print -quit | grep -q .; then
-            swiftformat --lint .
-          else
-            echo "No Swift files yet; skipping."
-          fi
+        run: task lint
 
       - name: Vendor llama.cpp
-        if: hashFiles('scripts/vendor-llama.sh') != ''
-        run: |
-          scripts/vendor-llama.sh
-          scripts/verify-macho.sh Vendor/llama.cpp
+        run: task vendor:llama
 
       - name: Vendor uv
-        if: hashFiles('scripts/vendor-uv.sh') != ''
-        run: |
-          scripts/vendor-uv.sh
-          scripts/verify-macho.sh Vendor/uv
+        run: task vendor:uv
 
       - name: Build (Quail)
-        run: |
-          if [ -e Quail.xcodeproj ] || [ -e Quail.xcworkspace ]; then
-            set -o pipefail
-            xcodebuild -scheme Quail -configuration Debug build \
-              -derivedDataPath "$DERIVED_DATA" \
-              CODE_SIGNING_ALLOWED=NO | xcbeautify
-          else
-            echo "No Xcode project yet; skipping build."
-          fi
+        run: task build
 
-      - name: Verify embedded Mach-O closure
-        if: hashFiles('scripts/verify-macho.sh') != '' && hashFiles('Quail.xcodeproj/**') != ''
-        run: |
-          APP="$(find "$DERIVED_DATA" -maxdepth 6 -name 'Quail.app' -path '*/Debug/*' -print -quit)"
-          if [ -n "$APP" ] && [ -d "$APP/Contents/MacOS" ]; then
-            scripts/verify-macho.sh "$APP/Contents/MacOS"
-          else
-            echo "Quail.app not found under DerivedData; skipping."
-          fi
-
-      - name: Verify bundled resources
-        if: hashFiles('Quail.xcodeproj/**') != ''
-        run: |
-          APP="$(find "$DERIVED_DATA" -maxdepth 6 -name 'Quail.app' -path '*/Debug/*' -print -quit)"
-          if [ -z "$APP" ]; then
-            echo "Quail.app not found under DerivedData; skipping."
-          else
-            # Regression check for a real bug: project.yml's resources
-            # wiring once silently produced a Quail.app with no Copy
-            # Bundle Resources phase at all, so catalog.json (the
-            # curated model list) and the app icon were missing from
-            # every build without a single test noticing.
-            test -f "$APP/Contents/Resources/catalog.json" || {
-              echo "::error::catalog.json is missing from Quail.app/Contents/Resources — check project.yml's resources wiring"
-              exit 1
-            }
-            # Settings → General → About shows the llama.cpp tag, and llama.cpp's
-            # MIT licence must ship with the app; both are copied in by
-            # scripts/embed-llama.sh.
-            for f in llama.version LICENSE-llama.cpp; do
-              test -f "$APP/Contents/Resources/$f" || {
-                echo "::error::$f is missing from Quail.app/Contents/Resources — check scripts/embed-llama.sh"
-                exit 1
-              }
-            done
-          fi
+      - name: Verify the built app (Mach-O closure, bundled resources)
+        run: task verify:bundle
 
       - name: Test (Quail)
-        run: |
-          if [ -e Quail.xcodeproj ] || [ -e Quail.xcworkspace ]; then
-            set -o pipefail
-            xcodebuild -scheme Quail -configuration Debug test \
-              -derivedDataPath "$DERIVED_DATA" \
-              -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO | xcbeautify
-          else
-            echo "No Xcode project yet; skipping tests."
-          fi
+        run: task test
+
+      - name: Build (Quail-AppStore)
+        run: task build:appstore

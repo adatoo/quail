@@ -10,19 +10,26 @@ Quail is a macOS menu bar app (SwiftUI, Swift 6, macOS 14+) that runs local LLM 
 - Never inherit the user's shell environment when spawning a runtime. Build `environment` explicitly in `ProcessSupervisor`.
 - Runtimes are always given explicit paths (`--models-dir`, `--model-dir`, `HF_HOME`). Never rely on a runtime's default folder.
 - Never call `rapid-mlx launch` or `rapid-mlx service …`; Quail runs `serve` and `pull` only.
-- Vendored binaries live in `Vendor/` and are git-ignored; `scripts/vendor-*.sh` are the only way they get there, and each pins a version and a sha256.
+- Vendored binaries live in `Vendor/` and are git-ignored; `task vendor:llama` and `task vendor:uv` are the only way they get there, and each pins a version and a sha256 (`Vendor/*.version`, `Vendor/llama.sha256`).
 - Config is `~/Library/Application Support/Quail/config.json` (Codable). Secrets (API key, HF token) go in Keychain, never in the JSON.
 - Logs go to `~/Library/Logs/Quail/`. Use `os.Logger` for app logs, the `LogStore` for runtime stdout/stderr.
 
 ## Build and test
 
+Everything goes through [Task](https://taskfile.dev) (`brew install go-task`; ADR D-030) — the same commands locally and in CI. `task` lists them; `task doctor` checks your tools.
+
 ```
-xcodegen generate                  # only needed after editing project.yml; Quail.xcodeproj is committed
-xcodebuild -scheme Quail -configuration Debug build
-xcodebuild -scheme Quail test
-scripts/vendor-llama.sh            # once per llama.cpp bump; updates Vendor/llama.cpp
-otool -L Vendor/llama.cpp/llama-server   # must show only @executable_path and /usr/lib, /System
+task ci                    # exactly what CI runs: lint, vendor, build, verify, test (+ the App Store build)
+task build                 # compile into ./DerivedData, unsigned like CI (never touches a running Quail; macOS won't open it — "damaged")
+task test                  # unit tests
+task lint / task format    # swiftformat
+task generate              # xcodegen — only after editing project.yml; Quail.xcodeproj is committed
+task vendor:llama          # once per llama.cpp bump; updates Vendor/llama.cpp (verifies the sha256 and the @rpath closure)
+task verify:bundle         # the built app: every Mach-O relocatable, catalog.json / llama.version / licence present
+task install               # Release build, signed, to ~/Apps/Quail.app (quit Quail first) — the app you can actually launch
 ```
+
+Xcode's build phases call `task embed:*`, so go-task must be installed anywhere Xcode builds Quail.
 
 The Xcode project is generated from `project.yml` (see ADR D-008 in docs/DECISIONS.md). Edit `project.yml`, not the `.xcodeproj` directly, then re-run `xcodegen generate` and commit both.
 
@@ -34,7 +41,7 @@ Smoke test after any change to Server/ or Runtimes/: place a small GGUF in the s
 - Unit tests pass; new logic in `Models/`, `DeviceFit/`, `Server/` has tests using a fake `Runtime` where a process would otherwise be needed.
 - No absolute paths from the build machine end up in the bundle.
 - `docs/IMPLEMENTATION_PLAN.md` checkbox or phase status updated if the task completes a listed item.
-- The PR has a Conventional Commits title and carries its own version bump (`scripts/bump-version.sh --title "<PR title>"`, ADR D-024); open it with `gh pr merge --auto --merge`.
+- The PR has a Conventional Commits title and carries its own version bump (`PR_TITLE="<PR title>" task version:bump`, ADR D-024); open it with `gh pr merge --auto --merge`.
 
 ## Things not to do
 

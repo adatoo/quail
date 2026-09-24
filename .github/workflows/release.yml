@@ -7,9 +7,9 @@ name: Release
 #
 # The signed, notarized DMG (docs/ARCHITECTURE.md §9, ADR D-018) is built
 # and attached only when vars.SIGNING_ENABLED is 'true' — set it once the
-# Apple signing secrets are in the repo. It reuses the same
-# scripts/sign-and-notarize.sh and scripts/make-dmg.sh a developer runs
-# locally via scripts/install.sh.
+# Apple signing secrets are in the repo. Every step is a task from
+# Taskfile.yml (ADR D-030) — the same release:* tasks a developer runs
+# locally via `task install:notarized`.
 #
 # Triggered by the push a merge makes. Merges must be made as a person or
 # with BOT_TOKEN — a merge made with GITHUB_TOKEN starts no workflows.
@@ -38,10 +38,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Read version
         id: version
         run: |
-          version="$(scripts/version.sh current)"
+          version="$(task version:current)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if git rev-parse -q --verify "refs/tags/v$version" > /dev/null; then
             echo "v$version already exists — nothing to release."
@@ -54,13 +60,7 @@ jobs:
         if: steps.version.outputs.created == 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          awk -v v="$VERSION" '
-            index($0, "## [" v "]") == 1 { on = 1; next }
-            on && /^## \[/ { exit }
-            on { print }
-          ' CHANGELOG.md > release-notes.md
-          test -s release-notes.md || echo "Release $VERSION." > release-notes.md
+        run: task release:notes
 
       - name: Tag and publish
         if: steps.version.outputs.created == 'true'
@@ -101,57 +101,41 @@ jobs:
           fi
           xcodebuild -version
 
+      - name: Set up Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Import Developer ID Application certificate
         env:
           P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_CERT_P12 }}
           P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
-        run: |
-          echo "$P12_BASE64" | base64 --decode > /tmp/cert.p12
-          security create-keychain -p actions build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p actions build.keychain
-          security set-keychain-settings -lut 21600 build.keychain
-          security import /tmp/cert.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
-          # Grants codesign non-interactive access to the imported key —
-          # without this, every codesign call in a headless CI runner
-          # would hang forever on an authorization prompt nothing can
-          # answer (the exact "Keychain access" annoyance this whole
-          # signing setup exists to avoid, applied to CI rather than a
-          # developer's own machine).
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions build.keychain
-          rm /tmp/cert.p12
+        run: task release:import-cert
 
       - name: Vendor llama.cpp
-        run: |
-          scripts/vendor-llama.sh
-          scripts/verify-macho.sh Vendor/llama.cpp
+        run: task vendor:llama
 
       - name: Vendor uv
-        if: hashFiles('scripts/vendor-uv.sh') != ''
-        run: |
-          scripts/vendor-uv.sh
-          scripts/verify-macho.sh Vendor/uv
+        run: task vendor:uv
 
       - name: Generate Xcode project
-        run: xcodegen generate
+        run: task generate
 
       - name: Sign and notarize
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: scripts/sign-and-notarize.sh
+        run: task release:all
 
-      - name: Verify embedded Mach-O closure
-        run: scripts/verify-macho.sh build/export/Quail.app/Contents/MacOS
-
-      - name: Verify bundled resources
-        run: test -f build/export/Quail.app/Contents/Resources/catalog.json
+      - name: Verify the exported app (Mach-O closure, bundled resources)
+        run: task verify:bundle APP=build/export/Quail.app
 
       - name: Build DMG
         run: |
           brew install create-dmg
-          scripts/make-dmg.sh
+          task release:dmg
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v7

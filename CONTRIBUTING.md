@@ -26,11 +26,11 @@ recorded there.
    | `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`, `revert:`, `style:` | patch |
    | `type!: …`, or `BREAKING CHANGE:` in the body | major (minor while 0.x) |
 
-4. Bump the version **in the PR**: `scripts/bump-version.sh --title "<PR title>"`.
+4. Bump the version **in the PR**: `PR_TITLE="<PR title>" task version:bump`.
    It sets `project.yml`'s `MARKETING_VERSION` and build number from `main`'s,
    cuts `CHANGELOG.md`'s `[Unreleased]` into the new version's section, and
    regenerates the Xcode project. Commit the result. `1.0.0` is a deliberate
-   `scripts/bump-version.sh 1.0.0`.
+   `TARGET=1.0.0 task version:bump`.
 5. Open the PR against `main` with auto-merge on (`gh pr merge --auto --merge`;
    the Auto-merge workflow does this too when `BOT_TOKEN` is set). It merges
    itself once `build-and-test` and `version` pass.
@@ -42,7 +42,7 @@ recorded there.
    `vars.SIGNING_ENABLED` is `true`.
 
 If `main` moves while your PR is open, merging it in conflicts on the version
-lines: take `main`'s side, re-run `scripts/bump-version.sh --title "<PR title>"`,
+lines: take `main`'s side, re-run `PR_TITLE="<PR title>" task version:bump`,
 and commit — the `version` check tells you when it's needed.
 
 ## Definition of done
@@ -54,10 +54,22 @@ paths in the bundle, and implementation plan checkboxes updated.
 
 ## Building and testing
 
+Install [Task](https://taskfile.dev) (`brew install go-task`), then:
+
 ```
-xcodebuild -scheme Quail -configuration Debug build
-xcodebuild -scheme Quail test
+task            # list every task
+task doctor     # check the tools you need
+task ci         # exactly what CI runs — do this before opening a PR
+task build      # or just: build, test
+task test
 ```
+
+Builds go in `./DerivedData`, so they never overwrite an app Xcode (or you) has running.
+
+`task build` compiles **unsigned**, as CI does, so macOS refuses to open the result ("Quail is damaged":
+the bundle has no valid signature). To run your changes use `task install` (Release, ad-hoc signed, into
+`~/Apps`; quit Quail first), or run from Xcode.
+Xcode's own build phases call `task embed:*`, so building in Xcode needs go-task installed too.
 
 Debug builds are ad-hoc signed by default, so macOS Keychain treats every
 rebuild as a new app and asks for your login password when Quail reads its

@@ -42,7 +42,7 @@ struct AboutSection: View {
 }
 
 /// The licence texts that must ship with the app: llama.cpp's (MIT, bundled
-/// by `embed-llama.sh`) and a line for Quail's own.
+/// by `task embed:llama`) and a line for Quail's own.
 struct LicencesSheet: View {
     @Environment(\.dismiss) private var dismiss
 
