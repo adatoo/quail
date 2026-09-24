@@ -10,6 +10,13 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-09-24
+
+### Changed
+
+- CI runs entirely on GitHub-hosted runners (macOS for builds, Ubuntu for the rest), ahead of making
+  the repository public (ADR D-031). The self-hosted runner is no longer used.
+
 ## [0.6.2] - 2026-09-24
 
 ### Changed

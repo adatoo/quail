@@ -13,27 +13,21 @@ concurrency:
 jobs:
   build-and-test:
     name: build-and-test
-    # vars.MAC_RUNNER (repo variable, e.g. `mac-mini`) moves this job onto the
-    # self-hosted Mac runner, which uses its default /Applications/Xcode.app.
-    # Unset it to go back to GitHub-hosted macos-26 with the pinned Xcode.
-    runs-on: ${{ vars.MAC_RUNNER || 'macos-26' }}
+    # GitHub-hosted, never self-hosted: the repo is public, so any fork's PR
+    # runs this workflow, and on a self-hosted runner that means on our own
+    # Mac (ADR D-031). Standard hosted runners are free for public repos.
+    runs-on: macos-26
     env:
-      DEVELOPER_DIR: ${{ vars.MAC_RUNNER && '/Applications/Xcode.app/Contents/Developer' || '/Applications/Xcode_26.6.app/Contents/Developer' }}
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     # Every step is a task from Taskfile.yml (ADR D-030), so `task ci` on a
-    # laptop runs exactly this list. Builds go in ./DerivedData in the workspace,
-    # so the Quail.app checks can't pick up a stale build from a shared
-    # ~/Library DerivedData on a real Mac.
+    # laptop runs exactly this list.
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Select Xcode
         run: |
-          # DEVELOPER_DIR already selects Xcode for every step; the global
-          # switch needs passwordless sudo, which only hosted runners have.
-          if [ -z "${{ vars.MAC_RUNNER }}" ]; then
-            sudo xcode-select -s "$DEVELOPER_DIR"
-          fi
+          sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
 
       - name: Set up Task
@@ -41,6 +35,13 @@ jobs:
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install tools
+        run: |
+          # The hosted image has Homebrew but not every tool Quail's tasks use.
+          for tool in swiftformat xcodegen xcbeautify; do
+            command -v "$tool" > /dev/null || brew install "$tool"
+          done
 
       - name: SwiftFormat lint
         run: task lint

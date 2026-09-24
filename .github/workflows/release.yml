@@ -28,7 +28,7 @@ permissions:
 jobs:
   tag:
     name: tag-and-release
-    runs-on: ${{ vars.MAC_RUNNER || 'macos-26' }}
+    runs-on: ubuntu-latest # tags and notes only; no Xcode needed
     outputs:
       version: ${{ steps.version.outputs.version }}
       created: ${{ steps.version.outputs.created }}
@@ -80,12 +80,11 @@ jobs:
     name: sign-and-attach-dmg
     needs: tag
     if: needs.tag.outputs.created == 'true' && vars.SIGNING_ENABLED == 'true'
-    # vars.MAC_SIGNING_RUNNER (repo variable) moves this job onto a self-hosted
-    # Mac. Point it at a runner running as its OWN macOS user: the certificate
-    # step below replaces that user's default keychain.
-    runs-on: ${{ vars.MAC_SIGNING_RUNNER || 'macos-26' }}
+    # GitHub-hosted: a fresh VM per run, so release:import-cert replacing the
+    # default keychain touches nothing that outlives the job (ADR D-031).
+    runs-on: macos-26
     env:
-      DEVELOPER_DIR: ${{ vars.MAC_SIGNING_RUNNER && '/Applications/Xcode.app/Contents/Developer' || '/Applications/Xcode_26.6.app/Contents/Developer' }}
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -94,11 +93,7 @@ jobs:
 
       - name: Select Xcode
         run: |
-          # DEVELOPER_DIR already selects Xcode for every step; the global
-          # switch needs passwordless sudo, which only hosted runners have.
-          if [ -z "${{ vars.MAC_SIGNING_RUNNER }}" ]; then
-            sudo xcode-select -s "$DEVELOPER_DIR"
-          fi
+          sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
 
       - name: Set up Task
@@ -106,6 +101,13 @@ jobs:
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install tools
+        run: |
+          # The hosted image has Homebrew but not every tool Quail's tasks use.
+          for tool in swiftformat xcodegen xcbeautify; do
+            command -v "$tool" > /dev/null || brew install "$tool"
+          done
 
       - name: Import Developer ID Application certificate
         env:

@@ -18,7 +18,7 @@ jobs:
   enable:
     name: enable-auto-merge
     if: github.event.pull_request.draft == false
-    runs-on: ${{ vars.MAC_RUNNER || 'macos-26' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Enable auto-merge
         env:

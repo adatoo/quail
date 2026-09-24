@@ -16,7 +16,7 @@ concurrency:
 jobs:
   version:
     name: version
-    runs-on: ${{ vars.MAC_RUNNER || 'macos-26' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
