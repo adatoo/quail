@@ -30,8 +30,8 @@ struct BenchmarkPane: View {
             if let pair = comparison {
                 Divider()
                 ComparisonStrip(baseline: pair.baseline, other: pair.other, swap: swapBaseline)
-                .padding(.horizontal)
-                .padding(.vertical, 10)
+                    .padding(.horizontal)
+                    .padding(.vertical, 10)
             }
             Divider()
             actionBar

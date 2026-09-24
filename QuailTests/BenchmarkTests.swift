@@ -154,15 +154,16 @@ struct BenchmarkTests {
     // MARK: - Comparison
 
     @Test("a change is worded against the baseline: faster as a ratio, slower as a percentage")
-    func comparisonWording() throws {
-        #expect(BenchmarkComparison.change(baseline: 100, other: 123) == .init(direction: .faster, text: "1.23× faster"))
+    func comparisonWording() {
+        let faster = BenchmarkComparison.Change(direction: .faster, text: "1.23× faster")
+        #expect(BenchmarkComparison.change(baseline: 100, other: 123) == faster)
         #expect(BenchmarkComparison.change(baseline: 100, other: 81) == .init(direction: .slower, text: "19% slower"))
         #expect(BenchmarkComparison.change(baseline: 100, other: 100.5)?.direction == .same)
         #expect(BenchmarkComparison.change(baseline: 0, other: 50) == nil)
     }
 
     @Test("the baseline is the one asked for if it's in the pair, else the older run")
-    func baselineChoice() throws {
+    func baselineChoice() {
         var older = Self.sampleResult(model: "M", chip: "c", speed: 1)
         older.date = Date(timeIntervalSince1970: 1000)
         let newer = Self.sampleResult(model: "M", chip: "c", speed: 2)
@@ -179,7 +180,8 @@ struct BenchmarkTests {
     func chatEntry() throws {
         let url = try #require(URL(string: "http://127.0.0.1:8080"))
         #expect(ChatEntry.resolve(webUI: url, model: "M") == .browser(url))
-        #expect(ChatEntry.resolve(webUI: nil, model: "Qwen3-8B-Q4_K_M") == .terminal(command: "quail run Qwen3-8B-Q4_K_M"))
+        let named = ChatEntry.resolve(webUI: nil, model: "Qwen3-8B-Q4_K_M")
+        #expect(named == .terminal(command: "quail run Qwen3-8B-Q4_K_M"))
         #expect(ChatEntry.resolve(webUI: nil, model: nil) == .terminal(command: "quail run"))
         #expect(ChatEntry.command(model: "my model's") == "quail run 'my model'\\''s'")
     }

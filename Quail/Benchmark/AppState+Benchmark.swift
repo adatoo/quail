@@ -33,7 +33,8 @@ extension AppState {
                     client: LlamaCppBenchmarkClient(base: base, apiKey: apiKey),
                     context: context
                 )
-                let generation = result.measurements.generation256.map { String(format: "%.1f tok/s", $0.median) } ?? "—"
+                let speed = result.measurements.generation256?.median
+                let generation = speed.map { String(format: "%.1f tok/s", $0) } ?? "—"
                 await benchmarkLog("benchmark of \(id) finished — generation \(generation)")
                 return result
             } catch {
