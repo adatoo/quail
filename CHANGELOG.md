@@ -10,6 +10,13 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-09-24
+
+### Fixed
+
+- `task verify:bundle APP=…` failed on a machine with no `./DerivedData` (the release job's fresh VM),
+  which stopped the first CI-signed release before its DMG was built.
+
 ## [0.7.1] - 2026-09-24
 
 ### Changed
