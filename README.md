@@ -7,7 +7,7 @@ Quail starts a runtime, exposes an OpenAI-compatible endpoint, and gets out of t
 ## Install
 
 ```
-brew install --cask adatoo/tap/quail
+brew install --cask adatoo/tap/quail-ai
 ```
 
 or download the DMG from the [latest release](https://github.com/adatoo/quail/releases/latest). The build is signed and notarized. Quail then updates itself (Settings → General → Updates); Homebrew leaves that to Quail unless you run `brew upgrade --greedy`. The `brew` install also puts the `quail` command on your PATH.

@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-09-24
+
+### Fixed
+
+- The Homebrew cask is now `quail-ai` (`brew install --cask adatoo/tap/quail-ai`). `quail` is an unrelated app's
+  cask in homebrew-cask, so `brew info quail` and `brew outdated` mixed the two up. If you installed 0.9.0 with
+  Homebrew: `brew uninstall --cask adatoo/tap/quail`, then install `quail-ai` (settings and models are kept).
+
 ## [0.9.0] - 2026-09-24
 
 ### Added
