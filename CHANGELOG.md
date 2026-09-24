@@ -10,6 +10,8 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-09-24
+
 ## [0.3.1] - 2026-09-24
 
 ### Added
