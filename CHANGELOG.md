@@ -10,6 +10,22 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-24
+
+### Added
+
+- **In-app updates.** Quail checks for a new version and can install it (ADR D-032). Settings → General →
+  Updates chooses how often (Daily, Weekly, Monthly or Never), whether updates install without asking, and has
+  **Check for Updates…**, which is also in the menu-bar menu. By default Quail asks before installing;
+  installing quits Quail (stopping the server first) and relaunches it. Every update is signed and verified.
+- Each release now carries an `appcast.xml`, the feed installed copies read.
+- Debug builds can move all of Quail's data with `QUAIL_DATA_ROOT`, so a test copy never touches the real
+  config or models (see CONTRIBUTING.md).
+
+### Changed
+
+- Release builds are Apple silicon only (`arm64`): the bundled `llama-server` never ran on Intel.
+
 ## [0.7.2] - 2026-09-24
 
 ### Fixed

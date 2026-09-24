@@ -3,6 +3,7 @@
 #
 #   task vendor:llama [TAG=b11081]   llama-server + its @rpath dependency closure
 #   task vendor:uv [VERSION=0.12.17] the `uv` binary (not shipped in the app yet)
+#   task vendor:sparkle              Sparkle's release tools (generate_keys, generate_appcast, sign_update)
 #   task vendor:verify [DIR=…]       every Mach-O in DIR depends only on relocatable or system paths
 version: '3'
 
@@ -158,6 +159,47 @@ tasks:
         echo "==> result"
         otool -L "$OUT/uv" | sed 's/^/   /'
         echo "staged uv $VERSION in $OUT"
+
+  sparkle:
+    desc: Fetch the pinned Sparkle release tools (generate_keys, generate_appcast, sign_update) into Vendor/sparkle
+    # Skipped when Vendor/sparkle is already this version; `task --force vendor:sparkle` re-fetches.
+    status:
+      - test -x Vendor/sparkle/bin/generate_appcast
+      - test "$(cat Vendor/.sparkle-staged 2>/dev/null)" = "$(cat Vendor/sparkle.version)"
+    cmds:
+      - |
+        # These are the tools, not the framework: the app links Sparkle through SwiftPM
+        # (project.yml, exactVersion). The two must be the same release, so this refuses
+        # to run if they've drifted apart.
+        ROOT='{{.ROOT_DIR}}'
+        VERSION="$(cat "$ROOT/Vendor/sparkle.version")"
+        PINNED="$(sed -nE '/^  Sparkle:/,/^  [A-Za-z]/ s/^    exactVersion: *"?([0-9.]+)"?.*/\1/p' "$ROOT/project.yml" | head -1)"
+        if [ "$PINNED" != "$VERSION" ]; then
+          echo "error: Vendor/sparkle.version ($VERSION) and project.yml's Sparkle exactVersion ($PINNED) differ — bump both together." >&2
+          exit 1
+        fi
+        ASSET="Sparkle-${VERSION}.tar.xz"
+        URL="https://github.com/sparkle-project/Sparkle/releases/download/${VERSION}/${ASSET}"
+        OUT="$ROOT/Vendor/sparkle"
+        TMP="$(mktemp -d)"
+        trap 'rm -rf "$TMP"' EXIT
+
+        echo "==> fetching $URL"
+        curl -fsSL -o "$TMP/$ASSET" "$URL"
+        echo "==> verifying sha256"
+        ( cd "$TMP" && grep " $ASSET\$" "$ROOT/Vendor/sparkle.sha256" | shasum -a 256 -c - )
+
+        echo "==> unpacking the tools"
+        mkdir -p "$TMP/x"
+        tar xf "$TMP/$ASSET" -C "$TMP/x" ./bin/generate_keys ./bin/generate_appcast ./bin/sign_update ./LICENSE
+        rm -rf "$OUT" && mkdir -p "$OUT"
+        cp -R "$TMP/x/bin" "$OUT/bin"
+        cp "$TMP/x/LICENSE" "$OUT/LICENSE-Sparkle"
+        for t in generate_keys generate_appcast sign_update; do
+          [ -x "$OUT/bin/$t" ] || { echo "error: $t missing from the Sparkle release" >&2; exit 1; }
+        done
+        echo "$VERSION" > "$ROOT/Vendor/.sparkle-staged"
+        echo "staged Sparkle $VERSION tools in $OUT/bin"
 
   verify:
     desc: Check every Mach-O under DIR (default Vendor/llama.cpp) depends only on relocatable or system paths

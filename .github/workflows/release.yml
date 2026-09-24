@@ -140,8 +140,10 @@ jobs:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: task release:all
 
-      - name: Verify the exported app (Mach-O closure, bundled resources)
-        run: task verify:bundle APP=build/export/Quail.app
+      - name: Verify the exported app (Mach-O closure, bundled resources, update key)
+        # REQUIRE_UPDATE_KEY: a build whose Info.plist has no Sparkle public key could
+        # never verify an update, so it must not ship (ADR D-032).
+        run: task verify:bundle APP=build/export/Quail.app REQUIRE_UPDATE_KEY=1
 
       - name: Build, sign, notarize and staple the DMG
         env:
@@ -161,3 +163,22 @@ jobs:
         with:
           tag_name: v${{ needs.tag.outputs.version }}
           files: build/Quail-*.dmg
+
+      # The update feed installed copies check (SUFeedURL: releases/latest/download/appcast.xml).
+      # After the DMG is attached, so a feed problem never blocks the download itself.
+      - name: Build the Sparkle update feed
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SPARKLE_ED_PRIVATE_KEY" ]; then
+            echo "::error::The SPARKLE_ED_PRIVATE_KEY secret isn't set, so this release has no update feed and installed copies can't update."
+            exit 1
+          fi
+          task vendor:sparkle
+          task release:appcast
+
+      - name: Attach the update feed to the release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ needs.tag.outputs.version }}
+          files: build/appcast.xml

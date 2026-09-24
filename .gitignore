@@ -34,3 +34,5 @@ Vendor/.llama-staged
 Vendor/.uv-staged
 .task/
 release-notes.md
+Vendor/sparkle/
+Vendor/.sparkle-staged

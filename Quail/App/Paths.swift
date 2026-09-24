@@ -8,14 +8,17 @@ import Foundation
 enum Paths {
     /// `~/Library/Application Support/Quail`
     static let applicationSupport: URL = {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = ControlPaths.debugDataRoot?.appendingPathComponent("Application Support", isDirectory: true)
+            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appendingPathComponent("Quail", isDirectory: true)
     }()
 
     /// `~/Library/Logs/Quail`
     static let logs: URL = {
-        let base = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("Logs", isDirectory: true).appendingPathComponent("Quail", isDirectory: true)
+        let base = ControlPaths.debugDataRoot?.appendingPathComponent("Logs", isDirectory: true)
+            ?? FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Logs", isDirectory: true)
+        return base.appendingPathComponent("Quail", isDirectory: true)
     }()
 
     /// `~/Library/Application Support/Quail/config.json`

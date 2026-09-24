@@ -36,6 +36,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let appState = isHostingUnitTests ? AppState(secretStore: NullSecretStore()) : AppState()
 
+    #if !APPSTORE
+        /// The in-app updater. Not started when hosting unit tests (it would check the real feed).
+        private let updater = Updater(start: !isHostingUnitTests)
+    #endif
+
+    /// What Settings → Updates and the menu's "Check for Updates…" use; `nil` in the App Store build.
+    var updateSettings: UpdateSettings? {
+        #if APPSTORE
+            nil
+        #else
+            updater.settings
+        #endif
+    }
+
     private var sigtermSource: DispatchSourceSignal?
     private var controlServer: ControlServer?
 

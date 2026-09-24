@@ -6,11 +6,30 @@ import Foundation
 // targets, so the two sides can't drift.
 
 enum ControlPaths {
+    /// Debug builds only: `QUAIL_DATA_ROOT=/some/dir` moves everything Quail writes
+    /// (`Application Support/Quail`, `Logs/Quail`, the control socket) under that
+    /// directory, so a test copy of the app — an update test, say — never touches the
+    /// real config, models, logs or socket, or auto-starts the real default model.
+    /// `HOME` can't do this: Foundation ignores it. Never compiled into a shipped build
+    /// (the `quail` CLI, which isn't a Debug-conditioned target, never honours it).
+    static var debugDataRoot: URL? {
+        #if DEBUG
+            // The environment, or a `QuailDataRoot` preference: an updater relaunches the app
+            // without its environment, so an update test sets the preference in its own bundle ID's domain.
+            (ProcessInfo.processInfo.environment["QUAIL_DATA_ROOT"] ?? UserDefaults.standard
+                .string(forKey: "QuailDataRoot"))
+                .map { URL(fileURLWithPath: $0, isDirectory: true) }
+        #else
+            nil
+        #endif
+    }
+
     /// `~/Library/Application Support/Quail/control.sock` — the same
     /// directory as `Paths.applicationSupport`. The socket file is created
     /// mode 0600: only this user can connect.
     static var socketURL: URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = debugDataRoot?.appendingPathComponent("Application Support", isDirectory: true)
+            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appendingPathComponent("Quail", isDirectory: true).appendingPathComponent("control.sock")
     }
 }

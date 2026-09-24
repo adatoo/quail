@@ -78,6 +78,15 @@ stored API key. If you have a signing certificate, copy
 `Config/LocalSigning.local.xcconfig` (gitignored), fill in your team, and run
 `xcodegen generate`; click "Always Allow" once and it sticks across rebuilds.
 
+## Testing the updater or any second copy of the app
+
+Never run a test copy against your real data: `HOME` doesn't move Quail's data (Foundation ignores it), and your
+config may auto-start a real model. Debug builds honour `QUAIL_DATA_ROOT=/some/scratch/dir` (or, for an app that
+gets relaunched — an updater drops the environment — `defaults write <bundle id> QuailDataRoot /some/scratch/dir`),
+which moves everything Quail writes there, including the control socket. Also build the test copy with its own
+bundle ID (`PRODUCT_BUNDLE_IDENTIFIER=com.datoos.quail.e2e`) so its preferences and login item stay separate.
+ADR D-032 lists the Debug-only launch flags for driving an update with nobody clicking.
+
 ## Reporting issues
 
 Use the bug report or feature request templates. For anything

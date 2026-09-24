@@ -9,7 +9,7 @@ struct QuailApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuView(appState: appDelegate.appState)
+            MenuView(appState: appDelegate.appState, updateSettings: appDelegate.updateSettings)
         } label: {
             // Always the same bird glyph; only the colour reflects
             // ServerController.phase — see AppState.menuBarIcon's doc
@@ -23,7 +23,7 @@ struct QuailApp: App {
         // which looked and behaved unlike every other menu bar app.
 
         Settings {
-            SettingsView(appState: appDelegate.appState).opensInFront()
+            SettingsView(appState: appDelegate.appState, updateSettings: appDelegate.updateSettings).opensInFront()
         }
 
         // Real windows, not `.sheet`s presented from the MenuBarExtra's
