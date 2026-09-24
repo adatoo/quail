@@ -92,6 +92,15 @@ jobs:
               echo "::error::catalog.json is missing from Quail.app/Contents/Resources — check project.yml's resources wiring"
               exit 1
             }
+            # Settings → General → About shows the llama.cpp tag, and llama.cpp's
+            # MIT licence must ship with the app; both are copied in by
+            # scripts/embed-llama.sh.
+            for f in llama.version LICENSE-llama.cpp; do
+              test -f "$APP/Contents/Resources/$f" || {
+                echo "::error::$f is missing from Quail.app/Contents/Resources — check scripts/embed-llama.sh"
+                exit 1
+              }
+            done
           fi
 
       - name: Test (Quail)

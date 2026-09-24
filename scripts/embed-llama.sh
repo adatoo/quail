@@ -23,6 +23,10 @@ mkdir -p "$DEST"
 rsync -a --exclude 'LICENSE-llama.cpp' "$VENDOR"/ "$DEST"/
 mkdir -p "${CODESIGNING_FOLDER_PATH}/Contents/Resources"
 cp "$VENDOR/LICENSE-llama.cpp" "${CODESIGNING_FOLDER_PATH}/Contents/Resources/LICENSE-llama.cpp"
+# The tag Settings → General → About shows. Copied from the pin vendor-llama.sh
+# downloads, not from a second place to keep in sync (a build with no pin file
+# just shows "—").
+[ -f "${SRCROOT}/scripts/llama.version" ] && cp "${SRCROOT}/scripts/llama.version" "${CODESIGNING_FOLDER_PATH}/Contents/Resources/llama.version"
 
 if [ "${CODE_SIGNING_ALLOWED:-YES}" = "NO" ]; then
   echo "note: CODE_SIGNING_ALLOWED=NO — ad-hoc signing embedded llama.cpp binaries."
