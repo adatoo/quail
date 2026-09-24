@@ -6,13 +6,14 @@ enum SettingsTab: Hashable {
     case general
     case endpoint
     case models
+    case benchmark
     case connect
     case thisMac
 }
 
 /// Root of the Settings window: `General` (open at login), `Endpoint`
-/// (runtime, host, port, API key), `Models` (store, catalog, downloads)
-/// and `This Mac` (device-fit facts). `Runtimes`, `Logs` and `About` land
+/// (runtime, host, port, API key), `Models` (store, catalog, downloads),
+/// `Benchmark` (fixed suite, saved results) and `This Mac` (device-fit facts). `Runtimes`, `Logs` and `About` land
 /// in later phases per docs/IMPLEMENTATION_PLAN.md.
 struct SettingsView: View {
     let appState: AppState
@@ -34,6 +35,10 @@ struct SettingsView: View {
                 .tabItem { Label("Models", systemImage: "shippingbox") }
                 .tag(SettingsTab.models)
 
+            BenchmarkPane(appState: appState)
+                .tabItem { Label("Benchmark", systemImage: "gauge.with.dots.needle.67percent") }
+                .tag(SettingsTab.benchmark)
+
             ConnectPane(appState: appState)
                 .tabItem { Label("Connect", systemImage: "cable.connector") }
                 .tag(SettingsTab.connect)
@@ -42,13 +47,13 @@ struct SettingsView: View {
                 .tabItem { Label("This Mac", systemImage: "memorychip") }
                 .tag(SettingsTab.thisMac)
         }
-        // 680 (was 560): Connect's tool list + snippet needs the width.
-        // 560, not 480: the Endpoint tab's stepper caption and API-key
-        // row overflowed the narrower fixed width (user-reported) —
-        // content wider than the frame is drawn centered and clipped
-        // both edges, which no amount of internal wrapping fixes once
-        // a row's minimum genuinely exceeds it.
-        .frame(width: 680)
+        // 900 (was 680, 560 before): Benchmark's seven-column results table
+        // needs it, and every tab shares one width so the window doesn't
+        // resize as you switch. Also room for the 820-wide Add Model sheet,
+        // which used to overhang. Content wider than the frame is drawn
+        // centered and clipped both edges, which no amount of internal
+        // wrapping fixes once a row's minimum genuinely exceeds it.
+        .frame(width: 900)
         .fixedSize(horizontal: false, vertical: true)
     }
 }

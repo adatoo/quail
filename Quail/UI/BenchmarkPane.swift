@@ -2,9 +2,9 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The Benchmark window (Phase 2b step 4): run the fixed suite on an
-/// installed model, and browse, compare, copy and export saved results.
-struct BenchmarkWindow: View {
+/// The Benchmark tab of Settings (Phase 2b step 4): run the fixed suite on
+/// an installed model, and browse, compare, copy and export saved results.
+struct BenchmarkPane: View {
     let appState: AppState
 
     @State private var model = ""
@@ -38,7 +38,9 @@ struct BenchmarkWindow: View {
                 .padding(.horizontal)
                 .padding(.vertical, 10)
         }
-        .frame(minWidth: 860, minHeight: 440)
+        // Settings sizes to its tab (`fixedSize`), and a Table scrolls, so
+        // its ideal height is tiny — same reason as `ModelsPane`.
+        .frame(minHeight: 520)
         .onAppear(perform: pickModel)
         .onChange(of: benchmarks.requestedModel) { _, _ in pickModel() }
     }
@@ -170,7 +172,7 @@ struct BenchmarkWindow: View {
                         }
                     }
                 }
-                .width(min: 180, ideal: 190)
+                .width(min: 170, ideal: 175)
                 TableColumn("Model") { result in
                     HStack(spacing: 4) {
                         Text(result.model.id).lineLimit(1).truncationMode(.middle)
@@ -182,27 +184,27 @@ struct BenchmarkWindow: View {
                         }
                     }
                 }
-                .width(min: 140, ideal: 180)
+                .width(min: 215, ideal: 220)
                 TableColumn("Prompt 512") { Text(Self.speed($0.measurements.prompt512)).monospacedDigit() }
-                    .width(min: 90, ideal: 100)
+                    .width(min: 85, ideal: 90)
                 TableColumn("Prompt 4096") { Text(Self.speed($0.measurements.prompt4096)).monospacedDigit() }
-                    .width(min: 90, ideal: 100)
+                    .width(min: 85, ideal: 90)
                 TableColumn("Generate") { result in
                     Text(Self.speed(result.measurements.generation256))
                         .monospacedDigit()
                         .help(result.estimatedTokensPerSecond.map { String(format: "Estimated: %.0f tok/s", $0) } ?? "")
                 }
-                .width(min: 85, ideal: 95)
+                .width(min: 80, ideal: 85)
                 TableColumn("First token") { result in
                     Text(result.measurements.timeToFirstTokenMs.map { String(format: "%.0f ms", $0.median) } ?? "—")
                         .monospacedDigit()
                 }
-                .width(min: 70, ideal: 80)
+                .width(min: 65, ideal: 70)
                 TableColumn("Load") { result in
                     Text(result.measurements.loadSeconds.map { String(format: "%.1f s", $0.median) } ?? "—")
                         .monospacedDigit()
                 }
-                .width(min: 50, ideal: 60)
+                .width(min: 45, ideal: 50)
             }
             .contextMenu(forSelectionType: BenchmarkResult.ID.self) { ids in
                 // Right-clicking inside a selection hands over the whole
@@ -312,7 +314,7 @@ private struct ComparisonStrip: View {
     /// The model, plus the run's time when both are the same model.
     private func label(_ result: BenchmarkResult) -> String {
         baseline.model.id == other.model.id
-            ? "\(result.model.id) (\(BenchmarkWindow.timestamp(result.date)))"
+            ? "\(result.model.id) (\(BenchmarkPane.timestamp(result.date)))"
             : result.model.id
     }
 

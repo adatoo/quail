@@ -21,6 +21,8 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ### Changed
 
+- Benchmark is a tab in Settings, like every other page, instead of its own
+  window; Settings is one wider width on every tab.
 - Comparing two benchmark runs now names a baseline (the older run, tagged in
   the table; swap it or set it from the row menu) and words each result as
   "1.23× faster" or "19% slower".

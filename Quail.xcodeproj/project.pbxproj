@@ -34,7 +34,6 @@
 		41E47FD4D949CA1462CEC662 /* AppState+Control.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58DBB1BAE9BE2104F218FF14 /* AppState+Control.swift */; };
 		4264D719B78C601B5C03EB45 /* Ping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C29DC0715805F71AA1A5599 /* Ping.swift */; };
 		430E89F9BAD4B4183FB1E2F8 /* ServerControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1105E578FC33E291B560DFEE /* ServerControllerTests.swift */; };
-		46462333985AAEB57EBB2F4B /* BenchmarkWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3366F8036E9ECB93E5FA134 /* BenchmarkWindow.swift */; };
 		47DAABA1E882A6CD01680186 /* MLXMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF36C9C4B0032D9BDA798A6 /* MLXMetadata.swift */; };
 		4A67F045D85B57F300F618D5 /* MLXMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */; };
 		4A98453067CC98E016A48578 /* ModelCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41C16B729E5C0BDC386E3FB0 /* ModelCommandTests.swift */; };
@@ -97,6 +96,7 @@
 		CB7CA9A2F895FD0B2EB70E10 /* GGUFFixtureBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 649E93D9E6DF446442533B00 /* GGUFFixtureBuilder.swift */; };
 		CB9AAC9FE8B06C6AE14C34E4 /* LineSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275CDD748714AE0692A9AEB4 /* LineSocket.swift */; };
 		CC97103286266648C2786A8B /* Quail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC4BDD5F39E2AF070D9577B /* Quail.swift */; };
+		D0891A20E7D023059BEF744A /* BenchmarkPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F957701D4D02EDBB861ED7F /* BenchmarkPane.swift */; };
 		D14CDB94C0DC992397CDE352 /* AppInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70BF19344F23B98FA299585E /* AppInfoTests.swift */; };
 		D2121BF380DDA22CCA8B83CE /* Recommender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291564F24C33308671BAC5F1 /* Recommender.swift */; };
 		D21903B2E76547FABF0D784A /* ServerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B6A68D6E8CFFF1B6142EB1 /* ServerController.swift */; };
@@ -169,6 +169,7 @@
 		3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreCatalog.swift; sourceTree = "<group>"; };
 		3C313E49C170F38D115B7E22 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		3EFE5CF215ED8A619AC4B778 /* PullSpec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullSpec.swift; sourceTree = "<group>"; };
+		3F957701D4D02EDBB861ED7F /* BenchmarkPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkPane.swift; sourceTree = "<group>"; };
 		41C16B729E5C0BDC386E3FB0 /* ModelCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelCommandTests.swift; sourceTree = "<group>"; };
 		425E81D2DAC331A359585A0F /* HFRepo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HFRepo.swift; sourceTree = "<group>"; };
 		4279E9EF2E774CD49728C388 /* ControlProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlProtocol.swift; sourceTree = "<group>"; };
@@ -237,7 +238,6 @@
 		BB4311B4B49CBCCEBD0B21D7 /* ServerPreflightTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerPreflightTests.swift; sourceTree = "<group>"; };
 		BFD21329B8FDA5B810AA59CA /* ControlServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlServer.swift; sourceTree = "<group>"; };
 		C1946EC80763A824682094C0 /* GGUFMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GGUFMetadataTests.swift; sourceTree = "<group>"; };
-		C3366F8036E9ECB93E5FA134 /* BenchmarkWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkWindow.swift; sourceTree = "<group>"; };
 		C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStoreTests.swift; sourceTree = "<group>"; };
 		C7BD7CE4C9F99A17BB539706 /* ModelAddPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAddPlan.swift; sourceTree = "<group>"; };
 		C88C66F427EBF826F280BCAD /* WindowPresence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPresence.swift; sourceTree = "<group>"; };
@@ -374,7 +374,7 @@
 			isa = PBXGroup;
 			children = (
 				12DE6B42A661984D99734823 /* AddModelSheet.swift */,
-				C3366F8036E9ECB93E5FA134 /* BenchmarkWindow.swift */,
+				3F957701D4D02EDBB861ED7F /* BenchmarkPane.swift */,
 				739A4690CD2EC6F2564EAA6F /* ChatEntry.swift */,
 				99472B808EA90F05B1CC57CF /* CleanUpSheet.swift */,
 				9314E5E80DBE23041BD6062B /* ConnectPane.swift */,
@@ -716,11 +716,11 @@
 				00E8EDC18CE12C6B84CF8BF1 /* BenchmarkClient.swift in Sources */,
 				89686AD966FE4F4D93003553 /* BenchmarkComparison.swift in Sources */,
 				BC17BE2E0789928592A63498 /* BenchmarkController.swift in Sources */,
+				D0891A20E7D023059BEF744A /* BenchmarkPane.swift in Sources */,
 				6AF2247EB3F5DDA89C1A3316 /* BenchmarkResult.swift in Sources */,
 				16B308D34717DAA081C8505B /* BenchmarkRunner.swift in Sources */,
 				D33901B962A37AF587A5FC56 /* BenchmarkStore.swift in Sources */,
 				DACBD1DAA83D0DBE89F0EF69 /* BenchmarkSuite.swift in Sources */,
-				46462333985AAEB57EBB2F4B /* BenchmarkWindow.swift in Sources */,
 				BB9E9F4BD5FCE9643645DFC3 /* Catalog.swift in Sources */,
 				9A5972B30A98BFE94BF8A2F5 /* CatalogRefresher.swift in Sources */,
 				64493EB54E4208B5DFBD9E7C /* ChatEntry.swift in Sources */,

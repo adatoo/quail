@@ -3,7 +3,7 @@ import IOKit.ps
 import Observation
 
 /// The benchmark the app is running (at most one) and the saved results —
-/// observed by the Benchmark window, driven by it and by `quail bench`.
+/// observed by the Benchmark tab, driven by it and by `quail bench`.
 @MainActor
 @Observable
 final class BenchmarkController {

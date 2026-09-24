@@ -38,7 +38,6 @@ struct ModelsPane: View {
     /// This Mac's chip, for matching benchmark results (read in `refresh`,
     /// not per render — `DeviceInfo.current()` touches IOKit and Metal).
     @State private var chip: String?
-    @Environment(\.openWindow) private var openWindow
 
     enum FormatFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -230,7 +229,7 @@ struct ModelsPane: View {
                     },
                     onBenchmark: {
                         appState.benchmarks.requestedModel = entry.id
-                        openWindow(id: "benchmark")
+                        appState.settingsTab = .benchmark
                     }
                 )
             }
