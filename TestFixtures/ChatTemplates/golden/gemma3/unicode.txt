@@ -1,0 +1,4 @@
+<|endoftext|><start_of_turn>user
+Écris « bonjour » en 日本語 — with an emoji 🐦 and a "quote" and a
+newline.<end_of_turn>
+<start_of_turn>model

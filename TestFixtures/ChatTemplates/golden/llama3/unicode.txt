@@ -1,0 +1,10 @@
+<|endoftext|><|start_header_id|>system<|end_header_id|>
+
+Cutting Knowledge Date: December 2023
+Today Date: 24 Sep 2026
+
+<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+Écris « bonjour » en 日本語 — with an emoji 🐦 and a "quote" and a
+newline.<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+

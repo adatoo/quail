@@ -1,0 +1,4 @@
+<|im_start|>user
+Écris « bonjour » en 日本語 — with an emoji 🐦 and a "quote" and a
+newline.<|im_end|>
+<|im_start|>assistant

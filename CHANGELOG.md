@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-24
+
+### Changed
+
+- Internal, no visible change yet: `quail-server` can render a model's chat template (checked against
+  llama.cpp on four model families) and parse request JSON without reordering it (ADR D-035).
+
 ## [0.10.0] - 2026-09-24
 
 ### Added

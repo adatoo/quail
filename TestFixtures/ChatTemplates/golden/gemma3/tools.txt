@@ -1,0 +1,3 @@
+<|endoftext|><start_of_turn>user
+What's the weather in Paris and what time is it in Tokyo?<end_of_turn>
+<start_of_turn>model
