@@ -8,6 +8,7 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 **Why hosted only:** in a public repo anyone can open a PR, and a `pull_request` workflow runs the PR's code on whatever runner the job names; on a self-hosted runner that is our own Mac, with whatever the runner's user can reach. Hosted runners are fresh VMs per job, which also makes `release:import-cert` (it replaces the default keychain) harmless. Standard hosted runners are free for public repos, macOS included. Also turn on Settings → Actions → "Require approval for all outside collaborators".
 **Before going public:** `gitleaks git` over the full history (48 commits) found no secrets.
 **Alternatives:** A separate public releases repo, with the code private (more tokens and moving parts). Keep the self-hosted runner for maintainers' PRs only (an expression on `head.repo.fork`) — rejected: one misjudged condition runs a stranger's code on the Mac, and hosted runners cost nothing here.
+**Releases are full releases, even while 0.x** (amending D-024): Sparkle's feed and Homebrew both find the newest build through GitHub's `releases/latest`, which ignores pre-releases. The version number still says it's pre-1.0.
 **Revisit if:** hosted macOS runners stop being free for public repos, or a job needs hardware they don't have (e.g. benchmarking on a specific chip).
 
 ## D-030 · 2026-09-24 · Task is the single entry point for local and CI commands; the shell scripts are gone
@@ -75,6 +76,8 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 
 ## D-024 · 2026-09-23 · SemVer from PR titles, bumped in every PR, released on every merge
 
+> **Amended by D-031 (2026-09-24):** releases are no longer marked pre-release while 0.x — GitHub's `releases/latest`, which Sparkle and Homebrew rely on, skips pre-releases.
+
 **Decision:** Quail's version is SemVer, kept in `project.yml` (`MARKETING_VERSION`, plus `CURRENT_PROJECT_VERSION` as a build number that rises with every release). Every PR carries its own bump, derived from its Conventional Commits title — `feat` → minor, other types → patch, `!`/`BREAKING CHANGE` → major (minor while 0.x) — made with `scripts/bump-version.sh` and enforced by the required `version` check. PRs merge only with merge commits (no squash, rebase, force-push or direct push; admins included) and auto-merge once `build-and-test` and `version` pass. Every merge to `main` tags `vX.Y.Z` and publishes a GitHub Release from that version's CHANGELOG section (pre-release while 0.x); the signed DMG is attached once signing is configured (`vars.SIGNING_ENABLED`).
 **Alternatives:** Bumping at release time on `main` (release-please style) — needs a bot to push to `main`, which "PRs only" forbids. A label per PR — one more thing to forget; the title is already required to be Conventional. Squash merges — the user chose merge commits.
 **Why:** User request: SemVer releases, a bump in every PR, auto-merge on green CI, and a `main` that only changes through merged PRs. Computing the bump from `main`'s version inside the PR keeps `main` untouched by bots and makes every merge commit a releasable version.
@@ -123,6 +126,8 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 **Revisit if:** the catalog grows enough that "top 5 comfortable" stops being a useful shortlist.
 
 ## D-018 · 2026-09-23 · Developer ID signing (Phase 1 step 11), reusing the existing Apple Developer identity
+
+> **Updated 2026-09-24:** the scripts named below are now `release:*` tasks (D-030). Notarization prefers the account's App Store Connect API key (`notarytool --key`, the same `.p8` `lookout` uses) and falls back to an Apple ID password; CI's secrets are `APPLE_API_KEY_P8` / `APPLE_API_KEY_ID` / `APPLE_API_ISSUER_ID`, not `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD`. The DMG is now notarized and stapled as well as the app. First real run 2026-09-24, locally: both submissions **Accepted**, and a quarantined copy of the DMG and the app inside it both assess as `source=Notarized Developer ID`.
 
 **Decision:** Quail signs Developer ID (direct-distribution) builds with the certificate already issued to this Apple Developer account — `"Developer ID Application: Arif Datoo (QKAYS6D525)"`, the same identity the `lookout` project already uses (same account; `lookout`'s own `com.datoos.lookout` bundle id prefix matches Quail's `com.datoos.quail`). No new certificate, no new Apple Developer enrollment. Two new scripts do the work, reused identically by both a local developer and CI:
 - `scripts/sign-and-notarize.sh`: `xcodebuild archive` with `CODE_SIGN_STYLE=Manual`/the real identity, `-exportArchive` with `scripts/ExportOptions-DeveloperID.plist` (`method: developer-id`), `notarytool submit --wait`, `stapler staple`.

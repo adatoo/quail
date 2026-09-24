@@ -10,6 +10,22 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-24
+
+### Added
+
+- Signed, notarized releases: `task release:all` and `task release:dmg` now build a Developer ID
+  signed app **and DMG**, both notarized and stapled. Notarization uses the account's App Store
+  Connect API key (`APPLE_API_KEY_*`), with an Apple ID password as a fallback. The release
+  workflow attaches the DMG once `SIGNING_ENABLED` is set.
+
+### Changed
+
+- Releases are published as full releases, not pre-releases, so `releases/latest` finds them
+  (for the updater and Homebrew to come; ADR D-031).
+- A failed archive or export now fails the release build with xcodebuild's own error, instead of
+  a later "app missing" message.
+
 ## [0.6.3] - 2026-09-24
 
 ### Changed
