@@ -13,6 +13,9 @@ name: Release
 # Taskfile.yml (ADR D-030) — the same release:* tasks a developer runs
 # locally via `task install:notarized`.
 #
+# The last job updates the Homebrew cask in adatoo/homebrew-tap (ADR D-033),
+# from the DMG as published, so the hash brew checks is of what people download.
+#
 # Triggered by the push a merge makes. Merges must be made as a person or
 # with BOT_TOKEN — a merge made with GITHUB_TOKEN starts no workflows.
 on:
@@ -182,3 +185,41 @@ jobs:
         with:
           tag_name: v${{ needs.tag.outputs.version }}
           files: build/appcast.xml
+
+  homebrew:
+    name: update-homebrew-cask
+    needs: [tag, dmg]
+    if: needs.tag.outputs.created == 'true' && vars.SIGNING_ENABLED == 'true'
+    runs-on: ubuntu-latest # renders a text file and pushes it; no Xcode needed
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: v${{ needs.tag.outputs.version }}
+
+      - name: Set up Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download the published DMG
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.tag.outputs.version }}
+        run: gh release download "v$VERSION" --pattern "Quail-*.dmg" --dir build
+
+      - name: Render the cask
+        env:
+          VERSION: ${{ needs.tag.outputs.version }}
+        run: task release:cask
+
+      - name: Push it to the tap
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then
+            echo "::error::The TAP_TOKEN secret isn't set, so 'brew install' would stay on the previous release."
+            exit 1
+          fi
+          task release:cask:publish

@@ -5,10 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Every PR adds its entries under [Unreleased] and cuts them into its own
-version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
+version's section with `task version:bump` (ADR D-024); every merge to
 `main` is released as that version.
 
 ## [Unreleased]
+
+## [0.9.0] - 2026-09-24
+
+### Added
+
+- **Homebrew.** `brew install --cask adatoo/tap/quail` installs Quail and the `quail` command; every release
+  updates the cask automatically (ADR D-033).
+
+### Fixed
+
+- `task install` built an app that macOS refused to launch ("Library not loaded: Sparkle.framework"), since
+  0.8.0. Ad-hoc local installs now drop the hardened runtime that caused it; released builds were unaffected.
 
 ## [0.8.0] - 2026-09-24
 
