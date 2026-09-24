@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-24
+
+### Added
+
+- **An app icon.** Quail now has one, in the Finder, Settings and the update prompts (ADR D-034).
+
 ## [0.9.1] - 2026-09-24
 
 ### Fixed
