@@ -3,16 +3,19 @@
 # dmg job runs in CI. Everything is configured through environment variables, so
 # a shell and CI secrets drive the same commands:
 #
-#   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD   notarization (release:check requires both)
+#   Notarization, either (the API key is preferred and wins if both are set):
+#     APPLE_API_KEY_PATH, APPLE_API_KEY_ID, APPLE_API_ISSUER_ID   an App Store Connect API key (.p8).
+#       Locally these default to the account's key in ~/.appstoreconnect/private_keys,
+#       so on the maintainer's Mac no variables are needed.
+#     APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD                       an Apple ID app-specific password
 #   APPLE_TEAM_ID                           default QKAYS6D525
 #   APPLE_SIGNING_IDENTITY                  default "Developer ID Application: Arif Datoo (QKAYS6D525)"
 #
 #   task release:all      archive → export → notarize → staple → verify   (build/export/Quail.app)
-#   task release:dmg      package that app into build/Quail-<version>.dmg (needs create-dmg)
+#   task release:dmg      package it: build/Quail-<version>.dmg, signed, notarized, stapled (needs create-dmg)
 #   task release:notes    this version's CHANGELOG section → release-notes.md
 #
-# Notarization is one task, release:notarize — the one place to change when it
-# moves from an app-specific password to an App Store Connect API key.
+# Notarization is one task, release:notarize (FILE=… for what to submit).
 version: '3'
 
 vars:
@@ -21,18 +24,25 @@ vars:
   ARCHIVE_PATH: '{{.BUILD_DIR}}/Quail.xcarchive'
   EXPORT_PATH: '{{.BUILD_DIR}}/export'
   APP_PATH: '{{.BUILD_DIR}}/export/Quail.app'
+  # App Store Connect API key (not secret: the key ID and issuer; the .p8 is the secret).
+  API_KEY_ID: '{{if .APPLE_API_KEY_ID}}{{.APPLE_API_KEY_ID}}{{else}}63BL7CBR43{{end}}'
+  API_ISSUER_ID: '{{if .APPLE_API_ISSUER_ID}}{{.APPLE_API_ISSUER_ID}}{{else}}f5f3b0d0-389a-499d-b1e8-f475ef9a9206{{end}}'
+  API_KEY_PATH: '{{if .APPLE_API_KEY_PATH}}{{.APPLE_API_KEY_PATH}}{{else}}{{.HOME}}/.appstoreconnect/private_keys/AuthKey_{{.API_KEY_ID}}.p8{{end}}'
 
 tasks:
   check:
     desc: Check the credentials and certificate a signed release needs
     cmds:
       - |
-        for var in APPLE_ID APPLE_APP_SPECIFIC_PASSWORD; do
-          if [ -z "$(printenv "$var")" ]; then
-            echo "error: \$$var is not set — see the header of taskfiles/release.yml for what's required." >&2
-            exit 1
-          fi
-        done
+        if [ -f '{{.API_KEY_PATH}}' ]; then
+          echo "notarization: App Store Connect API key {{.API_KEY_ID}} ({{.API_KEY_PATH}})"
+        elif [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ]; then
+          echo "notarization: Apple ID $APPLE_ID"
+        else
+          echo "error: no notarization credentials — no API key at {{.API_KEY_PATH}}," >&2
+          echo "       and APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD aren't set. See taskfiles/release.yml." >&2
+          exit 1
+        fi
         if ! security find-identity -v -p codesigning | grep -q "Developer ID Application"; then
           echo "error: no \"Developer ID Application\" certificate in the active keychain." >&2
           echo "       security find-identity -v -p codesigning   # to check" >&2
@@ -46,7 +56,9 @@ tasks:
       - task: archive
       - task: export
       - task: notarize
+        vars: {FILE: '{{.APP_PATH}}'}
       - task: staple
+        vars: {FILE: '{{.APP_PATH}}'}
       - task: verify
       - |
         echo ""
@@ -59,7 +71,8 @@ tasks:
         rm -rf '{{.BUILD_DIR}}'
         mkdir -p '{{.BUILD_DIR}}'
         echo "==> 1/4  Archiving (Release, {{.IDENTITY}})..."
-        # `|| true`: the exported .app's existence is the real check (below), as before.
+        # pipefail (Taskfile.yml) makes an xcodebuild failure fail this step,
+        # even piped through xcbeautify.
         xcodebuild archive \
           -project '{{.ROOT_DIR}}/Quail.xcodeproj' \
           -scheme Quail \
@@ -68,7 +81,7 @@ tasks:
           CODE_SIGN_STYLE=Manual \
           CODE_SIGN_IDENTITY='{{.IDENTITY}}' \
           DEVELOPMENT_TEAM='{{.TEAM_ID}}' \
-          | {{.PRETTY}} || true
+          | {{.PRETTY}}
 
   export:
     desc: Export a signed .app from the archive
@@ -79,29 +92,50 @@ tasks:
           -archivePath '{{.ARCHIVE_PATH}}' \
           -exportPath '{{.EXPORT_PATH}}' \
           -exportOptionsPlist '{{.ROOT_DIR}}/Config/ExportOptions-DeveloperID.plist' \
-          | {{.PRETTY}} || true
+          | {{.PRETTY}}
         [ -d '{{.APP_PATH}}' ] || { echo "error: export finished but {{.APP_PATH}} is missing" >&2; exit 1; }
 
   notarize:
-    desc: Submit the exported app to Apple's notary service and wait (typically 1-5 minutes)
+    desc: 'Submit FILE (an .app or .dmg; default the exported app) to Apple''s notary service and wait (1-5 minutes)'
+    vars:
+      TARGET: '{{if .FILE}}{{.FILE}}{{else}}{{.APP_PATH}}{{end}}'
     cmds:
       - |
-        echo "==> 3/4  Submitting to Apple notary (this typically takes 1-5 minutes)..."
-        ZIP_PATH='{{.BUILD_DIR}}/Quail-for-notarization.zip'
-        ditto -c -k --keepParent '{{.APP_PATH}}' "$ZIP_PATH"
-        xcrun notarytool submit "$ZIP_PATH" \
-          --apple-id "$APPLE_ID" \
-          --team-id '{{.TEAM_ID}}' \
-          --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-          --wait
-        rm -f "$ZIP_PATH"
+        TARGET='{{.TARGET}}'
+        [ -e "$TARGET" ] || { echo "error: $TARGET not found" >&2; exit 1; }
+        echo "==> Notarizing $(basename "$TARGET") (this typically takes 1-5 minutes)..."
+        # An .app is submitted as a zip; a .dmg as itself.
+        case "$TARGET" in
+          *.app) SUBMIT='{{.BUILD_DIR}}/notarize-upload.zip'; ditto -c -k --keepParent "$TARGET" "$SUBMIT" ;;
+          *) SUBMIT="$TARGET" ;;
+        esac
+        # The one place credentials are chosen: an API key if there is one, else an Apple ID.
+        if [ -f '{{.API_KEY_PATH}}' ]; then
+          set -- --key '{{.API_KEY_PATH}}' --key-id '{{.API_KEY_ID}}' --issuer '{{.API_ISSUER_ID}}'
+        else
+          set -- --apple-id "$APPLE_ID" --team-id '{{.TEAM_ID}}' --password "$APPLE_APP_SPECIFIC_PASSWORD"
+        fi
+        LOG='{{.BUILD_DIR}}/notarize.json'
+        xcrun notarytool submit "$SUBMIT" "$@" --wait --output-format json > "$LOG" || true
+        [ "$SUBMIT" != "$TARGET" ] && rm -f "$SUBMIT"
+        STATUS="$(plutil -extract status raw -o - "$LOG" 2>/dev/null || echo unknown)"
+        ID="$(plutil -extract id raw -o - "$LOG" 2>/dev/null || echo unknown)"
+        echo "    submission $ID: $STATUS"
+        if [ "$STATUS" != "Accepted" ]; then
+          # Apple's log names each file that failed and why.
+          [ "$ID" != unknown ] && xcrun notarytool log "$ID" "$@" >&2 || cat "$LOG" >&2
+          echo "error: notarization of $(basename "$TARGET") was not accepted ($STATUS)" >&2
+          exit 1
+        fi
 
   staple:
-    desc: Staple the notarization ticket to the app
+    desc: Staple the notarization ticket to FILE (default the exported app)
+    vars:
+      TARGET: '{{if .FILE}}{{.FILE}}{{else}}{{.APP_PATH}}{{end}}'
     cmds:
       - |
-        echo "==> 4/4  Stapling the notarization ticket..."
-        xcrun stapler staple '{{.APP_PATH}}'
+        echo "==> Stapling the notarization ticket to $(basename '{{.TARGET}}')..."
+        xcrun stapler staple '{{.TARGET}}'
 
   verify:
     desc: 'Verify signature, Gatekeeper acceptance and the staple (APP=… for another app)'
@@ -117,40 +151,60 @@ tasks:
         echo "    all checks passed"
 
   dmg:
-    desc: Package the notarized app into build/Quail-<version>.dmg and sign it (APP=… for another app; needs create-dmg)
+    desc: Package the notarized app into build/Quail-<version>.dmg — signed, notarized, stapled (APP=… for another app; needs create-dmg)
     vars:
       APP_TO_PACK: '{{if .APP}}{{.APP}}{{else}}{{.APP_PATH}}{{end}}'
+      DMG_PATH:
+        sh: |
+          v="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" '{{if .APP}}{{.APP}}{{else}}{{.APP_PATH}}{{end}}/Contents/Info.plist' 2>/dev/null || echo unknown)"
+          echo '{{.BUILD_DIR}}'"/Quail-$v.dmg"
     preconditions:
       - sh: command -v create-dmg
         msg: 'create-dmg is not installed — brew install create-dmg'
+      - sh: test -d '{{.APP_TO_PACK}}'
+        msg: '{{.APP_TO_PACK}} not found — run: task release:all'
     cmds:
       - |
-        # The .app inside already carries its own notarization staple (checked by
-        # Gatekeeper when it's launched), so the DMG container isn't re-notarized.
+        # The DMG is notarized and stapled too, not just the app inside it: a DMG
+        # downloaded by a browser or brew is quarantined, and Gatekeeper checks the
+        # container when it's opened.
         APP='{{.APP_TO_PACK}}'
-        [ -d "$APP" ] || { echo "error: $APP not found — run: task release:all" >&2; exit 1; }
-        VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist")"
-        DMG_PATH='{{.BUILD_DIR}}'"/Quail-$VERSION.dmg"
+        DMG_PATH='{{.DMG_PATH}}'
         rm -f "$DMG_PATH"
 
         echo "==> Building $DMG_PATH..."
+        # create-dmg exits non-zero on the harmless "no volume icon set" case, so its
+        # output file, not its exit status, is the check.
         create-dmg \
-          --volname "Quail $VERSION" \
+          --volname "Quail" \
           --app-drop-link 450 150 \
           --icon "Quail.app" 150 150 \
           --window-size 600 300 \
           "$DMG_PATH" \
           "$APP" \
-          || true # create-dmg exits non-zero on the harmless "no volume icon set" case
-
+          || true
         [ -f "$DMG_PATH" ] || { echo "error: create-dmg finished but $DMG_PATH is missing" >&2; exit 1; }
 
         echo "==> Signing the DMG ({{.IDENTITY}})..."
         codesign --sign '{{.IDENTITY}}' --timestamp "$DMG_PATH"
+      - task: notarize
+        vars: {FILE: '{{.DMG_PATH}}'}
+      - task: staple
+        vars: {FILE: '{{.DMG_PATH}}'}
+      - task: verify:dmg
+        vars: {DMG: '{{.DMG_PATH}}'}
+      - 'echo "Done: {{.DMG_PATH}}"'
 
-        echo ""
-        codesign --verify --verbose=2 "$DMG_PATH"
-        echo "Done: $DMG_PATH"
+  verify:dmg:
+    desc: 'Verify a DMG: signature, notarization staple and Gatekeeper (DMG=…)'
+    cmds:
+      - |
+        DMG='{{.DMG}}'
+        [ -f "$DMG" ] || { echo "error: DMG=$DMG not found" >&2; exit 1; }
+        codesign --verify --verbose=2 "$DMG"
+        xcrun stapler validate "$DMG"
+        spctl -a -vvv -t open --context context:primary-signature "$DMG"
+        echo "    DMG checks passed"
 
   notes:
     desc: 'Write a version''s CHANGELOG section to release-notes.md (VERSION=…, default: project.yml''s)'
