@@ -619,7 +619,7 @@ final class AppState {
     /// never ends when the view goes away — the cancelled sleep returns
     /// instantly and `try?` hides it — and spun on `GET /models` until
     /// it used up every ephemeral port on the Mac (user-reported: a
-    /// `quail run` turn failing with `EADDRNOTAVAIL`).
+    /// `quail chat` turn failing with `EADDRNOTAVAIL`).
     func pollLoadedStates(every interval: Duration = .seconds(2), _ update: ([String: String]) -> Void) async {
         while !Task.isCancelled, serverController.phase == .ready {
             do {

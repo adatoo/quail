@@ -2,6 +2,14 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-025 · 2026-09-24 · `quail run` becomes `quail chat`; a prompt doesn't need a model
+
+**Decision:** The terminal-chat command is `quail chat [model] [prompt…]`; `quail run` is removed, with no alias. The first word is the model only if it names exactly one installed model (exact id, then case-insensitive, then a unique prefix — the same matching as `rm`, `ctx` and `default`, now one function, `ModelNameMatch`); otherwise every word is the prompt and the default model answers. `-m/--model` names the model outright (strictly: unknown or ambiguous is an error, and every word is the prompt). An ambiguous first word is an error rather than a guess. A quoted prompt is one argument containing spaces, so it is never read as a model. "Copy Terminal Chat Command" emits `quail chat -m <model>` so a model id with a space in it can't read as a prompt.
+**Alternatives:** `-m` only (predictable, but loses ollama-style `quail chat <model>`); keep `run` as a hidden alias (ollama muscle memory, but the user chose a clean break).
+**Why:** `run` suggests starting or loading a model, and the command only chats. With the model as a required first positional, `quail run why is the sky blue` took "why" as the model and failed; a one-shot prompt to the default model was impossible.
+**Trade-off:** A prompt whose first word is a prefix of exactly one installed model's id (e.g. `quail chat gemma is …` with a Gemma installed) is read as a model choice; `-m` or quoting the prompt avoids it. Anyone with `quail run` in scripts or muscle memory gets an unknown-command error.
+**Revisit if:** the auto-detection bites people in practice — then `-m` only.
+
 ## D-024 · 2026-09-23 · SemVer from PR titles, bumped in every PR, released on every merge
 
 **Decision:** Quail's version is SemVer, kept in `project.yml` (`MARKETING_VERSION`, plus `CURRENT_PROJECT_VERSION` as a build number that rises with every release). Every PR carries its own bump, derived from its Conventional Commits title — `feat` → minor, other types → patch, `!`/`BREAKING CHANGE` → major (minor while 0.x) — made with `scripts/bump-version.sh` and enforced by the required `version` check. PRs merge only with merge commits (no squash, rebase, force-push or direct push; admins included) and auto-merge once `build-and-test` and `version` pass. Every merge to `main` tags `vX.Y.Z` and publishes a GitHub Release from that version's CHANGELOG section (pre-release while 0.x); the signed DMG is attached once signing is configured (`vars.SIGNING_ENABLED`).
@@ -26,12 +34,12 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 **Trade-off:** The first dependency beyond Sparkle — AGENTS.md's rule now reads "Sparkle and swift-argument-parser (CLI only)".
 **Revisit if:** the package ever pulls in transitive dependencies.
 
-## D-021 · 2026-09-23 · Terminal chat (`quail run`) — narrowing D-001
+## D-021 · 2026-09-23 · Terminal chat (`quail chat`) — narrowing D-001
 
-**Decision:** `quail run <model> [prompt]` chats with a model in the terminal: streaming output, one conversation per invocation, a tok/s line after each reply. It exists to judge a model, not to be a chat app: no saved history, no attachments, no system-prompt library, no tools. The menu-bar app itself still has no chat UI ("Open Chat in Browser" links to the runtime's own).
+**Decision:** `quail chat [model] [prompt]` (originally `quail run`, renamed by D-025) chats with a model in the terminal: streaming output, one conversation per invocation, a tok/s line after each reply. It exists to judge a model, not to be a chat app: no saved history, no attachments, no system-prompt library, no tools. The menu-bar app itself still has no chat UI ("Open Chat in Browser" links to the runtime's own).
 **Alternatives:** Keep D-001 absolute (point users at the web UI or `curl`).
-**Why:** A CLI "like ollama" (user request) is expected to have `run`; trying a model from the terminal is the fastest way to judge it, and it costs one streaming request loop, not a UI.
-**Trade-off:** D-001's "never" is now "never in the app"; the list of things `quail run` will not do is the guard against scope creep.
+**Why:** A CLI "like ollama" (user request) is expected to have a way to chat; trying a model from the terminal is the fastest way to judge it, and it costs one streaming request loop, not a UI.
+**Trade-off:** D-001's "never" is now "never in the app"; the list of things `quail chat` will not do is the guard against scope creep.
 **Revisit if:** requests arrive for history, attachments or tools — the answer should stay no.
 
 ## D-020 · 2026-09-23 · Per-model context size, defaulting to the largest comfortable
@@ -187,4 +195,4 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 
 **Decision:** No chat, agent, image or audio UI. The ping test is a streamed one-token completion with timings, not a conversation.
 **Why:** The existing desktop apps are bloated precisely because they try to be everything. Runtimes already ship web UIs; link to them.
-**Revisit if:** never, for v1. *(Narrowed by D-021: `quail run` chats in the terminal; the app itself still has no chat UI.)*
+**Revisit if:** never, for v1. *(Narrowed by D-021: `quail chat` chats in the terminal; the app itself still has no chat UI.)*

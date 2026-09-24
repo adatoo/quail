@@ -114,7 +114,7 @@ private struct GeneralSettingsView: View {
                 } header: {
                     Text("Command line")
                 } footer: {
-                    Text("quail start · quail run <model> · quail launch claude — like ollama.")
+                    Text("quail start · quail chat · quail launch claude — like ollama.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
