@@ -251,7 +251,8 @@ flowchart LR
 - [ ] oMLX: confirm the `/admin` load/unload endpoints are stable enough to use, or rely on auto-load only.
 - [x] Whether to let llama-server keep two models loaded (`--models-max 2`) for fast switching on 64 GB+ machines. **Resolved for Phase 1:** default is `1`; revisit once the Models pane can show loaded state — see ADR D-011.
 - [ ] Where the appcast and remote catalog live (GitHub Releases vs the app's own domain).
-- [ ] Rapid-MLX ships its own model catalog and RAM-tier recommendation system (`rapid-mlx recipe --json`, `rapid-mlx models`/`info <alias>` — confirmed live at rapidmlx.com/docs/cli, "the same [catalog] the desktop app's picker reads"). Once Rapid-MLX is actually vendored, this could become a live, already-curated recommendation source Quail queries directly for MLX models, rather than maintaining a second, GGUF-only curated list in parallel forever. Not actionable before Phase 3 — GGUF/llama.cpp is Quail's only runtime today.
+- [ ] Rapid-MLX ships its own model catalog and RAM-tier recommendation system (`rapid-mlx recipe --json`, `rapid-mlx models`/`info <alias>` — confirmed live at rapidmlx.com/docs/cli, "the same [catalog] the desktop app's picker reads"). Once Rapid-MLX is actually vendored, this could become a live, already-curated recommendation source Quail queries directly for MLX models, rather than maintaining a second, GGUF-only curated list in parallel forever. Not actionable before Phase 3 — GGUF/llama.cpp is Quail's only runtime today. **Confirmed against 0.14.3 (2026-09-24):** `rapid-mlx models --json` returns 191 text aliases with `hf_path` (145 under `mlx-community`) and `size_bytes`; `rapid-mlx recipe --json` returns per-Mac "smart"/"fast" picks (`schema_version` 1). Tracked as Phase 3 step 13.
+- [ ] GGUF catalog source: could the Ollama registry (`registry.ollama.ai/v2/library/<name>/manifests/<tag>`, anonymous, GGUF layer plus optional vision projector) plus the ModelFit dataset (CC BY 4.0, ~105 Ollama-tagged local models) replace hand-curation? Blocked on a spike: do those files load in the bundled llama-server, and are we willing to depend on an undocumented registry API (would amend D-002)? Tracked as Phase 2b step 7.
 
 ## Sources
 
@@ -260,6 +261,8 @@ flowchart LR
 - oMLX — https://github.com/jundot/omlx ; launchd hang issue — https://github.com/jundot/omlx/issues/1814
 - Rapid-MLX — https://github.com/raullenchai/Rapid-MLX ; docs — https://rapidmlx.com/docs/
 - Rapid-MLX headless service PRs — https://github.com/raullenchai/Rapid-MLX/pull/3049 , https://github.com/raullenchai/Rapid-MLX/pull/3129
+- ModelFit open dataset (CC BY 4.0) — https://modelfit.io/api/dataset/ ; HF mirror — https://huggingface.co/datasets/modelfit/modelfit-hardware-dataset
+- Ollama registry manifests (unofficial) — https://registry.ollama.ai/v2/library/<name>/manifests/<tag>
 - Postgres.app architecture — https://deepwiki.com/PostgresApp/PostgresApp/1-overview
 - MLX vs llama.cpp benchmarks — https://yage.ai/share/mlx-apple-silicon-en-20260331.html
 - uv tools guide — https://docs.astral.sh/uv/guides/tools/
