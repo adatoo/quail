@@ -30,7 +30,6 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 - Models pane: each row is two lines, so a model's name is no longer cut off
   ("Qwen3…4_K_M"); the Add Model list shows a tick for installed families and
   keeps their full names.
-
 - Run Benchmark reacts at once ("Preparing…") instead of sitting idle while the
   machine's facts are gathered.
 - The Models pane's empty MLX filter no longer recommends a GGUF quant.
