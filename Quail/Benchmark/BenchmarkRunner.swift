@@ -29,7 +29,9 @@ struct BenchmarkRunner: Sendable {
             try await restore(model: model, loadedBefore: loadedBefore)
             return output
         } catch {
-            try? await restore(model: model, loadedBefore: loadedBefore)
+            // In a task of its own: a cancelled benchmark (or its cancelled
+            // requests) must still put the server back.
+            await Task { try? await restore(model: model, loadedBefore: loadedBefore) }.value
             throw error
         }
     }

@@ -9,6 +9,9 @@ struct BenchmarkWindow: View {
 
     @State private var model = ""
     @State private var selection: Set<BenchmarkResult.ID> = []
+    /// The run the other is measured against; the older of the two until
+    /// the user says otherwise.
+    @State private var baselineID: BenchmarkResult.ID?
 
     private var benchmarks: BenchmarkController {
         appState.benchmarks
@@ -24,11 +27,13 @@ struct BenchmarkWindow: View {
                 .padding()
             Divider()
             resultsTable
-            if selected.count == 2 {
+            if let pair = comparison {
                 Divider()
-                ComparisonStrip(first: selected[0], second: selected[1])
-                    .padding(.horizontal)
-                    .padding(.vertical, 10)
+                ComparisonStrip(baseline: pair.baseline, other: pair.other) {
+                    baselineID = pair.other.id
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 10)
             }
             Divider()
             actionBar
@@ -79,9 +84,24 @@ struct BenchmarkWindow: View {
             if benchmarks.isRunning {
                 VStack(alignment: .leading, spacing: 4) {
                     ProgressView(value: benchmarks.fraction)
-                    Text(benchmarks.step)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(benchmarks.step)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if let startedAt = benchmarks.startedAt {
+                            TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                                Text(BenchmarkController.elapsedText(timeline.date.timeIntervalSince(startedAt)))
+                                    .font(.caption)
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Button("Cancel") { benchmarks.cancel() }
+                            .controlSize(.small)
+                    }
                 }
             } else if let error = benchmarks.lastError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -104,6 +124,15 @@ struct BenchmarkWindow: View {
         benchmarks.results.filter { selection.contains($0.id) }
     }
 
+    /// With exactly two runs selected: which is the baseline, and the other.
+    private var comparison: (baseline: BenchmarkResult, other: BenchmarkResult)? {
+        let pair = selected
+        guard let baseline = BenchmarkComparison.baseline(of: pair, preferred: baselineID),
+              let other = pair.first(where: { $0.id != baseline.id })
+        else { return nil }
+        return (baseline, other)
+    }
+
     @ViewBuilder private var resultsTable: some View {
         if benchmarks.results.isEmpty {
             VStack(spacing: 8) {
@@ -118,12 +147,22 @@ struct BenchmarkWindow: View {
                 // First, so runs of the same model are told apart at a
                 // glance; seconds, because two runs can share a minute.
                 TableColumn("Run") { result in
-                    Text(Self.timestamp(result.date))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                        .help(result.date.formatted(date: .complete, time: .complete))
+                    HStack(spacing: 6) {
+                        Text(Self.timestamp(result.date))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .help(result.date.formatted(date: .complete, time: .complete))
+                        if comparison?.baseline.id == result.id {
+                            Text("Baseline")
+                                .font(.caption2.bold())
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(.blue.opacity(0.2), in: Capsule())
+                                .foregroundStyle(.blue)
+                        }
+                    }
                 }
-                .width(min: 125, ideal: 135)
+                .width(min: 180, ideal: 190)
                 TableColumn("Model") { result in
                     HStack(spacing: 4) {
                         Text(result.model.id).lineLimit(1).truncationMode(.middle)
@@ -158,6 +197,9 @@ struct BenchmarkWindow: View {
                 .width(min: 50, ideal: 60)
             }
             .contextMenu(forSelectionType: BenchmarkResult.ID.self) { ids in
+                if ids.count == 1, let only = ids.first {
+                    Button("Set as Baseline") { baselineID = only }
+                }
                 Button("Copy as Markdown") { copyMarkdown(ids) }
                 Button("Export JSON…") { exportJSON(ids) }
                 Divider()
@@ -169,7 +211,7 @@ struct BenchmarkWindow: View {
     private var actionBar: some View {
         HStack {
             Text(selection.isEmpty
-                ? "Select results to copy, export or compare (two)."
+                ? "Select results to copy or export. Select two to compare them against a baseline."
                 : "\(selection.count) selected")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -221,42 +263,65 @@ struct BenchmarkWindow: View {
     }
 }
 
-/// Two results side by side: how much faster the second is on each test.
+/// One result measured against another: the baseline is the reference,
+/// every cell says how the other run compares to it.
 private struct ComparisonStrip: View {
-    let first: BenchmarkResult
-    let second: BenchmarkResult
+    let baseline: BenchmarkResult
+    let other: BenchmarkResult
+    let swap: () -> Void
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 18) {
-            Text("\(label(first)) vs \(label(second))")
-                .font(.callout.bold())
-                .lineLimit(1)
-                .truncationMode(.middle)
-            cell("Prompt 512", first.measurements.prompt512, second.measurements.prompt512)
-            cell("Prompt 4096", first.measurements.prompt4096, second.measurements.prompt4096)
-            cell("Generate", first.measurements.generation256, second.measurements.generation256)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("\(label(other))")
+                    .font(.callout.bold())
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                HStack(spacing: 4) {
+                    Text("against baseline \(label(baseline))")
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Button(action: swap) {
+                        Image(systemName: "arrow.left.arrow.right")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Swap: make \(label(other)) the baseline")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            cell("Prompt 512", baseline.measurements.prompt512, other.measurements.prompt512)
+            cell("Prompt 4096", baseline.measurements.prompt4096, other.measurements.prompt4096)
+            cell("Generate", baseline.measurements.generation256, other.measurements.generation256)
             Spacer()
         }
     }
 
     /// The model, plus the run's time when both are the same model.
     private func label(_ result: BenchmarkResult) -> String {
-        first.model.id == second.model.id
+        baseline.model.id == other.model.id
             ? "\(result.model.id) (\(BenchmarkWindow.timestamp(result.date)))"
             : result.model.id
     }
 
     @ViewBuilder
-    private func cell(_ title: String, _ a: BenchmarkResult.Stat?, _ b: BenchmarkResult.Stat?) -> some View {
-        if let a, let b, a.median > 0 {
-            let ratio = b.median / a.median
+    private func cell(_ title: String, _ base: BenchmarkResult.Stat?, _ other: BenchmarkResult.Stat?) -> some View {
+        if let base, let other, let change = BenchmarkComparison.change(baseline: base.median, other: other.median) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(title).font(.caption).foregroundStyle(.secondary)
-                Text(String(format: "%.2f×", ratio))
+                Text(change.text)
                     .monospacedDigit()
-                    .foregroundStyle(ratio >= 1 ? .green : .orange)
-                    .help("\(label(second)) relative to \(label(first))")
+                    .foregroundStyle(color(change.direction))
+                    .help(String(format: "%.1f tok/s against a baseline of %.1f tok/s", other.median, base.median))
             }
+        }
+    }
+
+    private func color(_ direction: BenchmarkComparison.Change.Direction) -> Color {
+        switch direction {
+        case .faster: .green
+        case .slower: .orange
+        case .same: .secondary
         }
     }
 }

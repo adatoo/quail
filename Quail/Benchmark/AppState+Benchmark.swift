@@ -20,22 +20,26 @@ extension AppState {
 
         let store = modelStore
         let runtime = config.runtimeID
-        let context = await Task.detached(priority: .userInitiated) {
-            Self.benchmarkContext(for: entry, store: store, runtime: runtime)
-        }.value
-        await benchmarkLog("benchmark of \(id) started")
-        do {
-            let result = try await benchmarks.run(
-                model: id,
-                client: LlamaCppBenchmarkClient(base: base, apiKey: serverController.apiKey),
-                context: context
-            )
-            let generation = result.measurements.generation256.map { String(format: "%.1f tok/s", $0.median) } ?? "—"
-            await benchmarkLog("benchmark of \(id) finished — generation \(generation)")
-            return result
-        } catch {
-            await benchmarkLog("benchmark of \(id) failed — \(error)")
-            throw error
+        let apiKey = serverController.apiKey
+        return try await benchmarks.execute(model: id) { [self] controller in
+            let context = await Task.detached(priority: .userInitiated) {
+                Self.benchmarkContext(for: entry, store: store, runtime: runtime)
+            }.value
+            try Task.checkCancellation()
+            await benchmarkLog("benchmark of \(id) started")
+            do {
+                let result = try await controller.run(
+                    model: id,
+                    client: LlamaCppBenchmarkClient(base: base, apiKey: apiKey),
+                    context: context
+                )
+                let generation = result.measurements.generation256.map { String(format: "%.1f tok/s", $0.median) } ?? "—"
+                await benchmarkLog("benchmark of \(id) finished — generation \(generation)")
+                return result
+            } catch {
+                await benchmarkLog("benchmark of \(id) failed — \(error)")
+                throw error
+            }
         }
     }
 

@@ -10,6 +10,26 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-24
+
+### Added
+
+- Benchmark window: a Cancel button (a cancelled run saves nothing and puts the
+  loaded models back), a spinner and elapsed time while a run is going.
+- Menu: on a runtime without a web UI, "Open Chat in Browser" becomes "Copy
+  Terminal Chat Command" (`quail run <model>`).
+
+### Changed
+
+- Comparing two benchmark runs now names a baseline (the older run, tagged in
+  the table; swap it or set it from the row menu) and words each result as
+  "1.23× faster" or "19% slower".
+
+### Fixed
+
+- Run Benchmark reacts at once ("Preparing…") instead of sitting idle while the
+  machine's facts are gathered.
+
 ## [0.3.0] - 2026-09-23
 
 ### Added
