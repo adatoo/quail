@@ -567,7 +567,8 @@ private struct ContentUnavailable: View {
                 .foregroundStyle(.secondary)
             Text(filter == .all ? "No models installed yet." : "No \(filter.rawValue) models installed yet.")
                 .foregroundStyle(.secondary)
-            if let recommended, let quant = recommended.gguf?.defaultQuant {
+            // The pick is a GGUF quant — not something to offer under MLX.
+            if filter != .mlx, let recommended, let quant = recommended.gguf?.defaultQuant {
                 Button("Recommended: \(recommended.name) (\(quant)) — Add…") { addRecommended(recommended) }
             } else {
                 Button("Add model…", action: add)

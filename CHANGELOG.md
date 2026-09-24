@@ -29,6 +29,7 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 - Run Benchmark reacts at once ("Preparing…") instead of sitting idle while the
   machine's facts are gathered.
+- The Models pane's empty MLX filter no longer recommends a GGUF quant.
 
 ## [0.3.0] - 2026-09-23
 

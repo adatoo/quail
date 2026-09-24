@@ -29,9 +29,7 @@ struct BenchmarkWindow: View {
             resultsTable
             if let pair = comparison {
                 Divider()
-                ComparisonStrip(baseline: pair.baseline, other: pair.other) {
-                    baselineID = pair.other.id
-                }
+                ComparisonStrip(baseline: pair.baseline, other: pair.other, swap: swapBaseline)
                 .padding(.horizontal)
                 .padding(.vertical, 10)
             }
@@ -53,6 +51,10 @@ struct BenchmarkWindow: View {
         } else if model.isEmpty || !models.contains(model) {
             model = appState.config.defaultModelID.flatMap { models.contains($0) ? $0 : nil } ?? models.first ?? ""
         }
+    }
+
+    private func swapBaseline() {
+        baselineID = comparison?.other.id
     }
 
     // MARK: - Run
@@ -203,8 +205,12 @@ struct BenchmarkWindow: View {
                 .width(min: 50, ideal: 60)
             }
             .contextMenu(forSelectionType: BenchmarkResult.ID.self) { ids in
+                // Right-clicking inside a selection hands over the whole
+                // selection, so with a pair the choice is to swap it.
                 if ids.count == 1, let only = ids.first {
                     Button("Set as Baseline") { baselineID = only }
+                } else if ids.count == 2, comparison != nil {
+                    Button("Swap Baseline") { swapBaseline() }
                 }
                 Button("Copy as Markdown") { copyMarkdown(ids) }
                 Button("Export JSON…") { exportJSON(ids) }
