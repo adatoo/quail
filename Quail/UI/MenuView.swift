@@ -81,7 +81,8 @@ struct MenuView: View {
         .disabled(appState.serverController.phase != .ready)
 
         Button("Benchmark…") {
-            bringToFront { openWindow(id: "benchmark") }
+            appState.settingsTab = .benchmark
+            bringToFront { openSettings() }
         }
 
         Button("Connect a Tool…") {
@@ -92,14 +93,16 @@ struct MenuView: View {
         // D-001: runtimes ship their own chat UIs — link to them. llama.cpp's
         // lets you pick any installed model; with an API key set, enter it
         // in the web UI's settings.
-        Button("Open Chat in Browser") {
-            // The address the server was launched on (not live Settings,
-            // which can differ until a restart), made browsable.
-            if let launched = appState.serverController.baseURL, let host = launched.host(), let port = launched.port,
-               let base = EndpointAddress.localBase(host: host, port: port),
-               let url = appState.runtime.webUIURL(base: base)
-            {
+        // A runtime with no web UI of its own (Rapid-MLX) gets `quail run`
+        // instead: the same item, copying the command to the clipboard.
+        let chat = chatEntry
+        Button(chat.menuTitle) {
+            switch chat {
+            case let .browser(url):
                 NSWorkspace.shared.open(url)
+            case let .terminal(command):
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(command, forType: .string)
             }
         }
         .disabled(appState.serverController.phase != .ready)
@@ -121,6 +124,21 @@ struct MenuView: View {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")
+    }
+
+    /// The address the server was launched on (not live Settings, which
+    /// can differ until a restart), made browsable, when the runtime has a
+    /// web UI there; otherwise the terminal hand-off for the default (or
+    /// first loaded) model.
+    private var chatEntry: ChatEntry {
+        var webUI: URL?
+        if let launched = appState.serverController.baseURL, let host = launched.host(), let port = launched.port,
+           let base = EndpointAddress.localBase(host: host, port: port)
+        {
+            webUI = appState.runtime.webUIURL(base: base)
+        }
+        let loaded = appState.servedModels.first { $0.status.value == "loaded" }?.id
+        return ChatEntry.resolve(webUI: webUI, model: appState.config.defaultModelID ?? loaded)
     }
 
     /// Opens a window *in front*. Quail is a menu-bar-only app

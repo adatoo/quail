@@ -38,7 +38,6 @@ struct ModelsPane: View {
     /// This Mac's chip, for matching benchmark results (read in `refresh`,
     /// not per render — `DeviceInfo.current()` touches IOKit and Metal).
     @State private var chip: String?
-    @Environment(\.openWindow) private var openWindow
 
     enum FormatFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -230,7 +229,7 @@ struct ModelsPane: View {
                     },
                     onBenchmark: {
                         appState.benchmarks.requestedModel = entry.id
-                        openWindow(id: "benchmark")
+                        appState.settingsTab = .benchmark
                     }
                 )
             }
@@ -433,34 +432,68 @@ private struct ModelRow: View {
     let onDelete: () -> Void
     let onBenchmark: () -> Void
 
+    /// Two lines, so the name has the row's width to itself: the id and its
+    /// loaded-state on top; format, size, context, measured speed and fit
+    /// verdict beneath; actions in a column on the right. (One line of
+    /// nine controls truncated the id — "Qwen3…4_K_M" — and put every
+    /// row's columns in a different place.)
     var body: some View {
-        HStack(spacing: 8) {
-            Text(entry.id)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                // Confirmed undiscoverable otherwise: `entry.id` is
-                // exactly the string a client must send as `"model"` in
-                // its request body (the preset alias — ModelStore.
-                // regeneratePresets), but nothing in the app said so
-                // anywhere. A context menu on the id itself, right where
-                // you'd look for it.
-                .contextMenu {
-                    Button("Copy Model ID") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(entry.id, forType: .string)
-                    }
-                    if entry.format == .gguf {
-                        Button("Benchmark…", action: onBenchmark)
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 6) {
+                    Text(entry.id)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        // Confirmed undiscoverable otherwise: `entry.id` is
+                        // exactly the string a client must send as `"model"` in
+                        // its request body (the preset alias — ModelStore.
+                        // regeneratePresets), but nothing in the app said so
+                        // anywhere. A context menu on the id itself, right where
+                        // you'd look for it.
+                        .contextMenu {
+                            Button("Copy Model ID") {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(entry.id, forType: .string)
+                            }
+                            if entry.format == .gguf {
+                                Button("Benchmark…", action: onBenchmark)
+                            }
+                        }
+                        .help("Send \"model\": \"\(entry.id)\" in requests to select this one")
+                    if loaded == "loaded" {
+                        Badge(text: "loaded", color: .green).fixedSize()
+                    } else if let loaded {
+                        Badge(text: loaded, color: .gray).fixedSize()
                     }
                 }
-                .help("Send \"model\": \"\(entry.id)\" in requests to select this one")
-            Badge(text: entry.format == .gguf ? "GGUF" : "MLX", color: entry.format == .gguf ? .blue : .purple)
-            if loaded == "loaded" {
-                Badge(text: "loaded", color: .green)
-            } else if let loaded {
-                Badge(text: loaded, color: .gray)
+                HStack(spacing: 10) {
+                    Badge(text: entry.format == .gguf ? "GGUF" : "MLX", color: entry.format == .gguf ? .blue : .purple)
+                    Text(ByteCountFormatter.string(fromByteCount: entry.bytes, countStyle: .file))
+                        .monospacedDigit()
+                    contextMenuButton
+                    if let measuredSpeed {
+                        Label(
+                            String(format: "%.0f tok/s", measuredSpeed),
+                            systemImage: "gauge.with.dots.needle.67percent"
+                        )
+                        .monospacedDigit()
+                        .help("Generation speed measured by Benchmark on this Mac")
+                    }
+                    if let verdict {
+                        FitVerdictBadge(estimate: verdict)
+                    } else {
+                        // Never a blank: say it couldn't be judged, and why.
+                        Badge(text: "Fit unknown", color: .secondary)
+                            .help(entry.format == .gguf
+                                ? "Couldn't read this model's header, or its architecture isn't supported by the estimate yet."
+                                : "Couldn't read this model's config.json.")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
             }
-            Spacer()
+            Spacer(minLength: 8)
             // Hot swap (step 8): an installed GGUF can be loaded into the
             // running router with a click. MLX rows get the badge-only
             // treatment — their runtimes are Phase 3, and offering a
@@ -474,27 +507,6 @@ private struct ModelRow: View {
                 Badge(text: "Restart to load", color: .orange)
                     .help("Added since the server started. Restart the server (menu) to use it.")
             }
-            if let verdict {
-                FitVerdictBadge(estimate: verdict)
-            } else {
-                // Never a blank: say it couldn't be judged, and why.
-                Badge(text: "Fit unknown", color: .secondary)
-                    .help(entry.format == .gguf
-                        ? "Couldn't read this model's header, or its architecture isn't supported by the estimate yet."
-                        : "Couldn't read this model's config.json.")
-            }
-            contextMenuButton
-            if let measuredSpeed {
-                Label(String(format: "%.0f tok/s", measuredSpeed), systemImage: "gauge.with.dots.needle.67percent")
-                    .font(.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .help("Generation speed measured by Benchmark on this Mac")
-            }
-            Text(ByteCountFormatter.string(fromByteCount: entry.bytes, countStyle: .file))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
             // Usable while stopped (unlike Load) — it just sets what
             // gets written into presets.ini on the next Start. GGUF
             // only: `load-on-startup` is a llama.cpp router-mode
@@ -513,7 +525,7 @@ private struct ModelRow: View {
             .buttonStyle(.borderless)
             .help("Delete model")
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
     }
 
     /// Per-model context size (ADR D-020): Automatic, or a fixed size —
@@ -567,7 +579,8 @@ private struct ContentUnavailable: View {
                 .foregroundStyle(.secondary)
             Text(filter == .all ? "No models installed yet." : "No \(filter.rawValue) models installed yet.")
                 .foregroundStyle(.secondary)
-            if let recommended, let quant = recommended.gguf?.defaultQuant {
+            // The pick is a GGUF quant — not something to offer under MLX.
+            if filter != .mlx, let recommended, let quant = recommended.gguf?.defaultQuant {
                 Button("Recommended: \(recommended.name) (\(quant)) — Add…") { addRecommended(recommended) }
             } else {
                 Button("Add model…", action: add)

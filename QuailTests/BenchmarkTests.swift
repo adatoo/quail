@@ -89,12 +89,101 @@ struct BenchmarkTests {
         #expect(await client.states["Other"] == "loaded")
     }
 
+    @Test("a cancelled run still puts the loaded models back")
+    func cancelledRunRestores() async throws {
+        let client = FakeBenchmarkClient(states: ["Target": "unloaded", "Other": "loaded"], contextSize: 32768)
+        await client.hangOnComplete()
+        let run = Task {
+            try await BenchmarkRunner(client: client, pollInterval: .milliseconds(1)).run(model: "Target") { _, _ in }
+        }
+        while await !client.isHanging {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        run.cancel()
+        await #expect(throws: (any Error).self) { _ = try await run.value }
+        #expect(await client.states["Other"] == "loaded")
+        #expect(await client.states["Target"] == "unloaded")
+    }
+
     @Test("an unknown model is rejected before anything runs")
     func unknownModel() async {
         let client = FakeBenchmarkClient(states: ["Target": "unloaded"], contextSize: 32768)
         await #expect(throws: BenchmarkError.unknownModel("Nope")) {
             _ = try await BenchmarkRunner(client: client).run(model: "Nope") { _, _ in }
         }
+    }
+
+    // MARK: - Controller
+
+    @MainActor
+    @Test("a run claims the controller at once, refuses a second, and a cancel saves nothing")
+    func controllerClaimsAndCancels() async throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("bench-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let controller = BenchmarkController(store: BenchmarkStore(fileURL: file))
+        let run = Task {
+            try await controller.execute(model: "M") { _ in
+                try await Task.sleep(for: .seconds(60))
+                return Self.sampleResult(model: "M", chip: "Apple M4 Pro", speed: 1)
+            }
+        }
+        while !controller.isRunning {
+            await Task.yield()
+        }
+        #expect(controller.step == "Preparing…")
+        #expect(controller.startedAt != nil)
+        await #expect(throws: BenchmarkError.alreadyRunning) {
+            _ = try await controller.execute(model: "N") { _ in Self.sampleResult(model: "N", chip: "x", speed: 1) }
+        }
+
+        controller.cancel()
+        await #expect(throws: (any Error).self) { _ = try await run.value }
+        #expect(!controller.isRunning)
+        #expect(controller.results.isEmpty)
+        #expect(controller.wasCancelled)
+        #expect(controller.lastError == nil)
+    }
+
+    @Test("elapsed time reads as minutes and seconds")
+    func elapsed() {
+        #expect(BenchmarkController.elapsedText(0) == "0:00")
+        #expect(BenchmarkController.elapsedText(72.9) == "1:12")
+        #expect(BenchmarkController.elapsedText(-3) == "0:00")
+    }
+
+    // MARK: - Comparison
+
+    @Test("a change is worded against the baseline: faster as a ratio, slower as a percentage")
+    func comparisonWording() {
+        let faster = BenchmarkComparison.Change(direction: .faster, text: "1.23× faster")
+        #expect(BenchmarkComparison.change(baseline: 100, other: 123) == faster)
+        #expect(BenchmarkComparison.change(baseline: 100, other: 81) == .init(direction: .slower, text: "19% slower"))
+        #expect(BenchmarkComparison.change(baseline: 100, other: 100.5)?.direction == .same)
+        #expect(BenchmarkComparison.change(baseline: 0, other: 50) == nil)
+    }
+
+    @Test("the baseline is the one asked for if it's in the pair, else the older run")
+    func baselineChoice() {
+        var older = Self.sampleResult(model: "M", chip: "c", speed: 1)
+        older.date = Date(timeIntervalSince1970: 1000)
+        let newer = Self.sampleResult(model: "M", chip: "c", speed: 2)
+        let pair = [newer, older]
+        #expect(BenchmarkComparison.baseline(of: pair, preferred: nil)?.id == older.id)
+        #expect(BenchmarkComparison.baseline(of: pair, preferred: newer.id)?.id == newer.id)
+        #expect(BenchmarkComparison.baseline(of: pair, preferred: UUID())?.id == older.id)
+        #expect(BenchmarkComparison.baseline(of: [older], preferred: nil) == nil)
+    }
+
+    // MARK: - Chat entry
+
+    @Test("a runtime with a web UI opens it; one without hands off to quail run")
+    func chatEntry() throws {
+        let url = try #require(URL(string: "http://127.0.0.1:8080"))
+        #expect(ChatEntry.resolve(webUI: url, model: "M") == .browser(url))
+        let named = ChatEntry.resolve(webUI: nil, model: "Qwen3-8B-Q4_K_M")
+        #expect(named == .terminal(command: "quail run Qwen3-8B-Q4_K_M"))
+        #expect(ChatEntry.resolve(webUI: nil, model: nil) == .terminal(command: "quail run"))
+        #expect(ChatEntry.command(model: "my model's") == "quail run 'my model'\\''s'")
     }
 
     // MARK: - Result format and storage
@@ -164,10 +253,17 @@ actor FakeBenchmarkClient: BenchmarkClient {
     private(set) var promptLengths: [Int] = []
     private let contextSize: Int
     private var failing: Set<String> = []
+    private var hangs = false
+    private(set) var isHanging = false
 
     init(states: [String: String], contextSize: Int) {
         self.states = states
         self.contextSize = contextSize
+    }
+
+    /// Makes the next completion wait (until cancelled) instead of answering.
+    func hangOnComplete() {
+        hangs = true
     }
 
     func failLoads(of model: String) {
@@ -202,6 +298,10 @@ actor FakeBenchmarkClient: BenchmarkClient {
     }
 
     func complete(model _: String, prompt: [Int], maxTokens: Int) async throws -> CompletionTiming {
+        if hangs {
+            isHanging = true
+            try await Task.sleep(for: .seconds(60))
+        }
         promptLengths.append(prompt.count)
         let call = promptLengths.count
         let speed = call == 1 ? 9999 : Double(100 + 10 * ((call - 2) % 3))
