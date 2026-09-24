@@ -60,7 +60,7 @@ struct AddModelSheet: View {
             Divider()
             HStack(spacing: 0) {
                 sidebar
-                    .frame(width: 330)
+                    .frame(width: 350)
                 Divider()
                 ScrollView {
                     detail
@@ -261,7 +261,7 @@ struct AddModelSheet: View {
         HStack(alignment: .center, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
-                    Text(family.name).lineLimit(1)
+                    Text(family.name).lineLimit(1).help(family.name)
                     if !family.isCurated {
                         Badge(text: "user-added", color: .secondary)
                     }
@@ -272,10 +272,15 @@ struct AddModelSheet: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 4)
+            // A tick, not a pill: with both pills the family's name lost
+            // its last words ("Qwen3.6 35B-A3B (…").
             if !InstalledLookup.entries(for: family, in: installed).isEmpty {
-                Badge(text: "Installed", color: .blue)
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.blue)
+                    .help("Installed")
             }
             RemoteFitBadge(fit: appState.catalogFits[family.id])
+                .fixedSize()
         }
         .padding(.vertical, 2)
         .tag(Selection.curated(family))
