@@ -152,7 +152,7 @@ Originally Phase 3 steps 4–10 (direct build only, per D-006). Deferred by D-02
 ## Phase 4 — Polish and Store
 
 1. [x] Sparkle 2 (SPM), EdDSA key, appcast on GitHub Releases, `generate_appcast` in CI, and Settings → General → Updates (ADR D-032). Tested end to end locally; the first real update from a shipped release is still to see.
-1a. [x] Homebrew: `brew install --cask adatoo/tap/quail` (ADR D-033); the Release workflow updates the tap's cask each release.
+1a. [x] Homebrew: `brew install --cask adatoo/tap/quail-ai` (ADR D-033); the Release workflow updates the tap's cask each release.
 2. Import on first run from `~/.cache/llama.cpp`, `~/.omlx/models`, `~/.cache/huggingface/hub`, `~/.lmstudio/models` (move, not copy; never symlink).
 3. LAN binding one-time warning; API key strongly suggested when host is `0.0.0.0`.
 4. Measured-speed calibration: store TTFT and tok/s per (model, chip) — delivered by Phase 2b's benchmark, shown on installed models; still to do: feed measurements back into estimates for models not yet benchmarked (e.g. a per-chip correction factor).
