@@ -4,12 +4,35 @@ import Foundation
 /// `LlamaCppRuntime`, the benchmark, `quail chat` and every Connect snippet see
 /// no difference. Step 2 has the management routes; the inference routes
 /// (`/v1/chat/completions`, `/v1/messages`, …) arrive with the shared chat layer.
+/// Every request passes `RequestGuard` first (ADR D-036).
 struct ServerRoutes: Sendable {
     let router: ModelRouter
     let apiKey: String?
     let log: ServerLog
+    let requestGuard: RequestGuard
+
+    init(
+        router: ModelRouter,
+        apiKey: String?,
+        log: ServerLog,
+        requestGuard: RequestGuard = RequestGuard(bindHost: "127.0.0.1")
+    ) {
+        self.router = router
+        self.apiKey = apiKey
+        self.log = log
+        self.requestGuard = requestGuard
+    }
 
     func handle(_ request: HTTPRequest) async -> HTTPResponse {
+        switch requestGuard.evaluate(request) {
+        case let .respond(response):
+            response
+        case let .proceed(origin):
+            await requestGuard.decorate(route(request), origin: origin)
+        }
+    }
+
+    private func route(_ request: HTTPRequest) async -> HTTPResponse {
         let path = request.path
         // Open like llama-server's: a liveness probe carries no key.
         if path == "/health" {
