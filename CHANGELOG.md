@@ -10,6 +10,12 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-09-24
+
+### Changed
+
+- The self-hosted runners and the `MAC_RUNNER` variable are gone; CI is GitHub-hosted only (ADR D-031).
+
 ## [0.7.0] - 2026-09-24
 
 ### Added

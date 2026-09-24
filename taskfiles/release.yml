@@ -227,8 +227,8 @@ tasks:
     desc: "[CI only] Import the Developer ID certificate into a dedicated build keychain"
     cmds:
       - |
-        # Replaces the user's DEFAULT keychain, so it refuses to run outside CI. On a
-        # self-hosted runner, use a runner that runs as its OWN macOS user.
+        # Replaces the user's DEFAULT keychain, so it refuses to run outside CI. CI
+        # runs on GitHub-hosted runners only (ADR D-031): a fresh VM per job.
         if [ "${GITHUB_ACTIONS:-}" != "true" ] && [ "${QUAIL_ALLOW_KEYCHAIN_REPLACE:-}" != "1" ]; then
           echo "error: release:import-cert replaces your default keychain; it's for CI." >&2
           echo "       Set QUAIL_ALLOW_KEYCHAIN_REPLACE=1 if you really mean it." >&2
