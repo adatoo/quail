@@ -10,6 +10,23 @@ version's section with `scripts/bump-version.sh` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-24
+
+### Changed
+
+- Building, testing, vendoring, versioning and releasing now go through [Task](https://taskfile.dev)
+  (`task`, `task ci`, `task build`, `task test`, `task install`, …) instead of 13 shell scripts,
+  and CI runs the same tasks, so a local `task ci` is what CI runs (ADR D-030). Xcode's build
+  phases call `task embed:*`, so **go-task (`brew install go-task`) is now required to build Quail**.
+  Task builds go in `./DerivedData`, so they never overwrite a running app. `task install`
+  builds a signed Release into `~/Apps`; `task install:notarized` is the old `install.sh`.
+  The version pins moved to `Vendor/` and `Config/`. CI also builds the App Store scheme now.
+
+### Fixed
+
+- The bundle check no longer rejects universal (arm64 + x86_64) Release builds, and can no longer
+  pass when it examined no binaries at all.
+
 ## [0.6.0] - 2026-09-24
 
 ### Added

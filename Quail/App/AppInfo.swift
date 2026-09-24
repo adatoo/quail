@@ -30,8 +30,8 @@ enum AppInfo {
         isAppStoreBuild ? "Mac App Store" : "Direct download"
     }
 
-    /// The bundled llama.cpp release tag ("b11081"). `scripts/embed-llama.sh`
-    /// copies `scripts/llama.version` — the pin `vendor-llama.sh` downloads —
+    /// The bundled llama.cpp release tag ("b11081"). `task embed:llama`
+    /// copies `Vendor/llama.version` — the pin `task vendor:llama` downloads —
     /// into the app's Resources, so what's shown is what was vendored. `nil`
     /// if the file isn't there (an app built before the vendor step ran).
     static func llamaCppTag(in bundle: Bundle = .main) -> String? {
@@ -45,7 +45,7 @@ enum AppInfo {
     }
 
     /// llama.cpp's licence text, which its MIT licence requires to travel with
-    /// the app; `embed-llama.sh` copies it into Resources.
+    /// the app; `task embed:llama` copies it into Resources.
     static func llamaCppLicence(in bundle: Bundle = .main) -> String? {
         guard let url = bundle.url(forResource: "LICENSE-llama.cpp", withExtension: nil) else { return nil }
         return try? String(contentsOf: url, encoding: .utf8)

@@ -73,7 +73,7 @@ enum Paths {
     }
 
     /// The vendored `llama-server`, embedded as a sibling of Quail's own
-    /// executable in `Contents/MacOS` by `scripts/embed-llama.sh` on every
+    /// executable in `Contents/MacOS` by `task embed:llama` on every
     /// build — see that script and D-009.
     static var llamaServerExecutable: URL {
         (Bundle.main.executableURL ?? URL(fileURLWithPath: "/dev/null"))

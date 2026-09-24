@@ -23,12 +23,19 @@ jobs:
         with:
           fetch-depth: 0 # origin/main and tags, to compare against
 
-      - name: Versioning script tests
-        run: scripts/test-versioning.sh
+      - name: Set up Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Versioning tests
+        run: task version:test
 
       - name: Check this PR's bump
         env:
           # Via env, never interpolated into the script: titles are user input.
+          # task version:check reads them from the environment for the same reason.
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: scripts/check-version.sh "$PR_TITLE" "$PR_BODY"
+        run: task version:check

@@ -1,0 +1,220 @@
+# Vendored binaries (docs/ARCHITECTURE.md §5, §9): each pins a version and a
+# sha256, lands in Vendor/ (gitignored), and is checked before it's trusted.
+#
+#   task vendor:llama [TAG=b11081]   llama-server + its @rpath dependency closure
+#   task vendor:uv [VERSION=0.12.17] the `uv` binary (not shipped in the app yet)
+#   task vendor:verify [DIR=…]       every Mach-O in DIR depends only on relocatable or system paths
+version: '3'
+
+tasks:
+  llama:
+    desc: Fetch the pinned llama.cpp release, verify its sha256, stage llama-server + dylibs in Vendor/llama.cpp
+    # Skipped when Vendor/llama.cpp is already this tag; `task --force vendor:llama` re-fetches.
+    status:
+      - test -f Vendor/llama.cpp/llama-server
+      - test "$(cat Vendor/.llama-staged 2>/dev/null)" = "$(cat Vendor/llama.version)"
+    env:
+      TAG: '{{.TAG}}'
+    cmds:
+      - |
+        # As of the b11xxx releases, llama-server and every ggml-org dylib already
+        # carry an @loader_path LC_RPATH and an @rpath/<name> install name/ID, so no
+        # install_name_tool rewriting is needed as long as the whole dependency
+        # closure sits next to the binary (ADR D-009). The closure is computed by
+        # walking `otool -L` recursively, not hardcoded, so it keeps working if
+        # llama.cpp adds or renames a dylib; vendor:verify fails loudly if a future
+        # release ships non-@rpath-relative dependencies.
+        #
+        # Release signing (Developer ID, hardened runtime, notarization timestamps)
+        # happens at Xcode build time in embed:llama, which re-signs everything with
+        # the project's identity. The ad-hoc signature here just lets the binary run
+        # locally right after vendoring.
+        ROOT='{{.ROOT_DIR}}'
+        [ -n "${TAG:-}" ] || TAG="$(cat "$ROOT/Vendor/llama.version")"
+        ASSET="llama-${TAG}-bin-macos-arm64.tar.gz"
+        URL="https://github.com/ggml-org/llama.cpp/releases/download/${TAG}/${ASSET}"
+        OUT="$ROOT/Vendor/llama.cpp"
+        TMP="$(mktemp -d)"
+        trap 'rm -rf "$TMP"' EXIT
+
+        echo "==> fetching $URL"
+        curl -fsSL -o "$TMP/$ASSET" "$URL"
+
+        echo "==> verifying sha256"
+        ( cd "$TMP" && grep " $ASSET\$" "$ROOT/Vendor/llama.sha256" | shasum -a 256 -c - )
+
+        echo "==> unpacking"
+        mkdir -p "$TMP/unz"
+        tar xzf "$TMP/$ASSET" -C "$TMP/unz"
+        SRC_DIR="$(find "$TMP/unz" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+        [ -n "$SRC_DIR" ] && [ -f "$SRC_DIR/llama-server" ] || { echo "error: llama-server not found in extracted asset"; exit 1; }
+
+        rm -rf "$OUT" && mkdir -p "$OUT"
+
+        # --- Copy llama-server and the full @rpath dependency closure -------------
+        # Memoization is just "does it already exist in $OUT" — deliberately not an
+        # associative array, since CI runners' system bash is 3.2 (no `declare -A`).
+        copy_with_deps() {
+          local name="$1"
+          [ -e "$OUT/$name" ] && return 0
+
+          local src="$SRC_DIR/$name"
+          [ -e "$src" ] || { echo "error: $name is a dependency but was not found in the release asset"; exit 1; }
+          cp -a "$src" "$OUT/$name"
+
+          # If we copied a symlink, also stage its target (by name) so it resolves.
+          if [ -L "$OUT/$name" ]; then
+            local target
+            target="$(readlink "$OUT/$name")"
+            copy_with_deps "$(basename "$target")"
+          fi
+
+          # Recurse into this file's own @rpath dependencies (resolve symlinks; they
+          # only ever point at a sibling file in this same flat release layout).
+          local real="$name"
+          while [ -L "$SRC_DIR/$real" ]; do
+            real="$(readlink "$SRC_DIR/$real")"
+          done
+          real="$SRC_DIR/$real"
+          local dep depname
+          while IFS= read -r dep; do
+            [ -z "$dep" ] && continue
+            depname="${dep#@rpath/}"
+            copy_with_deps "$depname"
+          done < <(otool -L "$real" | awk 'NR>1 {print $1}' | grep '^@rpath/' || true)
+        }
+
+        cp -a "$SRC_DIR/llama-server" "$OUT/llama-server"
+        while IFS= read -r dep; do
+          [ -z "$dep" ] && continue
+          copy_with_deps "${dep#@rpath/}"
+        done < <(otool -L "$SRC_DIR/llama-server" | awk 'NR>1 {print $1}' | grep '^@rpath/' || true)
+
+        [ -f "$SRC_DIR/LICENSE" ] && cp "$SRC_DIR/LICENSE" "$OUT/LICENSE-llama.cpp"
+
+        echo "==> verifying every dependency is @rpath-relative or a system path"
+        DIR="$OUT" '{{.TASK_EXE}}' --silent -d "$ROOT" vendor:verify
+
+        echo "==> ad-hoc signing for local builds (Xcode re-signs at build time)"
+        for f in "$OUT"/*.dylib "$OUT/llama-server"; do
+          [ -L "$f" ] && continue
+          codesign --force --sign - "$f"
+        done
+
+        # What Vendor/llama.cpp currently holds, so the next run can skip the download.
+        # Outside Vendor/llama.cpp because embed:llama copies that whole directory into the app.
+        echo "$TAG" > "$ROOT/Vendor/.llama-staged"
+
+        echo "==> result"
+        otool -L "$OUT/llama-server" | sed 's/^/   /'
+        echo "staged $(find "$OUT" -type f | wc -l | tr -d ' ') files in $OUT (tag $TAG)"
+
+  uv:
+    desc: Fetch the pinned uv release, verify its sha256, stage `uv` in Vendor/uv
+    # Skipped when Vendor/uv is already this version; `task --force vendor:uv` re-fetches.
+    status:
+      - test -f Vendor/uv/uv
+      - test "$(cat Vendor/.uv-staged 2>/dev/null)" = "$(cat Vendor/uv.version)"
+    env:
+      VERSION: '{{.VERSION}}'
+    cmds:
+      - |
+        # uv publishes a <asset>.sha256 file alongside each release asset, so unlike
+        # vendor:llama there's no separate pin file to maintain. `uv` isn't embedded
+        # in the app yet — it's for the optional Python-runtime install flow (deferred
+        # by D-027), and this exists so the Vendor/ layout and pinning approach are
+        # established (docs/ARCHITECTURE.md §5).
+        ROOT='{{.ROOT_DIR}}'
+        [ -n "${VERSION:-}" ] || VERSION="$(cat "$ROOT/Vendor/uv.version")"
+        ASSET="uv-aarch64-apple-darwin.tar.gz"
+        BASE_URL="https://github.com/astral-sh/uv/releases/download/${VERSION}"
+        OUT="$ROOT/Vendor/uv"
+        TMP="$(mktemp -d)"
+        trap 'rm -rf "$TMP"' EXIT
+
+        echo "==> fetching ${BASE_URL}/${ASSET}"
+        curl -fsSL -o "$TMP/$ASSET" "${BASE_URL}/${ASSET}"
+
+        echo "==> fetching and verifying sha256"
+        curl -fsSL -o "$TMP/$ASSET.sha256" "${BASE_URL}/${ASSET}.sha256"
+        ( cd "$TMP" && shasum -a 256 -c "$ASSET.sha256" )
+
+        echo "==> unpacking"
+        tar xzf "$TMP/$ASSET" -C "$TMP"
+        SRC_DIR="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d -name 'uv-*' -print -quit)"
+        [ -n "$SRC_DIR" ] && [ -f "$SRC_DIR/uv" ] || { echo "error: uv binary not found in extracted asset"; exit 1; }
+
+        rm -rf "$OUT" && mkdir -p "$OUT"
+        cp "$SRC_DIR/uv" "$OUT/uv"
+
+        echo "==> verifying dependencies are system-only"
+        DIR="$OUT" '{{.TASK_EXE}}' --silent -d "$ROOT" vendor:verify
+
+        echo "==> ad-hoc signing for local builds"
+        codesign --force --sign - "$OUT/uv"
+
+        echo "$VERSION" > "$ROOT/Vendor/.uv-staged"
+
+        echo "==> result"
+        otool -L "$OUT/uv" | sed 's/^/   /'
+        echo "staged uv $VERSION in $OUT"
+
+  verify:
+    desc: Check every Mach-O under DIR (default Vendor/llama.cpp) depends only on relocatable or system paths
+    env:
+      DIR: '{{.DIR}}'
+    cmds:
+      - |
+        # Never an absolute build-machine or Homebrew path, and never a bare relative
+        # name that would only resolve by accident from a particular working directory.
+        DIR="${DIR:-{{.ROOT_DIR}}/Vendor/llama.cpp}"
+        [ -d "$DIR" ] || { echo "error: $DIR does not exist"; exit 1; }
+
+        FAIL=0
+        CHECKED=0
+
+        is_macho() {
+          local magic
+          magic="$(head -c4 "$1" 2>/dev/null | od -An -tx1 | tr -d ' \n')"
+          case "$magic" in
+            cffaedfe|feedfacf|cafebabe|bebafeca) return 0 ;;
+            *) return 1 ;;
+          esac
+        }
+
+        # Paths are newline-delimited (`read -d ''` isn't supported by Task's shell;
+        # nothing in a bundle has a newline in its name).
+        while IFS= read -r f; do
+          [ -L "$f" ] && continue
+          is_macho "$f" || continue
+          CHECKED=$((CHECKED + 1))
+
+          # Dependency lines are the indented ones. (The old script skipped line 1
+          # instead, which broke on universal binaries: `otool -L` prints one
+          # header per architecture, and the extra header read as a dependency.)
+          while IFS= read -r dep; do
+            [ -z "$dep" ] && continue
+            case "$dep" in
+              @rpath/*|@loader_path/*|@executable_path/*) ;;
+              /usr/lib/*|/System/*) ;;
+              *)
+                echo "FAIL: $f depends on non-relocatable path: $dep"
+                FAIL=1
+                ;;
+            esac
+          done < <(otool -L "$f" | awk '/^[[:space:]]/ {print $1}')
+        done < <(find "$DIR" -type f)
+
+        # A check that examined nothing must not pass: it's how a broken loop
+        # (like the `read -d` one this replaced) would silently approve anything.
+        if [ "$CHECKED" -eq 0 ]; then
+          echo "verify-macho: FAIL — found no Mach-O files in $DIR, so nothing was checked"
+          exit 1
+        fi
+
+        if [ "$FAIL" -ne 0 ]; then
+          echo "verify-macho: one or more Mach-O files have non-relocatable dependencies"
+          exit 1
+        fi
+
+        echo "verify-macho: OK — all $CHECKED Mach-O files in $DIR are relocatable"

@@ -7,7 +7,7 @@ xcuserdata/
 *.moved-aside
 .swiftpm/
 
-# Vendored binaries (fetched by scripts/vendor-*.sh)
+# Vendored binaries (fetched by `task vendor:llama` / `task vendor:uv`)
 Vendor/llama.cpp/
 Vendor/uv/
 
@@ -28,3 +28,9 @@ dist/
 
 # Per-developer signing identity (see Config/LocalSigning.xcconfig)
 Config/LocalSigning.local.xcconfig
+
+# Written by vendor:llama: which tag Vendor/llama.cpp holds (lets the next run skip the download)
+Vendor/.llama-staged
+Vendor/.uv-staged
+.task/
+release-notes.md

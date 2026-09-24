@@ -22,8 +22,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "0.6.0"
-    CURRENT_PROJECT_VERSION: "9"
+    MARKETING_VERSION: "0.6.1"
+    CURRENT_PROJECT_VERSION: "10"
     ENABLE_HARDENED_RUNTIME: YES
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_LSUIElement: YES
@@ -102,15 +102,30 @@ targets:
     postbuildScripts:
       - name: "Embed llama.cpp"
         script: |
-          "$SRCROOT/scripts/embed-llama.sh"
+          # The embed step is a task (taskfiles/embed.yml). Xcode's PATH is minimal,
+          # so add Homebrew's; a missing go-task fails the build, because an app
+          # without its embedded runtime is broken.
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          command -v task > /dev/null || { echo "error: go-task is required to build Quail — brew install go-task"; exit 1; }
+          task -d "$SRCROOT" embed:llama
         basedOnDependencyAnalysis: false
       - name: "Embed quail CLI"
         script: |
-          "$SRCROOT/scripts/embed-cli.sh"
+          # The embed step is a task (taskfiles/embed.yml). Xcode's PATH is minimal,
+          # so add Homebrew's; a missing go-task fails the build, because an app
+          # without its embedded runtime is broken.
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          command -v task > /dev/null || { echo "error: go-task is required to build Quail — brew install go-task"; exit 1; }
+          task -d "$SRCROOT" embed:cli
         basedOnDependencyAnalysis: false
       - name: "Embed quail-server"
         script: |
-          "$SRCROOT/scripts/embed-quail-server.sh"
+          # The embed step is a task (taskfiles/embed.yml). Xcode's PATH is minimal,
+          # so add Homebrew's; a missing go-task fails the build, because an app
+          # without its embedded runtime is broken.
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          command -v task > /dev/null || { echo "error: go-task is required to build Quail — brew install go-task"; exit 1; }
+          task -d "$SRCROOT" embed:server
         basedOnDependencyAnalysis: false
     scheme:
       testTargets:

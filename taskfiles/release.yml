@@ -1,0 +1,195 @@
+# The signed, notarized release build (docs/ARCHITECTURE.md §9, ADR D-018),
+# as tasks — the same ones a developer runs locally and the Release workflow's
+# dmg job runs in CI. Everything is configured through environment variables, so
+# a shell and CI secrets drive the same commands:
+#
+#   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD   notarization (release:check requires both)
+#   APPLE_TEAM_ID                           default QKAYS6D525
+#   APPLE_SIGNING_IDENTITY                  default "Developer ID Application: Arif Datoo (QKAYS6D525)"
+#
+#   task release:all      archive → export → notarize → staple → verify   (build/export/Quail.app)
+#   task release:dmg      package that app into build/Quail-<version>.dmg (needs create-dmg)
+#   task release:notes    this version's CHANGELOG section → release-notes.md
+#
+# Notarization is one task, release:notarize — the one place to change when it
+# moves from an app-specific password to an App Store Connect API key.
+version: '3'
+
+vars:
+  IDENTITY: '{{if .APPLE_SIGNING_IDENTITY}}{{.APPLE_SIGNING_IDENTITY}}{{else}}Developer ID Application: Arif Datoo (QKAYS6D525){{end}}'
+  TEAM_ID: '{{if .APPLE_TEAM_ID}}{{.APPLE_TEAM_ID}}{{else}}QKAYS6D525{{end}}'
+  ARCHIVE_PATH: '{{.BUILD_DIR}}/Quail.xcarchive'
+  EXPORT_PATH: '{{.BUILD_DIR}}/export'
+  APP_PATH: '{{.BUILD_DIR}}/export/Quail.app'
+
+tasks:
+  check:
+    desc: Check the credentials and certificate a signed release needs
+    cmds:
+      - |
+        for var in APPLE_ID APPLE_APP_SPECIFIC_PASSWORD; do
+          if [ -z "$(printenv "$var")" ]; then
+            echo "error: \$$var is not set — see the header of taskfiles/release.yml for what's required." >&2
+            exit 1
+          fi
+        done
+        if ! security find-identity -v -p codesigning | grep -q "Developer ID Application"; then
+          echo "error: no \"Developer ID Application\" certificate in the active keychain." >&2
+          echo "       security find-identity -v -p codesigning   # to check" >&2
+          exit 1
+        fi
+
+  all:
+    desc: Archive with Developer ID, export, notarize, staple and verify → build/export/Quail.app
+    cmds:
+      - task: check
+      - task: archive
+      - task: export
+      - task: notarize
+      - task: staple
+      - task: verify
+      - |
+        echo ""
+        echo "Done: {{.APP_PATH}} is signed, notarized, and stapled."
+
+  archive:
+    desc: Archive Quail (Release) signed with the Developer ID identity — wipes ./build
+    cmds:
+      - |
+        rm -rf '{{.BUILD_DIR}}'
+        mkdir -p '{{.BUILD_DIR}}'
+        echo "==> 1/4  Archiving (Release, {{.IDENTITY}})..."
+        # `|| true`: the exported .app's existence is the real check (below), as before.
+        xcodebuild archive \
+          -project '{{.ROOT_DIR}}/Quail.xcodeproj' \
+          -scheme Quail \
+          -configuration Release \
+          -archivePath '{{.ARCHIVE_PATH}}' \
+          CODE_SIGN_STYLE=Manual \
+          CODE_SIGN_IDENTITY='{{.IDENTITY}}' \
+          DEVELOPMENT_TEAM='{{.TEAM_ID}}' \
+          | {{.PRETTY}} || true
+
+  export:
+    desc: Export a signed .app from the archive
+    cmds:
+      - |
+        echo "==> 2/4  Exporting a signed .app..."
+        xcodebuild -exportArchive \
+          -archivePath '{{.ARCHIVE_PATH}}' \
+          -exportPath '{{.EXPORT_PATH}}' \
+          -exportOptionsPlist '{{.ROOT_DIR}}/Config/ExportOptions-DeveloperID.plist' \
+          | {{.PRETTY}} || true
+        [ -d '{{.APP_PATH}}' ] || { echo "error: export finished but {{.APP_PATH}} is missing" >&2; exit 1; }
+
+  notarize:
+    desc: Submit the exported app to Apple's notary service and wait (typically 1-5 minutes)
+    cmds:
+      - |
+        echo "==> 3/4  Submitting to Apple notary (this typically takes 1-5 minutes)..."
+        ZIP_PATH='{{.BUILD_DIR}}/Quail-for-notarization.zip'
+        ditto -c -k --keepParent '{{.APP_PATH}}' "$ZIP_PATH"
+        xcrun notarytool submit "$ZIP_PATH" \
+          --apple-id "$APPLE_ID" \
+          --team-id '{{.TEAM_ID}}' \
+          --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+          --wait
+        rm -f "$ZIP_PATH"
+
+  staple:
+    desc: Staple the notarization ticket to the app
+    cmds:
+      - |
+        echo "==> 4/4  Stapling the notarization ticket..."
+        xcrun stapler staple '{{.APP_PATH}}'
+
+  verify:
+    desc: 'Verify signature, Gatekeeper acceptance and the staple (APP=… for another app)'
+    vars:
+      APP_TO_CHECK: '{{if .APP}}{{.APP}}{{else}}{{.APP_PATH}}{{end}}'
+    cmds:
+      - |
+        echo ""
+        echo "Verifying..."
+        codesign --verify --deep --strict --verbose=2 '{{.APP_TO_CHECK}}'
+        spctl -a -vvv -t exec '{{.APP_TO_CHECK}}'
+        xcrun stapler validate '{{.APP_TO_CHECK}}'
+        echo "    all checks passed"
+
+  dmg:
+    desc: Package the notarized app into build/Quail-<version>.dmg and sign it (APP=… for another app; needs create-dmg)
+    vars:
+      APP_TO_PACK: '{{if .APP}}{{.APP}}{{else}}{{.APP_PATH}}{{end}}'
+    preconditions:
+      - sh: command -v create-dmg
+        msg: 'create-dmg is not installed — brew install create-dmg'
+    cmds:
+      - |
+        # The .app inside already carries its own notarization staple (checked by
+        # Gatekeeper when it's launched), so the DMG container isn't re-notarized.
+        APP='{{.APP_TO_PACK}}'
+        [ -d "$APP" ] || { echo "error: $APP not found — run: task release:all" >&2; exit 1; }
+        VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist")"
+        DMG_PATH='{{.BUILD_DIR}}'"/Quail-$VERSION.dmg"
+        rm -f "$DMG_PATH"
+
+        echo "==> Building $DMG_PATH..."
+        create-dmg \
+          --volname "Quail $VERSION" \
+          --app-drop-link 450 150 \
+          --icon "Quail.app" 150 150 \
+          --window-size 600 300 \
+          "$DMG_PATH" \
+          "$APP" \
+          || true # create-dmg exits non-zero on the harmless "no volume icon set" case
+
+        [ -f "$DMG_PATH" ] || { echo "error: create-dmg finished but $DMG_PATH is missing" >&2; exit 1; }
+
+        echo "==> Signing the DMG ({{.IDENTITY}})..."
+        codesign --sign '{{.IDENTITY}}' --timestamp "$DMG_PATH"
+
+        echo ""
+        codesign --verify --verbose=2 "$DMG_PATH"
+        echo "Done: $DMG_PATH"
+
+  notes:
+    desc: 'Write a version''s CHANGELOG section to release-notes.md (VERSION=…, default: project.yml''s)'
+    env:
+      VERSION: '{{.VERSION}}'
+      OUT: '{{.OUT}}'
+    cmds:
+      - |
+        [ -n "${VERSION:-}" ] || VERSION="$('{{.TASK_EXE}}' --silent -d '{{.ROOT_DIR}}' version:current)"
+        OUT="${OUT:-{{.ROOT_DIR}}/release-notes.md}"
+        awk -v v="$VERSION" '
+          index($0, "## [" v "]") == 1 { on = 1; next }
+          on && /^## \[/ { exit }
+          on { print }
+        ' '{{.ROOT_DIR}}/CHANGELOG.md' > "$OUT"
+        test -s "$OUT" || echo "Release $VERSION." > "$OUT"
+        echo "wrote $OUT"
+
+  import-cert:
+    desc: "[CI only] Import the Developer ID certificate into a dedicated build keychain"
+    cmds:
+      - |
+        # Replaces the user's DEFAULT keychain, so it refuses to run outside CI. On a
+        # self-hosted runner, use a runner that runs as its OWN macOS user.
+        if [ "${GITHUB_ACTIONS:-}" != "true" ] && [ "${QUAIL_ALLOW_KEYCHAIN_REPLACE:-}" != "1" ]; then
+          echo "error: release:import-cert replaces your default keychain; it's for CI." >&2
+          echo "       Set QUAIL_ALLOW_KEYCHAIN_REPLACE=1 if you really mean it." >&2
+          exit 1
+        fi
+        : "${P12_BASE64:?P12_BASE64 (the base64 .p12) is not set}"
+        : "${P12_PASSWORD:?P12_PASSWORD is not set}"
+        echo "$P12_BASE64" | base64 --decode > /tmp/cert.p12
+        security create-keychain -p actions build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p actions build.keychain
+        security set-keychain-settings -lut 21600 build.keychain
+        security import /tmp/cert.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+        # Grants codesign non-interactive access to the imported key — without
+        # this, every codesign call in a headless CI runner would hang forever on
+        # an authorization prompt nothing can answer.
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions build.keychain
+        rm /tmp/cert.p12

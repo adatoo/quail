@@ -1,0 +1,267 @@
+# Quail's commands — the same ones locally and in CI (ADR D-030).
+#
+#   task            list every task
+#   task ci         what CI runs: lint, vendor, build, verify, test (+ the App Store build)
+#   task build      compile into ./DerivedData (unsigned: checks it builds, macOS won't open it)
+#   task test       run the unit tests
+#   task install    build Release, ad-hoc sign, install to ~/Apps — the app you can launch
+#   task doctor     check your tools
+#
+# Needs go-task (`brew install go-task`). Xcode's build phases call it too
+# (task embed:*), so it has to be on any machine that builds Quail.
+#
+# WRITING TASKS: commands run in Task's own shell interpreter (mvdan/sh), which
+# handles nearly all of bash — [[ =~ ]], arrays, functions, process substitution,
+# trap — but differs in places (checked in the D-030 spike). Two that bite:
+#   - `${VAR:-$(cmd)}` runs cmd even when VAR is set. Use an explicit `if`.
+#   - `{{ … }}` in a command is Task's template syntax, even inside a quoted
+#     heredoc. Write a literal one as {{"{{"}} .
+# And never template untrusted input into a command: pass it as an environment
+# variable (see taskfiles/version.yml).
+version: '3'
+
+# What the old scripts had as `set -euo pipefail`.
+set: [errexit, nounset, pipefail]
+# Tasks say what they're doing themselves; Task's own echo of each command
+# (whole scripts, for the multi-line ones) is just noise.
+silent: true
+
+includes:
+  vendor:
+    taskfile: taskfiles/vendor.yml
+    dir: '{{.ROOT_DIR}}'
+  embed:
+    taskfile: taskfiles/embed.yml
+    dir: '{{.ROOT_DIR}}'
+  version:
+    taskfile: taskfiles/version.yml
+    dir: '{{.ROOT_DIR}}'
+  release:
+    taskfile: taskfiles/release.yml
+    dir: '{{.ROOT_DIR}}'
+
+vars:
+  # Repo-local, gitignored, and what CI uses — so a task build never rewrites
+  # the app Xcode last ran (which may be running).
+  DERIVED_DATA: '{{.ROOT_DIR}}/DerivedData'
+  BUILD_DIR: '{{.ROOT_DIR}}/build'
+  # Override on the command line: `task build SCHEME=Quail-AppStore CONFIGURATION=Debug-AppStore`.
+  SCHEME: Quail
+  CONFIGURATION: Debug
+  DESTINATION: platform=macOS
+  # CI builds unsigned; `task build CODE_SIGNING_ALLOWED=YES` uses your
+  # Config/LocalSigning.local.xcconfig identity, if you have one.
+  CODE_SIGNING_ALLOWED: 'NO'
+  # xcbeautify if it's installed, plain xcodebuild output if not.
+  PRETTY:
+    sh: 'command -v xcbeautify >/dev/null 2>&1 && echo xcbeautify || echo cat'
+
+env:
+  # `xcode-select` often points at the Command Line Tools, which can't run
+  # xcodebuild. Use Xcode.app then — but leave an explicit DEVELOPER_DIR (CI
+  # sets one) or a real Xcode selection alone.
+  DEVELOPER_DIR:
+    sh: |
+      if [ -n "${DEVELOPER_DIR:-}" ]; then
+        echo "$DEVELOPER_DIR"
+      elif xcode-select -p 2>/dev/null | grep -q CommandLineTools && [ -d /Applications/Xcode.app ]; then
+        echo /Applications/Xcode.app/Contents/Developer
+      else
+        xcode-select -p 2>/dev/null || true
+      fi
+
+tasks:
+  default:
+    desc: List the tasks
+    cmds:
+      - task --list
+
+  doctor:
+    desc: Check the tools Quail's tasks use
+    cmds:
+      - |
+        missing=0
+        check() { # tool  needed-by  how-to-install  [optional]
+          if command -v "$1" > /dev/null 2>&1; then
+            printf '  ok       %-12s %s\n' "$1" "$(command -v "$1")"
+          elif [ "${4:-}" = optional ]; then
+            printf '  missing  %-12s optional — %s — %s\n' "$1" "$2" "$3"
+          else
+            printf '  MISSING  %-12s needed for %s — %s\n' "$1" "$2" "$3"
+            missing=1
+          fi
+        }
+        echo "Xcode: $DEVELOPER_DIR"
+        xcodebuild -version 2>&1 | sed 's/^/  /' || true
+        echo
+        check task "everything" "brew install go-task"
+        check xcodegen "generate, version:bump" "brew install xcodegen"
+        check swiftformat "lint, format" "brew install swiftformat"
+        check xcbeautify "prettier build output" "brew install xcbeautify" optional
+        check create-dmg "release:dmg" "brew install create-dmg" optional
+        check gh "opening PRs" "brew install gh" optional
+        exit $missing
+
+  ci:
+    desc: What CI runs, in order (plus the App Store scheme's build)
+    cmds:
+      - task: lint
+      - task: vendor:llama
+      - task: vendor:uv
+      - task: build
+      - task: verify:bundle
+      - task: test
+      - task: build:appstore
+
+  lint:
+    desc: swiftformat --lint
+    preconditions:
+      - sh: command -v swiftformat
+        msg: 'swiftformat is not installed — brew install swiftformat'
+    cmds:
+      - swiftformat --lint .
+
+  format:
+    desc: Format the Swift sources with swiftformat
+    preconditions:
+      - sh: command -v swiftformat
+        msg: 'swiftformat is not installed — brew install swiftformat'
+    cmds:
+      - swiftformat .
+
+  generate:
+    desc: Regenerate Quail.xcodeproj from project.yml
+    preconditions:
+      - sh: command -v xcodegen
+        msg: 'xcodegen is not installed — brew install xcodegen'
+    cmds:
+      - xcodegen generate
+
+  build:
+    desc: Compile the app into ./DerivedData (Debug, unsigned as in CI — macOS won't open it; use `task install` for an app you can launch)
+    preconditions:
+      - sh: command -v xcodebuild
+        msg: 'xcodebuild not found — install Xcode (DEVELOPER_DIR={{.DEVELOPER_DIR}})'
+    cmds:
+      - >-
+        xcodebuild -scheme {{.SCHEME}} -configuration {{.CONFIGURATION}} build
+        -derivedDataPath "{{.DERIVED_DATA}}"
+        -destination '{{.DESTINATION}}'
+        CODE_SIGNING_ALLOWED={{.CODE_SIGNING_ALLOWED}}
+        | {{.PRETTY}}
+
+  build:appstore:
+    desc: Build the Mac App Store scheme (the definition of done wants zero warnings in both)
+    cmds:
+      - task: build
+        vars: {SCHEME: Quail-AppStore, CONFIGURATION: Debug-AppStore}
+
+  test:
+    desc: Run the unit tests
+    preconditions:
+      - sh: command -v xcodebuild
+        msg: 'xcodebuild not found — install Xcode (DEVELOPER_DIR={{.DEVELOPER_DIR}})'
+    cmds:
+      - >-
+        xcodebuild -scheme {{.SCHEME}} -configuration {{.CONFIGURATION}} test
+        -derivedDataPath "{{.DERIVED_DATA}}"
+        -destination '{{.DESTINATION}}'
+        CODE_SIGNING_ALLOWED={{.CODE_SIGNING_ALLOWED}}
+        | {{.PRETTY}}
+
+  verify:bundle:
+    desc: Check the built app — every Mach-O relocatable, the bundled resources present
+    vars:
+      # Override with `task verify:bundle APP=build/export/Quail.app`.
+      APP:
+        sh: find "{{.DERIVED_DATA}}" -maxdepth 6 -name Quail.app -path '*/Debug/*' -print -quit
+    cmds:
+      - |
+        APP='{{.APP}}'
+        if [ -z "$APP" ] || [ ! -d "$APP" ]; then
+          echo "error: no Quail.app to check under {{.DERIVED_DATA}} — run: task build" >&2
+          exit 1
+        fi
+        echo "==> checking $APP"
+      - task: vendor:verify
+        vars: {DIR: '{{.APP}}/Contents/MacOS'}
+      - |
+        APP='{{.APP}}'
+        # Regression checks for real bugs: project.yml's resources wiring once
+        # silently shipped an app with no catalog.json; Settings → About shows the
+        # llama.cpp tag, and llama.cpp's MIT licence must ship with the app (both
+        # are copied in by embed:llama).
+        for f in catalog.json llama.version LICENSE-llama.cpp; do
+          if [ ! -f "$APP/Contents/Resources/$f" ]; then
+            echo "::error::$f is missing from Quail.app/Contents/Resources — check project.yml's resources wiring and taskfiles/embed.yml"
+            exit 1
+          fi
+        done
+        echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp present"
+
+  install:
+    desc: Build Release and install to ~/Apps/Quail.app (INSTALL_DIR=… to change; ad-hoc signed unless QUAIL_SIGN_IDENTITY is set)
+    vars:
+      # `task install INSTALL_DIR=/some/where` or INSTALL_DIR in the environment.
+      TARGET_DIR: '{{if .INSTALL_DIR}}{{.INSTALL_DIR}}{{else}}{{.HOME}}/Apps{{end}}'
+      SIGN_IDENTITY: '{{if .QUAIL_SIGN_IDENTITY}}{{.QUAIL_SIGN_IDENTITY}}{{else}}-{{end}}'
+    preconditions:
+      - sh: command -v xcodebuild
+        msg: 'xcodebuild not found — install Xcode (DEVELOPER_DIR={{.DEVELOPER_DIR}})'
+    cmds:
+      - |
+        target='{{.TARGET_DIR}}/Quail.app'
+        # Replacing the files of a running app breaks it, and quitting Quail stops the server.
+        if pgrep -f "$target/Contents/MacOS/Quail" > /dev/null 2>&1; then
+          echo "error: $target is running — quit Quail first (that stops its server), then re-run." >&2
+          exit 1
+        fi
+      - task: vendor:llama
+      - |
+        echo "==> building Release, signing with '{{.SIGN_IDENTITY}}' ..."
+        xcodebuild -scheme Quail -configuration Release build \
+          -derivedDataPath "{{.DERIVED_DATA}}" \
+          -destination '{{.DESTINATION}}' \
+          ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+          CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='{{.SIGN_IDENTITY}}' \
+          DEVELOPMENT_TEAM="${QUAIL_TEAM_ID:-}" \
+          | {{.PRETTY}}
+      - |
+        built='{{.DERIVED_DATA}}/Build/Products/Release/Quail.app'
+        target='{{.TARGET_DIR}}/Quail.app'
+        [ -d "$built" ] || { echo "error: build finished but $built is missing" >&2; exit 1; }
+        echo "==> installing to $target"
+        mkdir -p '{{.TARGET_DIR}}'
+        rm -rf "${target:?}"
+        # ditto, not cp -R: it keeps the code signature and extended attributes intact.
+        ditto "$built" "$target"
+        codesign --verify --deep --strict "$target"
+        echo "installed. Launch it with: open '$target'"
+        if [ '{{.SIGN_IDENTITY}}' = '-' ]; then
+          echo "note: ad-hoc signed, so Keychain asks for your password after every rebuild — see CONTRIBUTING.md (LocalSigning)."
+        fi
+
+  install:notarized:
+    desc: Vendor, build, sign with Developer ID, notarize, staple, and install to ~/Apps (needs Apple credentials)
+    vars:
+      TARGET_DIR: '{{if .INSTALL_DIR}}{{.INSTALL_DIR}}{{else}}{{.HOME}}/Apps{{end}}'
+    cmds:
+      - task: vendor:llama
+      - task: generate
+      - task: release:all
+      - |
+        APP_PATH='{{.BUILD_DIR}}/export/Quail.app'
+        [ -d "$APP_PATH" ] || { echo "error: build finished but $APP_PATH was not found." >&2; exit 1; }
+        echo "==> installing to {{.TARGET_DIR}}"
+        mkdir -p '{{.TARGET_DIR}}'
+        rm -rf '{{.TARGET_DIR}}/Quail.app'
+        # ditto preserves the signature, extended attributes and the stapled ticket exactly.
+        ditto "$APP_PATH" '{{.TARGET_DIR}}/Quail.app'
+      - task: release:verify
+        vars: {APP: '{{.TARGET_DIR}}/Quail.app'}
+      - 'echo "Done. Launch it with: open {{.TARGET_DIR}}/Quail.app"'
+
+  clean:
+    desc: Remove ./DerivedData, ./build and Task's cache (not Vendor/)
+    cmds:
+      - rm -rf '{{.DERIVED_DATA}}' '{{.BUILD_DIR}}' '{{.ROOT_DIR}}/.task'
