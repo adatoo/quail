@@ -172,21 +172,25 @@ tasks:
   verify:bundle:
     desc: Check the built app — every Mach-O relocatable, the bundled resources present
     vars:
-      # Override with `task verify:bundle APP=build/export/Quail.app`.
-      APP:
-        sh: find "{{.DERIVED_DATA}}" -maxdepth 6 -name Quail.app -path '*/Debug/*' -print -quit
+      # `task verify:bundle APP=build/export/Quail.app` checks that app; otherwise the
+      # Debug build in ./DerivedData. The lookup is `2>/dev/null || true` because Task
+      # evaluates a `sh:` var even when APP is given, and on a fresh CI VM (release job)
+      # there is no ./DerivedData to search — that failed the first signed release run.
+      CHECK_APP:
+        sh: |
+          if [ -n '{{.APP}}' ]; then echo '{{.APP}}'; else find "{{.DERIVED_DATA}}" -maxdepth 6 -name Quail.app -path '*/Debug/*' -print -quit 2>/dev/null || true; fi
     cmds:
       - |
-        APP='{{.APP}}'
+        APP='{{.CHECK_APP}}'
         if [ -z "$APP" ] || [ ! -d "$APP" ]; then
           echo "error: no Quail.app to check under {{.DERIVED_DATA}} — run: task build" >&2
           exit 1
         fi
         echo "==> checking $APP"
       - task: vendor:verify
-        vars: {DIR: '{{.APP}}/Contents/MacOS'}
+        vars: {DIR: '{{.CHECK_APP}}/Contents/MacOS'}
       - |
-        APP='{{.APP}}'
+        APP='{{.CHECK_APP}}'
         # Regression checks for real bugs: project.yml's resources wiring once
         # silently shipped an app with no catalog.json; Settings → About shows the
         # llama.cpp tag, and llama.cpp's MIT licence must ship with the app (both
