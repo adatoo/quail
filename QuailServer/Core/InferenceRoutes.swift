@@ -8,12 +8,15 @@ struct InferenceRoutes: Sendable {
     let log: ServerLog
     /// Reported as `system_fingerprint` and `build_info`.
     let buildLabel: String
+    private let templates = TemplateCache()
 
     /// `nil` for a path this type doesn't serve.
     func handle(_ request: HTTPRequest) async -> HTTPResponse? {
         switch request.path {
         case "/v1/completions":
             await guarded(request, method: "POST") { try await completions(request) }
+        case "/v1/chat/completions", "/chat/completions":
+            await guarded(request, method: "POST") { try await chatCompletions(request) }
         case "/tokenize":
             await guarded(request, method: "POST") { try await tokenize(request) }
         case "/detokenize":
@@ -182,17 +185,21 @@ struct InferenceRoutes: Sendable {
 
     /// Sends events as SSE while a background task holds the model lease; the lease is released when
     /// the stream ends, however it ends, including the client going away.
-    private func streamResponse(
-        first: TextEvent?,
-        pump: EventPump,
+    private func streamResponse<Event: Sendable>(
+        first: Event?,
+        pump: EventPump<Event>,
         lease: ModelLease,
-        encode: @escaping @Sendable (TextEvent) -> Data
+        opening: Data? = nil,
+        encode: @escaping @Sendable (Event) -> Data
     ) -> HTTPResponse {
         let router = router
         let log = log
         let chunks = AsyncStream<Data> { continuation in
             let task = Task {
                 do {
+                    if let opening {
+                        continuation.yield(opening)
+                    }
                     var event = first
                     while let current = event {
                         continuation.yield(encode(current))
@@ -217,6 +224,120 @@ struct InferenceRoutes: Sendable {
             headers: [("Content-Type", "text/event-stream"), ("Cache-Control", "no-cache")],
             body: .stream(chunks)
         )
+    }
+
+    // MARK: /v1/chat/completions
+
+    private func chatCompletions(_ request: HTTPRequest) async throws -> HTTPResponse {
+        let body = try jsonBody(request)
+        let settings = try GenerationSettings(body)
+        let chat = try ChatRequest(body)
+        let id = try await modelID(body: body, request: request)
+        let lease = try await router.acquire(id)
+
+        let responseID = InferenceJSON.newID()
+        let created = Int(Date().timeIntervalSince1970)
+        do {
+            let info = await lease.engine.info()
+            let prompt = try await renderPrompt(chat, engine: lease.engine, info: info)
+            // A template that starts with the BOS text already has one; don't add a second.
+            let addSpecial = info.bosToken.isEmpty || !prompt.text.hasPrefix(info.bosToken)
+            let tokens = try await lease.engine.tokenize(prompt.text, addSpecial: addSpecial, parseSpecial: true)
+            let generation = try generationRequest(tokens: tokens, settings: settings, info: info)
+            let text = TextGenerator.stream(engine: lease.engine, request: generation, stop: settings.stop)
+            let pump = EventPump(ChatStream.events(from: text, startsInReasoning: prompt.thinkingIsOpen))
+
+            @Sendable func chunk(
+                _ delta: InferenceJSON.ChatChunk.Delta, finish: FinishReason? = nil, timings: GenerationTimings? = nil,
+                usage: Bool = false, noChoices: Bool = false
+            ) -> Data {
+                InferenceJSON.sse(InferenceJSON.ChatChunk(
+                    choices: noChoices ? [] : [.init(
+                        delta: delta,
+                        finishReason: finish.map(InferenceJSON.finishReason)
+                    )],
+                    created: created, id: responseID, model: id, systemFingerprint: buildLabel,
+                    usage: usage ? timings.map(InferenceJSON.Usage.init) : nil,
+                    timings: timings.map(InferenceJSON.Timings.init)
+                ))
+            }
+
+            if !settings.stream {
+                var content = "", reasoning = ""
+                var finished: (FinishReason, GenerationTimings)?
+                while let event = try await pump.next() {
+                    switch event {
+                    case let .delta(.content(piece)): content += piece
+                    case let .delta(.reasoning(piece)): reasoning += piece
+                    case let .finished(reason, timings): finished = (reason, timings)
+                    }
+                }
+                await router.release(lease)
+                let (reason, timings) = finished ?? (.stop, GenerationTimings(
+                    promptTokens: tokens.count, promptSeconds: 0, generatedTokens: 0, generatedSeconds: 0
+                ))
+                return .json(200, InferenceJSON.ChatCompletion(
+                    choices: [.init(
+                        message: .init(content: content, reasoningContent: reasoning.isEmpty ? nil : reasoning),
+                        finishReason: InferenceJSON.finishReason(reason)
+                    )],
+                    created: created, model: id, systemFingerprint: buildLabel, id: responseID,
+                    usage: InferenceJSON.Usage(timings), timings: InferenceJSON.Timings(timings)
+                ))
+            }
+
+            let first = try await pump.next()
+            let includeUsage = settings.includeUsage
+            // The role goes out first, as its own chunk, then the deltas.
+            let opening = chunk(.init(role: "assistant", nullContent: true))
+            return streamResponse(first: first, pump: pump, lease: lease, opening: opening) { event in
+                switch event {
+                case let .delta(.content(piece)): return chunk(.init(content: piece))
+                case let .delta(.reasoning(piece)): return chunk(.init(reasoningContent: piece))
+                case let .finished(reason, timings):
+                    var frames = chunk(.init(), finish: reason, timings: timings)
+                    if includeUsage {
+                        frames += chunk(.init(), timings: timings, usage: true, noChoices: true)
+                    }
+                    return frames
+                }
+            }
+        } catch {
+            await router.release(lease)
+            throw error
+        }
+    }
+
+    /// The prompt text for a chat request, and whether its template left a `<think>` open.
+    private func renderPrompt(
+        _ chat: ChatRequest, engine: any Engine, info: EngineInfo
+    ) async throws -> (text: String, thinkingIsOpen: Bool) {
+        let source = await engine.chatTemplate() ?? ChatMessages.chatMLTemplate
+        let compiled: (template: ChatTemplate, style: ChatMessages.ContentStyle)
+        do {
+            compiled = try templates.compiled(source)
+        } catch {
+            throw RequestError(status: 500, type: "server_error", message: error.localizedDescription)
+        }
+        let messages = try ChatMessages.normalize(
+            chat.messages,
+            style: compiled.style,
+            templateKnowsDeveloperRole: source.contains("developer")
+        )
+        do {
+            let text = try compiled.template.render(.init(
+                messages: messages,
+                tools: chat.toolsEnabled ? chat.tools : nil,
+                addGenerationPrompt: true,
+                bosToken: info.bosToken,
+                eosToken: info.eosToken,
+                extra: chat.templateKwargs
+            ))
+            let tail = text.reversed().drop(while: { $0.isWhitespace })
+            return (text, String(tail.reversed()).hasSuffix(ReasoningSplitter.open))
+        } catch {
+            throw RequestError.invalid(error.localizedDescription)
+        }
     }
 
     // MARK: /tokenize, /detokenize
@@ -331,14 +452,36 @@ struct InferenceRoutes: Sendable {
 
 /// One consumer at a time — the request handler reads the first event, then the streaming task
 /// takes over — so the iterator needs no lock.
-final class EventPump: @unchecked Sendable {
-    private var iterator: AsyncThrowingStream<TextEvent, any Error>.AsyncIterator
+final class EventPump<Event: Sendable>: @unchecked Sendable {
+    private var iterator: AsyncThrowingStream<Event, any Error>.AsyncIterator
 
-    init(_ stream: AsyncThrowingStream<TextEvent, any Error>) {
+    init(_ stream: AsyncThrowingStream<Event, any Error>) {
         iterator = stream.makeAsyncIterator()
     }
 
-    func next() async throws -> TextEvent? {
+    func next() async throws -> Event? {
         try await iterator.next()
+    }
+}
+
+/// Compiled templates, by source text: parsing an 8 KB Jinja template on every request would be
+/// most of a short request's cost.
+final class TemplateCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var entries: [String: (template: ChatTemplate, style: ChatMessages.ContentStyle)] = [:]
+
+    func compiled(_ source: String) throws -> (template: ChatTemplate, style: ChatMessages.ContentStyle) {
+        if let hit = lock.withLock({ entries[source] }) {
+            return hit
+        }
+        let template = try ChatTemplate(source)
+        let entry = (template: template, style: ChatMessages.contentStyle(of: template))
+        lock.withLock {
+            if entries.count >= 8 {
+                entries.removeAll()
+            } // a handful of models is all one server holds
+            entries[source] = entry
+        }
+        return entry
     }
 }
