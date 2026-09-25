@@ -246,8 +246,10 @@ extension LlamaRuntime {
         }
         /// Which slot, and how much of the prompt is already in it. The last prompt token is always decoded
         /// afresh, because sampling needs its logits.
+        /// Measured even when the request asks for no cache: it still decides the slot, so a client that repeats
+        /// itself (the benchmark, a retry) keeps using one sequence instead of leaving stale ones in every slot,
+        /// which the unified cache's attention would then have to step over.
         func prefix(of slot: Slot) -> Int {
-            guard request.cachePrompt else { return 0 }
             let limit = min(slot.cached.count, prompt.count - 1)
             var n = 0
             while n < limit, slot.cached[n] == prompt[n] {
@@ -276,9 +278,14 @@ extension LlamaRuntime {
                 }
                 return a.lastUsed < b.lastUsed
             }!
-            reused = keepPrefix(of: slot, upTo: prefix(of: slot))
+            reused = request.cachePrompt ? keepPrefix(of: slot, upTo: prefix(of: slot)) : 0
+            if !request.cachePrompt {
+                reset(slot)
+            }
             let donor = slots.filter { $0 !== slot }.max { prefix(of: $0) < prefix(of: $1) }
-            if let donor, prefix(of: donor) >= Self.minimumSharedPrefix, prefix(of: donor) > reused {
+            if request.cachePrompt, let donor, prefix(of: donor) >= Self.minimumSharedPrefix,
+               prefix(of: donor) > reused
+            {
                 let shared = prefix(of: donor)
                 reset(slot)
                 llama_memory_seq_cp(llama_get_memory(context), donor.id, slot.id, 0, llama_pos(shared))
@@ -291,7 +298,7 @@ extension LlamaRuntime {
                 let (pa, pb) = (prefix(of: a), prefix(of: b))
                 return pa != pb ? pa < pb : a.lastUsed > b.lastUsed
             }!
-            reused = keepPrefix(of: slot, upTo: prefix(of: slot))
+            reused = keepPrefix(of: slot, upTo: request.cachePrompt ? prefix(of: slot) : 0)
         }
         let job = Job(
             pending: pending, sampler: sampler, grammar: grammar, prompt: prompt, fed: reused,
