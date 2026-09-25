@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-09-25
+
+### Fixed
+
+- Internal, no visible change yet: `quail-server` stops an MLX model's work on a long prompt when the client hangs up,
+  instead of finishing the whole prompt first (a 20,000-token prompt took 71 s to let go; now about 1 s). A cancelled
+  prompt's progress is kept for a retry. `task check:mlx-offline` proves the MLX path makes no network connection (ADR D-044).
+
 ## [0.22.0] - 2026-09-25
 
 ### Added
