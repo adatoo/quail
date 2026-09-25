@@ -175,7 +175,7 @@ struct MessagesRoutesTests {
         #expect(reply.status == 200)
         let request = try #require(harness.world.requests.last)
         #expect(request.media == [Data([1, 2, 3])])
-        #expect(request.promptText?.contains("What is this?\n<__media__>\nBe brief.") == true)
+        #expect(request.promptText?.contains("What is this?<__media__>Be brief.") == true)
 
         let plain = RouteHarness(vision: true)
         _ = await plain.json(

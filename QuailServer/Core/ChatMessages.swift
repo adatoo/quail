@@ -43,21 +43,32 @@ enum ChatMessages {
             if role == "developer", !templateKnowsDeveloperRole {
                 members["role"] = .string("system")
             }
-            if let content = members["content"], case var .array(parts) = content {
-                for (index, part) in parts.enumerated() {
+            if style == .typed, let text = members["content"]?.stringValue {
+                // A template that only reads typed parts is given them for every message, as llama-server does.
+                members["content"] = .array([.record([("type", .string("text")), ("text", .string(text))])])
+            }
+            if let content = members["content"], case let .array(parts) = content {
+                var hasImage = false
+                for part in parts {
                     let type = part["type"]?.stringValue ?? "text"
                     switch type {
                     case "text", "input_text":
                         break
                     case "image_url":
                         try media.append(ImageInput.decode(url: ImageInput.url(ofPart: part)))
-                        parts[index] = .record([("type", .string("text")), ("text", .string(ImageInput.marker))])
+                        hasImage = true
                     default:
                         throw RequestError.invalid("\(type) input is not supported")
                     }
                 }
-                members["content"] = .array(parts)
-                if style == .string {
+                if hasImage {
+                    // A message with images is joined into one text, with the marker where each image goes, whatever
+                    // the template's style: llama-server's rule, newlines between parts but none next to a marker.
+                    let text = joinedWithMarkers(parts)
+                    members["content"] = style == .typed
+                        ? .array([.record([("type", .string("text")), ("text", .string(text))])])
+                        : .string(text)
+                } else if style == .string {
                     // llama-server joins the text parts with a newline.
                     members["content"] = .string(parts.compactMap { $0["text"]?.stringValue }.joined(separator: "\n"))
                 }
@@ -65,6 +76,24 @@ enum ChatMessages {
             return .object(members)
         }
         return (normalized, media)
+    }
+
+    private static func joinedWithMarkers(_ parts: [Value]) -> String {
+        var text = ""
+        var lastWasMarker = false
+        for part in parts {
+            if part["type"]?.stringValue == "image_url" {
+                text += ImageInput.marker
+                lastWasMarker = true
+            } else {
+                if !lastWasMarker, !text.isEmpty {
+                    text += "\n"
+                }
+                lastWasMarker = false
+                text += part["text"]?.stringValue ?? ""
+            }
+        }
+        return text
     }
 
     /// llama.cpp's fallback for a model with no template of its own.

@@ -167,7 +167,7 @@ struct ResponsesRoutesTests {
         #expect(reply.status == 200)
         let request = try #require(harness.world.requests.last)
         #expect(request.media == [Data([1, 2, 3])])
-        #expect(request.promptText?.contains("Describe\n<__media__>") == true)
+        #expect(request.promptText?.contains("Describe<__media__>") == true)
 
         let remote = await harness.json(
             path,
