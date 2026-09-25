@@ -214,4 +214,40 @@ struct LlamaEngineTests {
         }
         await engine.unload()
     }
+
+    @Test("Qwen3-0.6B: a grammar bounds the reply, whatever the model would say", .enabled(if: smallExists))
+    func grammar() async throws {
+        let engine = LlamaEngine()
+        #expect(engine.capabilities.grammar)
+        try await engine.load(entry(Self.small))
+        let prompt = try await engine.tokenize(
+            "<|im_start|>user\n/no_think Is water wet? Explain at length.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+            addSpecial: false, parseSpecial: true
+        )
+        var request = GenerationRequest(promptTokens: prompt, maxTokens: 100)
+        request.cachePrompt = false
+        request.sampling.temperature = 0.8
+        request.sampling.seed = 3
+        request.grammar = #"root ::= "yes" | "no""#
+        let short = try await collect(engine, request)
+        #expect(["yes", "no"].contains(short.text))
+        #expect(short.finished?.0 == .stop)
+
+        request.grammar = try JSONSchemaGrammar.gbnf(
+            for: OrderedJSON
+                .parse(#"{"type":"object","properties":{"answer":{"type":"boolean"}},"required":["answer"]}"#),
+            reasoning: .none
+        )
+        let object = try await collect(engine, request).text
+        let parsed = try JSONSerialization.jsonObject(with: Data(object.utf8)) as? [String: Any]
+        #expect(parsed?["answer"] is Bool)
+
+        // A grammar that doesn't parse is the client's mistake, and the engine stays usable.
+        request.grammar = "root ::= ("
+        await #expect(throws: EngineError.self) { _ = try await collect(engine, request) }
+        request.grammar = nil
+        request.maxTokens = 3
+        #expect(try await collect(engine, request).finished != nil)
+        await engine.unload()
+    }
 }

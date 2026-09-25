@@ -10,7 +10,7 @@ public struct LlamaEngine: Engine {
     public init() {}
 
     public var capabilities: EngineCapabilities {
-        EngineCapabilities(extraSamplers: true)
+        EngineCapabilities(extraSamplers: true, grammar: true)
     }
 
     public func load(_ model: ModelEntry) async throws {
@@ -286,6 +286,14 @@ final class LlamaRuntime: @unchecked Sendable {
 
         let sampler = makeSampler(request)
         defer { llama_sampler_free(sampler) }
+        var grammar: UnsafeMutablePointer<llama_sampler>?
+        if let text = request.grammar {
+            guard let made = llama_sampler_init_grammar(vocab, text, "root") else {
+                throw EngineError.invalidRequest("the grammar couldn't be parsed (GBNF, start rule \"root\")")
+            }
+            grammar = made
+        }
+        defer { grammar.map { llama_sampler_free($0) } }
         // The samplers that look back (penalties, DRY) see the prompt too, as llama-server's do.
         for token in prompt {
             llama_sampler_accept(sampler, token)
@@ -299,7 +307,7 @@ final class LlamaRuntime: @unchecked Sendable {
             if cancelled.isSet {
                 return
             }
-            let token = llama_sampler_sample(sampler, context, -1)
+            let token = sample(sampler, grammar: grammar, context: context)
             if !request.ignoreEndOfSequence, llama_vocab_is_eog(vocab, token) {
                 counted += 1
                 break
@@ -361,6 +369,50 @@ final class LlamaRuntime: @unchecked Sendable {
         case 1: throw EngineError.generationFailed("the prompt and reply don't fit in the model's context")
         default: throw EngineError.generationFailed("llama.cpp failed to decode (code \(code))")
         }
+    }
+
+    /// Draws the next token the way llama-server does: from the ordinary chain first, keeping the token if the
+    /// grammar allows it, and only otherwise drawing again from the logits the grammar has already masked.
+    /// (Masking first would be the same distribution but a different draw for the same seed.)
+    private func sample(
+        _ chain: UnsafeMutablePointer<llama_sampler>, grammar: UnsafeMutablePointer<llama_sampler>?,
+        context: OpaquePointer
+    ) -> llama_token {
+        guard let grammar else { return llama_sampler_sample(chain, context, -1) }
+        let vocabSize = Int(llama_vocab_n_tokens(vocab))
+        let logits = llama_get_logits_ith(context, -1)!
+        var candidates = (0 ..< vocabSize).map { llama_token_data(id: Int32($0), logit: logits[$0], p: 0) }
+
+        func pick(_ samplers: [UnsafeMutablePointer<llama_sampler>]) -> llama_token {
+            candidates.withUnsafeMutableBufferPointer { buffer in
+                var array = llama_token_data_array(
+                    data: buffer.baseAddress,
+                    size: vocabSize,
+                    selected: -1,
+                    sorted: false
+                )
+                for sampler in samplers {
+                    llama_sampler_apply(sampler, &array)
+                }
+                return array.data[Int(array.selected)].id
+            }
+        }
+        var token = pick([chain])
+        var single = llama_token_data(id: token, logit: 1, p: 0)
+        let allowed = withUnsafeMutablePointer(to: &single) { pointer in
+            var array = llama_token_data_array(data: pointer, size: 1, selected: -1, sorted: false)
+            llama_sampler_apply(grammar, &array)
+            return array.data[0].logit != -.infinity
+        }
+        if !allowed {
+            for index in 0 ..< vocabSize {
+                candidates[index] = llama_token_data(id: Int32(index), logit: logits[index], p: 0)
+            }
+            token = pick([grammar, chain])
+        }
+        llama_sampler_accept(grammar, token)
+        llama_sampler_accept(chain, token)
+        return token
     }
 
     /// llama-server's default order: penalties, DRY, top-n-sigma, top-k, typical-p, top-p, min-p, XTC,

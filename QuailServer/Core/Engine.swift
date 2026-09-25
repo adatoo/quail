@@ -35,9 +35,12 @@ public protocol Engine: Sendable {
 public struct EngineCapabilities: Equatable, Sendable {
     /// DRY, XTC, typical-p, top-n-sigma and mirostat.
     public var extraSamplers = false
+    /// Output constrained by a GBNF grammar (JSON mode, JSON schemas, forced tool calls).
+    public var grammar = false
 
-    public init(extraSamplers: Bool = false) {
+    public init(extraSamplers: Bool = false, grammar: Bool = false) {
         self.extraSamplers = extraSamplers
+        self.grammar = grammar
     }
 }
 
@@ -111,6 +114,8 @@ public struct GenerationRequest: Equatable, Sendable {
     public var ignoreEndOfSequence = false
     /// Reuse the KV cache for a prompt prefix already seen (`cache_prompt`).
     public var cachePrompt = true
+    /// A GBNF grammar (start rule `root`) the reply must follow; only for engines with the capability.
+    public var grammar: String?
 }
 
 public struct GenerationTimings: Equatable, Sendable {
@@ -159,6 +164,8 @@ public enum EngineError: Error, Equatable, LocalizedError, Sendable {
     case loadFailed(String)
     /// The engine failed while decoding a request.
     case generationFailed(String)
+    /// The request asked for something the engine can't do (a grammar that doesn't parse).
+    case invalidRequest(String)
     case notLoaded
 
     public var errorDescription: String? {
@@ -168,7 +175,7 @@ public enum EngineError: Error, Equatable, LocalizedError, Sendable {
             case .gguf: "quail-server has no GGUF engine yet (Phase 3 step 5); use the llama.cpp runtime"
             case .mlx: "quail-server has no MLX engine yet (Phase 3 step 4)"
             }
-        case let .loadFailed(reason), let .generationFailed(reason): reason
+        case let .loadFailed(reason), let .generationFailed(reason), let .invalidRequest(reason): reason
         case .notLoaded: "the model isn't loaded"
         }
     }

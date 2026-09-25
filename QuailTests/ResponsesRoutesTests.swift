@@ -121,6 +121,25 @@ struct ResponsesRoutesTests {
         }
     }
 
+    @Test("text.format carries its schema beside the type, and becomes a grammar")
+    func structuredOutput() async {
+        let harness = RouteHarness(grammar: true)
+        let reply = await harness.json(path, """
+        {"model":"Alpha","input":"x","text":{"format":{"type":"json_schema","name":"p","strict":true,
+         "schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}}}
+        """)
+        #expect(reply.status == 200)
+        #expect(harness.world.requests.last?.grammar?.contains("city-kv") == true)
+
+        _ = await harness.json(path, #"{"model":"Alpha","input":"x","text":{"format":{"type":"text"}}}"#)
+        #expect(harness.world.requests.last?.grammar == nil)
+        let refused = await RouteHarness().json(
+            path,
+            #"{"model":"Alpha","input":"x","text":{"format":{"type":"json_object"}}}"#
+        )
+        #expect(refused.status == 400)
+    }
+
     @Test("tools OpenAI runs itself are left out of the prompt")
     func hostedTools() async {
         let harness = RouteHarness()

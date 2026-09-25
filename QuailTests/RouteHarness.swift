@@ -27,7 +27,8 @@ struct RouteHarness {
         template: String? = RouteHarness.template("qwen3"),
         apiKey: String? = nil,
         endless: Bool = false,
-        webUI: Bool = true
+        webUI: Bool = true,
+        grammar: Bool = false
     ) {
         let world = world
         let log = ServerLog(toStandardError: false)
@@ -41,6 +42,7 @@ struct RouteHarness {
                 engine.bos = ""
                 engine.eos = "<|im_end|>"
                 engine.endless = endless
+                engine.capabilities = .init(grammar: grammar)
                 return engine
             },
             log: log

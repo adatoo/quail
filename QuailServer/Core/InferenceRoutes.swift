@@ -61,6 +61,8 @@ struct InferenceRoutes: Sendable {
             return style.response(error)
         } catch let error as RouterError {
             return style.response(Self.requestError(for: error))
+        } catch let EngineError.invalidRequest(message) {
+            return style.response(.invalid(message))
         } catch {
             return style.response(RequestError(status: 500, type: "server_error", message: error.localizedDescription))
         }
@@ -117,8 +119,15 @@ struct InferenceRoutes: Sendable {
         throw RequestError.invalid("\"prompt\" must be a string or an array of token ids")
     }
 
-    /// Says so in the log when a request sets a sampler option its engine doesn't have.
-    func noteIgnoredSettings(_ settings: GenerationSettings, engine: any Engine) {
+    /// What the request asks for against what the engine can do: constrained output it can't produce is
+    /// refused (ignoring it would return text that isn't the JSON the client is going to parse), a
+    /// sampler option it doesn't have is ignored with a line in the log.
+    func applyCapabilities(_ settings: GenerationSettings, engine: any Engine) throws {
+        if settings.constraint != nil, !engine.capabilities.grammar {
+            throw RequestError.invalid(
+                "the engine serving this model can't constrain its output yet (response_format, json_schema, grammar)"
+            )
+        }
         if settings.sampling.usesExtraSamplers, !engine.capabilities.extraSamplers {
             log.log(.warn, "this model's engine ignores the dry, xtc, typical_p, top_n_sigma and mirostat settings")
         }
@@ -127,8 +136,10 @@ struct InferenceRoutes: Sendable {
     func generationRequest(
         tokens: [Int],
         settings: GenerationSettings,
-        info: EngineInfo
+        info: EngineInfo,
+        reasoning: JSONSchemaGrammar.Reasoning = .none
     ) throws -> GenerationRequest {
+        let grammar = try settings.constraint?.gbnf(reasoning: reasoning)
         guard tokens.count < info.contextSize else {
             throw RequestError(
                 status: 400,
@@ -142,7 +153,8 @@ struct InferenceRoutes: Sendable {
             maxTokens: min(settings.maxTokens ?? Int.max, info.contextSize - tokens.count),
             sampling: settings.sampling,
             ignoreEndOfSequence: settings.ignoreEndOfSequence,
-            cachePrompt: settings.cachePrompt
+            cachePrompt: settings.cachePrompt,
+            grammar: grammar
         )
     }
 
@@ -157,7 +169,7 @@ struct InferenceRoutes: Sendable {
         let responseID = InferenceJSON.newID()
         let created = Int(Date().timeIntervalSince1970)
         do {
-            noteIgnoredSettings(settings, engine: lease.engine)
+            try applyCapabilities(settings, engine: lease.engine)
             let info = await lease.engine.info()
             let tokens = try await promptTokens(body["prompt"], engine: lease.engine)
             let generation = try generationRequest(tokens: tokens, settings: settings, info: info)
@@ -340,10 +352,22 @@ struct InferenceRoutes: Sendable {
     func startChat(_ chat: ChatRequest, settings: GenerationSettings, model id: String) async throws -> ChatRun {
         let lease = try await router.acquire(id)
         do {
-            noteIgnoredSettings(settings, engine: lease.engine)
+            try applyCapabilities(settings, engine: lease.engine)
             let info = await lease.engine.info()
             let tokens = try await promptTokens(for: chat, engine: lease.engine, info: info)
-            let generation = try generationRequest(tokens: tokens.ids, settings: settings, info: info)
+            // A constrained reply comes after the thinking block, if the template has one.
+            let reasoning: JSONSchemaGrammar.Reasoning = tokens.thinkingIsOpen ? .open
+                : tokens.supportsThinking ? .optional : .none
+            if settings.constraint != nil, tokens.toolFormat == .harmony {
+                throw RequestError
+                    .invalid("constrained output isn't supported for this model's chat format (Harmony) yet")
+            }
+            let generation = try generationRequest(
+                tokens: tokens.ids,
+                settings: settings,
+                info: info,
+                reasoning: reasoning
+            )
             let text = TextGenerator.stream(engine: lease.engine, request: generation, stop: settings.stop)
             let parser = ChatOutputParser(
                 format: tokens.toolFormat,
@@ -364,12 +388,12 @@ struct InferenceRoutes: Sendable {
     /// The chat prompt as token ids, with what the template says about the reply.
     func promptTokens(
         for chat: ChatRequest, engine: any Engine, info: EngineInfo
-    ) async throws -> (ids: [Int], thinkingIsOpen: Bool, toolFormat: ToolCallFormat) {
+    ) async throws -> (ids: [Int], thinkingIsOpen: Bool, supportsThinking: Bool, toolFormat: ToolCallFormat) {
         let prompt = try await renderPrompt(chat, engine: engine, info: info)
         // A template that starts with the BOS text already has one; don't add a second.
         let addSpecial = info.bosToken.isEmpty || !prompt.text.hasPrefix(info.bosToken)
         let ids = try await engine.tokenize(prompt.text, addSpecial: addSpecial, parseSpecial: true)
-        return (ids, prompt.thinkingIsOpen, prompt.toolFormat)
+        return (ids, prompt.thinkingIsOpen, prompt.supportsThinking, prompt.toolFormat)
     }
 
     /// Reads a run to its end, then releases the lease.
@@ -408,7 +432,7 @@ struct InferenceRoutes: Sendable {
     /// The prompt text for a chat request, and whether its template left a `<think>` open.
     private func renderPrompt(
         _ chat: ChatRequest, engine: any Engine, info: EngineInfo
-    ) async throws -> (text: String, thinkingIsOpen: Bool, toolFormat: ToolCallFormat) {
+    ) async throws -> (text: String, thinkingIsOpen: Bool, supportsThinking: Bool, toolFormat: ToolCallFormat) {
         let source = await engine.chatTemplate() ?? ChatMessages.chatMLTemplate
         let compiled: (template: ChatTemplate, style: ChatMessages.ContentStyle)
         do {
@@ -434,6 +458,7 @@ struct InferenceRoutes: Sendable {
             return (
                 text,
                 String(tail.reversed()).hasSuffix(ReasoningSplitter.open),
+                source.contains(ReasoningSplitter.open),
                 ToolCallFormat.detect(template: source)
             )
         } catch {
