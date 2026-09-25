@@ -134,6 +134,7 @@
 		A1550BA3B989C1800EA3489D /* ThisMacPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47FBAC880A6D514BBF7B4851 /* ThisMacPane.swift */; };
 		A1C4B1467D7A3630EEB647DA /* catalog.json in Resources */ = {isa = PBXBuildFile; fileRef = 3A40ECAC39FAEEB12AC1A32E /* catalog.json */; };
 		A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */; };
+		A704CC3D9D32068E438B677C /* KeyTicketsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2894ACB9F2D112AC5CDF725 /* KeyTicketsTests.swift */; };
 		A829E4289A062DC194D7824A /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 5875AC0BF37496E275314878 /* MLXLMCommon */; };
 		A97EF1AD2BF0945DC2C70167 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */; };
 		ACB2557B72F13D0C5D311907 /* ChatTemplateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D441338F83358942B9CB6202 /* ChatTemplateTests.swift */; };
@@ -161,6 +162,7 @@
 		C682411485855C1BACB0423B /* CatalogFitSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBBFBBA9586B95FE9249C699 /* CatalogFitSmokeTest.swift */; };
 		C6A099095782653AF6736596 /* ServerCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD7516DF38F6223899343F81 /* ServerCompatibilityTests.swift */; };
 		C6EF40DBA037399CA71834C6 /* FitBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC663973B4AF633BDBC0B64C /* FitBadge.swift */; };
+		C7B647A9023FE65AFC60F27D /* KeyTickets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C1901F5F242EABFB85FE67 /* KeyTickets.swift */; };
 		C7BE9DC773CE5E22799B9022 /* Output.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B1B4797906DD53A1A200207 /* Output.swift */; };
 		C8B50B4FAAC1DEFACFC703FE /* EchoEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B34732F3260B029F3C140608 /* EchoEngineTests.swift */; };
 		C94B1AF4878BBF3E9736E621 /* WebUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A075C28A3AD37EDB9CE638F /* WebUI.swift */; };
@@ -318,6 +320,7 @@
 		2F10DDF514CB5BB27848DCE3 /* StoreWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreWatcher.swift; sourceTree = "<group>"; };
 		30012FAEC14691C7F90229C0 /* ImageInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageInput.swift; sourceTree = "<group>"; };
 		3082DD72FF9CE513E5A325D4 /* ModelPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPreviewTests.swift; sourceTree = "<group>"; };
+		31C1901F5F242EABFB85FE67 /* KeyTickets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyTickets.swift; sourceTree = "<group>"; };
 		351535A383E3202DC84AF3A9 /* ServerRoutesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerRoutesTests.swift; sourceTree = "<group>"; };
 		351669FD912B75E519CAAF15 /* ModelsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsPane.swift; sourceTree = "<group>"; };
 		37973E14516D1CEF142BAA1B /* ChatCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatCommand.swift; sourceTree = "<group>"; };
@@ -456,6 +459,7 @@
 		D0B5783A20B7EA68C994DD84 /* InferenceJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InferenceJSON.swift; sourceTree = "<group>"; };
 		D1FF95599F5FBCAAB600417C /* WebUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUITests.swift; sourceTree = "<group>"; };
 		D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStore.swift; sourceTree = "<group>"; };
+		D2894ACB9F2D112AC5CDF725 /* KeyTicketsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyTicketsTests.swift; sourceTree = "<group>"; };
 		D28BAB01736A9410F5D2C10D /* ChatTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTemplate.swift; sourceTree = "<group>"; };
 		D441338F83358942B9CB6202 /* ChatTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTemplateTests.swift; sourceTree = "<group>"; };
 		D49BE1EF5FB53B825FC562F0 /* HFDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HFDownloader.swift; sourceTree = "<group>"; };
@@ -590,6 +594,7 @@
 				F3AE822102B29E1411CC45C2 /* InferenceRoutesTests.swift */,
 				D7BD67C786011602F9C3C68D /* InstalledLookupTests.swift */,
 				AABCEAF3390F50EB45A904AB /* JSONSchemaGrammarTests.swift */,
+				D2894ACB9F2D112AC5CDF725 /* KeyTicketsTests.swift */,
 				6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */,
 				69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */,
 				611AA15F2CE4E872C861D7BD /* LlamaEngineTests.swift */,
@@ -712,6 +717,7 @@
 				D0B5783A20B7EA68C994DD84 /* InferenceJSON.swift */,
 				CB7C4AD5C23F2A3FABD6C344 /* InferenceRoutes.swift */,
 				C7E4A12A17B7F66DA5BC8268 /* JSONSchemaGrammar.swift */,
+				31C1901F5F242EABFB85FE67 /* KeyTickets.swift */,
 				C562CFF8B604F358AA4E3243 /* Locked.swift */,
 				7DF2791AEA49107BAE0D5767 /* ModelEntry.swift */,
 				DB7A7DD97C1C21E7D0DACFA0 /* ModelRouter.swift */,
@@ -1363,6 +1369,7 @@
 				6A49D92667270977CE50926F /* InferenceRoutesTests.swift in Sources */,
 				269116CB3FDD91029B04B286 /* InstalledLookupTests.swift in Sources */,
 				C191CA4486560A3A507AD157 /* JSONSchemaGrammarTests.swift in Sources */,
+				A704CC3D9D32068E438B677C /* KeyTicketsTests.swift in Sources */,
 				A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */,
 				78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */,
 				B1AB48A3C7C86F1FA16FF1DB /* LlamaEngineTests.swift in Sources */,
@@ -1423,6 +1430,7 @@
 				B488A6685A594D6CCF56EB7A /* InferenceJSON.swift in Sources */,
 				69C2B60ECFF1FAFAA85D9EE5 /* InferenceRoutes.swift in Sources */,
 				4655E9F19BEECFC96D9A1355 /* JSONSchemaGrammar.swift in Sources */,
+				C7B647A9023FE65AFC60F27D /* KeyTickets.swift in Sources */,
 				68EC803DC4729B6C04C4E605 /* Locked.swift in Sources */,
 				CCC3F9AD44854E176B1605E3 /* ModelEntry.swift in Sources */,
 				9A443B62A88E925F6AA9BA20 /* ModelRouter.swift in Sources */,
@@ -1559,7 +1567,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1584,7 +1592,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.29.0;
+				MARKETING_VERSION = 0.30.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1723,7 +1731,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1742,7 +1750,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.29.0;
+				MARKETING_VERSION = 0.30.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1813,7 +1821,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1838,7 +1846,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.29.0;
+				MARKETING_VERSION = 0.30.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2025,7 +2033,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2044,7 +2052,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.29.0;
+				MARKETING_VERSION = 0.30.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

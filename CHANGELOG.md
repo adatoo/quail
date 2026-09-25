@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-09-25
+
+### Added
+
+- With the Quail server runtime, **Open Chat in Browser** opens the chat page already signed in: the app hands the page a one-time, 30-second ticket that it trades for the API key, so the key never appears in a URL and doesn't need pasting (ADR D-042).
+
 ## [0.29.0] - 2026-09-25
 
 ### Added

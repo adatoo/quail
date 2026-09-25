@@ -343,9 +343,26 @@ enum WebUI {
     els.model.addEventListener("change", () => store.set("quail.model", els.model.value));
     els.key.addEventListener("change", () => { store.set("quail.key", els.key.value.trim()); refreshModels(); showBuild(); });
 
+    // Opened from the Quail app: `#ticket=…` is a one-time pass for the API key. The fragment is removed from
+    // the address first, so it lands in no history entry, then traded for the key once.
+    async function signIn() {
+      const match = /^#ticket=([A-Za-z0-9_-]{16,128})$/.exec(window.location.hash);
+      if (!match) { return; }
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      try {
+        const res = await api("/auth/exchange", { method: "POST", body: JSON.stringify({ ticket: match[1] }) });
+        const body = await res.json();
+        if (typeof body.key === "string" && body.key) {
+          els.key.value = body.key;
+          store.set("quail.key", body.key);
+        }
+      } catch (error) {
+        setStatus("The link from Quail has expired or was used. Open the chat from Quail's menu again, or paste the key.", true);
+      }
+    }
+
     els.key.value = store.get("quail.key");
-    refreshModels();
-    showBuild();
+    signIn().finally(() => { refreshModels(); showBuild(); });
 
     """#
 }

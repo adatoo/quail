@@ -133,4 +133,40 @@ struct WebUITests {
         _ = context.evaluateScript("new Function(source)")
         #expect(context.exception == nil, "\(String(describing: context.exception))")
     }
+
+    @Test("the app's ticket is exchanged for the key, and the page forgets it; the exchange is open, the ticket is not")
+    func signInWithTicket() async {
+        let script = WebUI.script
+        let replace = script.range(of: "window.history.replaceState")
+        let exchange = script.range(of: "\"/auth/exchange\"")
+        #expect(replace != nil && exchange != nil)
+        if let replace, let exchange {
+            #expect(replace.lowerBound < exchange.lowerBound, "the fragment goes before the network call")
+        }
+
+        let harness = RouteHarness(apiKey: "k")
+        #expect(await harness.send("/auth/ticket", "").status == 401)
+        let issued = await harness.json("/auth/ticket", "", headers: ["authorization": "Bearer k"])
+        let ticket = issued.json["ticket"] as? String ?? ""
+        #expect(!ticket.isEmpty)
+        // Another origin can't trade it.
+        let foreign = await harness.json(
+            "/auth/exchange", #"{"ticket":"\#(ticket)"}"#,
+            headers: ["origin": "http://evil.example", "host": "127.0.0.1:8080"]
+        )
+        #expect(foreign.status == 403)
+        let mine = await harness.json(
+            "/auth/exchange", #"{"ticket":"\#(ticket)"}"#,
+            headers: ["origin": "http://127.0.0.1:8080", "host": "127.0.0.1:8080"]
+        )
+        #expect(mine.status == 200 && mine.json["key"] as? String == "k")
+        #expect(await harness.json("/auth/exchange", #"{"ticket":"\#(ticket)"}"#).status == 401)
+        #expect(await harness.get("/auth/exchange").status == 405)
+
+        let open = RouteHarness()
+        let noKey = await open.json("/auth/ticket", "")
+        let openTicket = noKey.json["ticket"] as? String ?? ""
+        let traded = await open.json("/auth/exchange", #"{"ticket":"\#(openTicket)"}"#)
+        #expect(traded.status == 200 && traded.json["key"] is NSNull)
+    }
 }

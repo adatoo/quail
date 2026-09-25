@@ -13,6 +13,8 @@ struct ServerRoutes: Sendable {
     /// Serve the chat page at `/` (ADR D-042). The page holds no secret, so it needs no key;
     /// every call it makes does.
     private let webUI: Bool
+    /// The app's one-time sign-in tickets for the chat page (ADR D-042).
+    let tickets: KeyTickets
 
     init(
         router: ModelRouter,
@@ -20,8 +22,10 @@ struct ServerRoutes: Sendable {
         log: ServerLog,
         requestGuard: RequestGuard = RequestGuard(bindHost: "127.0.0.1"),
         buildLabel: String = "quail-server",
-        webUI: Bool = true
+        webUI: Bool = true,
+        tickets: KeyTickets = KeyTickets()
     ) {
+        self.tickets = tickets
         self.router = router
         self.apiKey = apiKey
         self.log = log
@@ -52,11 +56,18 @@ struct ServerRoutes: Sendable {
         if path == "/favicon.ico" {
             return HTTPResponse(status: 204)
         }
+        // The page trades a ticket for the key without having the key, so this one is open; the ticket is
+        // the secret, and it works once.
+        if path == "/auth/exchange" {
+            return request.method == "POST" ? exchange(request) : methodNotAllowed()
+        }
         if let denied = authorize(request) {
             return denied
         }
 
         switch path {
+        case "/auth/ticket":
+            return request.method == "POST" ? .json(200, ["ticket": tickets.issue()]) : methodNotAllowed()
         case "/models", "/v1/models":
             return request.method == "GET" ? await listModels() : methodNotAllowed()
         case "/models/load":
@@ -72,6 +83,29 @@ struct ServerRoutes: Sendable {
     }
 
     // MARK: Auth
+
+    private func exchange(_ request: HTTPRequest) -> HTTPResponse {
+        let body = try? JSONSerialization.jsonObject(with: request.body) as? [String: Any]
+        guard let ticket = body?["ticket"] as? String, tickets.redeem(ticket) else {
+            return .error(
+                401,
+                type: "authentication_error",
+                message: "That sign-in link has expired or was already used"
+            )
+        }
+        // `{"key": null}` when the server has no key: the page then knows there is nothing to store.
+        struct Key: Encodable {
+            let key: String?
+
+            enum CodingKeys: String, CodingKey { case key }
+
+            func encode(to encoder: any Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try container.encode(key, forKey: .key)
+            }
+        }
+        return .json(200, Key(key: apiKey?.isEmpty == false ? apiKey : nil))
+    }
 
     private func authorize(_ request: HTTPRequest) -> HTTPResponse? {
         guard let apiKey, !apiKey.isEmpty else { return nil }
