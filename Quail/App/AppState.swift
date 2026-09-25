@@ -78,6 +78,14 @@ final class AppState {
         benchmarkStore: BenchmarkStore = .default,
         serverPreflight: (@Sendable (EndpointConfig) async -> PreflightResult)? = ServerPreflight.live
     ) {
+        // ADR D-039: the API key is on by default. A config from before that rule reads "off" only
+        // because off was the default, so it's switched on once.
+        var config = config
+        let appliesKeyDefault = !config.apiKeyDefaultApplied
+        if appliesKeyDefault {
+            config.apiKeyEnabled = true
+            config.apiKeyDefaultApplied = true
+        }
         self.config = config
         self.configURL = configURL
         self.secretStore = secretStore
@@ -101,8 +109,19 @@ final class AppState {
         installs = ModelInstallController(downloader: downloader, modelStore: store)
         benchmarks = BenchmarkController(store: benchmarkStore)
         serverController = ServerController(runtime: runtime, logStore: logStore, preflight: serverPreflight)
-        apiKey = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
+        var key = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
+        if config.apiKeyEnabled, key == nil {
+            // First launch, or the Keychain entry is gone: an enabled key that doesn't exist would
+            // start the runtime open, which is the state D-039 exists to avoid.
+            let fresh = Self.generateAPIKey()
+            try? secretStore.set(fresh, account: Self.apiKeyAccount)
+            key = fresh
+        }
+        apiKey = key
         hfToken = try? secretStore.get(account: Self.hfTokenAccount)
+        if appliesKeyDefault {
+            persist()
+        }
     }
 
     // MARK: - Server state, as the menu wants to show it
@@ -404,9 +423,9 @@ final class AppState {
         persist()
     }
 
-    /// Whether `--api-key` is passed to the runtime. Off by default,
-    /// matching Postgres.app's "trust" default on loopback — see ADR
-    /// D-010.
+    /// Whether `--api-key` is passed to the runtime. On by default (ADR D-039, amending D-010:
+    /// llama-server answers requests from any web page, so an open loopback server isn't safe
+    /// from the browser). Turning it off is allowed.
     func setAPIKeyEnabled(_ enabled: Bool) {
         guard enabled != config.apiKeyEnabled else { return }
         if enabled {

@@ -31,8 +31,16 @@ struct AppStateTests {
         return url
     }
 
+    /// A config with the API key off, which is what most of these tests are about; the on-by-default
+    /// behaviour has its own tests below.
+    private static var keyOffConfig: Config {
+        var config = Config()
+        config.apiKeyEnabled = false
+        return config
+    }
+
     private func makeAppState(
-        config: Config = Config(),
+        config: Config = keyOffConfig,
         scratchDir: URL,
         secretStore: FakeSecretStore = FakeSecretStore(),
         // A `Resources/catalog.json`-shaped document, written to
@@ -340,18 +348,80 @@ struct AppStateTests {
         #expect(appState.apiKey == nil)
     }
 
-    @Test("a config loaded with apiKeyEnabled but no stored key starts the runtime without --api-key")
-    func endpointConfigOmitsAPIKeyWhenNoneStored() async throws {
-        var config = Config()
-        config.apiKeyEnabled = true // e.g. Keychain access failed after the toggle was saved
+    @Test("a fresh install has an API key: on by default, generated and stored at launch (ADR D-039)")
+    func freshInstallHasKey() throws {
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
-        let appState = makeAppState(config: config, scratchDir: scratch)
-        try writeFixtureGGUF(to: appState.modelStore)
+        let secretStore = FakeSecretStore()
+        let appState = makeAppState(config: Config(), scratchDir: scratch, secretStore: secretStore)
 
-        // Doesn't crash or hang — start() must tolerate a nil key here.
+        #expect(appState.config.apiKeyEnabled)
+        let key = try #require(appState.apiKey)
+        #expect(try secretStore.get(account: "llamaCppAPIKey") == key)
+        // Nothing to migrate, so the file isn't rewritten just for this.
+        #expect(!FileManager.default.fileExists(atPath: scratch.appendingPathComponent("config.json").path))
+    }
+
+    @Test("a config from before the default, saying off, is switched on once and the change is saved")
+    func legacyConfigIsSwitchedOn() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let legacy = Data(
+            #"{"runtimeID":"llamaCpp","host":"127.0.0.1","port":8080,"modelsMax":1,"apiKeyEnabled":false}"#
+                .utf8
+        )
+        let configURL = scratch.appendingPathComponent("config.json")
+        try legacy.write(to: configURL)
+        let secretStore = FakeSecretStore()
+
+        let appState = makeAppState(config: Config.load(from: configURL), scratchDir: scratch, secretStore: secretStore)
+        #expect(appState.config.apiKeyEnabled)
+        #expect(appState.apiKey != nil)
+        // Saved, so it's a one-time change: the file now says it was applied.
+        let saved = Config.load(from: configURL)
+        #expect(saved.apiKeyEnabled)
+        #expect(saved.apiKeyDefaultApplied)
+
+        // The user turns it off; a relaunch respects that.
+        appState.setAPIKeyEnabled(false)
+        let relaunched = makeAppState(
+            config: Config.load(from: configURL),
+            scratchDir: scratch,
+            secretStore: secretStore
+        )
+        #expect(!relaunched.config.apiKeyEnabled)
+        #expect(relaunched.apiKey == nil)
+    }
+
+    @Test("a config with the key on but no stored key gets a new one instead of running open")
+    func missingKeyIsRegenerated() throws {
+        var config = Config()
+        config.apiKeyEnabled = true // e.g. the Keychain entry was deleted
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let secretStore = FakeSecretStore()
+        let appState = makeAppState(config: config, scratchDir: scratch, secretStore: secretStore)
+
+        let key = try #require(appState.apiKey)
+        #expect(try secretStore.get(account: "llamaCppAPIKey") == key)
+    }
+
+    @Test("the runtime is launched with --api-key by default")
+    func runtimeGetsKey() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let launchSpec = LaunchSpec(
+            executableURL: URL(fileURLWithPath: "/bin/sleep"),
+            arguments: ["30"],
+            environment: [:],
+            currentDirectoryURL: nil
+        )
+        let runtime = FakeRuntime(launchSpec: launchSpec)
+        let appState = makeAppState(config: Config(), scratchDir: scratch, runtime: runtime)
+        try writeFixtureGGUF(to: appState.modelStore)
         await appState.start()
-        #expect(appState.serverController.phase == .ready)
+        #expect(appState.serverController.apiKey == appState.apiKey)
+        #expect(appState.serverController.apiKey != nil)
         await appState.stop()
     }
 

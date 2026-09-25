@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-25
+
+### Security
+
+- **The API key is now on by default** (ADR D-039). The runtime Quail uses today (llama-server) answers requests
+  from any web page, so with no key any site you visited could use your models. Quail generates a key at launch and
+  passes it to the runtime; the app, `quail chat`, the benchmark and Connect a Tool already use it. Other clients
+  (a script, Open WebUI, llama.cpp's own web UI in the browser) need the key: Settings → Endpoint → Copy.
+  If you had turned the key off before, it's switched on once; turning it off again sticks.
+
 ## [0.14.0] - 2026-09-25
 
 ### Changed
