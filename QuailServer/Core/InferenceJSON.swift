@@ -236,8 +236,25 @@ enum InferenceJSON {
 
     /// `chatcmpl-` plus 32 letters and digits, like llama-server's ids.
     static func newID() -> String {
+        randomID(prefix: "chatcmpl-")
+    }
+
+    static func randomID(prefix: String, length: Int = 32) -> String {
         let alphabet = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-        return "chatcmpl-" + String((0 ..< 32).map { _ in alphabet.randomElement()! })
+        return prefix + String((0 ..< length).map { _ in alphabet.randomElement()! })
+    }
+
+    /// Serializes a loosely typed JSON object: keys sorted, slashes left alone.
+    static func jsonData(_ object: [String: Any]) -> Data {
+        (try? JSONSerialization.data(
+            withJSONObject: object,
+            options: [.sortedKeys, .withoutEscapingSlashes]
+        )) ?? Data("{}".utf8)
+    }
+
+    /// A named server-sent event, as Anthropic's and OpenAI's newer streams write them.
+    static func sse(event: String, _ object: [String: Any]) -> Data {
+        Data("event: \(event)\ndata: ".utf8) + jsonData(object) + Data("\n\n".utf8)
     }
 
     static func sse(_ value: some Encodable) -> Data {
