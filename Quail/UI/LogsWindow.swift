@@ -68,7 +68,7 @@ struct LogsWindow: View {
     }
 
     private func revealInFinder() {
-        NSWorkspace.shared.activateFileViewerSelecting([Paths.logFile(for: .llamaCpp)])
+        NSWorkspace.shared.activateFileViewerSelecting([Paths.logFile(for: appState.runtime.id)])
     }
 
     private func copyLastLines() {

@@ -42,6 +42,15 @@ struct ServerPreflightTests {
         #expect(found.children == [53139])
     }
 
+    @Test("an orphaned quail-server is reaped like an orphaned llama-server")
+    func quailServerOrphans() {
+        let rows = OrphanReaper.parse(psOutput: """
+        70000     1 /Applications/Quail.app/Contents/MacOS/quail-server --models-preset \(Self.presets) --port 8080
+        70001     1 /usr/local/bin/quail-server --models-dir /elsewhere --port 9000
+        """)
+        #expect(OrphanReaper.orphans(matching: Self.presets, in: rows).routers == [70000])
+    }
+
     @Test("a live Quail's own router is never selected")
     func liveChildIsSafe() {
         let rows = OrphanReaper.parse(psOutput: Self.psOutput).filter { $0.pid != 83828 && $0.pid != 53139 }

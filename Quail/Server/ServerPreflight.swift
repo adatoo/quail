@@ -28,15 +28,17 @@ enum ServerPreflight {
     /// start if the port is still taken — naming whoever holds it.
     static let live: @Sendable (EndpointConfig) async -> PreflightResult = { config in
         var notes: [String] = []
-        // llama-server truncates its --log-file on every launch, so a
-        // failed Start used to erase the only record of the run before it.
-        // (llama.cpp is the only runtime ServerController launches today.)
-        rotateLog(Paths.logFile(for: .llamaCpp))
+        // llama-server truncates its --log-file on every launch, so a failed Start used to erase the only
+        // record of the run before it; quail-server appends, which would grow without end. Either way one
+        // previous run is kept.
+        for runtime in RuntimeID.available {
+            rotateLog(Paths.logFile(for: runtime))
+        }
         if let signature = config.presetsFile?.path {
             let reaped = await OrphanReaper.reap(signature: signature)
             if !reaped.isEmpty {
                 notes.append(
-                    "Stopped \(reaped.count) llama-server process(es) left behind by an earlier Quail run: pid \(reaped.map(String.init).joined(separator: ", "))"
+                    "Stopped \(reaped.count) server process(es) left behind by an earlier Quail run: pid \(reaped.map(String.init).joined(separator: ", "))"
                 )
             }
         }
@@ -63,9 +65,12 @@ enum ServerPreflight {
     }
 }
 
-/// Finds and stops `llama-server` processes a previous Quail run launched
+/// Finds and stops `llama-server` and `quail-server` processes a previous Quail run launched
 /// and then lost track of (parent gone, so reparented to launchd, pid 1).
 enum OrphanReaper {
+    /// The servers Quail launches.
+    static let serverNames = ["llama-server", "quail-server"]
+
     struct ProcessRow: Sendable, Equatable {
         var pid: Int32
         var ppid: Int32
@@ -93,7 +98,7 @@ enum OrphanReaper {
     /// (the per-model instances router mode forks), children last.
     static func orphans(matching signature: String, in rows: [ProcessRow]) -> (routers: [Int32], children: [Int32]) {
         let routers = rows.filter {
-            $0.ppid == 1 && $0.command.contains("llama-server") && $0.command.contains(signature)
+            $0.ppid == 1 && serverNames.contains(where: $0.command.contains) && $0.command.contains(signature)
         }.map(\.pid)
         let routerSet = Set(routers)
         let children = rows.filter { routerSet.contains($0.ppid) }.map(\.pid)

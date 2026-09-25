@@ -162,8 +162,10 @@ extension AppState {
         case let .failure(error):
             return .failure(error.message)
         case let .success(entry):
-            guard entry.format == .gguf else {
-                return .failure("\(entry.id) is an MLX model — only GGUF models can be the default so far.")
+            guard canServe(entry.format) else {
+                return .failure(
+                    "\(entry.id) is an MLX model, which the llama.cpp runtime can't serve — choose Quail server in Settings → Endpoint."
+                )
             }
             setDefaultModel(entry.id)
             var message = "Default model: \(entry.id) — loads on Start."
@@ -215,11 +217,7 @@ extension AppState {
     }
 
     private static func runtimeName(_ id: RuntimeID) -> String {
-        switch id {
-        case .llamaCpp: "llama.cpp"
-        case .omlx: "oMLX"
-        case .rapidMLX: "Rapid-MLX"
-        }
+        id.displayName
     }
 
     private static func contextFitLabel(_ verdict: FitVerdict) -> String {

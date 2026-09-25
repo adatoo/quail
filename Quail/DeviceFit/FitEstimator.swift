@@ -143,10 +143,11 @@ enum FitEstimator {
 
     /// O in the formula: fixed overhead per runtime, in bytes.
     /// ARCHITECTURE.md §7: "~1.5 GB for llama.cpp, ~2.5 GB for the Python
-    /// runtimes".
+    /// runtimes". quail-server is one native process like llama-server; its MLX engine's own overhead is
+    /// what the Python runtimes' estimate stands in for, and MLX rows use `.omlx` for that reason.
     static func overheadBytes(for runtime: RuntimeID) -> Int64 {
         switch runtime {
-        case .llamaCpp: 1_500_000_000
+        case .llamaCpp, .quail: 1_500_000_000
         case .omlx, .rapidMLX: 2_500_000_000
         }
     }

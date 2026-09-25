@@ -203,6 +203,7 @@ struct ModelsPane: View {
                     verdict: verdicts[entry.id],
                     loaded: loadedStates[entry.id],
                     serverReady: appState.serverController.phase == .ready,
+                    servable: appState.canServe(entry.format),
                     isDefault: appState.config.defaultModelID == entry.id,
                     contextChoices: contextChoices[entry.id] ?? [],
                     measuredSpeed: measuredSpeeds[entry.id],
@@ -420,6 +421,8 @@ private struct ModelRow: View {
     let verdict: FitEstimate?
     let loaded: String?
     let serverReady: Bool
+    /// Whether the chosen runtime can serve this model's format; an MLX row under llama.cpp can't.
+    let servable: Bool
     /// Whether this is `Config.defaultModelID` — the one row gets
     /// `load-on-startup = true` in `presets.ini` (ADR D-017).
     let isDefault: Bool
@@ -494,24 +497,26 @@ private struct ModelRow: View {
                 .lineLimit(1)
             }
             Spacer(minLength: 8)
-            // Hot swap (step 8): an installed GGUF can be loaded into the
-            // running router with a click. MLX rows get the badge-only
-            // treatment — their runtimes are Phase 3, and offering a
-            // button that must fail would be a lie about capability.
-            if serverReady, entry.format == .gguf, loaded != nil, loaded != "loaded" {
+            // Hot swap (step 8): an installed model can be loaded into the running router with a click, if the
+            // chosen runtime serves its format. Otherwise the row says what would, rather than offering a button
+            // that must fail.
+            if !servable {
+                Text("Needs the Quail server runtime")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .help("Choose Quail server in Settings → Endpoint (with the server stopped) to run MLX models.")
+            } else if serverReady, loaded != nil, loaded != "loaded" {
                 Button("Load", action: onLoad)
                     .controlSize(.small)
-            } else if serverReady, entry.format == .gguf, loaded == nil {
+            } else if serverReady, loaded == nil {
                 // The router only knows the models it started with (it
                 // never rescans) — Load would 404 until a restart.
                 Badge(text: "Restart to load", color: .orange)
                     .help("Added since the server started. Restart the server (menu) to use it.")
             }
-            // Usable while stopped (unlike Load) — it just sets what
-            // gets written into presets.ini on the next Start. GGUF
-            // only: `load-on-startup` is a llama.cpp router-mode
-            // preset key, and nothing can serve MLX yet (Phase 3).
-            if entry.format == .gguf {
+            // Usable while stopped (unlike Load) — it just sets what gets written into presets.ini on the next
+            // Start, for a model the chosen runtime serves.
+            if servable {
                 Button(action: onToggleDefault) {
                     Image(systemName: isDefault ? "star.fill" : "star")
                         .foregroundStyle(isDefault ? .yellow : .secondary)

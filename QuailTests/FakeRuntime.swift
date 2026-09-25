@@ -7,8 +7,8 @@ import Foundation
 /// spawns anything, and tests point it at a trivial system binary (e.g.
 /// `/bin/sleep`) via `launchSpec`.
 actor FakeRuntime: Runtime {
-    nonisolated let id: RuntimeID = .llamaCpp
-    nonisolated let supportedFormats: Set<ModelFormat> = [.gguf]
+    nonisolated let id: RuntimeID
+    nonisolated let supportedFormats: Set<ModelFormat>
     var installState: InstallState {
         .bundled
     }
@@ -29,7 +29,15 @@ actor FakeRuntime: Runtime {
     ///   - healthResults: consumed in order by successive `health(base:)`
     ///     calls; the last element repeats once exhausted. Defaults to
     ///     always-healthy.
-    init(launchSpec: LaunchSpec, healthResults: [Result<Health, Error>] = [.success(Health(status: "ok"))]) {
+    ///   - id, formats: which runtime it stands in for (llama.cpp, GGUF only, by default; `.quail` with MLX too).
+    init(
+        launchSpec: LaunchSpec,
+        healthResults: [Result<Health, Error>] = [.success(Health(status: "ok"))],
+        id: RuntimeID = .llamaCpp,
+        formats: Set<ModelFormat> = [.gguf]
+    ) {
+        self.id = id
+        supportedFormats = formats
         fixedLaunchSpec = launchSpec
         self.healthResults = healthResults
     }

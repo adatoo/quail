@@ -58,7 +58,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
 
     func load(_ entry: ModelEntry) async throws {
         await unload()
-        let directory = entry.path
+        // A model folder that is a symlink (a model kept elsewhere and linked into the store) loads nothing
+        // through mlx-swift-lm's file enumeration ("Key lm_head.weight not found"), so load the real folder.
+        let directory = entry.path.resolvingSymlinksInPath()
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: directory.path, isDirectory: &isDirectory), isDirectory.boolValue
         else {
@@ -82,7 +84,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             throw error
         } catch {
             throw EngineError
-                .loadFailed("MLX couldn't load \(directory.lastPathComponent): \(error.localizedDescription)")
+                .loadFailed("MLX couldn't load \(entry.id): \(error.localizedDescription)")
         }
     }
 

@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-09-25
+
+### Added
+
+- MLX models can be run from the app: choose **Quail server** in Settings → Endpoint → Runtime (with the server stopped). It runs GGUF and MLX models from the same store, and its Open Chat page is Quail's own. llama.cpp stays the default for now (ADR D-027).
+
+### Fixed
+
+- An MLX model folder that is a symlink now loads in `quail-server` (it failed with "Key lm_head.weight not found").
+
 ## [0.28.1] - 2026-09-25
 
 ### Fixed

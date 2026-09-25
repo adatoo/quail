@@ -32,7 +32,9 @@ final class ServerController {
     private(set) var phase: Phase = .stopped
     private(set) var recentFailureLogs: [String] = []
 
-    private let runtime: any Runtime
+    /// Swappable only while nothing is running (`setRuntime`), so a running server is never stopped
+    /// by a Settings change behind the user's back.
+    private(set) var runtime: any Runtime
     private let logStore: LogStore
     private let supervisor: ProcessSupervisor
     private let healthTimeout: TimeInterval
@@ -62,6 +64,15 @@ final class ServerController {
         self.supervisor = supervisor
         self.healthTimeout = healthTimeout
         self.preflight = preflight
+    }
+
+    /// Changes which server `start` launches. Refused (false) unless stopped or failed.
+    @discardableResult
+    func setRuntime(_ runtime: any Runtime) -> Bool {
+        guard phase == .stopped || phase.isFailed else { return false }
+        self.runtime = runtime
+        config = nil
+        return true
     }
 
     /// The endpoint's base URL, once `start(config:)` has been called.

@@ -215,6 +215,83 @@ struct AppStateTests {
         #expect(appState.canStart)
     }
 
+    @discardableResult
+    private func writeFixtureMLX(named name: String = "owner--Fixture-4bit", to store: ModelStore) throws -> URL {
+        try store.ensureDirectoriesExist()
+        let url = store.mlxDirectory.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        try Data("{}".utf8).write(to: url.appendingPathComponent("config.json"))
+        return url
+    }
+
+    private static let sleeper = LaunchSpec(
+        executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["30"], environment: [:], currentDirectoryURL: nil
+    )
+
+    @Test("an MLX model alone can start a runtime that serves MLX, not llama.cpp")
+    func mlxOnlyStore() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let llama = makeAppState(scratchDir: scratch)
+        try writeFixtureMLX(to: llama.modelStore)
+        #expect(!llama.canServe(.mlxSafetensors))
+        #expect(!llama.hasServableModel && !llama.canStart)
+
+        let quail = makeAppState(
+            scratchDir: scratch,
+            runtime: FakeRuntime(launchSpec: Self.sleeper, id: .quail, formats: [.gguf, .mlxSafetensors])
+        )
+        #expect(quail.canServe(.mlxSafetensors))
+        #expect(quail.hasServableModel && quail.canStart)
+    }
+
+    @Test("the runtime changes only while stopped, is remembered, and decides whether presets list MLX models")
+    func runtimeSwitch() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(named: "Alpha", to: appState.modelStore)
+        try writeFixtureMLX(named: "owner--Beta-4bit", to: appState.modelStore)
+
+        #expect(appState.setRuntime(.quail))
+        #expect(appState.runtime.id == .quail && appState.config.runtimeID == .quail)
+        #expect(Config.load(from: scratch.appendingPathComponent("config.json")).runtimeID == .quail)
+        let presets = try String(contentsOf: appState.modelStore.presetsFile, encoding: .utf8)
+        #expect(presets.contains("[owner--Beta-4bit]") && presets.contains("[Alpha]"))
+
+        #expect(appState.setRuntime(.llamaCpp))
+        #expect(try !String(contentsOf: appState.modelStore.presetsFile, encoding: .utf8).contains("owner--Beta-4bit"))
+        #expect(!appState.setRuntime(.omlx)) // not startable yet
+
+        // While running, a change is refused and nothing moves.
+        let running = makeAppState(scratchDir: scratch)
+        await running.start()
+        #expect(running.serverController.phase == .ready)
+        #expect(!running.canChangeRuntime)
+        #expect(!running.setRuntime(.quail))
+        #expect(running.runtime.id == .llamaCpp)
+        await running.stop()
+        #expect(running.setRuntime(.quail))
+    }
+
+    @Test("a config naming a runtime that can't start yet falls back to llama.cpp")
+    func unavailableRuntimeFallsBack() {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        var config = Self.keyOffConfig
+        config.runtimeID = .rapidMLX
+        let appState = AppState(
+            config: config,
+            configURL: scratch.appendingPathComponent("config.json"),
+            secretStore: FakeSecretStore(),
+            logStore: LogStore(),
+            modelsRootURL: scratch.appendingPathComponent("Models", isDirectory: true),
+            catalogLocations: .init(bundle: .main, directory: scratch),
+            serverPreflight: nil
+        )
+        #expect(appState.runtime.id == .llamaCpp && appState.config.runtimeID == .llamaCpp)
+    }
+
     @Test("start() no-ops (stays stopped) when the store has no model")
     func startNoOpsWithNoModel() async {
         let scratch = scratchDirectory()

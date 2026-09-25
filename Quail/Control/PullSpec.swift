@@ -23,7 +23,7 @@ struct PullSpec: Equatable {
                     + (suggestions.isEmpty ? "" : " Did you mean: \(suggestions.joined(separator: ", "))?")
                     + " See `quail pull --list`, or pass a Hugging Face repo as owner/repo."
             case let .mlxOnly(name):
-                "\(name) is only available as MLX, which Quail can't serve yet."
+                "\(name) is only available as MLX; `quail pull` fetches GGUF models. Add it from the app's Models pane."
             }
         }
     }

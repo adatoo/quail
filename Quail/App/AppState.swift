@@ -19,11 +19,12 @@ final class AppState {
     private(set) var config: Config
     let serverController: ServerController
 
-    /// Exposed (not just handed to `ServerController`) because the Ping
-    /// sheet and Logs window both need to talk to the same runtime/log
-    /// store `ServerController` is driving — see `PingSheet` and
-    /// `LogsWindow`.
-    let runtime: any Runtime
+    /// The runtime `ServerController` is driving, exposed because the Ping sheet and Logs window talk to it
+    /// too. Chosen in Settings → Endpoint (`setRuntime`), only while the server is stopped.
+    var runtime: any Runtime {
+        serverController.runtime
+    }
+
     let logStore: LogStore
 
     /// Swappable only via `relocateModelsDirectory` — the store root can
@@ -70,7 +71,7 @@ final class AppState {
         config: Config = .load(),
         configURL: URL = Paths.configFile,
         secretStore: any SecretStore = Keychain(),
-        runtime: any Runtime = LlamaCppRuntime(executableURL: Paths.llamaServerExecutable),
+        runtime: (any Runtime)? = nil,
         logStore: LogStore = LogStore(),
         modelsRootURL: URL? = nil,
         catalogLocations: Catalog.Locations = .default,
@@ -86,10 +87,15 @@ final class AppState {
             config.apiKeyEnabled = true
             config.apiKeyDefaultApplied = true
         }
+        // The runtime the config names, unless a test hands one in; one that can't be started today (oMLX,
+        // Rapid-MLX) falls back to llama.cpp, and the config says so.
+        if runtime == nil, !RuntimeID.available.contains(config.runtimeID) {
+            config.runtimeID = .llamaCpp
+        }
+        let runtime = runtime ?? config.runtimeID.makeRuntime()
         self.config = config
         self.configURL = configURL
         self.secretStore = secretStore
-        self.runtime = runtime
         self.logStore = logStore
         self.catalogLocations = catalogLocations
         catalog = Catalog.current(locations: catalogLocations)
@@ -249,20 +255,42 @@ final class AppState {
         return image
     }
 
-    /// Whether at least one GGUF is on disk and installable as a router
-    /// preset — only GGUF counts, since nothing can serve an MLX model
-    /// until Phase 3. Deliberately computed, not cached: it reads the
-    /// same disk scan `installedGGUFFiles()` already does for
-    /// `regeneratePresets`/`refreshedCatalog`, so there's one source of
-    /// truth and no cache to keep in sync across install/delete/relocate
-    /// — a hand-placed model (Phase 1's own "Done when") is picked up
-    /// the same way as one Quail downloaded itself.
+    /// Whether the chosen runtime can serve models of this format (llama.cpp: GGUF; Quail server: GGUF and MLX).
+    func canServe(_ format: ModelFormat) -> Bool {
+        runtime.supportedFormats.contains(format)
+    }
+
+    /// Whether at least one model on disk is one the chosen runtime can serve. Deliberately computed, not
+    /// cached: it reads the same disk scan `regeneratePresets`/`refreshedCatalog` do, so there's one source of
+    /// truth across install/delete/relocate, and a hand-placed model is picked up like a downloaded one.
     var hasServableModel: Bool {
         !modelStore.installedGGUFFiles().isEmpty
+            || (canServe(.mlxSafetensors) && !modelStore.installedMLXDirectories().isEmpty)
+    }
+
+    /// Switches runtime (Settings → Endpoint). Only while stopped: false otherwise, or for a runtime the app
+    /// can't start. Regenerates the presets, since which models they list depends on it.
+    @discardableResult
+    func setRuntime(_ id: RuntimeID) -> Bool {
+        guard id != config.runtimeID || runtime.id != id else { return true }
+        guard RuntimeID.available.contains(id), serverController.setRuntime(id.makeRuntime()) else { return false }
+        config.runtimeID = id
+        persist()
+        try? modelStore.regeneratePresets(
+            catalog: modelStore.loadCatalog(), defaultModelID: config.defaultModelID,
+            includeMLX: canServe(.mlxSafetensors)
+        )
+        storeRevision += 1
+        return true
     }
 
     var canStart: Bool {
         (serverController.phase == .stopped || serverController.phase.isFailed) && hasServableModel
+    }
+
+    /// The runtime can be changed only while nothing is running.
+    var canChangeRuntime: Bool {
+        serverController.phase == .stopped || serverController.phase.isFailed
     }
 
     var canStop: Bool {
@@ -400,7 +428,9 @@ final class AppState {
             persist()
             await note("default model \(defaultID) is no longer in the store (deleted outside Quail?) — cleared")
         }
-        try? store.regeneratePresets(catalog: refreshed, defaultModelID: config.defaultModelID)
+        try? store.regeneratePresets(
+            catalog: refreshed, defaultModelID: config.defaultModelID, includeMLX: canServe(.mlxSafetensors)
+        )
         if let signatureAtStart {
             modelsChangedSinceStart = store.presetSignature() != signatureAtStart
         } else {
@@ -657,8 +687,7 @@ final class AppState {
     /// server in PR 7's integration testing; the runtime can also be
     /// asked to evict per `modelsMax`, and that budget is set at launch
     /// — changing it needs a restart, which is Settings' job, not
-    /// here). MLX models throw `needsMLXRuntime` because nothing that
-    /// can serve them exists yet — Phase 3.
+    /// here). An MLX model under a runtime that can't serve it (llama.cpp) throws `needsMLXRuntime`.
     func selectModel(id: String) async throws {
         guard let base = baseURL, serverController.phase == .ready else {
             throw ModelSelectionError.serverNotRunning
@@ -667,7 +696,7 @@ final class AppState {
         guard let entry = catalog.entries.first(where: { $0.id == id }) else {
             throw ModelSelectionError.notInstalled
         }
-        guard entry.format == .gguf else {
+        guard canServe(entry.format) else {
             throw ModelSelectionError.needsMLXRuntime
         }
         _ = try await runtime.select(model: ModelRef(id: id), base: base, apiKey: apiKey)
@@ -682,7 +711,7 @@ final class AppState {
             switch self {
             case .serverNotRunning: "start the server first"
             case .notInstalled: "that model isn't installed"
-            case .needsMLXRuntime: "MLX models need an MLX runtime (Phase 3)"
+            case .needsMLXRuntime: "MLX models need the Quail server runtime (Settings → Endpoint)"
             }
         }
     }
@@ -831,7 +860,9 @@ final class AppState {
         if config.defaultModelID == id {
             setDefaultModel(nil)
         }
-        try modelStore.regeneratePresets(catalog: catalog, defaultModelID: config.defaultModelID)
+        try modelStore.regeneratePresets(
+            catalog: catalog, defaultModelID: config.defaultModelID, includeMLX: canServe(.mlxSafetensors)
+        )
         storeRevision += 1
     }
 
@@ -859,7 +890,8 @@ final class AppState {
             apiKey: apiKey,
             modelsDirectory: modelStore.ggufDirectory,
             modelsMax: config.modelsMax,
-            presetsFile: modelStore.presetsFile
+            presetsFile: modelStore.presetsFile,
+            mlxDirectory: canServe(.mlxSafetensors) ? modelStore.mlxDirectory : nil
         )
     }
 
