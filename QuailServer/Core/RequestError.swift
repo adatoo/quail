@@ -106,3 +106,41 @@ struct GenerationSettings: Equatable, Sendable {
         return number
     }
 }
+
+/// What a chat request adds to the generation settings.
+struct ChatRequest: Sendable {
+    var messages: [Value]
+    var tools: [Value]?
+    var toolsEnabled = true
+    var templateKwargs: [String: Value] = [:]
+
+    init(_ body: Value) throws {
+        guard let messages = body["messages"] else { throw RequestError.invalid("'messages' is required") }
+        guard let list = messages.arrayValue else { throw RequestError.invalid("Expected 'messages' to be an array") }
+        guard !list.isEmpty else { throw RequestError.invalid("'messages' must not be empty") }
+        self.messages = list
+        if let tools = body["tools"], !tools.isNull {
+            guard let list = tools.arrayValue else { throw RequestError.invalid("'tools' must be an array") }
+            self.tools = list
+        }
+        // `tool_choice: "none"` means the model shouldn't be told about the tools at all.
+        if body["tool_choice"]?.stringValue == "none" {
+            toolsEnabled = false
+        }
+        if let kwargs = body["chat_template_kwargs"], !kwargs.isNull {
+            guard case let .object(members) = kwargs else {
+                throw RequestError.invalid("'chat_template_kwargs' must be an object")
+            }
+            for (key, value) in members {
+                if case let .string(name) = key {
+                    templateKwargs[name] = value
+                }
+            }
+        }
+        // A grammar-constrained reply needs the engine's sampler (Phase 3 step 5); saying so beats
+        // quietly ignoring it and returning text that isn't JSON.
+        if let format = body["response_format"]?["type"]?.stringValue, format != "text" {
+            throw RequestError.invalid("response_format \"\(format)\" isn't supported yet")
+        }
+    }
+}

@@ -108,6 +108,104 @@ enum InferenceJSON {
         }
     }
 
+    /// A non-streamed chat reply.
+    struct ChatCompletion: Encodable {
+        struct Choice: Encodable {
+            struct Message: Encodable {
+                let role = "assistant"
+                let content: String
+                let reasoningContent: String?
+
+                enum CodingKeys: String, CodingKey {
+                    case role, content
+                    case reasoningContent = "reasoning_content"
+                }
+            }
+
+            let index = 0
+            let message: Message
+            let finishReason: String
+
+            enum CodingKeys: String, CodingKey {
+                case index, message
+                case finishReason = "finish_reason"
+            }
+        }
+
+        let choices: [Choice]
+        let created: Int
+        let model: String
+        let systemFingerprint: String
+        let object = "chat.completion"
+        let id: String
+        let usage: Usage
+        let timings: Timings
+
+        enum CodingKeys: String, CodingKey {
+            case choices, created, model, object, id, usage, timings
+            case systemFingerprint = "system_fingerprint"
+        }
+    }
+
+    /// One `chat.completion.chunk` of a streamed reply.
+    struct ChatChunk: Encodable {
+        struct Delta: Encodable {
+            var role: String?
+            var content: String?
+            var reasoningContent: String?
+            /// The opening chunk carries `"content": null`, as llama-server's does.
+            var nullContent = false
+
+            enum CodingKeys: String, CodingKey {
+                case role, content
+                case reasoningContent = "reasoning_content"
+            }
+
+            func encode(to encoder: any Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try container.encodeIfPresent(role, forKey: .role)
+                if nullContent {
+                    try container.encodeNil(forKey: .content)
+                } else {
+                    try container.encodeIfPresent(content, forKey: .content)
+                }
+                try container.encodeIfPresent(reasoningContent, forKey: .reasoningContent)
+            }
+        }
+
+        struct Choice: Encodable {
+            let index = 0
+            let delta: Delta
+            let finishReason: String?
+
+            enum CodingKeys: String, CodingKey {
+                case index, delta
+                case finishReason = "finish_reason"
+            }
+
+            func encode(to encoder: any Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try container.encode(index, forKey: .index)
+                try container.encode(delta, forKey: .delta)
+                try container.encode(finishReason, forKey: .finishReason) // null while streaming
+            }
+        }
+
+        let choices: [Choice]
+        let created: Int
+        let id: String
+        let model: String
+        let systemFingerprint: String
+        let object = "chat.completion.chunk"
+        var usage: Usage?
+        var timings: Timings?
+
+        enum CodingKeys: String, CodingKey {
+            case choices, created, id, model, object, usage, timings
+            case systemFingerprint = "system_fingerprint"
+        }
+    }
+
     static func finishReason(_ reason: FinishReason) -> String {
         reason.rawValue
     }

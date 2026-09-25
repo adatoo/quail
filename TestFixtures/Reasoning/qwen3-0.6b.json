@@ -1,0 +1,23 @@
+{
+ "think-short": {
+  "raw": "<think>\nOkay, the user wants to say \"say hi in one word.\" Let me think. The word \"hi\" is a common greeting, but they want it in one word. Hmm, maybe they're looking for a synonym or a phrase. \"Hi\" is straightforward, but perhaps they want something more creative. \"Hello\" is another option, but that's a bit longer. Wait, maybe they just want the word \"hi\" but in a single syllable? No, \"hi\" is already a single syllable. Alternatively, maybe they want a phrase like \"Hi there\" but that's two words. I'm not sure. The user might be testing if I can find a word that's a direct translation of \"hi\" but in one word. Since \"hi\" is already one word, maybe they're confused. I should confirm if they need a different approach. Let me check the possible answers. \"Hi\" is the correct answer, but maybe they want a different one. Alternatively, maybe they want a word that's a play on words. \"H\" is a single letter, but that's not a word. \"H\" is a letter, not a word. So perhaps the answer is \"hi\" itself. I should make sure there's no other possible answer. Yes, \"hi\" is the correct one.\n</think>\n\nhi",
+  "reasoning": "Okay, the user wants to say \"say hi in one word.\" Let me think. The word \"hi\" is a common greeting, but they want it in one word. Hmm, maybe they're looking for a synonym or a phrase. \"Hi\" is straightforward, but perhaps they want something more creative. \"Hello\" is another option, but that's a bit longer. Wait, maybe they just want the word \"hi\" but in a single syllable? No, \"hi\" is already a single syllable. Alternatively, maybe they want a phrase like \"Hi there\" but that's two words. I'm not sure. The user might be testing if I can find a word that's a direct translation of \"hi\" but in one word. Since \"hi\" is already one word, maybe they're confused. I should confirm if they need a different approach. Let me check the possible answers. \"Hi\" is the correct answer, but maybe they want a different one. Alternatively, maybe they want a word that's a play on words. \"H\" is a single letter, but that's not a word. \"H\" is a letter, not a word. So perhaps the answer is \"hi\" itself. I should make sure there's no other possible answer. Yes, \"hi\" is the correct one.\n",
+  "content": "hi",
+  "finish": "stop",
+  "prompt_ends_with": "e word.<|im_end|>\n<|im_start|>assistant\n"
+ },
+ "think-poem": {
+  "raw": "<think>\nOkay, the user wants a two-line poem about the sea. Let me start by thinking about the key elements of a sea. The sea is vast, full of life, and has different aspects like waves, tides, and colors.\n\nFirst line: Maybe set the scene. Something like \"The sea breathes with waves that whisper secrets.\" That introduces the sea and its mysterious aspect.\n\nSecond line: Need to connect it to something else. Maybe the connection to life or the ocean's role. \"Its depths hold the dreams of all who dare to see.\" This ties the sea to human experiences and the ocean's significance.\n\nWait, does that work? Let me check. The first line is about the sea breathing, the second about dreams. It's two lines, each with a vivid image. I think that's good. Let me make sure there's no repetition and each line flows well. Yeah, that should do it.\n</think>\n\nThe sea breathes with waves that whisper secrets,  \nIts depths hold the dreams of all who dare to see.",
+  "reasoning": "Okay, the user wants a two-line poem about the sea. Let me start by thinking about the key elements of a sea. The sea is vast, full of life, and has different aspects like waves, tides, and colors.\n\nFirst line: Maybe set the scene. Something like \"The sea breathes with waves that whisper secrets.\" That introduces the sea and its mysterious aspect.\n\nSecond line: Need to connect it to something else. Maybe the connection to life or the ocean's role. \"Its depths hold the dreams of all who dare to see.\" This ties the sea to human experiences and the ocean's significance.\n\nWait, does that work? Let me check. The first line is about the sea breathing, the second about dreams. It's two lines, each with a vivid image. I think that's good. Let me make sure there's no repetition and each line flows well. Yeah, that should do it.\n",
+  "content": "The sea breathes with waves that whisper secrets,  \nIts depths hold the dreams of all who dare to see.",
+  "finish": "stop",
+  "prompt_ends_with": " lines.<|im_end|>\n<|im_start|>assistant\n"
+ },
+ "no-think": {
+  "raw": "Hi!",
+  "reasoning": null,
+  "content": "Hi!",
+  "finish": "stop",
+  "prompt_ends_with": "|im_start|>assistant\n<think>\n\n</think>\n\n"
+ }
+}

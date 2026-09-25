@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-09-25
+
+### Changed
+
+- Internal, no visible change yet: `quail-server` serves `/v1/chat/completions` (streamed and not), building the
+  prompt from the model's own chat template and splitting `<think>` reasoning into `reasoning_content`, in
+  llama-server's shapes; `quail chat`'s stream parser reads it unchanged (ADR D-038).
+
 ## [0.13.0] - 2026-09-25
 
 ### Changed
