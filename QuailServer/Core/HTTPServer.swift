@@ -141,13 +141,14 @@ final class HTTPConnection: @unchecked Sendable {
         connection.cancel()
     }
 
-    func serve(handler: HTTPHandler) async {
+    func serve(handler: @escaping HTTPHandler) async {
         connection.start(queue: queue)
         defer { connection.cancel() }
         do {
             while true {
                 guard let request = try await readRequest() else { return }
-                var response = await handler(request.request)
+                // nil: the client left while its request was being worked on.
+                guard var response = await respond(to: request.request, using: handler) else { return }
                 if !request.keepAlive {
                     response.closeConnection = true
                 }
@@ -163,6 +164,53 @@ final class HTTPConnection: @unchecked Sendable {
         }
     }
 
+    // MARK: Watching for a client that leaves
+
+    /// The read of the next bytes, started as soon as a request is being handled. It has two
+    /// readers: `respond` peeks at its outcome to notice the client leaving, and `readRequest`
+    /// consumes it, so a pipelined request that arrives meanwhile isn't lost.
+    private var pendingReceive: Task<Data?, any Error>?
+
+    private func takePendingReceive() -> Task<Data?, any Error> {
+        defer { pendingReceive = nil }
+        return pendingReceive ?? Task { try await self.receive() }
+    }
+
+    private func armPendingReceive() -> Task<Data?, any Error> {
+        if let pendingReceive {
+            return pendingReceive
+        }
+        let task = Task { try await self.receive() }
+        pendingReceive = task
+        return task
+    }
+
+    /// Runs the handler while watching the socket. A client that closes before the answer is
+    /// ready — a long prompt still being processed, a model still loading — cancels the handler,
+    /// which stops the engine (D-037), instead of letting it finish work nobody will read.
+    private func respond(to request: HTTPRequest, using handler: @escaping HTTPHandler) async -> HTTPResponse? {
+        let work = Task { await handler(request) }
+        let receive = armPendingReceive()
+        let finished = OnceFlag()
+        let clientLeft = OnceFlag()
+        // Deliberately not awaited: if the handler finishes first this simply outlives it, and
+        // its late result is ignored (`finished` is claimed by then).
+        Task {
+            // Bytes mean a pipelined request, not a departure. `nil` is a close or an error.
+            let dataArrived = await (try? receive.value) != nil
+            guard !dataArrived, finished.claim() else { return }
+            _ = clientLeft.claim()
+            work.cancel()
+        }
+        let response = await work.value
+        if clientLeft.claim() {
+            // Nobody cancelled it: the answer stands. Stop the watcher acting on a later close.
+            _ = finished.claim()
+            return response
+        }
+        return nil
+    }
+
     // MARK: Reading
 
     private func readRequest() async throws -> (request: HTTPRequest, keepAlive: Bool)? {
@@ -170,7 +218,7 @@ final class HTTPConnection: @unchecked Sendable {
         while parsed == nil {
             parsed = try HTTPRequestParser.parseHead(buffer, maxBodyBytes: maxBodyBytes)
             if parsed == nil {
-                guard let more = try await receive() else { return nil }
+                guard let more = try await takePendingReceive().value else { return nil }
                 buffer.append(more)
             }
         }
@@ -181,7 +229,7 @@ final class HTTPConnection: @unchecked Sendable {
             try await send(Data("HTTP/1.1 100 Continue\r\n\r\n".utf8))
         }
         while buffer.count < head.contentLength {
-            guard let more = try await receive() else { return nil }
+            guard let more = try await takePendingReceive().value else { return nil }
             buffer.append(more)
         }
         let body = Data(buffer.prefix(head.contentLength))
@@ -190,18 +238,24 @@ final class HTTPConnection: @unchecked Sendable {
         return (request, head.keepAlive)
     }
 
+    /// The next bytes, or `nil` when the peer has closed. Never empty.
     private func receive() async throws -> Data? {
-        try await withCheckedThrowingContinuation { continuation in
-            connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { data, _, isComplete, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else if let data, !data.isEmpty {
-                    continuation.resume(returning: data)
-                } else if isComplete {
-                    continuation.resume(returning: nil)
-                } else {
-                    continuation.resume(returning: Data())
+        while true {
+            let chunk: Data? = try await withCheckedThrowingContinuation { continuation in
+                connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { data, _, isComplete, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else if let data, !data.isEmpty {
+                        continuation.resume(returning: data)
+                    } else if isComplete {
+                        continuation.resume(returning: nil)
+                    } else {
+                        continuation.resume(returning: Data())
+                    }
                 }
+            }
+            if chunk == nil || !(chunk?.isEmpty ?? true) {
+                return chunk
             }
         }
     }
