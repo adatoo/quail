@@ -2,6 +2,13 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-047 · 2026-09-25 · Images: `data:` URLs only, a marker in the prompt, the bytes beside it
+
+**Decision:** A request's images are accepted as base64 `data:` URLs (chat completions `image_url`, Anthropic `image` blocks with a `base64` source, Responses `input_image`) and **never fetched**: an `http(s)`, `file:` or bare-path image is a 400 that says to send a data: URL. **Why:** fetching whatever address a request names is a network and privacy decision (server-side request forgery from a page's script to the local network, or a leak of the user's address to a third party) that the server shouldn't make for a client; llama-server does it, and the app's chat page and every local tool can send bytes. Each image is capped at 32 MB decoded.
+**Design:** in `ChatMessages.normalize` an image part becomes a text part holding `<__media__>` (libmtmd's default marker, as in llama-server), so the chat template renders it wherever that model wants an image, and the decoded bytes go in `GenerationRequest.media` in marker order beside `promptText` (the rendered prompt). An engine that reads images tokenizes `promptText` itself, turning each marker into the image's embeddings; `promptTokens` stays the text's own tokenization, for the context check. A request with images to an engine without `EngineCapabilities.vision` is a 400 ("can't read images yet"), and to a model whose projector isn't loaded (`EngineInfo.supportsImages`) a 400 saying it has no mmproj.
+**Not yet:** the engine side (libmtmd in `LlamaEngine`); MLX vision (`MLXVLM`) isn't scheduled. Audio input stays a 400.
+**Revisit if:** a client genuinely needs remote images (a flag that allows named hosts, off by default), or the marker differs across libmtmd versions (the engine checks it at load).
+
 ## D-046 · 2026-09-25 · Automation acts as a GitHub App, not a personal access token
 
 **Decision:** The Auto-merge and Dependabot-bump workflows authenticate as a GitHub App, `quail-release` (Contents and Pull requests: read and write, installed on this repo only), minting a one-hour installation token per run with `actions/create-github-app-token` from the secrets `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY` (Actions and Dependabot stores). This replaces D-024's `BOT_TOKEN` fine-grained PAT, which was never added: auto-merge never switched on, and every PR since needed a hand merge.

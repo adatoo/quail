@@ -93,8 +93,8 @@ enum ResponsesRequest {
         switch type {
         case "message":
             guard let role = item["role"]?.stringValue else { throw RequestError.invalid("a message needs a \"role\"") }
-            let content = try text(of: item["content"], what: "a message")
-            messages.append(.record([("role", .string(role)), ("content", .string(content))]))
+            let content = try content(of: item["content"], what: "a message")
+            messages.append(.record([("role", .string(role)), ("content", content)]))
         case "function_call":
             guard let name = item["name"]?.stringValue
             else { throw RequestError.invalid("a function_call needs a \"name\"") }
@@ -138,11 +138,31 @@ enum ResponsesRequest {
             guard type == "input_text" || type == "output_text" || type == "text",
                   let text = part["text"]?.stringValue
             else {
-                throw RequestError
-                    .invalid("\(type ?? "") input is not supported yet; quail-server has no vision engine")
+                throw RequestError.invalid("\(type ?? "") input is not supported in \(what)")
             }
             return text
         }.joined(separator: "\n")
+    }
+
+    /// A message's content: text as a string, as before; with an `input_image` part, a list of chat
+    /// completions parts. An image's `image_url` is a URL string; only data: URLs are read.
+    private static func content(of value: Value?, what: String) throws -> Value {
+        guard let parts = value?.arrayValue,
+              parts.contains(where: { $0["type"]?.stringValue == "input_image" })
+        else { return try .string(text(of: value, what: what)) }
+        return try .array(parts.map { part in
+            switch part["type"]?.stringValue {
+            case "input_image":
+                guard let url = part["image_url"]?.stringValue else {
+                    throw RequestError.invalid("an input_image needs an \"image_url\" (file_id isn't supported)")
+                }
+                return ImageInput.part(url: url)
+            case "input_text", "output_text", "text":
+                return .record([("type", .string("text")), ("text", .string(part["text"]?.stringValue ?? ""))])
+            case let other:
+                throw RequestError.invalid("\(other ?? "") input is not supported in \(what)")
+            }
+        })
     }
 
     /// Flat function tools become the nested OpenAI form; tools OpenAI runs itself are left out.

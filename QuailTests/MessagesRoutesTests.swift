@@ -163,6 +163,28 @@ struct MessagesRoutesTests {
         #expect(nameless.status == 400)
     }
 
+    @Test("base64 image blocks reach the engine as images, between the text around them")
+    func images() async throws {
+        let harness = RouteHarness(vision: true)
+        let reply = await harness.json(path, """
+        {"model":"Alpha","max_tokens":9,"messages":[{"role":"user","content":[
+          {"type":"text","text":"What is this?"},
+          {"type":"image","source":{"type":"base64","media_type":"image/png","data":"AQID"}},
+          {"type":"text","text":"Be brief."}]}]}
+        """)
+        #expect(reply.status == 200)
+        let request = try #require(harness.world.requests.last)
+        #expect(request.media == [Data([1, 2, 3])])
+        #expect(request.promptText?.contains("What is this?\n<__media__>\nBe brief.") == true)
+
+        let plain = RouteHarness(vision: true)
+        _ = await plain.json(
+            path,
+            #"{"model":"Alpha","max_tokens":9,"messages":[{"role":"user","content":[{"type":"text","text":"a"},{"type":"text","text":"b"}]}]}"#
+        )
+        #expect(plain.world.requests.last?.media.isEmpty == true)
+    }
+
     @Test("errors use Anthropic's shape")
     func errors() async {
         let harness = RouteHarness()
@@ -172,6 +194,7 @@ struct MessagesRoutesTests {
             #"{"max_tokens":9,"messages":[{"role":"user","content":"x"}]}"#,
             #"{"model":"Nope","max_tokens":9,"messages":[{"role":"user","content":"x"}]}"#,
             #"{"model":"Alpha","max_tokens":9,"messages":[{"role":"user","content":[{"type":"image","source":{}}]}]}"#,
+            #"{"model":"Alpha","max_tokens":9,"messages":[{"role":"user","content":[{"type":"image","source":{"type":"url","url":"https://example.com/a.png"}}]}]}"#,
             #"{"model":"Alpha","max_tokens":9,"tool_choice":{"type":"any"},"tools":\#(Self.weatherTool),"messages":[{"role":"user","content":"x"}]}"#,
         ] {
             let reply = await harness.json(path, body)

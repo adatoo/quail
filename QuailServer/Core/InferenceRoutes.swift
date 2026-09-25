@@ -138,7 +138,8 @@ struct InferenceRoutes: Sendable {
         settings: GenerationSettings,
         info: EngineInfo,
         reasoning: JSONSchemaGrammar.Reasoning = .none,
-        forcedCall grammarOverride: String? = nil
+        forcedCall grammarOverride: String? = nil,
+        images: (text: String, media: [Data])? = nil
     ) throws -> GenerationRequest {
         let grammar = try grammarOverride ?? settings.constraint?.gbnf(reasoning: reasoning)
         guard tokens.count < info.contextSize else {
@@ -155,7 +156,9 @@ struct InferenceRoutes: Sendable {
             sampling: settings.sampling,
             ignoreEndOfSequence: settings.ignoreEndOfSequence,
             cachePrompt: settings.cachePrompt,
-            grammar: grammar
+            grammar: grammar,
+            promptText: images?.text,
+            media: images?.media ?? []
         )
     }
 
@@ -356,6 +359,15 @@ struct InferenceRoutes: Sendable {
             try applyCapabilities(settings, forcesToolCall: chat.toolChoice.forcesCall, engine: lease.engine)
             let info = await lease.engine.info()
             let tokens = try await promptTokens(for: chat, engine: lease.engine, info: info)
+            if !tokens.media.isEmpty {
+                guard lease.engine.capabilities.vision else {
+                    throw RequestError.invalid("the engine serving this model can't read images yet")
+                }
+                guard info.supportsImages else {
+                    throw RequestError
+                        .invalid("this model has no vision projector (an mmproj file), so it can't read images")
+                }
+            }
             // A constrained reply comes after the thinking block, if the template has one.
             let reasoning: JSONSchemaGrammar.Reasoning = tokens.thinkingIsOpen ? .open
                 : tokens.supportsThinking ? .optional : .none
@@ -386,7 +398,8 @@ struct InferenceRoutes: Sendable {
                 settings: settings,
                 info: info,
                 reasoning: reasoning,
-                forcedCall: forcedCall
+                forcedCall: forcedCall,
+                images: tokens.media.isEmpty ? nil : (tokens.text, tokens.media)
             )
             let text = TextGenerator.stream(engine: lease.engine, request: generation, stop: settings.stop)
             let parser = ChatOutputParser(
@@ -405,15 +418,27 @@ struct InferenceRoutes: Sendable {
         }
     }
 
-    /// The chat prompt as token ids, with what the template says about the reply.
-    func promptTokens(
-        for chat: ChatRequest, engine: any Engine, info: EngineInfo
-    ) async throws -> (ids: [Int], thinkingIsOpen: Bool, supportsThinking: Bool, toolFormat: ToolCallFormat) {
+    /// A chat request as the engine gets it: the prompt's token ids (with an image's marker as ordinary
+    /// text, so an approximate count), the prompt text and the images if it has any, and what the
+    /// template says about the reply.
+    struct ChatPrompt {
+        var ids: [Int]
+        var text: String
+        var media: [Data]
+        var thinkingIsOpen: Bool
+        var supportsThinking: Bool
+        var toolFormat: ToolCallFormat
+    }
+
+    func promptTokens(for chat: ChatRequest, engine: any Engine, info: EngineInfo) async throws -> ChatPrompt {
         let prompt = try await renderPrompt(chat, engine: engine, info: info)
         // A template that starts with the BOS text already has one; don't add a second.
         let addSpecial = info.bosToken.isEmpty || !prompt.text.hasPrefix(info.bosToken)
         let ids = try await engine.tokenize(prompt.text, addSpecial: addSpecial, parseSpecial: true)
-        return (ids, prompt.thinkingIsOpen, prompt.supportsThinking, prompt.toolFormat)
+        return ChatPrompt(
+            ids: ids, text: prompt.text, media: prompt.media, thinkingIsOpen: prompt.thinkingIsOpen,
+            supportsThinking: prompt.supportsThinking, toolFormat: prompt.toolFormat
+        )
     }
 
     /// Reads a run to its end, then releases the lease.
@@ -452,7 +477,9 @@ struct InferenceRoutes: Sendable {
     /// The prompt text for a chat request, and whether its template left a `<think>` open.
     private func renderPrompt(
         _ chat: ChatRequest, engine: any Engine, info: EngineInfo
-    ) async throws -> (text: String, thinkingIsOpen: Bool, supportsThinking: Bool, toolFormat: ToolCallFormat) {
+    ) async throws -> (
+        text: String, media: [Data], thinkingIsOpen: Bool, supportsThinking: Bool, toolFormat: ToolCallFormat
+    ) {
         let source = await engine.chatTemplate() ?? ChatMessages.chatMLTemplate
         let compiled: (template: ChatTemplate, style: ChatMessages.ContentStyle)
         do {
@@ -460,7 +487,7 @@ struct InferenceRoutes: Sendable {
         } catch {
             throw RequestError(status: 500, type: "server_error", message: error.localizedDescription)
         }
-        let messages = try ChatMessages.normalize(
+        let (messages, media) = try ChatMessages.normalize(
             chat.messages,
             style: compiled.style,
             templateKnowsDeveloperRole: source.contains("developer")
@@ -477,6 +504,7 @@ struct InferenceRoutes: Sendable {
             let tail = text.reversed().drop(while: { $0.isWhitespace })
             return (
                 text,
+                media,
                 String(tail.reversed()).hasSuffix(ReasoningSplitter.open),
                 source.contains(ReasoningSplitter.open),
                 ToolCallFormat.detect(template: source)

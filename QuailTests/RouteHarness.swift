@@ -28,7 +28,8 @@ struct RouteHarness {
         apiKey: String? = nil,
         endless: Bool = false,
         webUI: Bool = true,
-        grammar: Bool = false
+        grammar: Bool = false,
+        vision: Bool = false
     ) {
         let world = world
         let log = ServerLog(toStandardError: false)
@@ -42,7 +43,8 @@ struct RouteHarness {
                 engine.bos = ""
                 engine.eos = "<|im_end|>"
                 engine.endless = endless
-                engine.capabilities = .init(grammar: grammar)
+                engine.capabilities = .init(grammar: grammar, vision: vision)
+                engine.supportsImages = vision
                 return engine
             },
             log: log

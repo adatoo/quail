@@ -28,26 +28,35 @@ enum ChatMessages {
     ///   - style: how the template wants content.
     ///   - templateKnowsDeveloperRole: gpt-oss's template has a `developer` role; the others don't,
     ///     and get `system` (the OpenAI rename), which is what llama-server sends them.
+    ///   - Returns: the messages, with each image part replaced by the marker text, and the images' bytes in
+    ///     the order their markers appear.
     static func normalize(
         _ messages: [Value],
         style: ContentStyle,
         templateKnowsDeveloperRole: Bool
-    ) throws -> [Value] {
-        try messages.map { message in
+    ) throws -> (messages: [Value], media: [Data]) {
+        var media: [Data] = []
+        let normalized: [Value] = try messages.map { message -> Value in
             guard case var .object(members) = message, let role = members["role"]?.stringValue else {
                 throw RequestError.invalid("each message needs a \"role\"")
             }
             if role == "developer", !templateKnowsDeveloperRole {
                 members["role"] = .string("system")
             }
-            if let content = members["content"], case let .array(parts) = content {
-                for part in parts {
+            if let content = members["content"], case var .array(parts) = content {
+                for (index, part) in parts.enumerated() {
                     let type = part["type"]?.stringValue ?? "text"
-                    guard type == "text" || type == "input_text" else {
-                        throw RequestError
-                            .invalid("\(type) input is not supported yet; quail-server has no vision engine")
+                    switch type {
+                    case "text", "input_text":
+                        break
+                    case "image_url":
+                        try media.append(ImageInput.decode(url: ImageInput.url(ofPart: part)))
+                        parts[index] = .record([("type", .string("text")), ("text", .string(ImageInput.marker))])
+                    default:
+                        throw RequestError.invalid("\(type) input is not supported")
                     }
                 }
+                members["content"] = .array(parts)
                 if style == .string {
                     // llama-server joins the text parts with a newline.
                     members["content"] = .string(parts.compactMap { $0["text"]?.stringValue }.joined(separator: "\n"))
@@ -55,6 +64,7 @@ enum ChatMessages {
             }
             return .object(members)
         }
+        return (normalized, media)
     }
 
     /// llama.cpp's fallback for a model with no template of its own.
