@@ -122,10 +122,10 @@ struct InferenceRoutes: Sendable {
     /// What the request asks for against what the engine can do: constrained output it can't produce is
     /// refused (ignoring it would return text that isn't the JSON the client is going to parse), a
     /// sampler option it doesn't have is ignored with a line in the log.
-    func applyCapabilities(_ settings: GenerationSettings, engine: any Engine) throws {
-        if settings.constraint != nil, !engine.capabilities.grammar {
+    func applyCapabilities(_ settings: GenerationSettings, forcesToolCall: Bool = false, engine: any Engine) throws {
+        if settings.constraint != nil || forcesToolCall, !engine.capabilities.grammar {
             throw RequestError.invalid(
-                "the engine serving this model can't constrain its output yet (response_format, json_schema, grammar)"
+                "the engine serving this model can't constrain its output yet (response_format, json_schema, grammar, tool_choice)"
             )
         }
         if settings.sampling.usesExtraSamplers, !engine.capabilities.extraSamplers {
@@ -137,9 +137,10 @@ struct InferenceRoutes: Sendable {
         tokens: [Int],
         settings: GenerationSettings,
         info: EngineInfo,
-        reasoning: JSONSchemaGrammar.Reasoning = .none
+        reasoning: JSONSchemaGrammar.Reasoning = .none,
+        forcedCall grammarOverride: String? = nil
     ) throws -> GenerationRequest {
-        let grammar = try settings.constraint?.gbnf(reasoning: reasoning)
+        let grammar = try grammarOverride ?? settings.constraint?.gbnf(reasoning: reasoning)
         guard tokens.count < info.contextSize else {
             throw RequestError(
                 status: 400,
@@ -352,7 +353,7 @@ struct InferenceRoutes: Sendable {
     func startChat(_ chat: ChatRequest, settings: GenerationSettings, model id: String) async throws -> ChatRun {
         let lease = try await router.acquire(id)
         do {
-            try applyCapabilities(settings, engine: lease.engine)
+            try applyCapabilities(settings, forcesToolCall: chat.toolChoice.forcesCall, engine: lease.engine)
             let info = await lease.engine.info()
             let tokens = try await promptTokens(for: chat, engine: lease.engine, info: info)
             // A constrained reply comes after the thinking block, if the template has one.
@@ -362,11 +363,30 @@ struct InferenceRoutes: Sendable {
                 throw RequestError
                     .invalid("constrained output isn't supported for this model's chat format (Harmony) yet")
             }
+            var forcedCall: String?
+            if chat.toolChoice.forcesCall {
+                if settings.constraint != nil {
+                    throw RequestError
+                        .invalid("tool_choice can't be combined with response_format, json_schema or grammar")
+                }
+                var name: String?
+                if case let .named(named) = chat.toolChoice {
+                    name = named
+                }
+                forcedCall = try JSONSchemaGrammar.toolCalls(
+                    tools: chat.tools ?? [],
+                    name: name,
+                    format: tokens.toolFormat,
+                    parallel: chat.parallelToolCalls,
+                    reasoning: reasoning
+                )
+            }
             let generation = try generationRequest(
                 tokens: tokens.ids,
                 settings: settings,
                 info: info,
-                reasoning: reasoning
+                reasoning: reasoning,
+                forcedCall: forcedCall
             )
             let text = TextGenerator.stream(engine: lease.engine, request: generation, stop: settings.stop)
             let parser = ChatOutputParser(

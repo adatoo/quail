@@ -140,6 +140,7 @@
 		B1AB48A3C7C86F1FA16FF1DB /* LlamaEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 611AA15F2CE4E872C861D7BD /* LlamaEngineTests.swift */; };
 		B3C60940D7E63529712913CD /* ModelNameMatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3AA166B86233FC08A935A0C /* ModelNameMatch.swift */; };
 		B488A6685A594D6CCF56EB7A /* InferenceJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0B5783A20B7EA68C994DD84 /* InferenceJSON.swift */; };
+		B4DDD2C8EB8F02E87901FE52 /* ToolChoiceGrammar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F0C996EF5A53A9043C055BE /* ToolChoiceGrammar.swift */; };
 		B62BFE886200969B22216A6A /* LogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9482F330D14ABD97C3CB8A /* LogStore.swift */; };
 		BB4C3ECB171F045E1E108DE0 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB314ECE48376274FD399DD1 /* main.swift */; };
 		BB7E1789C6461440E46663A8 /* FakeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422A288B2B073D9B346E5BC3 /* FakeEngine.swift */; };
@@ -366,6 +367,7 @@
 		6CF5343FFDFED49C8EFF6B3C /* Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalog.swift; sourceTree = "<group>"; };
 		6D200533D0B964D28B902476 /* ServerArguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerArguments.swift; sourceTree = "<group>"; };
 		6EABED4CD61813C8D19A53F6 /* CatalogRefresher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogRefresher.swift; sourceTree = "<group>"; };
+		6F0C996EF5A53A9043C055BE /* ToolChoiceGrammar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolChoiceGrammar.swift; sourceTree = "<group>"; };
 		6F48BA28C404D2950FDE1212 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		70BF19344F23B98FA299585E /* AppInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfoTests.swift; sourceTree = "<group>"; };
 		70C223159AE534E73720C300 /* RequestError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestError.swift; sourceTree = "<group>"; };
@@ -714,6 +716,7 @@
 				F1FF29416A6CAE787AB9209A /* StopMatcher.swift */,
 				60448A7125CE8D5E7B59ED7D /* TextGenerator.swift */,
 				D03A0381BF3FC28180D84EB6 /* ToolCalls.swift */,
+				6F0C996EF5A53A9043C055BE /* ToolChoiceGrammar.swift */,
 				4A075C28A3AD37EDB9CE638F /* WebUI.swift */,
 			);
 			path = Core;
@@ -1417,6 +1420,7 @@
 				D4D03C79F1C643CB52B5594E /* StopMatcher.swift in Sources */,
 				092A47EB0C143113036D68A3 /* TextGenerator.swift in Sources */,
 				31D658A3E5A9CC979FE16300 /* ToolCalls.swift in Sources */,
+				B4DDD2C8EB8F02E87901FE52 /* ToolChoiceGrammar.swift in Sources */,
 				C94B1AF4878BBF3E9736E621 /* WebUI.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1535,7 +1539,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 37;
+				CURRENT_PROJECT_VERSION = 38;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1560,7 +1564,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.24.1;
+				MARKETING_VERSION = 0.25.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1699,7 +1703,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 37;
+				CURRENT_PROJECT_VERSION = 38;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1718,7 +1722,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.24.1;
+				MARKETING_VERSION = 0.25.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1789,7 +1793,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 37;
+				CURRENT_PROJECT_VERSION = 38;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1814,7 +1818,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.24.1;
+				MARKETING_VERSION = 0.25.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2001,7 +2005,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 37;
+				CURRENT_PROJECT_VERSION = 38;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2020,7 +2024,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.24.1;
+				MARKETING_VERSION = 0.25.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -140,6 +140,22 @@ struct ResponsesRoutesTests {
         #expect(refused.status == 400)
     }
 
+    @Test("tool_choice in Responses' flat form forces a call of that tool")
+    func forcedToolChoice() async {
+        let harness = RouteHarness(grammar: true)
+        let reply = await harness.json(
+            path,
+            #"{"model":"Alpha","input":"x","tools":\#(Self.weatherTool),"tool_choice":{"type":"function","name":"get_weather"}}"#
+        )
+        #expect(reply.status == 200)
+        #expect(harness.world.requests.last?.grammar?.contains("get_weather") == true)
+        let unknown = await harness.json(
+            path,
+            #"{"model":"Alpha","input":"x","tools":\#(Self.weatherTool),"tool_choice":{"type":"function","name":"other"}}"#
+        )
+        #expect(unknown.status == 400)
+    }
+
     @Test("tools OpenAI runs itself are left out of the prompt")
     func hostedTools() async {
         let harness = RouteHarness()

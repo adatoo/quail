@@ -353,20 +353,90 @@ struct ChatRoutesTests {
         #expect((message(reply.json)["tool_calls"] as? [Any])?.count == 1)
     }
 
-    @Test("forcing a tool call isn't supported yet and says so; auto and none are accepted")
+    @Test("auto and none are accepted; forcing a call needs an engine with a grammar sampler")
     func toolChoice() async {
         func request(_ choice: String) -> String {
             #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":\#(Self.weatherTools),"tool_choice":\#(choice)}"#
         }
         let harness = Harness()
-        let required = await harness.json(request(#""required""#))
-        #expect(required.status == 400)
-        #expect((required.json["error"] as? [String: Any])?["message"] as? String ==
-            "tool_choice \"required\" isn't supported yet")
-        let named = await harness.json(request(#"{"type":"function","function":{"name":"get_weather"}}"#))
-        #expect(named.status == 400)
         #expect(await harness.json(request(#""auto""#)).status == 200)
         #expect(await harness.json(request(#""none""#)).status == 200)
+        for choice in [#""required""#, #"{"type":"function","function":{"name":"get_weather"}}"#] {
+            let reply = await harness.json(request(choice))
+            #expect(reply.status == 400)
+            #expect((reply.json["error"] as? [String: Any])?["message"] as? String ==
+                "the engine serving this model can't constrain its output yet (response_format, json_schema, grammar, tool_choice)")
+        }
+    }
+
+    @Test("a forced call becomes a grammar in the model's own call format")
+    func forcedCall() async {
+        let two = #"[{"type":"function","function":{"name":"get_weather","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}},{"type":"function","function":{"name":"get_time"}}]"#
+        func grammar(_ template: String, _ extra: String, tools: String = two) async -> String {
+            let harness = Harness(template: Self.template(template)) { $0.capabilities = .init(grammar: true) }
+            let reply = await harness.json(
+                #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":\#(tools),\#(extra)}"#
+            )
+            #expect(reply.status == 200, "\(template) \(extra)")
+            return harness.world.requests.last?.grammar ?? ""
+        }
+
+        let required = await grammar("qwen3", #""tool_choice":"required""#)
+        #expect(required.contains("\"<tool_call>\" tool-space"))
+        #expect(required.contains("get_weather") && required.contains("get_time"))
+        #expect(required.contains("\"<think>\"")) // Qwen3 thinks first
+        #expect(!required.contains(")+"))
+
+        let named = await grammar("qwen3", #""tool_choice":{"type":"function","function":{"name":"get_time"}}"#)
+        #expect(named.contains("get_time") && !named.contains("get_weather"))
+
+        #expect(await grammar("qwen3", #""tool_choice":"required","parallel_tool_calls":true"#).contains(")+"))
+
+        let bare = await grammar("llama3", #""tool_choice":"required""#)
+        #expect(bare.contains("parameters") && !bare.contains("<tool_call>") && !bare.contains("think"))
+    }
+
+    @Test("a call that can't be forced is a 400 that says why", arguments: [
+        (
+            "qwen3",
+            #""tool_choice":{"type":"function","function":{"name":"nope"}}"#,
+            "tool_choice names \"nope\", which isn't in 'tools'"
+        ),
+        (
+            "qwen3",
+            #""tool_choice":"required","response_format":{"type":"json_object"}"#,
+            "tool_choice can't be combined with response_format, json_schema or grammar"
+        ),
+        ("qwen3", #""tool_choice":"required","parallel_tool_calls":"yes""#, "'parallel_tool_calls' must be a boolean"),
+        ("qwen3", #""tool_choice":"sometimes""#, "tool_choice \"sometimes\" isn't supported"),
+        ("qwen3", #""tool_choice":{"type":"function"}"#, "tool_choice with a specific function needs its name"),
+        (
+            "qwen36",
+            #""tool_choice":"required""#,
+            "forcing a tool call isn't supported for this model's chat format (Qwen XML) yet"
+        ),
+        (
+            "gptoss",
+            #""tool_choice":"required""#,
+            "forcing a tool call isn't supported for this model's chat format (Harmony) yet"
+        ),
+    ])
+    func forcedCallRefused(template: String, extra: String, message: String) async {
+        let harness = Harness(template: Self.template(template)) { $0.capabilities = .init(grammar: true) }
+        let reply = await harness.json(
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":\#(Self.weatherTools),\#(extra)}"#
+        )
+        #expect(reply.status == 400)
+        #expect((reply.json["error"] as? [String: Any])?["message"] as? String == message)
+        #expect(harness.world.requests.isEmpty)
+    }
+
+    @Test("forcing a call with no tools is a 400")
+    func forcedCallWithoutTools() async {
+        let harness = Harness { $0.capabilities = .init(grammar: true) }
+        let reply = await harness
+            .json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tool_choice":"required"}"#)
+        #expect(reply.status == 400)
     }
 
     @Test("a tool-call round trip renders the arguments as an object")
@@ -442,7 +512,7 @@ struct ChatRoutesTests {
         ),
         (
             #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"json_object"}}"#,
-            "the engine serving this model can't constrain its output yet (response_format, json_schema, grammar)"
+            "the engine serving this model can't constrain its output yet (response_format, json_schema, grammar, tool_choice)"
         ),
         (
             #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"json_schema"}}"#,
