@@ -49,6 +49,7 @@ struct ScriptedEngine: Engine {
     var cachedTokens = 0
     /// Time spent "processing the prompt" before the first token; a cancelled request cuts it short.
     var firstTokenDelay: Duration = .zero
+    var capabilities = EngineCapabilities()
 
     func load(_: ModelEntry) async throws {}
     func unload() async {}

@@ -437,8 +437,24 @@ struct ChatRoutesTests {
             "image_url input is not supported yet; quail-server has no vision engine"
         ),
         (
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"xml"}}"#,
+            "response_format \"xml\" isn't supported"
+        ),
+        (
             #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"json_object"}}"#,
-            "response_format \"json_object\" isn't supported yet"
+            "the engine serving this model can't constrain its output yet (response_format, json_schema, grammar)"
+        ),
+        (
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"json_schema"}}"#,
+            "response_format \"json_schema\" needs a json_schema.schema"
+        ),
+        (
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"grammar":5}"#,
+            "'grammar' must be a string"
+        ),
+        (
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"json_schema":{"type":"string","pattern":"a+"}}"#,
+            "the JSON schema can't be used: the JSON schema keyword \"pattern\" isn't supported yet (at #)"
         ),
         (#"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":5}"#, "'tools' must be an array"),
         (
@@ -469,6 +485,60 @@ struct ChatRoutesTests {
         let reply = await Harness()
             .json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"text"}}"#)
         #expect(reply.status == 200)
+    }
+
+    @Test("response_format, json_schema and grammar become a grammar for an engine that can use one")
+    func constrainedOutput() async {
+        let schema = #"{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}"#
+        let bodies = [
+            #""response_format":{"type":"json_object"}"#,
+            #""response_format":{"type":"json_schema","json_schema":{"name":"x","schema":\#(schema)}}"#,
+            #""json_schema":\#(schema)"#,
+        ]
+        for fields in bodies {
+            let harness = Harness(template: Self.template("llama3")) { $0.capabilities = .init(grammar: true) }
+            let reply = await harness.json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}],\#(fields)}"#)
+            #expect(reply.status == 200)
+            let grammar = harness.world.requests.last?.grammar ?? ""
+            #expect(grammar.contains("root ::="), "\(fields)")
+            #expect(!grammar.contains("think"), "a template without thinking gets a plain grammar")
+        }
+
+        let named = Harness(template: Self.template("llama3")) { $0.capabilities = .init(grammar: true) }
+        _ = await named.json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"json_schema":\#(schema)}"#)
+        #expect(named.world.requests.last?.grammar?.contains("name-kv") == true)
+
+        let raw = Harness { $0.capabilities = .init(grammar: true) }
+        _ = await raw
+            .json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"grammar":"root ::= \"yes\""}"#)
+        #expect(raw.world.requests.last?.grammar == #"root ::= "yes""#, "a client's own grammar is passed through")
+
+        let plain = Harness { $0.capabilities = .init(grammar: true) }
+        _ = await plain.json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}]}"#)
+        #expect(plain.world.requests.last?.grammar == nil)
+    }
+
+    @Test("a template that thinks gets a grammar that lets the thinking block come first")
+    func constrainedOutputAfterThinking() async {
+        let harness = Harness(template: Self.template("qwen3")) { $0.capabilities = .init(grammar: true) }
+        _ = await harness.json(
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"json_object"}}"#
+        )
+        let grammar = harness.world.requests.last?.grammar ?? ""
+        #expect(grammar.contains("\"<think>\" think-0 \"</think>\""))
+        #expect(grammar.contains("json-root"))
+    }
+
+    @Test("constrained output isn't offered for the Harmony format yet")
+    func constrainedHarmony() async {
+        let harness = Harness(template: Self.template("gptoss")) { $0.capabilities = .init(grammar: true) }
+        let reply = await harness.json(
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"json_object"}}"#
+        )
+        #expect(reply.status == 400)
+        #expect((reply.json["error"] as? [String: Any])?["message"] as? String
+            == "constrained output isn't supported for this model's chat format (Harmony) yet")
+        #expect(harness.world.requests.isEmpty)
     }
 
     @Test("wrong method is a 405 and the API key is required")

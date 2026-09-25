@@ -30,8 +30,36 @@ struct GenerationSettings: Equatable, Sendable {
     var stop: [String] = []
     var stream = false
     var includeUsage = false
+    /// What the reply must follow: llama-server's `grammar` and `json_schema`, or OpenAI's
+    /// `response_format` (ADR D-045). Only some engines can honour it.
+    var constraint: Constraint?
+
+    enum Constraint: Equatable, Sendable {
+        /// GBNF as the client wrote it, applied from the first token.
+        case grammar(String)
+        /// A JSON schema, kept as text; the grammar is built once the prompt's template is known.
+        case schema(String)
+
+        /// The grammar to sample under. A schema's is preceded by the model's thinking block when the
+        /// chat template has one (`reasoning`).
+        func gbnf(reasoning: JSONSchemaGrammar.Reasoning) throws -> String {
+            switch self {
+            case let .grammar(text):
+                return text
+            case let .schema(text):
+                do {
+                    return try JSONSchemaGrammar.gbnf(for: OrderedJSON.parse(text), reasoning: reasoning)
+                } catch let failure as JSONSchemaGrammar.Failure {
+                    throw RequestError.invalid("the JSON schema can't be used: \(failure.message)")
+                } catch {
+                    throw RequestError.invalid("the JSON schema can't be used: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
 
     init(_ body: Value) throws {
+        constraint = try Self.constraint(body)
         // `max_tokens`, its newer OpenAI name, and llama.cpp's `n_predict`; -1 means no limit.
         for key in ["max_tokens", "max_completion_tokens", "n_predict"] {
             if let value = body[key], !value.isNull {
@@ -135,6 +163,42 @@ struct GenerationSettings: Equatable, Sendable {
         }
     }
 
+    private static func constraint(_ body: Value) throws -> Constraint? {
+        /// Checks the schema converts (so a bad one is a 400 now, before a model loads), and keeps its text.
+        func schema(_ value: Value) throws -> Constraint {
+            let text = try OrderedJSON.serialize(value)
+            let constraint = Constraint.schema(text)
+            _ = try constraint.gbnf(reasoning: .none)
+            return constraint
+        }
+        if let value = body["grammar"], !value.isNull {
+            guard let text = value.stringValue else { throw RequestError.invalid("'grammar' must be a string") }
+            if !text.isEmpty {
+                return .grammar(text)
+            }
+        }
+        if let value = body["json_schema"], !value.isNull {
+            return try schema(value)
+        }
+        guard let format = body["response_format"], !format.isNull else { return nil }
+        switch format["type"]?.stringValue {
+        case nil, "text":
+            return nil
+        case "json_object":
+            // llama-server reads a bare json_object as "an object", and takes an optional `schema`.
+            let given = format["schema"]
+            return try schema(given
+                .map { $0.objectIsEmptyForSchema ? JSONSchemaGrammar.anyObject : $0 } ?? JSONSchemaGrammar.anyObject)
+        case "json_schema":
+            guard let given = format["json_schema"]?["schema"] ?? format["schema"] else {
+                throw RequestError.invalid("response_format \"json_schema\" needs a json_schema.schema")
+            }
+            return try schema(given)
+        case let other?:
+            throw RequestError.invalid("response_format \"\(other)\" isn't supported")
+        }
+    }
+
     private static func number(_ body: Value, _ key: String) throws -> Double? {
         guard let value = body[key], !value.isNull else { return nil }
         guard let number = value.doubleValue else { throw RequestError.invalid("'\(key)' must be a number") }
@@ -184,10 +248,15 @@ struct ChatRequest: Sendable {
                 }
             }
         }
-        // A grammar-constrained reply needs the engine's sampler (Phase 3 step 5); saying so beats
-        // quietly ignoring it and returning text that isn't JSON.
-        if let format = body["response_format"]?["type"]?.stringValue, format != "text" {
-            throw RequestError.invalid("response_format \"\(format)\" isn't supported yet")
+    }
+}
+
+private extension Value {
+    /// `{}` is what a client sends for "no particular schema".
+    var objectIsEmptyForSchema: Bool {
+        if case let .object(members) = self {
+            return members.isEmpty
         }
+        return false
     }
 }

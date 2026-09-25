@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-09-25
+
+### Added
+
+- Internal, no visible change yet: `quail-server` supports JSON mode, `response_format` (`json_object`, `json_schema`), llama-server's `grammar` and `json_schema` fields, and `/v1/responses` `text.format` for GGUF models, by sampling under a grammar built from the schema. MLX models answer these with a clear 400. On Qwen3-8B, 26 of 27 test schemas gave valid JSON on five seeds each, the same as llama-server (ADR D-045).
+
 ## [0.23.0] - 2026-09-25
 
 ### Changed

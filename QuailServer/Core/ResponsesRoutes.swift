@@ -75,8 +75,10 @@ enum ResponsesRequest {
             members.append(("tools", tools))
         }
         members.append(("tool_choice", body["tool_choice"]))
-        if let format = body["text"]?["format"]?["type"]?.stringValue {
-            members.append(("response_format", .record([("type", .string(format))])))
+        if let format = body["text"]?["format"], let type = format["type"]?.stringValue {
+            // Responses puts the schema next to the type; chat completions nests it.
+            let schema = format["schema"].map { Value.record([("name", format["name"]), ("schema", $0)]) }
+            members.append(("response_format", .record([("type", .string(type)), ("json_schema", schema)])))
         }
         for key in ["stream", "temperature", "top_p", "top_k", "min_p", "seed", "cache_prompt"] {
             if let value = body[key], !value.isNull {
