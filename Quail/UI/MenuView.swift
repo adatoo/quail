@@ -93,8 +93,9 @@ struct MenuView: View {
         }
 
         // D-001: runtimes ship their own chat UIs — link to them. llama.cpp's
-        // lets you pick any installed model; with an API key set, enter it
-        // in the web UI's settings.
+        // lets you pick any installed model; the API key is on by default
+        // (ADR D-039), so enter it in the web UI's settings (Settings →
+        // Endpoint has a Copy button).
         // A runtime with no web UI of its own (Rapid-MLX) gets `quail chat`
         // instead: the same item, copying the command to the clipboard.
         let chat = chatEntry

@@ -15,7 +15,13 @@ struct Config: Sendable, Equatable, Codable {
     var host: String = "127.0.0.1"
     var port: Int = 8080
     var modelsMax: Int = 1
-    var apiKeyEnabled: Bool = false
+    /// On by default (ADR D-039): with no key, any web page you open could drive the runtime
+    /// (llama-server answers every origin). Turn it off in Settings → Endpoint.
+    var apiKeyEnabled: Bool = true
+    /// Whether the on-by-default rule has been applied to this config. A `config.json` written
+    /// before D-039 has `apiKeyEnabled: false` because that was the default, not a choice, so it's
+    /// switched on once; after that the setting is the user's.
+    var apiKeyDefaultApplied: Bool = true
     var openAtLogin: Bool = false
     var autoStartServer: Bool = false
     /// Set once the Models pane (Phase 2 step 7) lets someone relocate the
@@ -35,7 +41,8 @@ struct Config: Sendable, Equatable, Codable {
     init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case runtimeID, host, port, modelsMax, apiKeyEnabled, openAtLogin, autoStartServer, modelsDirectoryBookmark,
+        case runtimeID, host, port, modelsMax, apiKeyEnabled, apiKeyDefaultApplied, openAtLogin, autoStartServer,
+             modelsDirectoryBookmark,
              defaultModelID
     }
 
@@ -47,6 +54,8 @@ struct Config: Sendable, Equatable, Codable {
         port = try container.decodeIfPresent(Int.self, forKey: .port) ?? fallback.port
         modelsMax = try container.decodeIfPresent(Int.self, forKey: .modelsMax) ?? fallback.modelsMax
         apiKeyEnabled = try container.decodeIfPresent(Bool.self, forKey: .apiKeyEnabled) ?? fallback.apiKeyEnabled
+        // Absent means the file predates the on-by-default rule.
+        apiKeyDefaultApplied = try container.decodeIfPresent(Bool.self, forKey: .apiKeyDefaultApplied) ?? false
         openAtLogin = try container.decodeIfPresent(Bool.self, forKey: .openAtLogin) ?? fallback.openAtLogin
         autoStartServer = try container.decodeIfPresent(Bool.self, forKey: .autoStartServer) ?? fallback.autoStartServer
         modelsDirectoryBookmark = try container.decodeIfPresent(Data.self, forKey: .modelsDirectoryBookmark)

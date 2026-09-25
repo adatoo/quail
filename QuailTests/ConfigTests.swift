@@ -60,5 +60,12 @@ struct ConfigTests {
         #expect(loaded.openAtLogin == true)
         #expect(loaded.autoStartServer == false) // the field that was "missing"
         #expect(loaded.modelsDirectoryBookmark == nil) // also missing from the legacy JSON
+        // The file predates the on-by-default rule, so AppState will apply it once.
+        #expect(loaded.apiKeyDefaultApplied == false)
+        #expect(loaded.apiKeyEnabled == false)
+
+        // A new Config starts with the key on and nothing left to apply.
+        #expect(Config().apiKeyEnabled)
+        #expect(Config().apiKeyDefaultApplied)
     }
 }

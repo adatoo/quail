@@ -293,9 +293,11 @@ private struct EndpointSettingsView: View {
             } header: {
                 Text("Access")
             } footer: {
-                Text("Clients send it as a Bearer token (or x-api-key). Press Return to save an edited key.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text(
+                    "Clients send it as a Bearer token (or x-api-key); Connect a Tool fills it in for you. Press Return to save an edited key. Leave it on: without one, any web page you open can use your models."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
