@@ -10,6 +10,15 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-09-25
+
+### Added
+
+- `quail-server` serves a small chat page at `/`: pick a model, load or unload it, chat with streamed replies and a
+  Stop button, with light and dark themes. Model text is only ever shown as text, and a strict
+  Content-Security-Policy backs that up. `--no-webui` turns it off (ADR D-042). Not reachable from the app yet;
+  the runtime switch comes with step 6.
+
 ## [0.18.0] - 2026-09-25
 
 ### Changed
