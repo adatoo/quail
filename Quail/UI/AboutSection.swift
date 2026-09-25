@@ -31,13 +31,15 @@ struct AboutSection: View {
                     }
                 }
             }
-            LabeledContent("Open-source licences") {
+            LabeledContent("Third-party licences") {
                 Button("Show…") { showLicences = true }
-                    .sheet(isPresented: $showLicences) { LicencesSheet() }
             }
         } header: {
             Text("About")
         }
+        // On the section, not on the row's button: a sheet attached to a control inside a grouped Form row
+        // doesn't always present from a Settings scene.
+        .sheet(isPresented: $showLicences) { LicencesSheet() }
     }
 }
 
@@ -49,7 +51,7 @@ struct LicencesSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Licences").font(.title3.bold())
+            Text("Third-party licences").font(.title3.bold())
             Text(
                 "Quail © 2026 Arif Datoo, released under the MIT Licence. It includes the open-source software listed here:"
             )
@@ -69,6 +71,10 @@ struct LicencesSheet: View {
             .frame(height: 380)
             .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
             HStack {
+                Text("Also in the app at Contents/Resources/THIRD_PARTY_NOTICES.md")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
                 Spacer()
                 Button("Close") { dismiss() }
                     .keyboardShortcut(.cancelAction)
