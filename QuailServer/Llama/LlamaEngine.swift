@@ -9,6 +9,10 @@ public struct LlamaEngine: Engine {
 
     public init() {}
 
+    public var capabilities: EngineCapabilities {
+        EngineCapabilities(extraSamplers: true)
+    }
+
     public func load(_ model: ModelEntry) async throws {
         try await runtime.run { try $0.load(model) }
     }
@@ -282,6 +286,10 @@ final class LlamaRuntime: @unchecked Sendable {
 
         let sampler = makeSampler(request)
         defer { llama_sampler_free(sampler) }
+        // The samplers that look back (penalties, DRY) see the prompt too, as llama-server's do.
+        for token in prompt {
+            llama_sampler_accept(sampler, token)
+        }
         var utf8 = UTF8Assembler()
         var produced = 0
         // llama-server counts the end-of-generation token that stopped a reply, though it sends no text.
@@ -355,12 +363,14 @@ final class LlamaRuntime: @unchecked Sendable {
         }
     }
 
-    /// llama-server's default order: penalties, top-k, top-p, min-p, temperature, then the draw.
-    /// Temperature 0 is greedy. Not in v1: DRY, XTC, typical-p, top-n-sigma, mirostat (ADR D-043).
+    /// llama-server's default order: penalties, DRY, top-n-sigma, top-k, typical-p, top-p, min-p, XTC,
+    /// temperature, then the draw. Temperature 0 is greedy; mirostat, when asked for, replaces the
+    /// truncation samplers and the draw, as it does there.
     private func makeSampler(_ request: GenerationRequest) -> UnsafeMutablePointer<llama_sampler> {
         let chain = llama_sampler_chain_init(llama_sampler_chain_default_params())!
         let s = request.sampling
         let vocabSize = llama_vocab_n_tokens(vocab)
+        let seed = s.seed.map { UInt32(truncatingIfNeeded: $0) } ?? UInt32.max // LLAMA_DEFAULT_SEED: random
 
         if request.ignoreEndOfSequence {
             // llama-server bans every end-of-generation token, so a fixed-length run really is one.
@@ -373,11 +383,31 @@ final class LlamaRuntime: @unchecked Sendable {
                 vocabSize, 64, Float(s.repeatPenalty), Float(s.frequencyPenalty), Float(s.presencePenalty)
             ))
         }
+        if s.dryMultiplier > 0 {
+            addDRY(s, to: chain)
+        }
         if s.temperature <= 0 {
             llama_sampler_chain_add(chain, llama_sampler_init_greedy())
+        } else if s.mirostat != 0 {
+            llama_sampler_chain_add(chain, llama_sampler_init_temp(Float(s.temperature)))
+            if s.mirostat == 1 {
+                llama_sampler_chain_add(chain, llama_sampler_init_mirostat(
+                    vocabSize, seed, Float(s.mirostatTau), Float(s.mirostatEta), 100
+                ))
+            } else {
+                llama_sampler_chain_add(chain, llama_sampler_init_mirostat_v2(
+                    seed, Float(s.mirostatTau), Float(s.mirostatEta)
+                ))
+            }
         } else {
+            if s.topNSigma >= 0 {
+                llama_sampler_chain_add(chain, llama_sampler_init_top_n_sigma(Float(s.topNSigma)))
+            }
             if s.topK > 0 {
                 llama_sampler_chain_add(chain, llama_sampler_init_top_k(Int32(s.topK)))
+            }
+            if s.typicalP > 0, s.typicalP < 1 {
+                llama_sampler_chain_add(chain, llama_sampler_init_typical(Float(s.typicalP), 1))
             }
             if s.topP < 1 {
                 llama_sampler_chain_add(chain, llama_sampler_init_top_p(Float(s.topP), 1))
@@ -385,13 +415,27 @@ final class LlamaRuntime: @unchecked Sendable {
             if s.minP > 0 {
                 llama_sampler_chain_add(chain, llama_sampler_init_min_p(Float(s.minP), 1))
             }
+            if s.xtcProbability > 0 {
+                llama_sampler_chain_add(chain, llama_sampler_init_xtc(
+                    Float(s.xtcProbability), Float(s.xtcThreshold), 1, seed
+                ))
+            }
             llama_sampler_chain_add(chain, llama_sampler_init_temp(Float(s.temperature)))
-            llama_sampler_chain_add(
-                chain,
-                llama_sampler_init_dist(s.seed.map { UInt32(truncatingIfNeeded: $0) } ?? UInt32.max)
-            )
+            llama_sampler_chain_add(chain, llama_sampler_init_dist(seed))
         }
         return chain
+    }
+
+    private func addDRY(_ s: SamplingParameters, to chain: UnsafeMutablePointer<llama_sampler>) {
+        // The C API takes an array of C strings that must stay alive for the call.
+        let breakers = s.drySequenceBreakers.map { strdup($0) }
+        defer { breakers.forEach { free($0) } }
+        var pointers = breakers.map { UnsafePointer<CChar>($0) }
+        llama_sampler_chain_add(chain, llama_sampler_init_dry(
+            vocab, Float(s.dryMultiplier), Float(s.dryBase), Int32(s.dryAllowedLength),
+            // The C API reads a negative window as none at all; the request's -1 means the whole context.
+            s.dryPenaltyLastN < 0 ? Int32(info.contextSize) : Int32(s.dryPenaltyLastN), &pointers, pointers.count
+        ))
     }
 }
 

@@ -58,6 +58,47 @@ struct GenerationSettings: Equatable, Sendable {
         if let value = try Self.number(body, "frequency_penalty") {
             sampling.frequencyPenalty = value
         }
+        if let value = try Self.number(body, "dry_multiplier") {
+            sampling.dryMultiplier = max(0, value)
+        }
+        if let value = try Self.number(body, "dry_base") {
+            sampling.dryBase = value
+        }
+        if let value = try Self.integer(body, "dry_allowed_length") {
+            sampling.dryAllowedLength = value
+        }
+        if let value = try Self.integer(body, "dry_penalty_last_n") {
+            sampling.dryPenaltyLastN = value
+        }
+        if let value = body["dry_sequence_breakers"], !value.isNull {
+            guard let list = value.arrayValue, list.allSatisfy({ $0.stringValue != nil }) else {
+                throw RequestError.invalid("'dry_sequence_breakers' must be an array of strings")
+            }
+            sampling.drySequenceBreakers = list.compactMap(\.stringValue)
+        }
+        if let value = try Self.number(body, "xtc_probability") {
+            sampling.xtcProbability = min(max(0, value), 1)
+        }
+        if let value = try Self.number(body, "xtc_threshold") {
+            sampling.xtcThreshold = value
+        }
+        // llama-server's name is `typical_p`; `typ_p` is the older spelling.
+        if let value = try Self.number(body, "typical_p") ?? Self.number(body, "typ_p") {
+            sampling.typicalP = value
+        }
+        if let value = try Self.number(body, "top_n_sigma") {
+            sampling.topNSigma = value
+        }
+        if let value = try Self.integer(body, "mirostat") {
+            guard (0 ... 2).contains(value) else { throw RequestError.invalid("'mirostat' must be 0, 1 or 2") }
+            sampling.mirostat = value
+        }
+        if let value = try Self.number(body, "mirostat_tau") {
+            sampling.mirostatTau = value
+        }
+        if let value = try Self.number(body, "mirostat_eta") {
+            sampling.mirostatEta = value
+        }
         if let value = try Self.integer(body, "top_k") {
             sampling.topK = value
         }

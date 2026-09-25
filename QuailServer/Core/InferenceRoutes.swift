@@ -117,6 +117,13 @@ struct InferenceRoutes: Sendable {
         throw RequestError.invalid("\"prompt\" must be a string or an array of token ids")
     }
 
+    /// Says so in the log when a request sets a sampler option its engine doesn't have.
+    func noteIgnoredSettings(_ settings: GenerationSettings, engine: any Engine) {
+        if settings.sampling.usesExtraSamplers, !engine.capabilities.extraSamplers {
+            log.log(.warn, "this model's engine ignores the dry, xtc, typical_p, top_n_sigma and mirostat settings")
+        }
+    }
+
     func generationRequest(
         tokens: [Int],
         settings: GenerationSettings,
@@ -150,6 +157,7 @@ struct InferenceRoutes: Sendable {
         let responseID = InferenceJSON.newID()
         let created = Int(Date().timeIntervalSince1970)
         do {
+            noteIgnoredSettings(settings, engine: lease.engine)
             let info = await lease.engine.info()
             let tokens = try await promptTokens(body["prompt"], engine: lease.engine)
             let generation = try generationRequest(tokens: tokens, settings: settings, info: info)
@@ -332,6 +340,7 @@ struct InferenceRoutes: Sendable {
     func startChat(_ chat: ChatRequest, settings: GenerationSettings, model id: String) async throws -> ChatRun {
         let lease = try await router.acquire(id)
         do {
+            noteIgnoredSettings(settings, engine: lease.engine)
             let info = await lease.engine.info()
             let tokens = try await promptTokens(for: chat, engine: lease.engine, info: info)
             let generation = try generationRequest(tokens: tokens.ids, settings: settings, info: info)
