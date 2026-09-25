@@ -130,13 +130,31 @@ tasks:
         mkdir -p "$DEST"
         cp -f "$SRC" "$DEST/quail-server"
 
+        # The MLX engine's Metal shaders (ADR D-044): mlx-swift builds them into a SwiftPM resource
+        # bundle. Inside an app the library looks for it in Contents/Resources (the main bundle of a
+        # tool in Contents/MacOS is the app); a bare mlx.metallib in Contents/MacOS would also load
+        # but codesign refuses an unsigned file there. A server that can't find the shaders aborts the
+        # whole process on the first MLX model load, so a missing bundle fails the build.
+        MLXBUNDLE="${BUILT_PRODUCTS_DIR}/mlx-swift_Cmlx.bundle"
+        if [ ! -f "$MLXBUNDLE/Contents/Resources/default.metallib" ]; then
+          echo "error: $MLXBUNDLE has no default.metallib — was the Metal Toolchain installed? (xcodebuild -downloadComponent MetalToolchain)" >&2
+          exit 1
+        fi
+        MLXDEST="${CODESIGNING_FOLDER_PATH}/Contents/Resources/mlx-swift_Cmlx.bundle"
+        mkdir -p "${CODESIGNING_FOLDER_PATH}/Contents/Resources"
+        rm -rf "$MLXDEST" "$DEST/mlx-swift_Cmlx.bundle" "$DEST/mlx.metallib"
+        cp -a "$MLXBUNDLE" "$MLXDEST"
+
         if [ "${CODE_SIGNING_ALLOWED:-YES}" = "NO" ]; then
+          codesign --force --sign - "$MLXDEST"
           codesign --force --sign - "$DEST/quail-server"
         elif [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ] && [ "${EXPANDED_CODE_SIGN_IDENTITY}" != "-" ]; then
-          ARGS=(--force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --options runtime --identifier com.datoos.quail.server)
+          ARGS=(--force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --options runtime)
           case "${CONFIGURATION:-}" in Release*) ARGS+=(--timestamp) ;; esac
-          codesign "${ARGS[@]}" "$DEST/quail-server"
+          codesign "${ARGS[@]}" "$MLXDEST"
+          codesign "${ARGS[@]}" --identifier com.datoos.quail.server "$DEST/quail-server"
         else
+          codesign --force --sign - "$MLXDEST"
           codesign --force --sign - "$DEST/quail-server"
         fi
         echo "embed:server: staged and signed quail-server into $DEST"

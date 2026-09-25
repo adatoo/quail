@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-09-25
+
+### Changed
+
+- Internal, no visible change yet: `quail-server` runs MLX models itself, next to GGUF ones (ADR D-044): streaming and
+  whole replies, prompt caching, seeds, stop strings and hang-up handling. The app still starts llama-server until the
+  runtime switch. The app bundle grows from 47 MB to 82 MB (MLX and its Metal shaders).
+
 ## [0.20.0] - 2026-09-25
 
 ### Changed

@@ -82,6 +82,7 @@ tasks:
           -project '{{.ROOT_DIR}}/Quail.xcodeproj' \
           -scheme Quail \
           -configuration Release \
+          -skipPackagePluginValidation -skipMacroValidation \
           -archivePath '{{.ARCHIVE_PATH}}' \
           CODE_SIGN_STYLE=Manual \
           CODE_SIGN_IDENTITY='{{.IDENTITY}}' \

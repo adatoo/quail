@@ -105,6 +105,16 @@ jobs:
           sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
 
+      # mlx-swift compiles its Metal shaders during the build (ADR D-028/D-044); on Xcode 26 the
+      # Metal Toolchain is a separate download (about 840 MB) when the image doesn't carry it.
+      - name: Metal Toolchain
+        run: |
+          if xcrun --find metal > /dev/null 2>&1; then
+            echo "Metal Toolchain already installed"
+          else
+            xcodebuild -downloadComponent MetalToolchain
+          fi
+
       - name: Set up Task
         uses: go-task/setup-task@v2
         with:
