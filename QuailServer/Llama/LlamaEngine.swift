@@ -157,6 +157,18 @@ final class LlamaRuntime: @unchecked Sendable {
     /// full training context, which for a modern model is a KV cache of many gigabytes.
     static let defaultContext = 32768
 
+    /// Performance cores (`hw.perflevel0.physicalcpu`), or the physical cores on a Mac without levels.
+    static let performanceCores: Int = {
+        for name in ["hw.perflevel0.physicalcpu", "hw.physicalcpu"] {
+            var value: Int32 = 0
+            var size = MemoryLayout<Int32>.size
+            if sysctlbyname(name, &value, &size, nil, 0) == 0, value > 0 {
+                return Int(value)
+            }
+        }
+        return 4
+    }()
+
     deinit {
         // Only reached if the engine is dropped without `unload`.
         queue.sync { unload() }
@@ -204,6 +216,11 @@ final class LlamaRuntime: @unchecked Sendable {
         contextParams.n_seq_max = UInt32(slotCount)
         // The slots share one pool of KV cells, so a lone long request can use all of the context (ADR D-048).
         contextParams.kv_unified = slotCount > 1
+        // llama-server's default: one thread per performance core. The CPU still does the input embedding
+        // lookup and the sampling with a model fully on the GPU, and libllama's own default is 4.
+        let threads = Int32(Self.performanceCores)
+        contextParams.n_threads = threads
+        contextParams.n_threads_batch = threads
         guard let made = llama_init_from_model(loaded, contextParams) else {
             llama_model_free(loaded)
             throw EngineError.loadFailed(

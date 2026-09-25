@@ -59,6 +59,19 @@ struct HTTPServerTests {
         #expect(both.contains("Connection: keep-alive"))
     }
 
+    @Test("one connection keeps working after more than 64 KB of requests (a long agent session, a benchmark)")
+    func longKeepAlive() async throws {
+        let (server, port) = try await Self.start()
+        defer { server.stop() }
+        let client = try RawHTTPClient(port: port)
+        let body = String(repeating: "x", count: 30000)
+        for index in 0 ..< 5 {
+            client.send("POST /r\(index) HTTP/1.1\r\nHost: x\r\nContent-Length: \(body.utf8.count)\r\n\r\n\(body)")
+            let reply = client.read(until: #""path":"/r\#(index)""#)
+            #expect(reply.contains("HTTP/1.1 200 OK"), "request \(index): \(reply.prefix(80))")
+        }
+    }
+
     @Test("Expect: 100-continue gets its interim response before the body is sent")
     func expectContinue() async throws {
         let (server, port) = try await Self.start()

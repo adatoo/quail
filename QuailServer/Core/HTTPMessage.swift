@@ -132,7 +132,10 @@ enum HTTPRequestParser {
             }
             return nil
         }
-        if end.upperBound > maxHeaderBytes {
+        // Offsets from the buffer's start, not its indices: a connection's buffer is a slice whose indices keep
+        // counting up as requests are taken off the front, so after 64 KB on one keep-alive connection an
+        // index-based check refused every request that followed.
+        if buffer.distance(from: buffer.startIndex, to: end.upperBound) > maxHeaderBytes {
             throw HTTPParseError.headersTooLarge
         }
         guard let text = String(data: buffer[buffer.startIndex ..< end.lowerBound], encoding: .utf8) else {
