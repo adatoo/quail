@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-09-25
+
+### Added
+
+- Quail server's chat page keeps your chats (in the browser, with a searchable list), renders replies as Markdown with copyable code blocks, has a settings panel for temperature, top-p, penalties, seed, stop strings, thinking and JSON replies, and lets you edit, regenerate, copy or delete any message, and export or import chats (ADR D-042).
+
 ## [0.30.0] - 2026-09-25
 
 ### Added
