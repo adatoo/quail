@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.31.2] - 2026-09-26
+
+### Fixed
+
+- Internal: `quail-server` generated about 10 % slower than llama-server on the same model, because ggml made a new CPU thread pool for every token; it now keeps one for the model's lifetime, as llama-server does, and matches it (Qwen3-0.6B 244 vs 242 tokens/s, Qwen3-8B 39.0 vs 36.4). A request that asks for no prompt cache now still goes to the slot that last served the same prompt, instead of spreading over every slot.
+
 ## [0.31.1] - 2026-09-25
 
 ### Fixed

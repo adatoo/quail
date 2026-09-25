@@ -132,6 +132,7 @@ final class LlamaRuntime: @unchecked Sendable {
     /// libmtmd's context for the model's vision projector, if it has one.
     var vision: OpaquePointer?
     var batchSize = 512
+    var threadPool: OpaquePointer?
 
     /// The requests being served, one per slot (a sequence of the context), and the batch they share.
     let slotCount: Int
@@ -230,6 +231,14 @@ final class LlamaRuntime: @unchecked Sendable {
         }
         model = loaded
         context = made
+        // A thread pool that lives as long as the context, as llama-server keeps one: without it ggml makes a
+        // fresh pool for every decode's CPU work (the input embedding lookup), which is per-token overhead.
+        var poolParams = ggml_threadpool_params_default(threads)
+        poolParams.poll = 50 // llama-server's default: spin briefly before sleeping
+        threadPool = ggml_threadpool_new(&poolParams)
+        if let threadPool {
+            llama_attach_threadpool(made, threadPool, threadPool)
+        }
         vocab = llama_model_get_vocab(loaded)
         batchSize = max(1, Int(llama_n_batch(made)))
         batch = llama_batch_init(Int32(batchSize), 0, 1)
@@ -285,6 +294,10 @@ final class LlamaRuntime: @unchecked Sendable {
         if let context {
             llama_free(context)
         }
+        if let threadPool {
+            ggml_threadpool_free(threadPool)
+        }
+        threadPool = nil
         if let model {
             llama_model_free(model)
         }
