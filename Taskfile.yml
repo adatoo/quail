@@ -49,6 +49,9 @@ vars:
   SCHEME: Quail
   CONFIGURATION: Debug
   DESTINATION: platform=macOS
+  # mlx-swift has a build-tool plugin (its Metal shaders), and Xcode won't run one it hasn't been
+  # told to trust when it's run from the command line (ADR D-028/D-044).
+  XCODEBUILD_TRUST: -skipPackagePluginValidation -skipMacroValidation
   # CI builds unsigned; `task build CODE_SIGNING_ALLOWED=YES` uses your
   # Config/LocalSigning.local.xcconfig identity, if you have one.
   CODE_SIGNING_ALLOWED: 'NO'
@@ -144,7 +147,7 @@ tasks:
         msg: 'xcodebuild not found — install Xcode (DEVELOPER_DIR={{.DEVELOPER_DIR}})'
     cmds:
       - >-
-        xcodebuild -scheme {{.SCHEME}} -configuration {{.CONFIGURATION}} build
+        xcodebuild -scheme {{.SCHEME}} -configuration {{.CONFIGURATION}} build {{.XCODEBUILD_TRUST}}
         -derivedDataPath "{{.DERIVED_DATA}}"
         -destination '{{.DESTINATION}}'
         CODE_SIGNING_ALLOWED={{.CODE_SIGNING_ALLOWED}}
@@ -163,7 +166,7 @@ tasks:
         msg: 'xcodebuild not found — install Xcode (DEVELOPER_DIR={{.DEVELOPER_DIR}})'
     cmds:
       - >-
-        xcodebuild -scheme {{.SCHEME}} -configuration {{.CONFIGURATION}} test
+        xcodebuild -scheme {{.SCHEME}} -configuration {{.CONFIGURATION}} test {{.XCODEBUILD_TRUST}}
         -derivedDataPath "{{.DERIVED_DATA}}"
         -destination '{{.DESTINATION}}'
         CODE_SIGNING_ALLOWED={{.CODE_SIGNING_ALLOWED}}
@@ -207,6 +210,10 @@ tasks:
           echo "::error::llama.framework is missing from Quail.app/Contents/Frameworks — check taskfiles/embed.yml and run task vendor:llama" >&2
           exit 1
         fi
+        if [ ! -s "$APP/Contents/Resources/mlx-swift_Cmlx.bundle/Contents/Resources/default.metallib" ]; then
+          echo "::error::mlx-swift_Cmlx.bundle (the MLX shaders) is missing from Quail.app/Contents/Resources — MLX models would abort quail-server (ADR D-044); check taskfiles/embed.yml" >&2
+          exit 1
+        fi
         if ! "$APP/Contents/MacOS/quail-server" --version > /dev/null; then
           echo "::error::quail-server won't launch from $APP — its llama.framework can't be loaded (rpath, architecture or code-signing Team ID)" >&2
           exit 1
@@ -221,7 +228,7 @@ tasks:
           fi
           echo "update key present: $KEY"
         fi
-        echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp, llama.framework present; quail-server launches"
+        echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp, llama.framework and the MLX shader bundle present; quail-server launches"
 
   install:
     desc: Build Release and install to ~/Apps/Quail.app (INSTALL_DIR=… to change; ad-hoc signed, without the hardened runtime, unless QUAIL_SIGN_IDENTITY is set)
@@ -243,7 +250,7 @@ tasks:
       - task: vendor:llama
       - |
         echo "==> building Release, signing with '{{.SIGN_IDENTITY}}' ..."
-        xcodebuild -scheme Quail -configuration Release build \
+        xcodebuild -scheme Quail -configuration Release build {{.XCODEBUILD_TRUST}} \
           -derivedDataPath "{{.DERIVED_DATA}}" \
           -destination '{{.DESTINATION}}' \
           ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \

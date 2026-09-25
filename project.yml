@@ -31,13 +31,21 @@ packages:
   Collections:
     url: https://github.com/apple/swift-collections
     exactVersion: 1.3.0
+  # ADR D-028/D-044: the MLX engine (the quail-server tool only; a static library can't be handed a package's C modules). mlx-swift-lm brings mlx-swift and the
+  # model implementations; swift-transformers' Tokenizers reads tokenizer.json from the model folder.
+  MLXSwiftLM:
+    url: https://github.com/ml-explore/mlx-swift-lm
+    exactVersion: 3.31.3
+  SwiftTransformers:
+    url: https://github.com/huggingface/swift-transformers
+    exactVersion: 1.3.4
 
 settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "0.20.0"
-    CURRENT_PROJECT_VERSION: "30"
+    MARKETING_VERSION: "0.21.0"
+    CURRENT_PROJECT_VERSION: "31"
     ENABLE_HARDENED_RUNTIME: YES
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_LSUIElement: YES
@@ -253,11 +261,18 @@ targets:
     platform: macOS
     sources:
       - path: QuailServer/Main
+      - path: QuailServer/MLX
     dependencies:
       - target: QuailServerCore
       - target: QuailServerLlama
       - framework: Vendor/llama.xcframework
         embed: false
+      - package: MLXSwiftLM
+        product: MLXLLM
+      - package: MLXSwiftLM
+        product: MLXLMCommon
+      - package: SwiftTransformers
+        product: Tokenizers
       # A static library doesn't carry its package products to whatever links it.
       - package: Jinja
       - package: Collections
