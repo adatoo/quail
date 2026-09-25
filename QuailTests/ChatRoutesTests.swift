@@ -503,8 +503,12 @@ struct ChatRoutesTests {
         (#"{"model":"Alpha","messages":[{"content":"x"}]}"#, "each message needs a \"role\""),
         (#"{"model":"Alpha","messages":[5]}"#, "each message needs a \"role\""),
         (
-            #"{"model":"Alpha","messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":"data:x"}}]}]}"#,
-            "image_url input is not supported yet; quail-server has no vision engine"
+            #"{"model":"Alpha","messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":"data:image/png;base64,AAAA"}}]}]}"#,
+            "the engine serving this model can't read images yet"
+        ),
+        (
+            #"{"model":"Alpha","messages":[{"role":"user","content":[{"type":"input_audio","input_audio":{}}]}]}"#,
+            "input_audio input is not supported"
         ),
         (
             #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"xml"}}"#,
@@ -536,6 +540,82 @@ struct ChatRoutesTests {
         let reply = await Harness().json(body)
         #expect(reply.status == 400)
         #expect((reply.json["error"] as? [String: Any])?["message"] as? String == message)
+    }
+
+    // MARK: images
+
+    private static let pixel = "iVBORw0KGgo=" // the start of a PNG; the tests never decode it
+    private static func imageBody(_ parts: String, extra: String = "") -> String {
+        #"{"model":"Alpha","messages":[{"role":"user","content":[\#(parts)]}]\#(extra)}"#
+    }
+
+    private static func image(_ url: String) -> String {
+        #"{"type":"image_url","image_url":{"url":"\#(url)"}}"#
+    }
+
+    @Test("an image is a marker in the prompt text and its bytes beside it, in order")
+    func images() async throws {
+        let harness = Harness(template: Self.template("qwen3")) { $0.capabilities = .init(vision: true)
+            $0.supportsImages = true
+        }
+        let first = "data:image/png;base64,\(Self.pixel)"
+        let second = "data:image/jpeg;base64,\(Data([1, 2, 3]).base64EncodedString())"
+        let reply = await harness.json(Self.imageBody(
+            #"{"type":"text","text":"Compare"},\#(Self.image(first)),\#(Self.image(second)),{"type":"text","text":"please"}"#
+        ))
+        #expect(reply.status == 200)
+        let request = try #require(harness.world.requests.last)
+        #expect(try request.media == [#require(Data(base64Encoded: Self.pixel)), Data([1, 2, 3])])
+        #expect(request.promptText?.contains("Compare\n<__media__>\n<__media__>\nplease") == true)
+        #expect(request.promptText == harness.prompt)
+    }
+
+    @Test("a template that wants typed parts is given the marker as a text part")
+    func imagesForTypedTemplates() async {
+        let harness = Harness(template: Self.template("gemma3")) { $0.capabilities = .init(vision: true)
+            $0.supportsImages = true
+        }
+        let reply = await harness.json(Self.imageBody(Self.image("data:image/png;base64,\(Self.pixel)")))
+        #expect(reply.status == 200)
+        #expect(harness.world.requests.last?.promptText?.contains("<__media__>") == true)
+    }
+
+    @Test("image URLs that would need fetching, and malformed ones, are refused with the reason", arguments: [
+        ("https://example.com/cat.png", "quail-server doesn't fetch image URLs; send the image as a base64 data: URL"),
+        ("http://127.0.0.1/cat.png", "quail-server doesn't fetch image URLs; send the image as a base64 data: URL"),
+        ("file:///etc/passwd", "quail-server doesn't fetch image URLs; send the image as a base64 data: URL"),
+        ("cat.png", "an image must be a base64 data: URL"),
+        ("data:image/png,abc", "the image's data: URL must be base64 encoded"),
+        ("data:image/png;base64,", "the image's base64 data is empty or malformed"),
+        ("data:image/png;base64", "the image's data: URL has no data"),
+    ])
+    func badImages(url: String, message: String) async {
+        let harness = Harness { $0.capabilities = .init(vision: true)
+            $0.supportsImages = true
+        }
+        let reply = await harness.json(Self.imageBody(Self.image(url)))
+        #expect(reply.status == 400)
+        #expect((reply.json["error"] as? [String: Any])?["message"] as? String == message)
+        #expect(harness.world.requests.isEmpty)
+    }
+
+    @Test("a model without a projector says so")
+    func imagesWithoutProjector() async {
+        let harness = Harness { $0.capabilities = .init(vision: true) }
+        let reply = await harness.json(Self.imageBody(Self.image("data:image/png;base64,\(Self.pixel)")))
+        #expect(reply.status == 400)
+        #expect((reply.json["error"] as? [String: Any])?["message"] as? String
+            == "this model has no vision projector (an mmproj file), so it can't read images")
+    }
+
+    @Test("a conversation with no images is unchanged: no media, no prompt text")
+    func noImages() async throws {
+        let harness = Harness { $0.capabilities = .init(vision: true)
+            $0.supportsImages = true
+        }
+        _ = await harness.json(#"{"model":"Alpha","messages":[{"role":"user","content":"hi"}]}"#)
+        let request = try #require(harness.world.requests.last)
+        #expect(request.media.isEmpty && request.promptText == nil)
     }
 
     @Test("a conversation the template rejects is a 400 with its own explanation")

@@ -110,7 +110,8 @@ struct ResponsesRoutesTests {
             #"{"model":"Alpha","input":[]}"#,
             #"{"model":"Alpha","input":"x","previous_response_id":"resp_1"}"#,
             #"{"model":"Alpha","input":[{"type":"item_reference","id":"x"}]}"#,
-            #"{"model":"Alpha","input":[{"role":"user","content":[{"type":"input_image","image_url":"x"}]}]}"#,
+            #"{"model":"Alpha","input":[{"role":"user","content":[{"type":"input_image","image_url":"data:image/png;base64,AQID"}]}]}"#,
+            #"{"model":"Alpha","input":[{"role":"user","content":[{"type":"input_image","file_id":"file-1"}]}]}"#,
             #"{"model":"Alpha","input":"x","tools":\#(Self.weatherTool),"tool_choice":"required"}"#,
             #"{"model":"Alpha","input":"x","text":{"format":{"type":"json_schema"}}}"#,
             #"{"input":"x"}"#,
@@ -154,6 +155,25 @@ struct ResponsesRoutesTests {
             #"{"model":"Alpha","input":"x","tools":\#(Self.weatherTool),"tool_choice":{"type":"function","name":"other"}}"#
         )
         #expect(unknown.status == 400)
+    }
+
+    @Test("input_image parts are images, as long as they are data: URLs")
+    func images() async throws {
+        let harness = RouteHarness(vision: true)
+        let reply = await harness.json(path, """
+        {"model":"Alpha","input":[{"role":"user","content":[
+          {"type":"input_text","text":"Describe"},{"type":"input_image","image_url":"data:image/png;base64,AQID"}]}]}
+        """)
+        #expect(reply.status == 200)
+        let request = try #require(harness.world.requests.last)
+        #expect(request.media == [Data([1, 2, 3])])
+        #expect(request.promptText?.contains("Describe\n<__media__>") == true)
+
+        let remote = await harness.json(
+            path,
+            #"{"model":"Alpha","input":[{"role":"user","content":[{"type":"input_image","image_url":"https://example.com/a.png"}]}]}"#
+        )
+        #expect(remote.status == 400)
     }
 
     @Test("tools OpenAI runs itself are left out of the prompt")

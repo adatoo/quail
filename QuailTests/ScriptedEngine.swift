@@ -50,6 +50,7 @@ struct ScriptedEngine: Engine {
     /// Time spent "processing the prompt" before the first token; a cancelled request cuts it short.
     var firstTokenDelay: Duration = .zero
     var capabilities = EngineCapabilities()
+    var supportsImages = false
 
     func load(_: ModelEntry) async throws {}
     func unload() async {}
@@ -64,7 +65,7 @@ struct ScriptedEngine: Engine {
     }
 
     func info() async -> EngineInfo {
-        EngineInfo(contextSize: contextSize, bosToken: bos, eosToken: eos)
+        EngineInfo(contextSize: contextSize, bosToken: bos, eosToken: eos, supportsImages: supportsImages)
     }
 
     func chatTemplate() async -> String? {

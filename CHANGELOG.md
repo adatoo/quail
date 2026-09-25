@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-09-25
+
+### Added
+
+- Internal, no visible change yet: `quail-server` reads images in chat completions, `/v1/messages` and `/v1/responses` requests (base64 `data:` URLs only; it never fetches an image URL) and hands them to an engine that can read them, with clear 400s where none can (ADR D-047). The engine that reads them comes next.
+
 ## [0.25.1] - 2026-09-25
 
 ### Fixed

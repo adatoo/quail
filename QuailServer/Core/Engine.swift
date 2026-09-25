@@ -37,10 +37,13 @@ public struct EngineCapabilities: Equatable, Sendable {
     public var extraSamplers = false
     /// Output constrained by a GBNF grammar (JSON mode, JSON schemas, forced tool calls).
     public var grammar = false
+    /// Image input, through a vision projector (ADR D-047).
+    public var vision = false
 
-    public init(extraSamplers: Bool = false, grammar: Bool = false) {
+    public init(extraSamplers: Bool = false, grammar: Bool = false, vision: Bool = false) {
         self.extraSamplers = extraSamplers
         self.grammar = grammar
+        self.vision = vision
     }
 }
 
@@ -60,11 +63,14 @@ public struct EngineInfo: Equatable, Sendable {
     /// The model's own special-token strings, passed to its chat template.
     public var bosToken: String
     public var eosToken: String
+    /// Whether the loaded model can read images (a vision projector is loaded).
+    public var supportsImages: Bool
 
-    public init(contextSize: Int, bosToken: String, eosToken: String) {
+    public init(contextSize: Int, bosToken: String, eosToken: String, supportsImages: Bool = false) {
         self.contextSize = contextSize
         self.bosToken = bosToken
         self.eosToken = eosToken
+        self.supportsImages = supportsImages
     }
 }
 
@@ -116,6 +122,12 @@ public struct GenerationRequest: Equatable, Sendable {
     public var cachePrompt = true
     /// A GBNF grammar (start rule `root`) the reply must follow; only for engines with the capability.
     public var grammar: String?
+    /// With `media`: the prompt as text, an image's place marked by `ImageInput.marker`. The engine
+    /// tokenizes this itself (the images become embeddings, not tokens); `promptTokens` is then only
+    /// the text's own tokenization, for the caller's context check.
+    public var promptText: String?
+    /// Encoded images (PNG, JPEG…) in the order their markers appear in `promptText`.
+    public var media: [Data] = []
 }
 
 public struct GenerationTimings: Equatable, Sendable {

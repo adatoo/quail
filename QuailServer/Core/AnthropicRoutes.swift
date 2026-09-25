@@ -153,8 +153,10 @@ enum AnthropicRequest {
 
     private static func notSupported(_ type: String?, in what: String) -> RequestError {
         switch type {
-        case "image", "document":
-            .invalid("\(type ?? "") input is not supported yet; quail-server has no vision engine")
+        case "document":
+            .invalid("document input is not supported")
+        case "image":
+            .invalid("images are only read from a user message's content blocks")
         default:
             .invalid("content block type '\(type ?? "")' is not supported in '\(what)'")
         }
@@ -180,17 +182,26 @@ enum AnthropicRequest {
 
     private static func userMessages(_ blocks: [Value]) throws -> [Value] {
         var out: [Value] = []
-        var pending: [String] = []
+        // Text and image parts of the user turn being built.
+        var pending: [Value] = []
         func flush() {
-            if !pending.isEmpty {
-                out.append(.record([("role", .string("user")), ("content", .string(pending.joined(separator: "\n")))]))
-                pending = []
-            }
+            guard !pending.isEmpty else { return }
+            let hasImage = pending.contains { $0["type"]?.stringValue == "image_url" }
+            let content: Value = hasImage
+                ? .array(pending)
+                : .string(pending.compactMap { $0["text"]?.stringValue }.joined(separator: "\n"))
+            out.append(.record([("role", .string("user")), ("content", content)]))
+            pending = []
         }
         for block in blocks {
             switch block["type"]?.stringValue {
             case "text":
-                pending.append(block["text"]?.stringValue ?? "")
+                pending.append(.record([
+                    ("type", .string("text")),
+                    ("text", .string(block["text"]?.stringValue ?? "")),
+                ]))
+            case "image":
+                try pending.append(imagePart(block))
             case "tool_result":
                 flush()
                 let result = try block["content"].map { try text(of: $0, what: "tool_result") } ?? ""
@@ -205,6 +216,24 @@ enum AnthropicRequest {
         }
         flush()
         return out
+    }
+
+    /// An Anthropic `image` block as a chat completions image part. Only base64 sources: a `url` source
+    /// would make the server fetch it.
+    private static func imagePart(_ block: Value) throws -> Value {
+        guard let source = block["source"] else { throw RequestError.invalid("an image block needs a \"source\"") }
+        switch source["type"]?.stringValue {
+        case "base64":
+            guard let data = source["data"]?.stringValue else {
+                throw RequestError.invalid("a base64 image source needs \"data\"")
+            }
+            let mediaType = source["media_type"]?.stringValue ?? "image/png"
+            return ImageInput.part(url: "data:\(mediaType);base64,\(data)")
+        case "url":
+            throw RequestError.invalid("quail-server doesn't fetch image URLs; send the image as a base64 source")
+        default:
+            throw RequestError.invalid("an image source must be base64")
+        }
     }
 
     private static func assistantMessage(_ blocks: [Value]) throws -> Value {
