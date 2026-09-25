@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-09-25
+
+### Fixed
+
+- The Auto-merge workflow also runs when a pull request's branch is pushed to, so a PR opened before auto-merge worked (or whose auto-merge was turned off) gets it back on its next push.
+
 ## [0.25.0] - 2026-09-25
 
 ### Added

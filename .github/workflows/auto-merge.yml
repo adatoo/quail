@@ -13,9 +13,17 @@ name: Auto-merge
 on:
   pull_request:
     branches: [main]
-    types: [opened, reopened, ready_for_review]
+    types: [opened, reopened, ready_for_review, synchronize]
 
 permissions: {}
+
+# One in-flight run per PR; a new push supersedes the previous request. Asking
+# again is harmless (turning auto-merge on twice changes nothing), and it means
+# a PR opened before this workflow existed, or one whose auto-merge was turned
+# off, gets it back on its next push.
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   enable:
