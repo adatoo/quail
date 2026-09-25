@@ -1,0 +1,32 @@
+{
+ "completed_at": 1790326900,
+ "created_at": 1790326900,
+ "id": "resp_vxnxWE5YsZSHjoN0Rw7A7tTKzut4vJ0J",
+ "model": "Qwen3-8B-Q4_K_M.gguf",
+ "object": "response",
+ "output": [
+  {
+   "content": [
+    {
+     "type": "output_text",
+     "annotations": [],
+     "logprobs": [],
+     "text": "Hi."
+    }
+   ],
+   "id": "msg_wemCem047CTyJHet39Vjj6wknttwP6mc",
+   "role": "assistant",
+   "status": "completed",
+   "type": "message"
+  }
+ ],
+ "status": "completed",
+ "usage": {
+  "input_tokens": 21,
+  "output_tokens": 7,
+  "total_tokens": 28,
+  "input_tokens_details": {
+   "cached_tokens": 0
+  }
+ }
+}

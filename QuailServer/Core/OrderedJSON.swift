@@ -279,6 +279,17 @@ enum OrderedJSON {
 // MARK: Reading a parsed request
 
 extension Value {
+    /// An object with these members in this order; a `nil` value leaves its member out.
+    static func record(_ members: [(String, Value?)]) -> Value {
+        var object = OrderedDictionary<ObjectKey, Value>()
+        for (key, value) in members {
+            if let value {
+                object[.string(key)] = value
+            }
+        }
+        return .object(object)
+    }
+
     /// An object member, or `nil` when this isn't an object or has no such key.
     subscript(key: String) -> Value? {
         guard case let .object(members) = self else { return nil }

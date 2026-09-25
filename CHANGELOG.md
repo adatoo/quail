@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-09-25
+
+### Changed
+
+- Internal, no visible change yet: `quail-server` answers Anthropic's `/v1/messages` (the API Claude Code uses, with
+  `count_tokens`) and OpenAI's `/v1/responses`, on the same chat pipeline as `/v1/chat/completions`, in the shapes
+  llama-server sends (ADR D-041).
+
 ## [0.17.0] - 2026-09-25
 
 ### Changed

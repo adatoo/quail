@@ -17,6 +17,12 @@ struct InferenceRoutes: Sendable {
             await guarded(request, method: "POST") { try await completions(request) }
         case "/v1/chat/completions", "/chat/completions":
             await guarded(request, method: "POST") { try await chatCompletions(request) }
+        case "/v1/messages", "/messages":
+            await guarded(request, method: "POST", style: .anthropic) { try await messages(request) }
+        case "/v1/messages/count_tokens", "/messages/count_tokens":
+            await guarded(request, method: "POST", style: .anthropic) { try await countTokens(request) }
+        case "/v1/responses", "/responses":
+            await guarded(request, method: "POST") { try await responses(request) }
         case "/tokenize":
             await guarded(request, method: "POST") { try await tokenize(request) }
         case "/detokenize":
@@ -28,28 +34,39 @@ struct InferenceRoutes: Sendable {
         }
     }
 
-    private func guarded(
+    /// How a route words its errors: OpenAI's `{"error": {…}}` or Anthropic's `{"type": "error", …}`.
+    enum ErrorStyle {
+        case openAI
+        case anthropic
+    }
+
+    func guarded(
         _ request: HTTPRequest,
         method: String,
+        style: ErrorStyle = .openAI,
         _ body: () async throws -> HTTPResponse
     ) async -> HTTPResponse {
         guard request.method == method else {
-            return .error(405, type: "invalid_request_error", message: "Method Not Allowed")
+            return style.response(RequestError(
+                status: 405,
+                type: "invalid_request_error",
+                message: "Method Not Allowed"
+            ))
         }
         do {
             return try await body()
         } catch let error as RequestError {
-            return error.response
+            return style.response(error)
         } catch let error as RouterError {
-            return Self.response(for: error)
+            return style.response(Self.requestError(for: error))
         } catch {
-            return .error(500, type: "server_error", message: error.localizedDescription)
+            return style.response(RequestError(status: 500, type: "server_error", message: error.localizedDescription))
         }
     }
 
     // MARK: Shared
 
-    private func jsonBody(_ request: HTTPRequest) throws -> Value {
+    func jsonBody(_ request: HTTPRequest) throws -> Value {
         do {
             let value = try OrderedJSON.parse(request.body)
             guard case .object = value else { throw RequestError.invalid("the request body must be a JSON object") }
@@ -61,7 +78,7 @@ struct InferenceRoutes: Sendable {
 
     /// The model a request names: `model` in the body, or `?model=` for the GET routes. A router
     /// has no default, so a request that names none is refused (llama-server's behaviour).
-    private func modelID(body: Value?, request: HTTPRequest) async throws -> String {
+    func modelID(body: Value?, request: HTTPRequest) async throws -> String {
         var id = body?["model"]?.stringValue
         if id == nil, let query = URLComponents(string: request.target)?.queryItems {
             id = query.first { $0.name == "model" }?.value
@@ -71,11 +88,11 @@ struct InferenceRoutes: Sendable {
         return id
     }
 
-    static func response(for error: RouterError) -> HTTPResponse {
+    static func requestError(for error: RouterError) -> RequestError {
         switch error {
-        case .unknownModel: .error(400, type: "invalid_request_error", message: error.localizedDescription)
-        case .shuttingDown: .error(503, type: "unavailable_error", message: error.localizedDescription)
-        case .loadFailed: .error(500, type: "server_error", message: error.localizedDescription)
+        case .unknownModel: .invalid(error.localizedDescription)
+        case .shuttingDown: RequestError(status: 503, type: "unavailable_error", message: error.localizedDescription)
+        case .loadFailed: RequestError(status: 500, type: "server_error", message: error.localizedDescription)
         }
     }
 
@@ -98,7 +115,7 @@ struct InferenceRoutes: Sendable {
         throw RequestError.invalid("\"prompt\" must be a string or an array of token ids")
     }
 
-    private func generationRequest(
+    func generationRequest(
         tokens: [Int],
         settings: GenerationSettings,
         info: EngineInfo
@@ -185,11 +202,15 @@ struct InferenceRoutes: Sendable {
 
     /// Sends events as SSE while a background task holds the model lease; the lease is released when
     /// the stream ends, however it ends, including the client going away.
-    private func streamResponse<Event: Sendable>(
+    func streamResponse<Event: Sendable>(
         first: Event?,
         pump: EventPump<Event>,
         lease: ModelLease,
         opening: Data? = nil,
+        closing: Data? = InferenceJSON.done,
+        failure: @escaping @Sendable (any Error) -> Data = { error in
+            InferenceJSON.sseError(message: error.localizedDescription, type: "server_error", code: 500)
+        },
         encode: @escaping @Sendable (Event) -> Data
     ) -> HTTPResponse {
         let router = router
@@ -207,13 +228,11 @@ struct InferenceRoutes: Sendable {
                     }
                 } catch {
                     log.log(.warn, "generation failed mid-stream: \(error.localizedDescription)")
-                    continuation.yield(InferenceJSON.sseError(
-                        message: error.localizedDescription,
-                        type: "server_error",
-                        code: 500
-                    ))
+                    continuation.yield(failure(error))
                 }
-                continuation.yield(InferenceJSON.done)
+                if let closing {
+                    continuation.yield(closing)
+                }
                 continuation.finish()
                 await router.release(lease)
             }
@@ -233,92 +252,144 @@ struct InferenceRoutes: Sendable {
         let settings = try GenerationSettings(body)
         let chat = try ChatRequest(body)
         let id = try await modelID(body: body, request: request)
-        let lease = try await router.acquire(id)
+        let run = try await startChat(chat, settings: settings, model: id)
 
         let responseID = InferenceJSON.newID()
         let created = Int(Date().timeIntervalSince1970)
+        @Sendable func chunk(
+            _ delta: InferenceJSON.ChatChunk.Delta, finish: FinishReason? = nil, timings: GenerationTimings? = nil,
+            usage: Bool = false, noChoices: Bool = false
+        ) -> Data {
+            InferenceJSON.sse(InferenceJSON.ChatChunk(
+                choices: noChoices ? [] : [.init(
+                    delta: delta,
+                    finishReason: finish.map(InferenceJSON.finishReason)
+                )],
+                created: created, id: responseID, model: id, systemFingerprint: buildLabel,
+                usage: usage ? timings.map(InferenceJSON.Usage.init) : nil,
+                timings: timings.map(InferenceJSON.Timings.init)
+            ))
+        }
+
+        if !settings.stream {
+            let reply = try await collect(run)
+            return .json(200, InferenceJSON.ChatCompletion(
+                choices: [.init(
+                    message: .init(
+                        content: reply.content,
+                        reasoningContent: reply.reasoning.isEmpty ? nil : reply.reasoning,
+                        toolCalls: reply.calls.isEmpty ? nil : reply.calls.map { InferenceJSON.ToolCall($0) }
+                    ),
+                    finishReason: InferenceJSON.finishReason(reply.reason)
+                )],
+                created: created, model: id, systemFingerprint: buildLabel, id: responseID,
+                usage: InferenceJSON.Usage(reply.timings), timings: InferenceJSON.Timings(reply.timings)
+            ))
+        }
+
+        let first = try await firstEvent(of: run)
+        let includeUsage = settings.includeUsage
+        let callCounter = CallCounter()
+        // The role goes out first, as its own chunk, then the deltas.
+        let opening = chunk(.init(role: "assistant", nullContent: true))
+        return streamResponse(first: first, pump: run.pump, lease: run.lease, opening: opening) { event in
+            switch event {
+            case let .delta(.content(piece)): return chunk(.init(content: piece))
+            case let .delta(.reasoning(piece)): return chunk(.init(reasoningContent: piece))
+            case let .delta(.toolCall(call)):
+                // A call goes out whole, in one delta; a client concatenates arguments either way.
+                return chunk(.init(toolCalls: [InferenceJSON.ToolCall(call, index: callCounter.next())]))
+            case let .finished(reason, timings):
+                var frames = chunk(.init(), finish: reason, timings: timings)
+                if includeUsage {
+                    frames += chunk(.init(), timings: timings, usage: true, noChoices: true)
+                }
+                return frames
+            }
+        }
+    }
+
+    /// A chat generation under way. Whoever holds it must give the lease back, which `collect` and
+    /// `streamResponse` do however they end.
+    struct ChatRun: Sendable {
+        let lease: ModelLease
+        let pump: EventPump<ChatEvent>
+        let promptTokens: Int
+    }
+
+    /// Everything a whole (non-streamed) reply says.
+    struct ChatReply {
+        var content = ""
+        var reasoning = ""
+        var calls: [ParsedToolCall] = []
+        var reason = FinishReason.stop
+        var timings: GenerationTimings
+    }
+
+    /// Loads the model if need be, renders and tokenizes the prompt, and starts generating.
+    func startChat(_ chat: ChatRequest, settings: GenerationSettings, model id: String) async throws -> ChatRun {
+        let lease = try await router.acquire(id)
         do {
             let info = await lease.engine.info()
-            let prompt = try await renderPrompt(chat, engine: lease.engine, info: info)
-            // A template that starts with the BOS text already has one; don't add a second.
-            let addSpecial = info.bosToken.isEmpty || !prompt.text.hasPrefix(info.bosToken)
-            let tokens = try await lease.engine.tokenize(prompt.text, addSpecial: addSpecial, parseSpecial: true)
-            let generation = try generationRequest(tokens: tokens, settings: settings, info: info)
+            let tokens = try await promptTokens(for: chat, engine: lease.engine, info: info)
+            let generation = try generationRequest(tokens: tokens.ids, settings: settings, info: info)
             let text = TextGenerator.stream(engine: lease.engine, request: generation, stop: settings.stop)
             let parser = ChatOutputParser(
-                format: prompt.toolFormat,
+                format: tokens.toolFormat,
                 tools: chat.toolsEnabled ? chat.tools ?? [] : [],
-                startsInReasoning: prompt.thinkingIsOpen
+                startsInReasoning: tokens.thinkingIsOpen
             )
-            let pump = EventPump(ChatStream.events(from: text, parser: parser))
+            return ChatRun(
+                lease: lease,
+                pump: EventPump(ChatStream.events(from: text, parser: parser)),
+                promptTokens: tokens.ids.count
+            )
+        } catch {
+            await router.release(lease)
+            throw error
+        }
+    }
 
-            @Sendable func chunk(
-                _ delta: InferenceJSON.ChatChunk.Delta, finish: FinishReason? = nil, timings: GenerationTimings? = nil,
-                usage: Bool = false, noChoices: Bool = false
-            ) -> Data {
-                InferenceJSON.sse(InferenceJSON.ChatChunk(
-                    choices: noChoices ? [] : [.init(
-                        delta: delta,
-                        finishReason: finish.map(InferenceJSON.finishReason)
-                    )],
-                    created: created, id: responseID, model: id, systemFingerprint: buildLabel,
-                    usage: usage ? timings.map(InferenceJSON.Usage.init) : nil,
-                    timings: timings.map(InferenceJSON.Timings.init)
-                ))
-            }
+    /// The chat prompt as token ids, with what the template says about the reply.
+    func promptTokens(
+        for chat: ChatRequest, engine: any Engine, info: EngineInfo
+    ) async throws -> (ids: [Int], thinkingIsOpen: Bool, toolFormat: ToolCallFormat) {
+        let prompt = try await renderPrompt(chat, engine: engine, info: info)
+        // A template that starts with the BOS text already has one; don't add a second.
+        let addSpecial = info.bosToken.isEmpty || !prompt.text.hasPrefix(info.bosToken)
+        let ids = try await engine.tokenize(prompt.text, addSpecial: addSpecial, parseSpecial: true)
+        return (ids, prompt.thinkingIsOpen, prompt.toolFormat)
+    }
 
-            if !settings.stream {
-                var content = "", reasoning = ""
-                var calls: [InferenceJSON.ToolCall] = []
-                var finished: (FinishReason, GenerationTimings)?
-                while let event = try await pump.next() {
-                    switch event {
-                    case let .delta(.content(piece)): content += piece
-                    case let .delta(.reasoning(piece)): reasoning += piece
-                    case let .delta(.toolCall(call)): calls.append(InferenceJSON.ToolCall(call))
-                    case let .finished(reason, timings): finished = (reason, timings)
-                    }
-                }
-                await router.release(lease)
-                let (reason, timings) = finished ?? (.stop, GenerationTimings(
-                    promptTokens: tokens.count, promptSeconds: 0, generatedTokens: 0, generatedSeconds: 0
-                ))
-                return .json(200, InferenceJSON.ChatCompletion(
-                    choices: [.init(
-                        message: .init(
-                            content: content,
-                            reasoningContent: reasoning.isEmpty ? nil : reasoning,
-                            toolCalls: calls.isEmpty ? nil : calls
-                        ),
-                        finishReason: InferenceJSON.finishReason(reason)
-                    )],
-                    created: created, model: id, systemFingerprint: buildLabel, id: responseID,
-                    usage: InferenceJSON.Usage(timings), timings: InferenceJSON.Timings(timings)
-                ))
-            }
-
-            let first = try await pump.next()
-            let includeUsage = settings.includeUsage
-            let callCounter = CallCounter()
-            // The role goes out first, as its own chunk, then the deltas.
-            let opening = chunk(.init(role: "assistant", nullContent: true))
-            return streamResponse(first: first, pump: pump, lease: lease, opening: opening) { event in
+    /// Reads a run to its end, then releases the lease.
+    func collect(_ run: ChatRun) async throws -> ChatReply {
+        var reply = ChatReply(timings: GenerationTimings(
+            promptTokens: run.promptTokens, promptSeconds: 0, generatedTokens: 0, generatedSeconds: 0
+        ))
+        do {
+            while let event = try await run.pump.next() {
                 switch event {
-                case let .delta(.content(piece)): return chunk(.init(content: piece))
-                case let .delta(.reasoning(piece)): return chunk(.init(reasoningContent: piece))
-                case let .delta(.toolCall(call)):
-                    // A call goes out whole, in one delta; a client concatenates arguments either way.
-                    return chunk(.init(toolCalls: [InferenceJSON.ToolCall(call, index: callCounter.next())]))
-                case let .finished(reason, timings):
-                    var frames = chunk(.init(), finish: reason, timings: timings)
-                    if includeUsage {
-                        frames += chunk(.init(), timings: timings, usage: true, noChoices: true)
-                    }
-                    return frames
+                case let .delta(.content(piece)): reply.content += piece
+                case let .delta(.reasoning(piece)): reply.reasoning += piece
+                case let .delta(.toolCall(call)): reply.calls.append(call)
+                case let .finished(reason, timings): (reply.reason, reply.timings) = (reason, timings)
                 }
             }
         } catch {
-            await router.release(lease)
+            await router.release(run.lease)
+            throw error
+        }
+        await router.release(run.lease)
+        return reply
+    }
+
+    /// Waits for the first event so a failure to start is a real HTTP error, not a 200 with an
+    /// error inside.
+    func firstEvent(of run: ChatRun) async throws -> ChatEvent? {
+        do {
+            return try await run.pump.next()
+        } catch {
+            await router.release(run.lease)
             throw error
         }
     }
@@ -456,15 +527,11 @@ struct InferenceRoutes: Sendable {
         }
     }
 
-    private static func json(_ object: [String: Any]) -> HTTPResponse {
-        let data = (try? JSONSerialization.data(
-            withJSONObject: object,
-            options: [.sortedKeys, .withoutEscapingSlashes]
-        )) ?? Data("{}".utf8)
-        return HTTPResponse(
+    static func json(_ object: [String: Any]) -> HTTPResponse {
+        HTTPResponse(
             status: 200,
             headers: [("Content-Type", "application/json; charset=utf-8")],
-            body: .data(data)
+            body: .data(InferenceJSON.jsonData(object))
         )
     }
 }

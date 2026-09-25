@@ -1,0 +1,28 @@
+{
+ "id": "chatcmpl-lXwTilhBC0Xdpo7ZZkxCpJGFvwJGLyet",
+ "type": "message",
+ "role": "assistant",
+ "content": [
+  {
+   "type": "thinking",
+   "thinking": "Okay, the user is asking for the weather in Paris and wants …",
+   "signature": ""
+  },
+  {
+   "type": "tool_use",
+   "id": "qEtpjYCUKDi0hIu0NLTIby2gnZjZJ2C2",
+   "name": "get_weather",
+   "input": {
+    "city": "Paris"
+   }
+  }
+ ],
+ "model": "Qwen3-8B-Q4_K_M.gguf",
+ "stop_reason": "tool_use",
+ "stop_sequence": null,
+ "usage": {
+  "cache_read_input_tokens": 0,
+  "input_tokens": 154,
+  "output_tokens": 96
+ }
+}

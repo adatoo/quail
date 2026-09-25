@@ -1,0 +1,35 @@
+event: response.created
+data: {"type":"response.created","response":{"id":"resp_w2KlZeTT7pOMaH9mWp8WB2dmvvytGj4j","object":"response","status":"in_progress"}}
+
+event: response.in_progress
+data: {"type":"response.in_progress","response":{"id":"resp_w2KlZeTT7pOMaH9mWp8WB2dmvvytGj4j","object":"response","status":"in_progress"}}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","item":{"id":"fc_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC","arguments":"","call_id":"call_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC","name":"get_weather","type":"function_call","status":"in_progress"}}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":"{","item_id":"fc_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC"}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":"\"","item_id":"fc_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC"}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":"city","item_id":"fc_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC"}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":"\":","item_id":"fc_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC"}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":" \"","item_id":"fc_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC"}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":"Paris","item_id":"fc_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC"}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","delta":"\"}","item_id":"fc_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC"}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"id":"fc_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC","type":"function_call","status":"completed","arguments":"{\"city\": \"Paris\"}","call_id":"call_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC","name":"get_weather"}}
+
+event: response.completed
+data: {"type":"response.completed","response":{"id":"resp_w2KlZeTT7pOMaH9mWp8WB2dmvvytGj4j","object":"response","created_at":1790326911,"status":"completed","model":"Qwen3-8B-Q4_K_M.gguf","output":[{"id":"fc_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC","type":"function_call","status":"completed","arguments":"{\"city\": \"Paris\"}","call_id":"call_PowQZYC6lJpxeEtgHcIUsoFYM8svQ5vC","name":"get_weather"}],"usage":{"input_tokens":158,"output_tokens":24,"total_tokens":182,"input_tokens_details":{"cached_tokens":157}}},"timings":{"cache_n":157,"prompt_n":1,"prompt_ms":25.837,"prompt_per_token_ms":25.837,"prompt_per_second":38.704183922282,"predicted_n":24,"predicted_ms":623.197,"predicted_per_token_ms":27.095521739130437,"predicted_per_second":36.906467778246686}}
