@@ -46,6 +46,7 @@
 		41E47FD4D949CA1462CEC662 /* AppState+Control.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58DBB1BAE9BE2104F218FF14 /* AppState+Control.swift */; };
 		4264D719B78C601B5C03EB45 /* Ping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C29DC0715805F71AA1A5599 /* Ping.swift */; };
 		430E89F9BAD4B4183FB1E2F8 /* ServerControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1105E578FC33E291B560DFEE /* ServerControllerTests.swift */; };
+		45065EFFD6CBA9E601D85A9D /* LlamaEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 780A3FA03B7D859B92701325 /* LlamaEngine.swift */; };
 		458E4FEE1410BD8E0191393E /* MessagesFixtureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119FB312FDFF3682386E1537 /* MessagesFixtureTests.swift */; };
 		45D2C7C5DDF6E10F03A6A694 /* QuailServerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95E0E264352A291B2B0573F5 /* QuailServerApp.swift */; };
 		47DAABA1E882A6CD01680186 /* MLXMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF36C9C4B0032D9BDA798A6 /* MLXMetadata.swift */; };
@@ -59,6 +60,7 @@
 		4D96CDD9A1EB6F60EBC6EA44 /* ModelPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E759DC17C4FF2B390C8C830 /* ModelPreview.swift */; };
 		4E1B1E162EF15798C7BEEDBB /* StoreHousekeeping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85430F6EEA9F469BD0D000C7 /* StoreHousekeeping.swift */; };
 		4EDC761EEF322255190EFD79 /* ChatCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37973E14516D1CEF142BAA1B /* ChatCommand.swift */; };
+		51DE092DE572FE7DB9622468 /* llama.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 14B9109BAA6AC2A10860B699 /* llama.xcframework */; };
 		520D2F2EE9A8B11A917DC0C1 /* CleanUpSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99472B808EA90F05B1CC57CF /* CleanUpSheet.swift */; };
 		530F6395D5751008F12153DC /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653A70D18AA958C1F75CD511 /* AppState.swift */; };
 		5322AB3BD1C7AFC48387FFDC /* MessagesRoutesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D905EB57D799D0C674BB8BF3 /* MessagesRoutesTests.swift */; };
@@ -82,6 +84,7 @@
 		6B126F9831838833DFFDF628 /* RecommenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44BD939F5108C50DFEA61E7D /* RecommenderTests.swift */; };
 		6BE70ADDED2249D447541BCC /* ServerArgumentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7083072B36C64D25935B4BA /* ServerArgumentsTests.swift */; };
 		6CEFB1575F3862C31B8F5175 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = E2B6CDF3E508203506E907DB /* Sparkle */; };
+		6D7442C7B65DA5B9C84F78AC /* llama.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 14B9109BAA6AC2A10860B699 /* llama.xcframework */; };
 		702EF962A21D3A10FC5E62A8 /* StoreCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */; };
 		711387A1DA5998F40B757612 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7109E7D7686B314F8156BAC7 /* LoginItem.swift */; };
 		71CE95CBE24B111DFE5FD2E5 /* ServerRoutesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 351535A383E3202DC84AF3A9 /* ServerRoutesTests.swift */; };
@@ -128,6 +131,7 @@
 		AD84B88BEFC224DCB3B822A2 /* ModelInstallControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60CD26ED650B7D72E7C62559 /* ModelInstallControllerTests.swift */; };
 		AE037952D6FC9021E92CE937 /* ScriptedEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9886733B6A9B2533AE9EA20A /* ScriptedEngine.swift */; };
 		AF8F824B4E7AD00629E4BEC8 /* PingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5907867E917EAA9CB82DDAAF /* PingTests.swift */; };
+		B1AB48A3C7C86F1FA16FF1DB /* LlamaEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 611AA15F2CE4E872C861D7BD /* LlamaEngineTests.swift */; };
 		B3C60940D7E63529712913CD /* ModelNameMatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3AA166B86233FC08A935A0C /* ModelNameMatch.swift */; };
 		B488A6685A594D6CCF56EB7A /* InferenceJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0B5783A20B7EA68C994DD84 /* InferenceJSON.swift */; };
 		B62BFE886200969B22216A6A /* LogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9482F330D14ABD97C3CB8A /* LogStore.swift */; };
@@ -187,14 +191,24 @@
 		F2AAFE55E1165BA78AB7A5DF /* ConnectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE785CFCB0ACA27903BF3A40 /* ConnectTests.swift */; };
 		F2B2A1AB9C4A686061468A41 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 172E2ED30331FE206614AC9C /* ArgumentParser */; };
 		F5F1627431AF9E772BD5AF5C /* ModelsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 351669FD912B75E519CAAF15 /* ModelsPane.swift */; };
+		F86D6D882D60A0CEAFA7240D /* libQuailServerLlama.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D660F1A52A0F7FB2BE791117 /* libQuailServerLlama.a */; };
 		F8F2BC616F78A5CD751E0EB6 /* ControlProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4279E9EF2E774CD49728C388 /* ControlProtocol.swift */; };
+		F96A9D87B8D11203CA621C5B /* libQuailServerLlama.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D660F1A52A0F7FB2BE791117 /* libQuailServerLlama.a */; };
 		FAA1A9A119A8B0F8C1CDCB8C /* AppLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DD4E2DDDB747A1DC4476B84 /* AppLink.swift */; };
 		FAAC603389E9A8652CD31502 /* Runtime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF75DEC1D436363C620CA16 /* Runtime.swift */; };
+		FB3B997A5212DB72C0C05530 /* llama.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 14B9109BAA6AC2A10860B699 /* llama.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		FB3EBCA2150FDBDD71E56A3A /* ChatStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76F6DC889B736AA2A68EF461 /* ChatStream.swift */; };
 		FE3F1D8FFB1AB2BA257B7DD5 /* QuailApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5340652668A6D7507752E82 /* QuailApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		2DAF922FAE3938FA637167F8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AC0B5C9A209BCF66AE62F8B0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4058757A07A3522A5AC856A5;
+			remoteInfo = QuailServerLlama;
+		};
 		30CEEE332932A9441D197C97 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AC0B5C9A209BCF66AE62F8B0 /* Project object */;
@@ -208,6 +222,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = F1792F2A38389EF9B60D5CBB;
 			remoteInfo = Quail;
+		};
+		7B40F2C6DEA1CF7A1521B129 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AC0B5C9A209BCF66AE62F8B0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4058757A07A3522A5AC856A5;
+			remoteInfo = QuailServerLlama;
 		};
 		DC01B164F6A210D80A8A848B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -223,6 +244,13 @@
 			remoteGlobalIDString = 3226F420938B63EA726E8E06;
 			remoteInfo = QuailServerCore;
 		};
+		F63935AD779CD6F701F4866A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AC0B5C9A209BCF66AE62F8B0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3226F420938B63EA726E8E06;
+			remoteInfo = QuailServerCore;
+		};
 		FEBFB7735BEB837D8A56E09F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AC0B5C9A209BCF66AE62F8B0 /* Project object */;
@@ -231,6 +259,20 @@
 			remoteInfo = QuailServerCore;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		0D6E6B3EAA5DF1A22CCA49D8 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				FB3B997A5212DB72C0C05530 /* llama.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0172F426DB7DE0BD44BE2CFA /* ConnectionTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionTester.swift; sourceTree = "<group>"; };
@@ -248,6 +290,7 @@
 		12DE6B42A661984D99734823 /* AddModelSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddModelSheet.swift; sourceTree = "<group>"; };
 		144D30C5D82C846DB278DA21 /* BenchmarkClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkClient.swift; sourceTree = "<group>"; };
 		148D086199BA9229F896DFDA /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
+		14B9109BAA6AC2A10860B699 /* llama.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = llama.xcframework; path = Vendor/llama.xcframework; sourceTree = "<group>"; };
 		15C04916186FBBF06AE570AE /* HTTPMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPMessage.swift; sourceTree = "<group>"; };
 		174474DD711C1D0D6ACAE912 /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
 		18764044809053776EEB9AED /* ChatStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStream.swift; sourceTree = "<group>"; };
@@ -298,6 +341,7 @@
 		60448A7125CE8D5E7B59ED7D /* TextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextGenerator.swift; sourceTree = "<group>"; };
 		60CD26ED650B7D72E7C62559 /* ModelInstallControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelInstallControllerTests.swift; sourceTree = "<group>"; };
 		6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppIntegrationSmokeTest.swift; sourceTree = "<group>"; };
+		611AA15F2CE4E872C861D7BD /* LlamaEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaEngineTests.swift; sourceTree = "<group>"; };
 		649E93D9E6DF446442533B00 /* GGUFFixtureBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GGUFFixtureBuilder.swift; sourceTree = "<group>"; };
 		653A70D18AA958C1F75CD511 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		65E9745F0766927BFB45E416 /* Bench.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bench.swift; sourceTree = "<group>"; };
@@ -320,6 +364,7 @@
 		739A4690CD2EC6F2564EAA6F /* ChatEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatEntry.swift; sourceTree = "<group>"; };
 		755086EBFE7D5BE4250EA6BE /* AnthropicRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnthropicRoutes.swift; sourceTree = "<group>"; };
 		76F6DC889B736AA2A68EF461 /* ChatStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStream.swift; sourceTree = "<group>"; };
+		780A3FA03B7D859B92701325 /* LlamaEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaEngine.swift; sourceTree = "<group>"; };
 		7AEDCC282A2E5255B000D877 /* HTTPServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPServerTests.swift; sourceTree = "<group>"; };
 		7C29DC0715805F71AA1A5599 /* Ping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ping.swift; sourceTree = "<group>"; };
 		7D5C298F9956FEEED5E539F2 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
@@ -391,6 +436,7 @@
 		D441338F83358942B9CB6202 /* ChatTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTemplateTests.swift; sourceTree = "<group>"; };
 		D49BE1EF5FB53B825FC562F0 /* HFDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HFDownloader.swift; sourceTree = "<group>"; };
 		D54B98A3385069A2422F5027 /* Quail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Quail.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D660F1A52A0F7FB2BE791117 /* libQuailServerLlama.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libQuailServerLlama.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D69BCA84C093F9E62CA1941F /* Quail.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Quail.entitlements; sourceTree = "<group>"; };
 		D7BD67C786011602F9C3C68D /* InstalledLookupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledLookupTests.swift; sourceTree = "<group>"; };
 		D83CDBF1BB3965798E3F1971 /* ModelDiscoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDiscoveryTests.swift; sourceTree = "<group>"; };
@@ -422,6 +468,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				90835861578F3F4EA55EF51A /* libQuailServerCore.a in Frameworks */,
+				F96A9D87B8D11203CA621C5B /* libQuailServerLlama.a in Frameworks */,
+				51DE092DE572FE7DB9622468 /* llama.xcframework in Frameworks */,
 				EE6A775F065A2C21049EE2EF /* Jinja in Frameworks */,
 				318CAFF546BFABAB6437A808 /* OrderedCollections in Frameworks */,
 			);
@@ -432,6 +480,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				8B7B66B0C7D709B600DF4856 /* libQuailServerCore.a in Frameworks */,
+				F86D6D882D60A0CEAFA7240D /* libQuailServerLlama.a in Frameworks */,
+				6D7442C7B65DA5B9C84F78AC /* llama.xcframework in Frameworks */,
 				BF922FFE87DFFBF31B7E084B /* Jinja in Frameworks */,
 				A829E4289A062DC194D7824A /* OrderedCollections in Frameworks */,
 			);
@@ -477,6 +527,7 @@
 				BC500B9BB77FBF9A0269AA72 /* QuailServer */,
 				1658C70BFCCEFC530EFAB42E /* QuailTests */,
 				05023A5FD33E9E249C46FED1 /* Shared */,
+				1A014F5E89C855CBA60FA65E /* Frameworks */,
 				C8777405539D489A674465B9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -512,6 +563,7 @@
 				D7BD67C786011602F9C3C68D /* InstalledLookupTests.swift */,
 				6107806CCC22675473E89151 /* LlamaCppIntegrationSmokeTest.swift */,
 				69B708CFABD9ED3D50E98D9F /* LlamaCppRuntimeTests.swift */,
+				611AA15F2CE4E872C861D7BD /* LlamaEngineTests.swift */,
 				C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */,
 				119FB312FDFF3682386E1537 /* MessagesFixtureTests.swift */,
 				D905EB57D799D0C674BB8BF3 /* MessagesRoutesTests.swift */,
@@ -547,6 +599,14 @@
 				D1FF95599F5FBCAAB600417C /* WebUITests.swift */,
 			);
 			path = QuailTests;
+			sourceTree = "<group>";
+		};
+		1A014F5E89C855CBA60FA65E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				14B9109BAA6AC2A10860B699 /* llama.xcframework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		2E999F1E3ABC71EC44FB61BC /* Models */ = {
@@ -699,6 +759,14 @@
 			path = Quail;
 			sourceTree = "<group>";
 		};
+		6DFA21A02848F166615DD3DD /* Llama */ = {
+			isa = PBXGroup;
+			children = (
+				780A3FA03B7D859B92701325 /* LlamaEngine.swift */,
+			);
+			path = Llama;
+			sourceTree = "<group>";
+		};
 		8AD28071AAE7CD27B345C7EB /* Benchmark */ = {
 			isa = PBXGroup;
 			children = (
@@ -741,6 +809,7 @@
 			isa = PBXGroup;
 			children = (
 				3C48DACD8E72504C92022414 /* Core */,
+				6DFA21A02848F166615DD3DD /* Llama */,
 				4952D98272B427E330935F5C /* Main */,
 			);
 			path = QuailServer;
@@ -750,6 +819,7 @@
 			isa = PBXGroup;
 			children = (
 				E8059F0B47239B370EF82EED /* libQuailServerCore.a */,
+				D660F1A52A0F7FB2BE791117 /* libQuailServerLlama.a */,
 				D54B98A3385069A2422F5027 /* Quail.app */,
 				0E50E713270D09E5D034B986 /* QuailCLI */,
 				E17B7BB6A9F4635FCFBEAF00 /* QuailServer */,
@@ -820,18 +890,39 @@
 			productReference = E8059F0B47239B370EF82EED /* libQuailServerCore.a */;
 			productType = "com.apple.product-type.library.static";
 		};
+		4058757A07A3522A5AC856A5 /* QuailServerLlama */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EAEC429A2313A95A411C4887 /* Build configuration list for PBXNativeTarget "QuailServerLlama" */;
+			buildPhases = (
+				81E97644ACB0558B59621666 /* Sources */,
+				3F41D5B73D07113FC87A6E76 /* Copy Swift Objective-C Interface Header */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				49D878015455B6F133D0E769 /* PBXTargetDependency */,
+			);
+			name = QuailServerLlama;
+			packageProductDependencies = (
+			);
+			productName = QuailServerLlama;
+			productReference = D660F1A52A0F7FB2BE791117 /* libQuailServerLlama.a */;
+			productType = "com.apple.product-type.library.static";
+		};
 		8DE891E3384083077AEE4880 /* QuailTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0017179FE5AB4CCC8FB26CB9 /* Build configuration list for PBXNativeTarget "QuailTests" */;
 			buildPhases = (
 				976ED2D376A503A2C3797322 /* Sources */,
 				106E98976C2A8574107849D0 /* Frameworks */,
+				0D6E6B3EAA5DF1A22CCA49D8 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				2FB72D7F366B7D1F0397E095 /* PBXTargetDependency */,
 				13A2DC82F952617172BB3074 /* PBXTargetDependency */,
+				B745CBC663B7576A87E9A468 /* PBXTargetDependency */,
 			);
 			name = QuailTests;
 			packageProductDependencies = (
@@ -872,6 +963,7 @@
 			);
 			dependencies = (
 				068E7491ACE3CDD7DB1FDFF2 /* PBXTargetDependency */,
+				EF25D9F99DB62C22D2B10CB3 /* PBXTargetDependency */,
 			);
 			name = QuailServer;
 			packageProductDependencies = (
@@ -919,6 +1011,9 @@
 					3226F420938B63EA726E8E06 = {
 						ProvisioningStyle = Automatic;
 					};
+					4058757A07A3522A5AC856A5 = {
+						ProvisioningStyle = Automatic;
+					};
 					8DE891E3384083077AEE4880 = {
 						ProvisioningStyle = Automatic;
 					};
@@ -956,6 +1051,7 @@
 				F1792F2A38389EF9B60D5CBB /* Quail */,
 				9D2096B8DA010C2F9A458104 /* QuailCLI */,
 				3226F420938B63EA726E8E06 /* QuailServerCore */,
+				4058757A07A3522A5AC856A5 /* QuailServerLlama */,
 				C079859AEDF559682C7E24FD /* QuailServer */,
 				8DE891E3384083077AEE4880 /* QuailTests */,
 			);
@@ -977,6 +1073,22 @@
 
 /* Begin PBXShellScriptBuildPhase section */
 		3CF1CE9AEBD8BF9D29B42AF5 /* Copy Swift Objective-C Interface Header */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(DERIVED_SOURCES_DIR)/$(SWIFT_OBJC_INTERFACE_HEADER_NAME)",
+			);
+			name = "Copy Swift Objective-C Interface Header";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/include/$(PRODUCT_MODULE_NAME)/$(SWIFT_OBJC_INTERFACE_HEADER_NAME)",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "ditto \"${SCRIPT_INPUT_FILE_0}\" \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+		};
+		3F41D5B73D07113FC87A6E76 /* Copy Swift Objective-C Interface Header */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1156,6 +1268,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		81E97644ACB0558B59621666 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				45065EFFD6CBA9E601D85A9D /* LlamaEngine.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		976ED2D376A503A2C3797322 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1188,6 +1308,7 @@
 				269116CB3FDD91029B04B286 /* InstalledLookupTests.swift in Sources */,
 				A606DCE122A28D1ADADD1B28 /* LlamaCppIntegrationSmokeTest.swift in Sources */,
 				78053506CE7D3AAE80A2642E /* LlamaCppRuntimeTests.swift in Sources */,
+				B1AB48A3C7C86F1FA16FF1DB /* LlamaEngineTests.swift in Sources */,
 				845C332E6D75F8E7D4CF3E1A /* LogStoreTests.swift in Sources */,
 				4A67F045D85B57F300F618D5 /* MLXMetadataTests.swift in Sources */,
 				458E4FEE1410BD8E0191393E /* MessagesFixtureTests.swift in Sources */,
@@ -1283,6 +1404,11 @@
 			isa = PBXTargetDependency;
 			productRef = AE4405770E023AB070874B29 /* Jinja */;
 		};
+		49D878015455B6F133D0E769 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3226F420938B63EA726E8E06 /* QuailServerCore */;
+			targetProxy = F63935AD779CD6F701F4866A /* PBXContainerItemProxy */;
+		};
 		74CC2821FC883C469867B427 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = C079859AEDF559682C7E24FD /* QuailServer */;
@@ -1293,9 +1419,19 @@
 			target = 9D2096B8DA010C2F9A458104 /* QuailCLI */;
 			targetProxy = DC01B164F6A210D80A8A848B /* PBXContainerItemProxy */;
 		};
+		B745CBC663B7576A87E9A468 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4058757A07A3522A5AC856A5 /* QuailServerLlama */;
+			targetProxy = 2DAF922FAE3938FA637167F8 /* PBXContainerItemProxy */;
+		};
 		CD572014C0C5556650D1D8D3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			productRef = 9BEE89D1FFCE1C4FBDC64CC3 /* OrderedCollections */;
+		};
+		EF25D9F99DB62C22D2B10CB3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4058757A07A3522A5AC856A5 /* QuailServerLlama */;
+			targetProxy = 7B40F2C6DEA1CF7A1521B129 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1306,10 +1442,11 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
+				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"\"Vendor\"",
 				);
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks @executable_path";
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -1359,7 +1496,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1384,7 +1521,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.19.1;
+				MARKETING_VERSION = 0.20.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1402,6 +1539,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Vendor\"",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1424,6 +1565,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Vendor\"",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1439,6 +1584,27 @@
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Quail.app/Contents/MacOS/Quail";
 			};
 			name = Debug;
+		};
+		6FDA6E63FDC5C7F7D722E662 /* Release-AppStore */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DEFINES_MODULE = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Vendor\"",
+				);
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.QuailServerLlama;
+				PRODUCT_NAME = QuailServerLlama;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = APPSTORE;
+			};
+			name = "Release-AppStore";
 		};
 		74E766BEB0B6628CAF0301E9 /* Release-AppStore */ = {
 			isa = XCBuildConfiguration;
@@ -1494,7 +1660,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1513,7 +1679,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.19.1;
+				MARKETING_VERSION = 0.20.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1530,10 +1696,11 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
+				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"\"Vendor\"",
 				);
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks @executable_path";
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -1583,7 +1750,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1608,7 +1775,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.19.1;
+				MARKETING_VERSION = 0.20.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1674,6 +1841,26 @@
 			};
 			name = "Release-AppStore";
 		};
+		A24CDF67470435AF3C36627C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DEFINES_MODULE = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Vendor\"",
+				);
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.QuailServerLlama;
+				PRODUCT_NAME = QuailServerLlama;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
 		A560C72B73A7821B49DA992D /* Debug-AppStore */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = DE33A51190D5756E19BE8E5B /* LocalSigning.xcconfig */;
@@ -1700,10 +1887,11 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
+				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"\"Vendor\"",
 				);
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks @executable_path";
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -1715,6 +1903,27 @@
 				SKIP_INSTALL = YES;
 			};
 			name = Release;
+		};
+		ACD19E2404EDB4DB5463470E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DEFINES_MODULE = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Vendor\"",
+				);
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.QuailServerLlama;
+				PRODUCT_NAME = QuailServerLlama;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+			};
+			name = Debug;
 		};
 		AED4F1D33C3BBDF91D841308 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -1753,7 +1962,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1772,7 +1981,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.19.1;
+				MARKETING_VERSION = 0.20.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1790,10 +1999,11 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
+				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"\"Vendor\"",
 				);
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks @executable_path";
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -1823,6 +2033,27 @@
 			};
 			name = Release;
 		};
+		BCD0D4944536BD85BA21CF63 /* Debug-AppStore */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DEFINES_MODULE = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Vendor\"",
+				);
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.datoos.QuailServerLlama;
+				PRODUCT_NAME = QuailServerLlama;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG APPSTORE";
+			};
+			name = "Debug-AppStore";
+		};
 		CB9BD134187CA08A9759A80A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1845,6 +2076,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Vendor\"",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1923,6 +2158,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Vendor\"",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2038,6 +2277,17 @@
 				FB159C4DACAA6152F219C986 /* Debug-AppStore */,
 				B6F91287C65EBB409A4D1B08 /* Release */,
 				74E766BEB0B6628CAF0301E9 /* Release-AppStore */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EAEC429A2313A95A411C4887 /* Build configuration list for PBXNativeTarget "QuailServerLlama" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ACD19E2404EDB4DB5463470E /* Debug */,
+				BCD0D4944536BD85BA21CF63 /* Debug-AppStore */,
+				A24CDF67470435AF3C36627C /* Release */,
+				6FDA6E63FDC5C7F7D722E662 /* Release-AppStore */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

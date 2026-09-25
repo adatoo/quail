@@ -10,6 +10,15 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-09-25
+
+### Changed
+
+- Internal, no visible change yet: `quail-server` runs GGUF models itself, through llama.cpp's library: streaming and
+  whole replies, prompt caching, stop strings and hang-up handling all work, and its output matched llama-server's
+  token for token on the checks run (ADR D-043). The app still starts llama-server until the runtime switch. The app
+  bundle gains llama.framework (8 MB).
+
 ## [0.19.1] - 2026-09-25
 
 ### Fixed

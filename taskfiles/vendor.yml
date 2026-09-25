@@ -1,7 +1,7 @@
 # Vendored binaries (docs/ARCHITECTURE.md §5, §9): each pins a version and a
 # sha256, lands in Vendor/ (gitignored), and is checked before it's trusted.
 #
-#   task vendor:llama [TAG=b11081]   llama-server + its @rpath dependency closure
+#   task vendor:llama [TAG=b11081]   llama-server + its @rpath dependency closure, and llama.xcframework
 #   task vendor:uv [VERSION=0.12.17] the `uv` binary (not shipped in the app yet)
 #   task vendor:sparkle              Sparkle's release tools (generate_keys, generate_appcast, sign_update)
 #   task vendor:verify [DIR=…]       every Mach-O in DIR depends only on relocatable or system paths
@@ -13,6 +13,7 @@ tasks:
     # Skipped when Vendor/llama.cpp is already this tag; `task --force vendor:llama` re-fetches.
     status:
       - test -f Vendor/llama.cpp/llama-server
+      - test -d Vendor/llama.xcframework
       - test "$(cat Vendor/.llama-staged 2>/dev/null)" = "$(cat Vendor/llama.version)"
     env:
       TAG: '{{.TAG}}'
@@ -101,6 +102,19 @@ tasks:
           [ -L "$f" ] && continue
           codesign --force --sign - "$f"
         done
+
+        # The library quail-server's GGUF engine links (ADR D-043): the same tag's xcframework,
+        # kept whole (Xcode picks the macOS slice). One framework binary with ggml built in, so
+        # there is no closure to walk; it is embedded into Contents/Frameworks by embed:llama.
+        FRAMEWORK="llama-${TAG}-xcframework.zip"
+        echo "==> fetching $FRAMEWORK"
+        curl -fsSL -o "$TMP/$FRAMEWORK" "https://github.com/ggml-org/llama.cpp/releases/download/${TAG}/${FRAMEWORK}"
+        ( cd "$TMP" && grep " $FRAMEWORK\$" "$ROOT/Vendor/llama.sha256" | shasum -a 256 -c - )
+        rm -rf "$ROOT/Vendor/llama.xcframework" "$TMP/fw" && mkdir -p "$TMP/fw"
+        unzip -q "$TMP/$FRAMEWORK" -d "$TMP/fw"
+        FW_SRC="$(find "$TMP/fw" -name llama.xcframework -maxdepth 3 -print -quit)"
+        [ -d "$FW_SRC" ] || { echo "error: llama.xcframework not found in $FRAMEWORK"; exit 1; }
+        mv "$FW_SRC" "$ROOT/Vendor/llama.xcframework"
 
         # What Vendor/llama.cpp currently holds, so the next run can skip the download.
         # Outside Vendor/llama.cpp because embed:llama copies that whole directory into the app.

@@ -5,7 +5,7 @@ Quail is a macOS menu bar app (SwiftUI, Swift 6, macOS 14+) that runs local LLM 
 ## Conventions
 
 - Swift 6 with strict concurrency. `Sendable` types, actors for the supervisor and model store, `@Observable` for UI state. No Combine.
-- No third-party UI. The only permitted dependencies are Sparkle (SPM, pinned, linked into the Quail app target only — ADR D-032), swift-argument-parser, linked into the `quail` CLI target only (ADR D-022), and `swift-jinja` (pinned), `OrderedCollections`, and — from Phase 3 step 4 — `mlx-swift-lm` and `swift-transformers`, linked into the `quail-server` target (and its tests) only (ADRs D-028, D-035).
+- No third-party UI. The only permitted dependencies are Sparkle (SPM, pinned, linked into the Quail app target only — ADR D-032), swift-argument-parser, linked into the `quail` CLI target only (ADR D-022), and `swift-jinja` (pinned), `OrderedCollections`, llama.cpp's `llama.xcframework` (the same pinned tag as the bundled `llama-server`; `QuailServerLlama` only, ADR D-043), and — from Phase 3 step 4 — `mlx-swift-lm` and `swift-transformers`, linked into the `quail-server` target (and its tests) only (ADRs D-028, D-035).
 - App Store build must compile with every uv/PyPI/runtime-install code path removed: wrap those files or sections in `#if !APPSTORE`.
 - Never inherit the user's shell environment when spawning a runtime. Build `environment` explicitly in `ProcessSupervisor`.
 - Runtimes are always given explicit paths (`--models-dir`, `--model-dir`, `HF_HOME`). Never rely on a runtime's default folder.

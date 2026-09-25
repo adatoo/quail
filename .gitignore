@@ -9,6 +9,7 @@ xcuserdata/
 
 # Vendored binaries (fetched by `task vendor:llama` / `task vendor:uv`)
 Vendor/llama.cpp/
+Vendor/llama.xcframework/
 Vendor/uv/
 
 # Signing and secrets

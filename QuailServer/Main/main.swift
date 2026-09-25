@@ -1,4 +1,8 @@
 import Foundation
 import QuailServerCore
+import QuailServerLlama
 
-await exit(QuailServerApp.run(arguments: Array(CommandLine.arguments.dropFirst())))
+let engines: [ModelKind: EngineFactory] = [
+    .gguf: { _ in LlamaEngine() },
+]
+await exit(QuailServerApp.run(arguments: Array(CommandLine.arguments.dropFirst()), engines: engines))

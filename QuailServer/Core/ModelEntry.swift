@@ -1,26 +1,26 @@
 import Foundation
 
-enum ModelKind: String, Equatable, Sendable {
+public enum ModelKind: String, Equatable, Sendable {
     case gguf
     case mlx
 }
 
 /// A model the server can load: what a folder scan and the presets file say
 /// about it. Nothing here touches the model itself.
-struct ModelEntry: Equatable, Sendable {
-    var id: String
-    var kind: ModelKind
+public struct ModelEntry: Equatable, Sendable {
+    public var id: String
+    public var kind: ModelKind
     /// The `.gguf` file, or the MLX model directory.
-    var path: URL
-    var contextSize: Int?
-    var gpuLayers: Int?
+    public var path: URL
+    public var contextSize: Int?
+    public var gpuLayers: Int?
     /// A vision model's `mmproj` companion (GGUF only).
-    var projector: URL?
-    var loadOnStartup = false
+    public var projector: URL?
+    public var loadOnStartup = false
     /// Preset keys this server doesn't implement, so startup can say so once
     /// instead of silently dropping a setting.
-    var ignoredPresetKeys: [String] = []
-    var createdAt = Date(timeIntervalSince1970: 0)
+    public var ignoredPresetKeys: [String] = []
+    public var createdAt = Date(timeIntervalSince1970: 0)
 }
 
 enum ModelDiscovery {

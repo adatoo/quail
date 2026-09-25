@@ -61,6 +61,23 @@ tasks:
 
         echo "embed:llama: staged and signed $SIGNED files from Vendor/llama.cpp into $DEST"
 
+        # The library quail-server's GGUF engine links (ADR D-043). Thinned to arm64 (shipped builds
+        # are Apple silicon only) and signed like the rest; quail-server finds it through the
+        # @executable_path/../Frameworks rpath project.yml gives it.
+        FRAMEWORK="${SRCROOT}/Vendor/llama.xcframework/macos-arm64_x86_64/llama.framework"
+        if [ -d "$FRAMEWORK" ]; then
+          FDEST="${CODESIGNING_FOLDER_PATH}/Contents/Frameworks/llama.framework"
+          mkdir -p "${CODESIGNING_FOLDER_PATH}/Contents/Frameworks"
+          rm -rf "$FDEST"
+          cp -a "$FRAMEWORK" "$FDEST"
+          lipo "$FDEST/Versions/A/llama" -thin arm64 -output "$FDEST/Versions/A/llama.thin"
+          mv "$FDEST/Versions/A/llama.thin" "$FDEST/Versions/A/llama"
+          codesign "${SIGN_ARGS[@]}" "$FDEST"
+          echo "embed:llama: staged and signed llama.framework into Contents/Frameworks"
+        else
+          echo "warning: Vendor/llama.xcframework not found — run: task vendor:llama. quail-server won't start without it."
+        fi
+
   cli:
     desc: "[Xcode phase] Copy the quail CLI into Quail.app/Contents/Helpers, signed (direct build only)"
     cmds:
