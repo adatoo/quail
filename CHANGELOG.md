@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.24.1] - 2026-09-25
+
+### Changed
+
+- Pull requests merge themselves again once their checks pass: the Auto-merge and Dependabot-bump workflows now act as a GitHub App (`quail-release`) instead of a personal access token that was never set up (ADR D-046). Needs the App's two secrets before it takes effect.
+
 ## [0.24.0] - 2026-09-25
 
 ### Added

@@ -1,9 +1,10 @@
 name: Dependabot bump
 
 # Dependabot PRs need a version bump like every other PR (ADR D-024): this
-# commits a patch bump to the PR branch. Pushed with BOT_TOKEN so the push
-# re-runs the required checks (a GITHUB_TOKEN push wouldn't). Dependabot's
-# workflows read the Dependabot secret store, so BOT_TOKEN must be there.
+# commits a patch bump to the PR branch. Pushed as the quail-release GitHub
+# App (ADR D-046) so the push re-runs the required checks (a GITHUB_TOKEN push
+# wouldn't). Dependabot's workflows read the Dependabot secret store, so the
+# App's RELEASE_APP_CLIENT_ID and RELEASE_APP_PRIVATE_KEY must be there.
 on:
   pull_request:
     branches: [main]
@@ -17,24 +18,32 @@ jobs:
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Check for BOT_TOKEN
+      - name: Check for the App's credentials
         id: token
         env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
         run: |
-          if [ -z "$BOT_TOKEN" ]; then
-            echo "::notice::BOT_TOKEN isn't in the Dependabot secrets — bump this PR by hand: TARGET=patch task version:bump"
+          if [ -z "$CLIENT_ID" ]; then
+            echo "::notice::RELEASE_APP_CLIENT_ID isn't in the Dependabot secrets — bump this PR by hand: TARGET=patch task version:bump"
             echo "present=false" >> "$GITHUB_OUTPUT"
           else
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Mint the App's token
+        if: steps.token.outputs.present == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Checkout the PR branch
         if: steps.token.outputs.present == 'true'
         uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ secrets.BOT_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
 
       - name: Set up Task
@@ -54,7 +63,7 @@ jobs:
             exit 0
           fi
           task version:bump
-          git config user.name "quail-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "quail-release[bot]"
+          git config user.email "quail-release[bot]@users.noreply.github.com"
           git commit -am "chore(release): bump version for ${PR_TITLE}"
           git push

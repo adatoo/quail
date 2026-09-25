@@ -32,7 +32,8 @@ recorded there.
    regenerates the Xcode project. Commit the result. `1.0.0` is a deliberate
    `TARGET=1.0.0 task version:bump`.
 5. Open the PR against `main` with auto-merge on (`gh pr merge --auto --merge`;
-   the Auto-merge workflow does this too when `BOT_TOKEN` is set). It merges
+   the Auto-merge workflow does this too, as the quail-release App, once its
+   `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY` secrets are set). It merges
    itself once `build-and-test` and `version` pass.
 6. `main` accepts changes only through PRs, merged with a **merge commit** —
    no squash, no rebase, no force-push, no direct pushes (admins included).

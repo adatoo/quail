@@ -17,7 +17,8 @@ name: Release
 # from the DMG as published, so the hash brew checks is of what people download.
 #
 # Triggered by the push a merge makes. Merges must be made as a person or
-# with BOT_TOKEN — a merge made with GITHUB_TOKEN starts no workflows.
+# as the quail-release App (auto-merge.yml, ADR D-046) — a merge made with
+# GITHUB_TOKEN starts no workflows.
 on:
   push:
     branches: [main]
