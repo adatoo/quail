@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-25
+
+### Changed
+
+- Internal, no visible change yet: `quail-server` serves `/v1/completions` (streamed and not, with stop strings),
+  `/tokenize`, `/detokenize` and `/props` in llama-server's shapes; the benchmark's own client runs against it
+  unchanged (ADR D-037).
+
 ## [0.12.0] - 2026-09-24
 
 ### Security

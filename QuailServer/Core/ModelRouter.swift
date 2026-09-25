@@ -53,7 +53,7 @@ actor ModelRouter {
 
     private var slots: [String: Slot]
     private let order: [String]
-    private let modelsMax: Int
+    let modelsMax: Int
     private let makeEngine: EngineFactory
     private let log: ServerLog
 

@@ -62,7 +62,8 @@ public enum QuailServerApp {
             router: router,
             apiKey: arguments.apiKey,
             log: log,
-            requestGuard: RequestGuard(bindHost: arguments.host, allowedOrigins: arguments.allowedOrigins)
+            requestGuard: RequestGuard(bindHost: arguments.host, allowedOrigins: arguments.allowedOrigins),
+            buildLabel: "quail-server \(version)"
         )
         let server = HTTPServer(host: arguments.host, port: arguments.port, log: log)
 
