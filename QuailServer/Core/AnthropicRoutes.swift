@@ -115,6 +115,9 @@ enum AnthropicRequest {
         if let choice = try toolChoice(body["tool_choice"]) {
             members.append(("tool_choice", choice))
         }
+        if body["tool_choice"]?["disable_parallel_tool_use"]?.boolValue == true {
+            members.append(("parallel_tool_calls", .boolean(false)))
+        }
         if let stops = body["stop_sequences"], !stops.isNull {
             members.append(("stop", stops))
         }
@@ -256,14 +259,17 @@ enum AnthropicRequest {
         return functions.isEmpty ? nil : .array(functions)
     }
 
-    /// `auto` and `none` carry over; forcing a call is refused, as for chat completions.
+    /// `auto` and `none` carry over; `any` is `required`, and a named tool keeps its name.
     private static func toolChoice(_ value: Value?) throws -> Value? {
         guard let value, !value.isNull else { return nil }
         switch value["type"]?.stringValue {
         case "auto": return .string("auto")
         case "none": return .string("none")
         case "any": return .string("required")
-        case "tool": return .record([("type", .string("function"))])
+        case "tool":
+            guard let name = value["name"]?.stringValue
+            else { throw RequestError.invalid("tool_choice \"tool\" needs a name") }
+            return .record([("type", .string("function")), ("function", .record([("name", .string(name))]))])
         default: throw RequestError.invalid("unknown tool_choice")
         }
     }

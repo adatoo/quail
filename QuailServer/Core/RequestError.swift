@@ -217,6 +217,9 @@ struct ChatRequest: Sendable {
     var messages: [Value]
     var tools: [Value]?
     var toolsEnabled = true
+    var toolChoice = ToolChoice.auto
+    /// llama-server's default is one call at a time; OpenAI's is several.
+    var parallelToolCalls = false
     var templateKwargs: [String: Value] = [:]
 
     init(_ body: Value) throws {
@@ -228,15 +231,22 @@ struct ChatRequest: Sendable {
             guard let list = tools.arrayValue else { throw RequestError.invalid("'tools' must be an array") }
             self.tools = list
         }
+        toolChoice = try Self.toolChoice(body["tool_choice"])
         // `tool_choice: "none"` means the model shouldn't be told about the tools at all.
-        if body["tool_choice"]?.stringValue == "none" {
-            toolsEnabled = false
+        toolsEnabled = toolChoice != .none
+        if let value = body["parallel_tool_calls"], !value.isNull {
+            guard let flag = value.boolValue
+            else { throw RequestError.invalid("'parallel_tool_calls' must be a boolean") }
+            parallelToolCalls = flag
         }
-        // Forcing a call needs the engine's grammar sampler (step 5), like `response_format`; refuse it
-        // rather than let a model that answers in prose pass for one that was made to call a tool.
-        if let choice = body["tool_choice"], !choice.isNull, !["auto", "none"].contains(choice.stringValue ?? "") {
-            let what = choice.stringValue.map { "\"\($0)\"" } ?? "with a specific function"
-            throw RequestError.invalid("tool_choice \(what) isn't supported yet")
+        if toolChoice.forcesCall {
+            let names = (tools ?? []).compactMap { $0["function"]?["name"]?.stringValue }
+            if names.isEmpty {
+                throw RequestError.invalid("tool_choice forces a tool call, but 'tools' has none")
+            }
+            if case let .named(name) = toolChoice, !names.contains(name) {
+                throw RequestError.invalid("tool_choice names \"\(name)\", which isn't in 'tools'")
+            }
         }
         if let kwargs = body["chat_template_kwargs"], !kwargs.isNull {
             guard case let .object(members) = kwargs else {
@@ -248,6 +258,25 @@ struct ChatRequest: Sendable {
                 }
             }
         }
+    }
+}
+
+extension ChatRequest {
+    /// `auto`, `none`, `required`, or a named function in chat completions' nesting or Responses' flat form.
+    private static func toolChoice(_ value: Value?) throws -> ToolChoice {
+        guard let value, !value.isNull else { return .auto }
+        if let text = value.stringValue {
+            switch text {
+            case "auto": return .auto
+            case "none": return .none
+            case "required": return .required
+            default: throw RequestError.invalid("tool_choice \"\(text)\" isn't supported")
+            }
+        }
+        guard value["type"]?.stringValue == "function",
+              let name = value["function"]?["name"]?.stringValue ?? value["name"]?.stringValue
+        else { throw RequestError.invalid("tool_choice with a specific function needs its name") }
+        return .named(name)
     }
 }
 

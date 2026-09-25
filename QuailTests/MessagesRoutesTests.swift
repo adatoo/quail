@@ -137,6 +137,32 @@ struct MessagesRoutesTests {
 
     // MARK: errors
 
+    @Test("tool_choice any and tool force a call, and a named tool keeps its name")
+    func forcedToolChoice() async {
+        let tools = #"[{"name":"get_weather","input_schema":{"type":"object","properties":{"city":{"type":"string"}}}},{"name":"get_time","input_schema":{"type":"object"}}]"#
+        let any = RouteHarness(grammar: true)
+        _ = await any.json(
+            path,
+            #"{"model":"Alpha","max_tokens":9,"tool_choice":{"type":"any"},"tools":\#(tools),"messages":[{"role":"user","content":"x"}]}"#
+        )
+        let anyGrammar = any.world.requests.last?.grammar ?? ""
+        #expect(anyGrammar.contains("get_weather") && anyGrammar.contains("get_time"))
+
+        let named = RouteHarness(grammar: true)
+        _ = await named.json(
+            path,
+            #"{"model":"Alpha","max_tokens":9,"tool_choice":{"type":"tool","name":"get_time"},"tools":\#(tools),"messages":[{"role":"user","content":"x"}]}"#
+        )
+        let namedGrammar = named.world.requests.last?.grammar ?? ""
+        #expect(namedGrammar.contains("get_time") && !namedGrammar.contains("get_weather"))
+
+        let nameless = await named.json(
+            path,
+            #"{"model":"Alpha","max_tokens":9,"tool_choice":{"type":"tool"},"tools":\#(tools),"messages":[{"role":"user","content":"x"}]}"#
+        )
+        #expect(nameless.status == 400)
+    }
+
     @Test("errors use Anthropic's shape")
     func errors() async {
         let harness = RouteHarness()

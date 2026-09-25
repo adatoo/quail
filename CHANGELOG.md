@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-09-25
+
+### Added
+
+- Internal, no visible change yet: `quail-server` honours `tool_choice` `required` and a named function (and Anthropic's `any` and `tool`) for GGUF models with Hermes-style (Qwen) or bare-JSON (Llama 3) tool calls, by making the reply a call whose arguments follow the tool's own schema. On Qwen3-8B that was 20 of 20 correct calls where llama-server managed 4 of 20 (ADR D-045). Other call formats answer with a clear 400.
+
 ## [0.24.1] - 2026-09-25
 
 ### Changed

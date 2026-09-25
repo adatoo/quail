@@ -32,17 +32,38 @@ enum JSONSchemaGrammar {
         case open
     }
 
+    /// Text a reply must carry around the JSON: a tool call's tags, for instance. GBNF as it's written in a
+    /// rule, so a prefix like `"<tool_call>" tag-space` may use the extra `rules`.
+    struct Frame: Equatable, Sendable {
+        var prefix: String
+        var suffix: String
+        var rules: [String: String] = [:]
+        /// One or more framed values, not exactly one.
+        var repeats = false
+    }
+
     /// A GBNF grammar whose start rule is `root` and which accepts exactly what `schema` describes,
-    /// after the thinking block, if `reasoning` says there is one.
-    static func gbnf(for schema: Value, reasoning: Reasoning = .none) throws -> String {
+    /// after the thinking block, if `reasoning` says there is one, and inside `frame`, if there is one.
+    static func gbnf(for schema: Value, reasoning: Reasoning = .none, frame: Frame? = nil) throws -> String {
         var converter = Converter(root: schema)
         _ = try converter.visit(schema, name: "", path: "#")
-        if reasoning != .none {
+        if reasoning != .none || frame != nil {
             converter.rules["json-root"] = converter.rules.removeValue(forKey: "root")
-            let thinking = reasoning == .optional
-                ? "(\"<think>\" think-0 \"</think>\" think-space)? json-root"
-                : "think-0 \"</think>\" think-space json-root"
-            converter.rules["root"] = thinking
+            var body = "json-root"
+            if let frame {
+                body = "\(frame.prefix) json-root \(frame.suffix)"
+                if frame.repeats {
+                    body = "(\(body))+"
+                }
+                converter.rules.merge(frame.rules) { _, new in new }
+            }
+            switch reasoning {
+            case .none: converter.rules["root"] = body
+            case .optional: converter.rules["root"] = "(\"<think>\" think-0 \"</think>\" think-space)? \(body)"
+            case .open: converter.rules["root"] = "think-0 \"</think>\" think-space \(body)"
+            }
+        }
+        if reasoning != .none {
             converter.rules["think-space"] = "[\\n]{0,2}"
             // Any text that doesn't contain "</think>": one rule per prefix of the tag matched so far, and
             // a "<" always restarts the match, so the closing tag is recognised wherever it comes.

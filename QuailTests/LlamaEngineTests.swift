@@ -250,4 +250,41 @@ struct LlamaEngineTests {
         #expect(try await collect(engine, request).finished != nil)
         await engine.unload()
     }
+
+    @Test("Qwen3-0.6B: a forced tool call is a call, whatever the prompt asks", .enabled(if: smallExists))
+    func forcedToolCall() async throws {
+        let engine = LlamaEngine()
+        try await engine.load(entry(Self.small))
+        let prompt = try await engine.tokenize(
+            "<|im_start|>user\n/no_think Tell me a joke.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+            addSpecial: false, parseSpecial: true
+        )
+        let tools = try OrderedJSON.parse(
+            #"[{"type":"function","function":{"name":"get_weather","parameters":{"type":"object","properties":{"city":{"type":"string"},"days":{"type":"integer","minimum":1,"maximum":7}},"required":["city","days"]}}}]"#
+        ).arrayValue ?? []
+        for seed in UInt64(1) ... 3 {
+            var request = GenerationRequest(promptTokens: prompt, maxTokens: 200)
+            request.cachePrompt = false
+            request.sampling.temperature = 0.7
+            request.sampling.seed = seed
+            request.grammar = try JSONSchemaGrammar.toolCalls(
+                tools: tools, name: "get_weather", format: .hermesJSON, parallel: false, reasoning: .none
+            )
+            let text = try await collect(engine, request).text
+            var parser = ToolCallParser(format: .hermesJSON, tools: tools)
+            var calls: [ParsedToolCall] = []
+            for delta in parser.push(text) + parser.flush() {
+                if case let .toolCall(call) = delta {
+                    calls.append(call)
+                }
+            }
+            #expect(calls.count == 1, "\(text)")
+            #expect(calls.first?.name == "get_weather")
+            let arguments = try JSONSerialization
+                .jsonObject(with: Data((calls.first?.arguments ?? "{}").utf8)) as? [String: Any]
+            #expect(arguments?["city"] is String)
+            #expect((1 ... 7).contains(arguments?["days"] as? Int ?? 0))
+        }
+        await engine.unload()
+    }
 }
