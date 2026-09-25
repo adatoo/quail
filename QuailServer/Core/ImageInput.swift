@@ -4,10 +4,10 @@ import Jinja
 /// Images a request carries, as bytes the engine can decode (ADR D-047). An image arrives as a `data:` URL
 /// with base64 content; a URL that would have to be fetched is refused, because fetching whatever address a
 /// request names is a network and privacy decision the server doesn't make on a client's behalf.
-enum ImageInput {
+public enum ImageInput {
     /// What stands for an image in the prompt text, which the engine replaces with the image's embedding:
     /// libmtmd's default marker, checked against the library when the engine loads a projector.
-    static let marker = "<__media__>"
+    public static let marker = "<__media__>"
 
     /// The most one image may weigh once decoded (the request body has its own, larger limit).
     static let maxBytes = 32 << 20

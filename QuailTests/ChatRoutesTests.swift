@@ -566,7 +566,7 @@ struct ChatRoutesTests {
         #expect(reply.status == 200)
         let request = try #require(harness.world.requests.last)
         #expect(try request.media == [#require(Data(base64Encoded: Self.pixel)), Data([1, 2, 3])])
-        #expect(request.promptText?.contains("Compare\n<__media__>\n<__media__>\nplease") == true)
+        #expect(request.promptText?.contains("Compare<__media__><__media__>please") == true)
         #expect(request.promptText == harness.prompt)
     }
 

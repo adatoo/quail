@@ -10,7 +10,7 @@ public struct LlamaEngine: Engine {
     public init() {}
 
     public var capabilities: EngineCapabilities {
-        EngineCapabilities(extraSamplers: true, grammar: true)
+        EngineCapabilities(extraSamplers: true, grammar: true, vision: true)
     }
 
     public func load(_ model: ModelEntry) async throws {
@@ -82,6 +82,7 @@ private enum Backend {
             }
             llama_log_set(filter, nil)
             ggml_log_set(filter, nil)
+            mtmd_helper_log_set(filter, nil)
         }
         llama_backend_init()
     }()
@@ -117,6 +118,8 @@ final class LlamaRuntime: @unchecked Sendable {
     private var model: OpaquePointer?
     private var context: OpaquePointer?
     private var vocab: OpaquePointer?
+    /// libmtmd's context for the model's vision projector, if it has one.
+    private var vision: OpaquePointer?
     /// The tokens whose keys and values are in the context's memory, for prompt-prefix reuse.
     private var cached: [Int32] = []
     private var batchSize = 512
@@ -191,9 +194,41 @@ final class LlamaRuntime: @unchecked Sendable {
             eosToken: text(of: llama_vocab_eos(vocab))
         )
         chatTemplate = llama_model_chat_template(loaded, nil).map { String(cString: $0) }
+        if let projector = entry.projector {
+            try loadProjector(projector, model: loaded)
+        }
+    }
+
+    /// A vision model's `mmproj` file. llama-server refuses to serve the model when this fails, and so do we: a
+    /// model that's advertised as reading images and doesn't is worse than one that doesn't start.
+    private func loadProjector(_ path: URL, model: OpaquePointer) throws {
+        guard FileManager.default.fileExists(atPath: path.path) else {
+            unload()
+            throw EngineError.loadFailed("the vision projector \(path.path) doesn't exist")
+        }
+        var params = mtmd_context_params_default()
+        params.print_timings = false
+        guard let made = mtmd_init_from_file(path.path, model, params) else {
+            unload()
+            throw EngineError.loadFailed(
+                "llama.cpp couldn't load the vision projector \(path.lastPathComponent) (it doesn't match the model, "
+                    + "or isn't a projector for an architecture this llama.cpp knows)"
+            )
+        }
+        guard mtmd_support_vision(made), String(cString: mtmd_get_marker(made)) == ImageInput.marker else {
+            mtmd_free(made)
+            unload()
+            throw EngineError.loadFailed("the projector \(path.lastPathComponent) can't read images")
+        }
+        vision = made
+        info.supportsImages = true
     }
 
     func unload() {
+        if let vision {
+            mtmd_free(vision)
+        }
+        vision = nil
         if let context {
             llama_free(context)
         }
@@ -266,21 +301,46 @@ final class LlamaRuntime: @unchecked Sendable {
         }
         let clock = ContinuousClock()
         let started = clock.now
-        let prompt = request.promptTokens.map { llama_token(truncatingIfNeeded: $0) }
-        guard !prompt.isEmpty else { throw EngineError.generationFailed("the prompt has no tokens") }
-
-        let reused = try prepareMemory(for: prompt, reuse: request.cachePrompt)
-        // Decode what the cache doesn't have, in batches, so a client that leaves during a long
-        // prompt stops it at the next batch rather than at the end.
-        var position = reused
-        while position < prompt.count {
-            if cancelled.isSet {
-                return
+        var maxTokens = request.maxTokens
+        var prompt: [llama_token]
+        var reused = 0
+        var promptCount: Int
+        // With images, positions aren't token counts (an M-RoPE model gives an image's tokens a smaller span
+        // than their number), so the reply's tokens are placed by where the prompt ended, as llama-server does.
+        var nextPosition: llama_pos?
+        // Images can't be reused from the cache (yet), so a request with them starts from empty memory and
+        // leaves it empty; the next text request then finds nothing to reuse and nothing stale.
+        let hasImages = !request.media.isEmpty
+        if hasImages {
+            resetMemory()
+        }
+        defer {
+            if hasImages {
+                resetMemory()
             }
-            let end = min(position + batchSize, prompt.count)
-            try decode(Array(prompt[position ..< end]))
-            cached += prompt[position ..< end]
-            position = end
+        }
+        if hasImages {
+            guard let evaluated = try evaluateImagePrompt(request, cancelled: cancelled) else { return }
+            (prompt, promptCount, nextPosition) = (evaluated.textTokens, evaluated.total, evaluated.next)
+            maxTokens = min(maxTokens, info.contextSize - evaluated.total)
+        } else {
+            prompt = request.promptTokens.map { llama_token(truncatingIfNeeded: $0) }
+            guard !prompt.isEmpty else { throw EngineError.generationFailed("the prompt has no tokens") }
+            promptCount = prompt.count
+
+            reused = try prepareMemory(for: prompt, reuse: request.cachePrompt)
+            // Decode what the cache doesn't have, in batches, so a client that leaves during a long
+            // prompt stops it at the next batch rather than at the end.
+            var position = reused
+            while position < prompt.count {
+                if cancelled.isSet {
+                    return
+                }
+                let end = min(position + batchSize, prompt.count)
+                try decode(Array(prompt[position ..< end]))
+                cached += prompt[position ..< end]
+                position = end
+            }
         }
         let promptDone = clock.now
 
@@ -315,22 +375,119 @@ final class LlamaRuntime: @unchecked Sendable {
             produced += 1
             counted += 1
             emit(.token(id: Int(token), text: utf8.append(piece(of: token))))
-            if produced >= request.maxTokens {
+            if produced >= maxTokens {
                 reason = .length
                 break
             }
-            try decode([token])
-            cached.append(token)
+            if let position = nextPosition {
+                try decode(token, at: position)
+                nextPosition = position + 1
+            } else {
+                try decode([token])
+                cached.append(token)
+            }
         }
 
         let done = clock.now
         emit(.finished(reason, GenerationTimings(
-            promptTokens: prompt.count - reused,
+            promptTokens: promptCount - reused,
             promptSeconds: (promptDone - started).seconds,
             generatedTokens: counted,
             generatedSeconds: (done - promptDone).seconds,
             cachedTokens: reused
         )))
+    }
+
+    /// Empties the context's memory and forgets what was cached.
+    private func resetMemory() {
+        guard let context else { return }
+        llama_memory_clear(llama_get_memory(context), true)
+        cached = []
+    }
+
+    /// Tokenizes a prompt that has images (text chunks and image chunks, by libmtmd) and evaluates it into
+    /// the empty context, chunk by chunk so a client that leaves stops it between chunks. Returns the text
+    /// tokens (for the samplers that look back) and the prompt's total size in tokens, or nil if cancelled.
+    private func evaluateImagePrompt(
+        _ request: GenerationRequest, cancelled: CancelFlag
+    ) throws -> (textTokens: [llama_token], total: Int, next: llama_pos)? {
+        guard let vision, let context else { throw EngineError.invalidRequest("this model can't read images") }
+        guard let text = request.promptText
+        else { throw EngineError.invalidRequest("an image request needs its prompt text") }
+
+        var bitmaps: [OpaquePointer] = []
+        defer { bitmaps.forEach { mtmd_bitmap_free($0) } }
+        for data in request.media {
+            let wrapper = data.withUnsafeBytes { raw in
+                mtmd_helper_bitmap_init_from_buf(
+                    vision, raw.bindMemory(to: UInt8.self).baseAddress, data.count, false,
+                    mtmd_helper_init_opt_default()
+                )
+            }
+            if let video = wrapper.video_ctx {
+                mtmd_helper_video_free(video)
+                if let bitmap = wrapper.bitmap {
+                    mtmd_bitmap_free(bitmap)
+                }
+                throw EngineError.invalidRequest("video input isn't supported")
+            }
+            guard let bitmap = wrapper.bitmap else {
+                throw EngineError.invalidRequest("an image couldn't be decoded (JPEG, PNG, BMP and GIF are read)")
+            }
+            bitmaps.append(bitmap)
+        }
+
+        // A template that starts with the BOS text already has one; don't add a second.
+        let addSpecial = info.bosToken.isEmpty || !text.hasPrefix(info.bosToken)
+        guard let chunks = mtmd_input_chunks_init() else { throw EngineError.generationFailed("out of memory") }
+        defer { mtmd_input_chunks_free(chunks) }
+        let status = text.withCString { pointer -> Int32 in
+            var input = mtmd_input_text(
+                text: pointer,
+                text_len: strlen(pointer),
+                add_special: addSpecial,
+                parse_special: true
+            )
+            var pointers = bitmaps.map { Optional($0) }
+            return pointers.withUnsafeMutableBufferPointer { buffer in
+                mtmd_tokenize(vision, chunks, &input, buffer.baseAddress, buffer.count)
+            }
+        }
+        switch status {
+        case 0: break
+        case 1: throw EngineError.invalidRequest("the number of images doesn't match the image markers in the prompt")
+        default: throw EngineError.invalidRequest("an image couldn't be prepared for the model")
+        }
+
+        let total = mtmd_helper_get_n_tokens(chunks)
+        guard total < info.contextSize else {
+            throw EngineError.invalidRequest(
+                "the request exceeds the available context size (\(total) prompt tokens, "
+                    + "\(info.contextSize) in the context), try increasing it"
+            )
+        }
+        var textTokens: [llama_token] = []
+        var position: llama_pos = 0
+        let count = mtmd_input_chunks_size(chunks)
+        for index in 0 ..< count {
+            if cancelled.isSet {
+                return nil
+            }
+            guard let chunk = mtmd_input_chunks_get(chunks, index) else { continue }
+            if mtmd_input_chunk_get_type(chunk) == MTMD_INPUT_CHUNK_TYPE_TEXT {
+                var length = 0
+                if let tokens = mtmd_input_chunk_get_tokens_text(chunk, &length) {
+                    textTokens += UnsafeBufferPointer(start: tokens, count: length)
+                }
+            }
+            let code = mtmd_helper_eval_chunk_single(
+                vision, context, chunk, position, 0, Int32(batchSize), index == count - 1, &position
+            )
+            guard code == 0 else {
+                throw EngineError.generationFailed("llama.cpp failed to evaluate the prompt's images (code \(code))")
+            }
+        }
+        return (textTokens, total, position)
     }
 
     /// Makes the context's memory hold a prefix of `prompt` and no more; returns how many tokens
@@ -356,6 +513,25 @@ final class LlamaRuntime: @unchecked Sendable {
             cached = Array(cached[..<common])
         }
         return common
+    }
+
+    /// One token at a given position (the batch helper would work the position out from the memory).
+    private func decode(_ token: llama_token, at position: llama_pos) throws {
+        guard let context else { throw EngineError.notLoaded }
+        var batch = llama_batch_init(1, 0, 1)
+        defer { llama_batch_free(batch) }
+        batch.n_tokens = 1
+        batch.token[0] = token
+        batch.pos[0] = position
+        batch.n_seq_id[0] = 1
+        batch.seq_id[0]![0] = 0
+        batch.logits[0] = 1
+        let code = llama_decode(context, batch)
+        switch code {
+        case 0: break
+        case 1: throw EngineError.generationFailed("the prompt and reply don't fit in the model's context")
+        default: throw EngineError.generationFailed("llama.cpp failed to decode (code \(code))")
+        }
     }
 
     private func decode(_ tokens: [llama_token]) throws {

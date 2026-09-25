@@ -10,6 +10,13 @@ struct LlamaEngineTests {
     private static let small = models.appendingPathComponent("Qwen3-0.6B-Q8_0.gguf")
     private static let smallExists = FileManager.default.fileExists(atPath: small.path)
 
+    /// A vision model to try images on: its path in `QUAIL_TEST_VISION_MODEL`, with `mmproj-<name>.gguf` beside it.
+    private static let visionModel = ProcessInfo.processInfo.environment["QUAIL_TEST_VISION_MODEL"]
+        .map { URL(fileURLWithPath: $0) }
+    private static let visionExists = visionModel.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+    private static let blocks = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        .appendingPathComponent("TestFixtures/Images/blocks.png")
+
     private func entry(_ url: URL) -> ModelEntry {
         ModelEntry(id: url.deletingPathExtension().lastPathComponent, kind: .gguf, path: url)
     }
@@ -286,5 +293,74 @@ struct LlamaEngineTests {
             #expect((1 ... 7).contains(arguments?["days"] as? Int ?? 0))
         }
         await engine.unload()
+    }
+
+    @Test(
+        "a model that can't read images refuses them, and one without a projector isn't offered them",
+        .enabled(if: smallExists)
+    )
+    func imagesRefused() async throws {
+        let engine = LlamaEngine()
+        #expect(engine.capabilities.vision)
+        try await engine.load(entry(Self.small))
+        #expect(await engine.info().supportsImages == false)
+        var request = GenerationRequest(promptTokens: [1], maxTokens: 4)
+        request.promptText = "<__media__>"
+        request.media = [Data([1, 2, 3])]
+        await #expect(throws: EngineError.invalidRequest("this model can't read images")) {
+            _ = try await collect(engine, request)
+        }
+        await engine.unload()
+    }
+
+    @Test("a vision model reads an image, and text after it is unaffected", .enabled(if: visionExists))
+    func images() async throws {
+        let model = try #require(Self.visionModel)
+        var vision = entry(model)
+        vision.projector = model.deletingLastPathComponent()
+            .appendingPathComponent("mmproj-\(model.deletingPathExtension().lastPathComponent).gguf")
+        let engine = LlamaEngine()
+        try await engine.load(vision)
+        #expect(await engine.info().supportsImages)
+
+        let image = try Data(contentsOf: Self.blocks)
+        let text = "<__media__>\nWhat colors are in this image?"
+        var request = try await GenerationRequest(
+            promptTokens: engine.tokenize(text, addSpecial: true, parseSpecial: true), maxTokens: 12
+        )
+        request.temperature0()
+        request.promptText = text
+        request.media = [image]
+        let first = try await collect(engine, request)
+        #expect(!first.text.isEmpty)
+        // The image's tokens count towards the prompt, far more than the marker's text does.
+        #expect((first.finished?.1.promptTokens ?? 0) > request.promptTokens.count + 10)
+        #expect(try await collect(engine, request).text == first.text) // repeatable, nothing left over
+
+        // Text after an image starts from empty memory, and the next text request reuses its own prefix.
+        var plain = try await GenerationRequest(
+            promptTokens: engine.tokenize("Say hello.", addSpecial: true, parseSpecial: true), maxTokens: 6
+        )
+        plain.temperature0()
+        let a = try await collect(engine, plain)
+        let b = try await collect(engine, plain)
+        #expect(a.text == b.text && a.finished?.1.cachedTokens == 0 && (b.finished?.1.cachedTokens ?? 0) > 0)
+
+        request.media = [Data("not an image".utf8)]
+        await #expect(throws: EngineError
+            .invalidRequest("an image couldn't be decoded (JPEG, PNG, BMP and GIF are read)"))
+        {
+            _ = try await collect(engine, request)
+        }
+        request.media = [image, image] // two images, one marker
+        await #expect(throws: EngineError.self) { _ = try await collect(engine, request) }
+        await engine.unload()
+    }
+}
+
+private extension GenerationRequest {
+    mutating func temperature0() {
+        sampling.temperature = 0
+        cachePrompt = true
     }
 }
