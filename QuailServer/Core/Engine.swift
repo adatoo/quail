@@ -8,6 +8,9 @@ import Foundation
 /// in v1 — the router holds a lease for the length of a request, but the
 /// engine itself is not asked to interleave.
 public protocol Engine: Sendable {
+    /// What this engine can do beyond plain generation, so the shared layer can say so precisely.
+    var capabilities: EngineCapabilities { get }
+
     func load(_ model: ModelEntry) async throws
     func unload() async
 
@@ -24,6 +27,24 @@ public protocol Engine: Sendable {
     /// Streams tokens. Ending the stream's consumption (cancellation, or the
     /// HTTP client going away) must stop generation.
     func generate(_ request: GenerationRequest) -> AsyncThrowingStream<GenerationEvent, any Error>
+}
+
+/// What an engine supports beyond plain text generation (ADR D-043, D-044). A request that needs
+/// more than its engine offers is refused with a message naming what's missing, or, for a sampler
+/// option, ignored with a line in the server log.
+public struct EngineCapabilities: Equatable, Sendable {
+    /// DRY, XTC, typical-p, top-n-sigma and mirostat.
+    public var extraSamplers = false
+
+    public init(extraSamplers: Bool = false) {
+        self.extraSamplers = extraSamplers
+    }
+}
+
+public extension Engine {
+    var capabilities: EngineCapabilities {
+        EngineCapabilities()
+    }
 }
 
 /// Makes the engine for a model, or throws if this build has none for its kind.
@@ -55,8 +76,31 @@ public struct SamplingParameters: Equatable, Sendable {
     public var frequencyPenalty = 0.0
     /// `nil` picks a random seed for each request.
     public var seed: UInt64?
+    /// DRY ("don't repeat yourself") repetition penalty; 0 turns it off.
+    public var dryMultiplier = 0.0
+    public var dryBase = 1.75
+    public var dryAllowedLength = 2
+    /// -1 means the whole context.
+    public var dryPenaltyLastN = -1
+    public var drySequenceBreakers = ["\n", ":", "\"", "*"]
+    /// XTC ("exclude top choices"); a probability of 0 turns it off.
+    public var xtcProbability = 0.0
+    public var xtcThreshold = 0.1
+    /// Locally typical sampling; 1 turns it off.
+    public var typicalP = 1.0
+    /// Top-n-sigma; a negative value turns it off.
+    public var topNSigma = -1.0
+    /// 0 off, 1 or 2 for mirostat v1 or v2 (which replace top-k, top-p and min-p).
+    public var mirostat = 0
+    public var mirostatTau = 5.0
+    public var mirostatEta = 0.1
 
     public init() {}
+
+    /// Whether the request set anything only an engine with `extraSamplers` acts on.
+    public var usesExtraSamplers: Bool {
+        dryMultiplier > 0 || xtcProbability > 0 || typicalP < 1 || topNSigma >= 0 || mirostat != 0
+    }
 }
 
 public struct GenerationRequest: Equatable, Sendable {

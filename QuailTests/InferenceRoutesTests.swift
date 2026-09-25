@@ -172,6 +172,32 @@ struct InferenceRoutesTests {
         #expect(set.ignoreEndOfSequence)
         #expect(!set.cachePrompt)
 
+        // The sampler options only some engines have (ADR D-043): parsed for every engine.
+        let samplerHarness = Harness()
+        _ = await samplerHarness.post("/v1/completions", """
+        {"model":"Alpha","prompt":"x","dry_multiplier":0.8,"dry_base":2,"dry_allowed_length":3,"dry_penalty_last_n":64,
+         "dry_sequence_breakers":["\\n","."],"xtc_probability":0.5,"xtc_threshold":0.2,"typical_p":0.9,
+         "top_n_sigma":1.5,"mirostat":2,"mirostat_tau":4,"mirostat_eta":0.2}
+        """)
+        let extra = samplerHarness.world.requests.last?.sampling
+        #expect(extra?.dryMultiplier == 0.8)
+        #expect(extra?.dryBase == 2)
+        #expect(extra?.dryAllowedLength == 3)
+        #expect(extra?.dryPenaltyLastN == 64)
+        #expect(extra?.drySequenceBreakers == ["\n", "."])
+        #expect(extra?.xtcProbability == 0.5)
+        #expect(extra?.xtcThreshold == 0.2)
+        #expect(extra?.typicalP == 0.9)
+        #expect(extra?.topNSigma == 1.5)
+        #expect(extra?.mirostat == 2)
+        #expect(extra?.mirostatTau == 4)
+        #expect(extra?.mirostatEta == 0.2)
+        #expect(extra?.usesExtraSamplers == true)
+        // The older spelling of typical_p, and defaults that mean "off".
+        _ = await samplerHarness.post("/v1/completions", #"{"model":"Alpha","prompt":"x","typ_p":0.8}"#)
+        #expect(samplerHarness.world.requests.last?.sampling.typicalP == 0.8)
+        #expect(SamplingParameters().usesExtraSamplers == false)
+
         // n_predict and max_completion_tokens are aliases; -1 and a negative seed mean "unset".
         _ = await harness.post("/v1/completions", #"{"model":"Alpha","prompt":"x","n_predict":3,"seed":-1}"#)
         #expect(harness.world.requests[2].maxTokens == 3)
@@ -301,6 +327,13 @@ struct InferenceRoutesTests {
         (#"{"model":"Alpha","prompt":"x","stop":5}"#, "'stop' must be a string or an array of strings"),
         (#"{"model":"Alpha","prompt":"x","stream":"yes"}"#, "'stream' must be a boolean"),
         (#"{"model":"Alpha","prompt":"x","top_k":1.5}"#, "'top_k' must be an integer"),
+        (#"{"model":"Alpha","prompt":"x","dry_multiplier":"lots"}"#, "'dry_multiplier' must be a number"),
+        (
+            #"{"model":"Alpha","prompt":"x","dry_sequence_breakers":"\\n"}"#,
+            "'dry_sequence_breakers' must be an array of strings"
+        ),
+        (#"{"model":"Alpha","prompt":"x","mirostat":3}"#, "'mirostat' must be 0, 1 or 2"),
+        (#"{"model":"Alpha","prompt":"x","xtc_probability":true}"#, "'xtc_probability' must be a number"),
         (#"[1,2]"#, "the request body must be a JSON object"),
     ])
     func badRequests(body: String, message: String) async {

@@ -179,4 +179,39 @@ struct LlamaEngineTests {
         #expect(try await collect(engine, request).finished?.1.generatedTokens == 3)
         await engine.unload()
     }
+
+    @Test("Qwen3-0.6B: the extra samplers change the output, and stay repeatable for a seed", .enabled(if: smallExists))
+    func extraSamplers() async throws {
+        let engine = LlamaEngine()
+        #expect(engine.capabilities.extraSamplers)
+        try await engine.load(entry(Self.small))
+        let prompt = try await engine.tokenize(
+            "The old lighthouse keeper looked at the sea and the old lighthouse keeper looked at the sea and",
+            addSpecial: false, parseSpecial: true
+        )
+        func run(_ change: (inout SamplingParameters) -> Void) async throws -> String {
+            var request = GenerationRequest(promptTokens: prompt, maxTokens: 60)
+            request.cachePrompt = false
+            request.sampling.temperature = 0.8
+            request.sampling.seed = 7
+            change(&request.sampling)
+            return try await collect(engine, request).text
+        }
+        let plain = try await run { _ in }
+        #expect(try await run { _ in } == plain) // a seed repeats
+
+        // DRY penalises repeating the prompt, so the text moves off it.
+        let dry = try await run { $0.dryMultiplier = 0.8 }
+        #expect(dry != plain)
+        #expect(try await run { $0.dryMultiplier = 0.8 } == dry)
+        #expect(try await run { $0.xtcProbability = 1; $0.xtcThreshold = 0.05 } != plain)
+        #expect(try await run { $0.typicalP = 0.5 } != plain)
+        #expect(try await run { $0.topNSigma = 0.5 } != plain)
+        for mirostat in [1, 2] {
+            let text = try await run { $0.mirostat = mirostat }
+            #expect(!text.isEmpty)
+            #expect(try await run { $0.mirostat = mirostat } == text)
+        }
+        await engine.unload()
+    }
 }

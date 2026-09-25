@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-09-25
+
+### Changed
+
+- Internal, no visible change yet: `quail-server` supports llama-server's DRY, XTC, typical-p, top-n-sigma and mirostat
+  sampler options for GGUF models, and the repetition penalties now take the prompt into account as llama-server's do
+  (ADR D-043). Text matched llama-server's in 36 of 36 seeded runs.
+
 ## [0.22.1] - 2026-09-25
 
 ### Fixed
