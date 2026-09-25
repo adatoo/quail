@@ -143,7 +143,8 @@ tasks:
         MLXDEST="${CODESIGNING_FOLDER_PATH}/Contents/Resources/mlx-swift_Cmlx.bundle"
         mkdir -p "${CODESIGNING_FOLDER_PATH}/Contents/Resources"
         rm -rf "$MLXDEST" "$DEST/mlx-swift_Cmlx.bundle" "$DEST/mlx.metallib"
-        cp -a "$MLXBUNDLE" "$MLXDEST"
+        # -L: in an archive build the product is a symlink, and copying the link would leave nothing to sign.
+        cp -RL "$MLXBUNDLE" "$MLXDEST"
 
         if [ "${CODE_SIGNING_ALLOWED:-YES}" = "NO" ]; then
           codesign --force --sign - "$MLXDEST"
