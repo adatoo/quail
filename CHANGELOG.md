@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.27.1] - 2026-09-25
+
+### Changed
+
+- Docs only: the design for serving several requests at once from one loaded GGUF model (slots on a shared context), with measurements of how much batching gains on three models (ADR D-048).
+
 ## [0.27.0] - 2026-09-25
 
 ### Added
