@@ -10,17 +10,20 @@ struct ServerRoutes: Sendable {
     let apiKey: String?
     let log: ServerLog
     let requestGuard: RequestGuard
+    private let inference: InferenceRoutes
 
     init(
         router: ModelRouter,
         apiKey: String?,
         log: ServerLog,
-        requestGuard: RequestGuard = RequestGuard(bindHost: "127.0.0.1")
+        requestGuard: RequestGuard = RequestGuard(bindHost: "127.0.0.1"),
+        buildLabel: String = "quail-server"
     ) {
         self.router = router
         self.apiKey = apiKey
         self.log = log
         self.requestGuard = requestGuard
+        inference = InferenceRoutes(router: router, log: log, buildLabel: buildLabel)
     }
 
     func handle(_ request: HTTPRequest) async -> HTTPResponse {
@@ -50,6 +53,9 @@ struct ServerRoutes: Sendable {
         case "/models/unload":
             return request.method == "POST" ? await unloadModel(request) : methodNotAllowed()
         default:
+            if let response = await inference.handle(request) {
+                return response
+            }
             return .error(404, type: "not_found_error", message: "File Not Found")
         }
     }

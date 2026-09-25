@@ -31,6 +31,10 @@ import Foundation
             return String(decoding: tokens.map { UInt8(truncatingIfNeeded: $0) }, as: UTF8.self)
         }
 
+        func info() async -> EngineInfo {
+            EngineInfo(contextSize: 4096, bosToken: "", eosToken: "")
+        }
+
         func chatTemplate() async -> String? {
             template
         }

@@ -14,6 +14,9 @@ protocol Engine: Sendable {
     func tokenize(_ text: String, addSpecial: Bool, parseSpecial: Bool) async throws -> [Int]
     func detokenize(_ tokens: [Int]) async throws -> String
 
+    /// What the shared layer needs to know about the loaded model.
+    func info() async -> EngineInfo
+
     /// The model's own Jinja chat template, if it ships one (GGUF
     /// `tokenizer.chat_template`, or an MLX repo's `chat_template.jinja`).
     func chatTemplate() async -> String?
@@ -26,10 +29,25 @@ protocol Engine: Sendable {
 /// Makes the engine for a model, or throws if this build has none for its kind.
 typealias EngineFactory = @Sendable (ModelEntry) throws -> any Engine
 
+/// The loaded model's facts, for `/props`, context checks and chat templates.
+struct EngineInfo: Equatable, Sendable {
+    /// Tokens the model can hold (prompt plus generation) as loaded.
+    var contextSize: Int
+    /// The model's own special-token strings, passed to its chat template.
+    var bosToken: String
+    var eosToken: String
+}
+
+/// llama-server's defaults, so a request that sets nothing samples the same way.
 struct SamplingParameters: Equatable, Sendable {
     var temperature = 0.8
     var topK = 40
     var topP = 0.95
+    var minP = 0.05
+    var repeatPenalty = 1.0
+    var presencePenalty = 0.0
+    var frequencyPenalty = 0.0
+    /// `nil` picks a random seed for each request.
     var seed: UInt64?
 }
 
@@ -44,10 +62,13 @@ struct GenerationRequest: Equatable, Sendable {
 }
 
 struct GenerationTimings: Equatable, Sendable {
+    /// Prompt tokens the engine actually processed (the rest came from the prompt cache).
     var promptTokens: Int
     var promptSeconds: Double
     var generatedTokens: Int
     var generatedSeconds: Double
+    /// Prompt tokens reused from the KV cache (`cache_n`).
+    var cachedTokens = 0
 
     var promptTokensPerSecond: Double {
         promptSeconds > 0 ? Double(promptTokens) / promptSeconds : 0

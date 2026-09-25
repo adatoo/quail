@@ -86,6 +86,50 @@ struct ServerCompatibilityTests {
         )
     }
 
+    @Test(
+        "the benchmark's client — tokenize, props, model states, a streamed completion with timings — works unchanged"
+    )
+    func benchmarkClient() async throws {
+        let world = ScriptedWorld()
+        let log = ServerLog(toStandardError: false)
+        let router = ModelRouter(
+            entries: [.fake("Alpha")],
+            modelsMax: 1,
+            makeEngine: { _ in
+                var engine = ScriptedEngine(world: world)
+                engine.endless = true
+                engine.contextSize = 2048
+                return engine
+            },
+            log: log
+        )
+        let routes = ServerRoutes(router: router, apiKey: "k", log: log, buildLabel: "quail-server test")
+        let server = HTTPServer(host: "127.0.0.1", port: 0, log: log)
+        let port = try await server.start { await routes.handle($0) }
+        defer { server.stop() }
+        let client = try LlamaCppBenchmarkClient(base: #require(URL(string: "http://127.0.0.1:\(port)")), apiKey: "k")
+
+        #expect(try await client.tokenize("Hi", model: "Alpha") == [72, 105])
+        let props = try await client.properties(model: "Alpha")
+        #expect(props.contextSize == 2048)
+        #expect(props.slots == 1)
+        #expect(props.build == "quail-server test")
+        #expect(try await client.modelStates()["Alpha"] == "loaded") // /props?model= loaded it
+
+        // Exactly max_tokens are generated (ignore_eos), and the server's own timings come back.
+        let timing = try await client.complete(model: "Alpha", prompt: Array(repeating: 65, count: 100), maxTokens: 20)
+        #expect(timing.generatedTokens == 20)
+        #expect(timing.promptTokens == 100)
+        #expect(timing.promptPerSecond == 200) // 100 tokens in the scripted 0.5 s
+        #expect(timing.generatedPerSecond == 80) // 20 tokens in the scripted 0.25 s
+        #expect(timing.timeToFirstTokenMs > 0)
+        let request = try #require(world.requests.last)
+        #expect(request.ignoreEndOfSequence)
+        #expect(!request.cachePrompt)
+        #expect(request.sampling.temperature == 0)
+        #expect(request.sampling.seed == 42)
+    }
+
     @Test("the flags LlamaCppRuntime.launchSpec builds parse as the same settings")
     func launchSpecFlags() throws {
         let store = URL(fileURLWithPath: "/store/gguf")
