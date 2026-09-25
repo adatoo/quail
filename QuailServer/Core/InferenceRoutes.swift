@@ -245,7 +245,12 @@ struct InferenceRoutes: Sendable {
             let tokens = try await lease.engine.tokenize(prompt.text, addSpecial: addSpecial, parseSpecial: true)
             let generation = try generationRequest(tokens: tokens, settings: settings, info: info)
             let text = TextGenerator.stream(engine: lease.engine, request: generation, stop: settings.stop)
-            let pump = EventPump(ChatStream.events(from: text, startsInReasoning: prompt.thinkingIsOpen))
+            let parser = ChatOutputParser(
+                format: prompt.toolFormat,
+                tools: chat.toolsEnabled ? chat.tools ?? [] : [],
+                startsInReasoning: prompt.thinkingIsOpen
+            )
+            let pump = EventPump(ChatStream.events(from: text, parser: parser))
 
             @Sendable func chunk(
                 _ delta: InferenceJSON.ChatChunk.Delta, finish: FinishReason? = nil, timings: GenerationTimings? = nil,
@@ -264,11 +269,13 @@ struct InferenceRoutes: Sendable {
 
             if !settings.stream {
                 var content = "", reasoning = ""
+                var calls: [InferenceJSON.ToolCall] = []
                 var finished: (FinishReason, GenerationTimings)?
                 while let event = try await pump.next() {
                     switch event {
                     case let .delta(.content(piece)): content += piece
                     case let .delta(.reasoning(piece)): reasoning += piece
+                    case let .delta(.toolCall(call)): calls.append(InferenceJSON.ToolCall(call))
                     case let .finished(reason, timings): finished = (reason, timings)
                     }
                 }
@@ -278,7 +285,11 @@ struct InferenceRoutes: Sendable {
                 ))
                 return .json(200, InferenceJSON.ChatCompletion(
                     choices: [.init(
-                        message: .init(content: content, reasoningContent: reasoning.isEmpty ? nil : reasoning),
+                        message: .init(
+                            content: content,
+                            reasoningContent: reasoning.isEmpty ? nil : reasoning,
+                            toolCalls: calls.isEmpty ? nil : calls
+                        ),
                         finishReason: InferenceJSON.finishReason(reason)
                     )],
                     created: created, model: id, systemFingerprint: buildLabel, id: responseID,
@@ -288,12 +299,16 @@ struct InferenceRoutes: Sendable {
 
             let first = try await pump.next()
             let includeUsage = settings.includeUsage
+            let callCounter = CallCounter()
             // The role goes out first, as its own chunk, then the deltas.
             let opening = chunk(.init(role: "assistant", nullContent: true))
             return streamResponse(first: first, pump: pump, lease: lease, opening: opening) { event in
                 switch event {
                 case let .delta(.content(piece)): return chunk(.init(content: piece))
                 case let .delta(.reasoning(piece)): return chunk(.init(reasoningContent: piece))
+                case let .delta(.toolCall(call)):
+                    // A call goes out whole, in one delta; a client concatenates arguments either way.
+                    return chunk(.init(toolCalls: [InferenceJSON.ToolCall(call, index: callCounter.next())]))
                 case let .finished(reason, timings):
                     var frames = chunk(.init(), finish: reason, timings: timings)
                     if includeUsage {
@@ -311,7 +326,7 @@ struct InferenceRoutes: Sendable {
     /// The prompt text for a chat request, and whether its template left a `<think>` open.
     private func renderPrompt(
         _ chat: ChatRequest, engine: any Engine, info: EngineInfo
-    ) async throws -> (text: String, thinkingIsOpen: Bool) {
+    ) async throws -> (text: String, thinkingIsOpen: Bool, toolFormat: ToolCallFormat) {
         let source = await engine.chatTemplate() ?? ChatMessages.chatMLTemplate
         let compiled: (template: ChatTemplate, style: ChatMessages.ContentStyle)
         do {
@@ -334,7 +349,11 @@ struct InferenceRoutes: Sendable {
                 extra: chat.templateKwargs
             ))
             let tail = text.reversed().drop(while: { $0.isWhitespace })
-            return (text, String(tail.reversed()).hasSuffix(ReasoningSplitter.open))
+            return (
+                text,
+                String(tail.reversed()).hasSuffix(ReasoningSplitter.open),
+                ToolCallFormat.detect(template: source)
+            )
         } catch {
             throw RequestError.invalid(error.localizedDescription)
         }
@@ -461,6 +480,19 @@ final class EventPump<Event: Sendable>: @unchecked Sendable {
 
     func next() async throws -> Event? {
         try await iterator.next()
+    }
+}
+
+/// Numbers a reply's tool calls 0, 1, 2… as they're sent.
+final class CallCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    func next() -> Int {
+        lock.withLock {
+            defer { value += 1 }
+            return value
+        }
     }
 }
 

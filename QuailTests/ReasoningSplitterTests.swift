@@ -13,6 +13,7 @@ struct ReasoningSplitterTests {
                 switch delta {
                 case let .reasoning(text): reasoning += text
                 case let .content(text): content += text
+                case .toolCall: break // this splitter never produces one
                 }
             }
         }

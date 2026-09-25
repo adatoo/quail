@@ -4,6 +4,8 @@ import Foundation
 enum ChatDelta: Equatable, Sendable {
     case content(String)
     case reasoning(String)
+    /// A complete tool call.
+    case toolCall(ParsedToolCall)
 }
 
 /// Separates `<think>…</think>` reasoning from the answer as text streams in, like llama-server's

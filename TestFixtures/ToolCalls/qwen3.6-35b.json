@@ -1,0 +1,382 @@
+{
+ "two-calls-nothink": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris and in Tokyo? Use the tool for both."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "<tool_call>\n<function=get_weather>\n<parameter=city>\nParis\n</parameter>\n</function>\n</tool_call>\n<tool_call>\n<function=get_weather>\n<parameter=city>\nTokyo\n</parameter>\n</function>\n</tool_call>",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Paris\"}"
+   },
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Tokyo\"}"
+   }
+  ],
+  "finish": "tool_calls",
+  "prompt": "<|im_start|>system\n# Tools\n\nYou have access to the following functions:\n\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}\n</tools>\n\nIf you choose to call a function ONLY reply in the following format with NO suffix:\n\n<tool_call>\n<function=example_function_name>\n<parameter=example_parameter_1>\nvalue_1\n</parameter>\n<parameter=example_parameter_2>\nThis is the value for the second parameter\nthat can span\nmultiple lines\n</parameter>\n</function>\n</tool_call>\n\n<IMPORTANT>\nReminder:\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\n- Required parameters MUST be specified\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\n</IMPORTANT><|im_end|>\n<|im_start|>user\nWhat's the weather in Paris and in Tokyo? Use the tool for both.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+ },
+ "call-thinking": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris? Use the tool."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "raw": "The user wants to know the weather in Paris.\nI need to use the `get_weather` tool.\nThe required parameter is `city`, which is \"Paris\".\nThe `unit` parameter is optional, so I won't specify it unless requested.\nI will call `get_weather(city=\"Paris\")`.\n</think>\n\n<tool_call>\n<function=get_weather>\n<parameter=city>\nParis\n</parameter>\n</function>\n</tool_call>",
+  "content": "",
+  "reasoning": "The user wants to know the weather in Paris.\nI need to use the `get_weather` tool.\nThe required parameter is `city`, which is \"Paris\".\nThe `unit` parameter is optional, so I won't specify it unless requested.\nI will call `get_weather(city=\"Paris\")`.\n",
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Paris\"}"
+   }
+  ],
+  "finish": "tool_calls",
+  "prompt": "<|im_start|>system\n# Tools\n\nYou have access to the following functions:\n\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}\n</tools>\n\nIf you choose to call a function ONLY reply in the following format with NO suffix:\n\n<tool_call>\n<function=example_function_name>\n<parameter=example_parameter_1>\nvalue_1\n</parameter>\n<parameter=example_parameter_2>\nThis is the value for the second parameter\nthat can span\nmultiple lines\n</parameter>\n</function>\n</tool_call>\n\n<IMPORTANT>\nReminder:\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\n- Required parameters MUST be specified\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\n</IMPORTANT><|im_end|>\n<|im_start|>user\nWhat's the weather in Paris? Use the tool.<|im_end|>\n<|im_start|>assistant\n<think>\n"
+ },
+ "typed-args": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Add 2.5 and 4 using the add tool, with the note \"007\"."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "<tool_call>\n<function=add>\n<parameter=a>\n2.5\n</parameter>\n<parameter=b>\n4\n</parameter>\n<parameter=note>\n007\n</parameter>\n</function>\n</tool_call>",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "add",
+    "arguments": "{\"a\":2.5,\"b\":4,\"note\":\"007\"}"
+   }
+  ],
+  "finish": "tool_calls",
+  "prompt": "<|im_start|>system\n# Tools\n\nYou have access to the following functions:\n\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}\n</tools>\n\nIf you choose to call a function ONLY reply in the following format with NO suffix:\n\n<tool_call>\n<function=example_function_name>\n<parameter=example_parameter_1>\nvalue_1\n</parameter>\n<parameter=example_parameter_2>\nThis is the value for the second parameter\nthat can span\nmultiple lines\n</parameter>\n</function>\n</tool_call>\n\n<IMPORTANT>\nReminder:\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\n- Required parameters MUST be specified\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\n</IMPORTANT><|im_end|>\n<|im_start|>user\nAdd 2.5 and 4 using the add tool, with the note \"007\".<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+ },
+ "no-call": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Say hello in one word."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "Hello",
+  "content": "Hello",
+  "reasoning": null,
+  "tool_calls": [],
+  "finish": "stop",
+  "prompt": "<|im_start|>system\n# Tools\n\nYou have access to the following functions:\n\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}\n</tools>\n\nIf you choose to call a function ONLY reply in the following format with NO suffix:\n\n<tool_call>\n<function=example_function_name>\n<parameter=example_parameter_1>\nvalue_1\n</parameter>\n<parameter=example_parameter_2>\nThis is the value for the second parameter\nthat can span\nmultiple lines\n</parameter>\n</function>\n</tool_call>\n\n<IMPORTANT>\nReminder:\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\n- Required parameters MUST be specified\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\n</IMPORTANT><|im_end|>\n<|im_start|>user\nSay hello in one word.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+ },
+ "text-then-call": {
+  "request": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "Before calling a tool, always write one short sentence saying what you are about to do."
+    },
+    {
+     "role": "user",
+     "content": "What's the weather in Oslo?"
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "<tool_call>\n<function=get_weather>\n<parameter=city>\nOslo\n</parameter>\n</function>\n</tool_call>",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Oslo\"}"
+   }
+  ],
+  "finish": "tool_calls",
+  "prompt": "<|im_start|>system\n# Tools\n\nYou have access to the following functions:\n\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}\n</tools>\n\nIf you choose to call a function ONLY reply in the following format with NO suffix:\n\n<tool_call>\n<function=example_function_name>\n<parameter=example_parameter_1>\nvalue_1\n</parameter>\n<parameter=example_parameter_2>\nThis is the value for the second parameter\nthat can span\nmultiple lines\n</parameter>\n</function>\n</tool_call>\n\n<IMPORTANT>\nReminder:\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\n- Required parameters MUST be specified\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\n</IMPORTANT>\n\nBefore calling a tool, always write one short sentence saying what you are about to do.<|im_end|>\n<|im_start|>user\nWhat's the weather in Oslo?<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+ }
+}

@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-09-25
+
+### Changed
+
+- Internal, no visible change yet: `quail-server` reads tool calls out of a model's reply (Qwen 2.5/3, Qwen3-Coder
+  and 3.5/3.6, Llama 3, gpt-oss) and returns them in llama-server's `tool_calls` shape (ADR D-040); checked against
+  real Qwen3 and Qwen3.6 output.
+
 ## [0.16.0] - 2026-09-25
 
 ### Changed

@@ -6,26 +6,32 @@ enum ChatEvent: Equatable, Sendable {
 }
 
 enum ChatStream {
-    /// The generated text, with reasoning separated from the answer.
+    /// The generated text, with reasoning and tool calls separated from the answer.
     static func events(
         from text: AsyncThrowingStream<TextEvent, any Error>,
-        startsInReasoning: Bool
+        parser: ChatOutputParser
     ) -> AsyncThrowingStream<ChatEvent, any Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
-                var splitter = ReasoningSplitter(startsInReasoning: startsInReasoning)
+                var parser = parser
+                var calledTools = false
+                func send(_ deltas: [ChatDelta]) {
+                    for delta in deltas {
+                        if case .toolCall = delta {
+                            calledTools = true
+                        }
+                        continuation.yield(.delta(delta))
+                    }
+                }
                 do {
                     for try await event in text {
                         switch event {
                         case let .text(piece):
-                            for delta in splitter.push(piece) {
-                                continuation.yield(.delta(delta))
-                            }
+                            send(parser.push(piece))
                         case let .finished(reason, timings):
-                            for delta in splitter.flush() {
-                                continuation.yield(.delta(delta))
-                            }
-                            continuation.yield(.finished(reason, timings))
+                            send(parser.flush())
+                            // A reply that ends with a tool call is finished "tool_calls".
+                            continuation.yield(.finished(reason == .stop && calledTools ? .toolCalls : reason, timings))
                         }
                     }
                     continuation.finish()

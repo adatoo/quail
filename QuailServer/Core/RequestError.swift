@@ -127,6 +127,12 @@ struct ChatRequest: Sendable {
         if body["tool_choice"]?.stringValue == "none" {
             toolsEnabled = false
         }
+        // Forcing a call needs the engine's grammar sampler (step 5), like `response_format`; refuse it
+        // rather than let a model that answers in prose pass for one that was made to call a tool.
+        if let choice = body["tool_choice"], !choice.isNull, !["auto", "none"].contains(choice.stringValue ?? "") {
+            let what = choice.stringValue.map { "\"\($0)\"" } ?? "with a specific function"
+            throw RequestError.invalid("tool_choice \(what) isn't supported yet")
+        }
         if let kwargs = body["chat_template_kwargs"], !kwargs.isNull {
             guard case let .object(members) = kwargs else {
                 throw RequestError.invalid("'chat_template_kwargs' must be an object")

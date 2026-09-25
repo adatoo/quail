@@ -34,8 +34,11 @@ enum OrderedJSON {
     }
 
     /// `json.dumps` formatting (what Jinja's `tojson` writes), without escaping non-ASCII.
-    static func serialize(_ value: Value) throws -> String {
-        try JSON.dumps(value, options: .init(ensureASCII: false, separators: (",", ":")))
+    ///
+    /// `spaced` uses Python's default `", "` and `": "`, which is what llama-server writes a tool
+    /// call's arguments with.
+    static func serialize(_ value: Value, spaced: Bool = false) throws -> String {
+        try JSON.dumps(value, options: .init(ensureASCII: false, separators: spaced ? (", ", ": ") : (",", ":")))
     }
 
     private struct Parser {
