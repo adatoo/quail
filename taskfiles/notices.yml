@@ -1,5 +1,5 @@
 # Third-party notices (ADR D-044): Quail/Resources/THIRD_PARTY_NOTICES.md is generated, committed,
-# shipped in the app, and shown in Settings → General → About → Open-source licences.
+# shipped in the app, and shown in Settings → General → About → Third-party licences.
 #
 #   task notices           regenerate it (after a build, which leaves the package checkouts it reads)
 #   task notices:check     fail if the committed file is out of date (what CI runs)

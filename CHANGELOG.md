@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-09-25
+
+### Fixed
+
+- The licence list is easier to find and opens reliably: Settings → General → About → **Third-party licences** (it was labelled "Open-source licences", and its sheet was attached in a way that doesn't always present in the Settings window).
+
 ## [0.28.0] - 2026-09-25
 
 ### Added
