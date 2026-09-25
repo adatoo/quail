@@ -82,6 +82,8 @@ struct GenerationTimings: Equatable, Sendable {
 enum FinishReason: String, Equatable, Sendable {
     case stop
     case length
+    /// Never produced by an engine: the chat layer reports it when a reply ended in tool calls.
+    case toolCalls = "tool_calls"
 }
 
 enum GenerationEvent: Equatable, Sendable {

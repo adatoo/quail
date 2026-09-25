@@ -108,6 +108,25 @@ enum InferenceJSON {
         }
     }
 
+    /// A tool call as OpenAI writes it. `index` is present only in streamed deltas.
+    struct ToolCall: Encodable {
+        struct Function: Encodable {
+            let name: String
+            let arguments: String
+        }
+
+        var index: Int?
+        let id: String
+        let type = "function"
+        let function: Function
+
+        init(_ call: ParsedToolCall, index: Int? = nil) {
+            self.index = index
+            id = String(newID().dropFirst("chatcmpl-".count)) // llama-server's ids are 32 letters and digits
+            function = Function(name: call.name, arguments: call.arguments)
+        }
+    }
+
     /// A non-streamed chat reply.
     struct ChatCompletion: Encodable {
         struct Choice: Encodable {
@@ -115,10 +134,12 @@ enum InferenceJSON {
                 let role = "assistant"
                 let content: String
                 let reasoningContent: String?
+                var toolCalls: [ToolCall]?
 
                 enum CodingKeys: String, CodingKey {
                     case role, content
                     case reasoningContent = "reasoning_content"
+                    case toolCalls = "tool_calls"
                 }
             }
 
@@ -153,12 +174,14 @@ enum InferenceJSON {
             var role: String?
             var content: String?
             var reasoningContent: String?
+            var toolCalls: [ToolCall]?
             /// The opening chunk carries `"content": null`, as llama-server's does.
             var nullContent = false
 
             enum CodingKeys: String, CodingKey {
                 case role, content
                 case reasoningContent = "reasoning_content"
+                case toolCalls = "tool_calls"
             }
 
             func encode(to encoder: any Encoder) throws {
@@ -170,6 +193,7 @@ enum InferenceJSON {
                     try container.encodeIfPresent(content, forKey: .content)
                 }
                 try container.encodeIfPresent(reasoningContent, forKey: .reasoningContent)
+                try container.encodeIfPresent(toolCalls, forKey: .toolCalls)
             }
         }
 

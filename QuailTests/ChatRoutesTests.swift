@@ -279,6 +279,96 @@ struct ChatRoutesTests {
         #expect(!harness.prompt.contains("<tools>"))
     }
 
+    private static let weatherTools = #"[{"type":"function","function":{"name":"get_weather","description":"Weather","parameters":{"type":"object","properties":{"city":{"type":"string"}}}}}]"#
+    private static let hermesCall = [
+        "<tool_call>\n",
+        #"{"name": "get_weather", "arguments": {"city": "Paris"}}"#,
+        "\n</tool_call>",
+    ]
+
+    @Test("a tool call comes back as message.tool_calls, with finish_reason tool_calls and empty content")
+    func toolCallReply() async throws {
+        let harness = Harness(pieces: Self.hermesCall)
+        let reply = await harness
+            .json(#"{"model":"Alpha","messages":[{"role":"user","content":"Weather?"}],"tools":\#(Self.weatherTools)}"#)
+        #expect(reply.status == 200)
+        let choice = (reply.json["choices"] as? [[String: Any]])?.first
+        #expect(choice?["finish_reason"] as? String == "tool_calls")
+        let message = try #require(choice?["message"] as? [String: Any])
+        #expect(message["content"] as? String == "")
+        let calls = try #require(message["tool_calls"] as? [[String: Any]])
+        #expect(calls.count == 1)
+        #expect(calls[0]["type"] as? String == "function")
+        #expect((calls[0]["id"] as? String)?.count == 32)
+        #expect((calls[0]["function"] as? [String: Any])?["name"] as? String == "get_weather")
+        #expect((calls[0]["function"] as? [String: Any])?["arguments"] as? String == #"{"city": "Paris"}"#)
+    }
+
+    @Test("a streamed tool call is one delta with its index, id and whole arguments, then finish tool_calls")
+    func toolCallStream() async {
+        let twoCalls = Self.hermesCall + ["\n"] + Self.hermesCall
+        let harness = Harness(pieces: twoCalls)
+        let (_, frames) = await harness
+            .frames(
+                #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":\#(Self.weatherTools),"stream":true}"#
+            )
+        let chunks = frames.dropLast().map(object)
+        let calls = chunks
+            .compactMap {
+                (($0["choices"] as? [[String: Any]])?
+                    .first?["delta"] as? [String: Any])?["tool_calls"] as? [[String: Any]]
+            }.flatMap(\.self)
+        #expect(calls.count == 2)
+        #expect(calls.map { $0["index"] as? Int } == [0, 1])
+        #expect(calls.allSatisfy { ($0["id"] as? String)?.count == 32 && $0["type"] as? String == "function" })
+        #expect(calls.compactMap { ($0["function"] as? [String: Any])?["arguments"] as? String } == [
+            #"{"city": "Paris"}"#,
+            #"{"city": "Paris"}"#,
+        ])
+        let finish = (chunks.last?["choices"] as? [[String: Any]])?.first?["finish_reason"] as? String
+        #expect(finish == "tool_calls")
+        // Content stays empty: nothing but the calls.
+        #expect(!chunks
+            .contains { (($0["choices"] as? [[String: Any]])?.first?["delta"] as? [String: Any])?["content"] is String
+            })
+    }
+
+    @Test("text before a tool call is content; without tools in the request a call stays text")
+    func toolCallContent() async {
+        let harness = Harness(pieces: ["Looking it up.\n"] + Self.hermesCall)
+        let with = await harness
+            .json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":\#(Self.weatherTools)}"#)
+        #expect(message(with.json)["content"] as? String == "Looking it up.")
+        let without = await harness.json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}]}"#)
+        #expect(message(without.json)["tool_calls"] == nil)
+        #expect((message(without.json)["content"] as? String)?.contains("<tool_call>") == true)
+    }
+
+    @Test("reasoning and a tool call in one reply are both kept")
+    func reasoningThenCall() async {
+        let harness = Harness(pieces: ["<think>\nNeed weather.\n</think>\n\n"] + Self.hermesCall)
+        let reply = await harness
+            .json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":\#(Self.weatherTools)}"#)
+        #expect(message(reply.json)["reasoning_content"] as? String == "Need weather.\n")
+        #expect((message(reply.json)["tool_calls"] as? [Any])?.count == 1)
+    }
+
+    @Test("forcing a tool call isn't supported yet and says so; auto and none are accepted")
+    func toolChoice() async {
+        func request(_ choice: String) -> String {
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":\#(Self.weatherTools),"tool_choice":\#(choice)}"#
+        }
+        let harness = Harness()
+        let required = await harness.json(request(#""required""#))
+        #expect(required.status == 400)
+        #expect((required.json["error"] as? [String: Any])?["message"] as? String ==
+            "tool_choice \"required\" isn't supported yet")
+        let named = await harness.json(request(#"{"type":"function","function":{"name":"get_weather"}}"#))
+        #expect(named.status == 400)
+        #expect(await harness.json(request(#""auto""#)).status == 200)
+        #expect(await harness.json(request(#""none""#)).status == 200)
+    }
+
     @Test("a tool-call round trip renders the arguments as an object")
     func toolRoundTrip() async {
         let harness = Harness()

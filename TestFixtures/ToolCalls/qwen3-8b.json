@@ -1,0 +1,377 @@
+{
+ "two-calls-nothink": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris and in Tokyo? Use the tool for both."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "<tool_call>\n{\"name\": \"get_weather\", \"arguments\": {\"city\": \"Paris\", \"unit\": \"celsius\"}}\n</tool_call>\n<tool_call>\n{\"name\": \"get_weather\", \"arguments\": {\"city\": \"Tokyo\", \"unit\": \"celsius\"}}\n</tool_call>",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\": \"Paris\", \"unit\": \"celsius\"}"
+   },
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\": \"Tokyo\", \"unit\": \"celsius\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "call-thinking": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris? Use the tool."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "raw": "<think>\nOkay, the user is asking for the weather in Paris. Let me check the tools available. There's a get_weather function that requires the city and an optional unit. The user didn't specify Celsius or Fahrenheit, so I should default to one. Since the function allows either, maybe I'll use Celsius as the default. I need to make sure to include the city parameter. So the function call should be get_weather with city set to Paris and unit as celsius. Let me structure that in JSON.\n</think>\n\n<tool_call>\n{\"name\": \"get_weather\", \"arguments\": {\"city\": \"Paris\", \"unit\": \"celsius\"}}\n</tool_call>",
+  "content": "",
+  "reasoning": "Okay, the user is asking for the weather in Paris. Let me check the tools available. There's a get_weather function that requires the city and an optional unit. The user didn't specify Celsius or Fahrenheit, so I should default to one. Since the function allows either, maybe I'll use Celsius as the default. I need to make sure to include the city parameter. So the function call should be get_weather with city set to Paris and unit as celsius. Let me structure that in JSON.\n",
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\": \"Paris\", \"unit\": \"celsius\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "typed-args": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Add 2.5 and 4 using the add tool, with the note \"007\"."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "<tool_call>\n{\"name\": \"add\", \"arguments\": {\"a\": 2.5, \"b\": 4, \"note\": \"007\"}}\n</tool_call>",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "add",
+    "arguments": "{\"a\": 2.5, \"b\": 4, \"note\": \"007\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "no-call": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Say hello in one word."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "Hello!",
+  "content": "Hello!",
+  "reasoning": null,
+  "tool_calls": [],
+  "finish": "stop"
+ },
+ "text-then-call": {
+  "request": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "Before calling a tool, always write one short sentence saying what you are about to do."
+    },
+    {
+     "role": "user",
+     "content": "What's the weather in Oslo?"
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "<tool_call>\n{\"name\": \"get_weather\", \"arguments\": {\"city\": \"Oslo\", \"unit\": \"celsius\"}}\n</tool_call>",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\": \"Oslo\", \"unit\": \"celsius\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ }
+}
