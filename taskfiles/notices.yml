@@ -1,0 +1,17 @@
+# Third-party notices (ADR D-044): Quail/Resources/THIRD_PARTY_NOTICES.md is generated, committed,
+# shipped in the app, and shown in Settings → General → About → Open-source licences.
+#
+#   task notices           regenerate it (after a build, which leaves the package checkouts it reads)
+#   task notices:check     fail if the committed file is out of date (what CI runs)
+version: '3'
+
+tasks:
+  default:
+    desc: Regenerate THIRD_PARTY_NOTICES.md from Config/third-party.json, Package.resolved and the package licences
+    cmds:
+      - python3 Config/generate-notices.py
+
+  check:
+    desc: Fail if THIRD_PARTY_NOTICES.md is out of date, or a package isn't in Config/third-party.json
+    cmds:
+      - python3 Config/generate-notices.py --check

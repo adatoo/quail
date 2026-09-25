@@ -1,7 +1,7 @@
 # Quail's commands — the same ones locally and in CI (ADR D-030).
 #
 #   task            list every task
-#   task ci         what CI runs: lint, vendor, build, verify, test (+ the App Store build)
+#   task ci         what CI runs: lint, vendor, build, notices, verify, test (+ the App Store build)
 #   task build      compile into ./DerivedData (unsigned: checks it builds, macOS won't open it)
 #   task test       run the unit tests
 #   task install    build Release, ad-hoc sign, install to ~/Apps — the app you can launch
@@ -38,6 +38,9 @@ includes:
     dir: '{{.ROOT_DIR}}'
   release:
     taskfile: taskfiles/release.yml
+    dir: '{{.ROOT_DIR}}'
+  notices:
+    taskfile: taskfiles/notices.yml
     dir: '{{.ROOT_DIR}}'
 
 vars:
@@ -112,6 +115,7 @@ tasks:
       - task: vendor:llama
       - task: vendor:uv
       - task: build
+      - task: notices:check
       - task: verify:bundle
       - task: test
       - task: build:appstore
@@ -198,7 +202,7 @@ tasks:
         # silently shipped an app with no catalog.json; Settings → About shows the
         # llama.cpp tag, and llama.cpp's MIT licence must ship with the app (both
         # are copied in by embed:llama).
-        for f in catalog.json llama.version LICENSE-llama.cpp; do
+        for f in catalog.json llama.version LICENSE-llama.cpp THIRD_PARTY_NOTICES.md; do
           if [ ! -f "$APP/Contents/Resources/$f" ]; then
             echo "::error::$f is missing from Quail.app/Contents/Resources — check project.yml's resources wiring and taskfiles/embed.yml"
             exit 1
@@ -228,7 +232,7 @@ tasks:
           fi
           echo "update key present: $KEY"
         fi
-        echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp, llama.framework and the MLX shader bundle present; quail-server launches"
+        echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp, THIRD_PARTY_NOTICES.md, llama.framework and the MLX shader bundle present; quail-server launches"
 
   install:
     desc: Build Release and install to ~/Apps/Quail.app (INSTALL_DIR=… to change; ad-hoc signed, without the hardened runtime, unless QUAIL_SIGN_IDENTITY is set)

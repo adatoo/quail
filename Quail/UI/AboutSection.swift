@@ -41,26 +41,32 @@ struct AboutSection: View {
     }
 }
 
-/// The licence texts that must ship with the app: llama.cpp's (MIT, bundled
-/// by `task embed:llama`) and a line for Quail's own.
+/// The licence texts that must ship with the app: Quail's own line, then the generated notices file
+/// (`task notices`, ADR D-044) with every bundled library's licence; llama.cpp's own file is the
+/// fallback for a build without it.
 struct LicencesSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Licences").font(.title3.bold())
-            Text("Quail © 2026 Arif Datoo, released under the MIT Licence. It runs llama.cpp:")
-                .foregroundStyle(.secondary)
+            Text(
+                "Quail © 2026 Arif Datoo, released under the MIT Licence. It includes the open-source software listed here:"
+            )
+            .foregroundStyle(.secondary)
             ScrollView {
-                Text(AppInfo.llamaCppLicence() ?? "The llama.cpp licence file isn't part of this build.")
-                    // The licence file is hard-wrapped at ~72 columns; at a larger size
-                    // every line would wrap a second time and read raggedly.
-                    .font(.system(size: 10, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
+                Text(
+                    AppInfo.thirdPartyNotices() ?? AppInfo.llamaCppLicence()
+                        ?? "The licence files aren't part of this build."
+                )
+                // The licence files are hard-wrapped at ~72 columns; at a larger size
+                // every line would wrap a second time and read raggedly.
+                .font(.system(size: 10, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
             }
-            .frame(height: 260)
+            .frame(height: 380)
             .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
             HStack {
                 Spacer()
@@ -69,6 +75,6 @@ struct LicencesSheet: View {
             }
         }
         .padding(20)
-        .frame(width: 560)
+        .frame(width: 640)
     }
 }

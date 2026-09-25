@@ -62,6 +62,17 @@ struct AppInfoTests {
         #expect(AppInfo.llamaCppLicence(in: without) == nil)
     }
 
+    @Test("the notices file is read from the bundle, and absence is nil")
+    func notices() throws {
+        let (with, cleanupWith) = try bundle(with: ["THIRD_PARTY_NOTICES.md": "# Third-party notices\n"])
+        defer { cleanupWith() }
+        #expect(AppInfo.thirdPartyNotices(in: with)?.hasPrefix("# Third-party notices") == true)
+
+        let (without, cleanupWithout) = try bundle(with: [:])
+        defer { cleanupWithout() }
+        #expect(AppInfo.thirdPartyNotices(in: without) == nil)
+    }
+
     // MARK: About
 
     private func facts(tag: String? = "b11081", asOf: String? = "2026-09-23") -> AboutFacts {
