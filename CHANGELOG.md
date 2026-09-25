@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-09-25
+
 ### Added
 
 - Internal, no visible change yet: `quail-server` now reads images with GGUF vision models (a model with an `mmproj` projector next to it), in chat completions, `/v1/messages` and `/v1/responses`. On SmolVLM2 and Qwen2.5-VL the answers and prompt sizes matched llama-server's exactly, and a multi-turn conversation with a template that reads only typed parts now renders as llama-server's does (ADR D-047).
