@@ -117,23 +117,32 @@ final class MLXEngine: Engine, @unchecked Sendable {
 
     func generate(_ request: GenerationRequest) -> AsyncThrowingStream<GenerationEvent, any Error> {
         AsyncThrowingStream { continuation in
+            // The container runs its closure in a task of its own, so the request's cancellation has to
+            // travel by a flag of ours as well.
+            let cancelled = CancelFlag()
             let task = Task {
                 do {
                     guard let loaded = current else { throw EngineError.notLoaded }
                     try await loaded.container.perform { context in
-                        try await Self.run(request, context: context, loaded: loaded, emit: { continuation.yield($0) })
+                        try await Self.run(
+                            request, context: context, loaded: loaded, cancelled: cancelled,
+                            emit: { continuation.yield($0) }
+                        )
                     }
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
                 }
             }
-            continuation.onTermination = { _ in task.cancel() }
+            continuation.onTermination = { _ in
+                cancelled.set()
+                task.cancel()
+            }
         }
     }
 
     private static func run(
-        _ request: GenerationRequest, context: ModelContext, loaded: Loaded,
+        _ request: GenerationRequest, context: ModelContext, loaded: Loaded, cancelled: CancelFlag,
         emit: @escaping @Sendable (GenerationEvent) -> Void
     ) async throws {
         let prompt = request.promptTokens
@@ -164,7 +173,27 @@ final class MLXEngine: Engine, @unchecked Sendable {
             layers = context.model.newCache(parameters: parameters)
         }
 
-        let input = LMInput(tokens: MLXArray(prompt[reused...].map { Int32(truncatingIfNeeded: $0) }))
+        // Prefill in slices of the library's step size, so a client that leaves during a long prompt
+        // stops it at the next slice: `TokenIterator`'s initialiser would otherwise process the whole
+        // prompt before anything can be cancelled. The last one to two slices are left to the iterator,
+        // which also hands the penalty processors the tail of the prompt.
+        let step = parameters.prefillStepSize
+        let started = ContinuousClock.now
+        var remaining = LMInput.Text(tokens: MLXArray(prompt[reused...].map { Int32(truncatingIfNeeded: $0) }))
+        var fed = reused
+        while remaining.tokens.size > 2 * step {
+            if cancelled.isSet || Task.isCancelled {
+                // What the cache holds now is a prefix of this prompt; keep it for a retry.
+                loaded.reusable = ReusableCache(layers: layers, tokens: Array(prompt.prefix(fed)))
+                return
+            }
+            _ = context.model(remaining[.newAxis, ..<step], cache: layers, state: nil)
+            eval(layers)
+            remaining = remaining[step...]
+            fed += step
+        }
+        let sliced = started.duration(to: .now)
+        let input = LMInput(text: remaining)
         var processor = parameters.processor()
         if request.ignoreEndOfSequence {
             processor = BanTokens(ids: Self.stopTokens(context), wrapping: processor)
@@ -209,9 +238,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
 
         // The library reports a reply that hit the token limit as "cancelled" (it looks at a copy of the
         // iterator), so only a hang-up is taken as one here.
-        guard let info = finished, !Task.isCancelled else { return }
+        guard let info = finished, !cancelled.isSet, !Task.isCancelled else { return }
         emit(.finished(info.stopReason == .stop ? .stop : .length, GenerationTimings(
-            promptTokens: prompt.count - reused, promptSeconds: info.promptTime,
+            promptTokens: prompt.count - reused, promptSeconds: info.promptTime + sliced.seconds,
             generatedTokens: info.generationTokenCount, generatedSeconds: info.generateTime,
             cachedTokens: reused
         )))
@@ -310,6 +339,26 @@ private struct BanTokens: LogitProcessor {
 
     mutating func didSample(token: MLXArray) {
         wrapped?.didSample(token: token)
+    }
+}
+
+private // Set once from any thread, read by the prefill loop.
+final class CancelFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+
+    func set() {
+        lock.withLock { value = true }
+    }
+
+    var isSet: Bool {
+        lock.withLock { value }
+    }
+}
+
+extension Duration {
+    var seconds: Double {
+        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }
 
