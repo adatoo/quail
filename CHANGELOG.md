@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.21.1] - 2026-09-25
+
+### Fixed
+
+- The release build of 0.21.0 failed before producing a DMG (the MLX shader bundle was linked, not copied, in an
+  archive build), so 0.21.0 was never published for download or update; this version carries its changes (ADR D-044).
+
 ## [0.21.0] - 2026-09-25
 
 ### Changed
