@@ -147,4 +147,14 @@ protocol Runtime: Sendable {
     /// The runtime's own web UI at this base URL, if it has one (llama.cpp's
     /// built-in chat/model UI, oMLX's `/admin`). `nil` for Rapid-MLX.
     func webUIURL(base: URL) -> URL?
+
+    /// What "Open Chat in Browser" opens: the web UI, signed in with `apiKey` if the runtime can hand it over
+    /// without putting it in the URL. The default is `webUIURL`, where the user pastes the key.
+    func chatURL(base: URL, apiKey: String?) async -> URL?
+}
+
+extension Runtime {
+    func chatURL(base: URL, apiKey _: String?) async -> URL? {
+        webUIURL(base: base)
+    }
 }

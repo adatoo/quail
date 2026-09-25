@@ -8,10 +8,12 @@ struct QuailServerRuntime: Runtime {
     /// The HTTP side is llama-server's; `quail-server` answers the same requests (ServerCompatibilityTests).
     private let http: LlamaCppRuntime
     private let logFile: URL?
+    private let urlSession: URLSession
 
     init(executableURL: URL, urlSession: URLSession = .shared, logFile: URL? = nil) {
         self.executableURL = executableURL
         self.logFile = logFile
+        self.urlSession = urlSession
         http = LlamaCppRuntime(executableURL: executableURL, urlSession: urlSession, logFile: logFile)
     }
 
@@ -67,6 +69,26 @@ struct QuailServerRuntime: Runtime {
     /// Its own chat page at `/` (ADR D-042).
     func webUIURL(base: URL) -> URL? {
         base
+    }
+
+    /// The page, signed in: a one-time ticket (asked for with the key) in the fragment, which the page trades
+    /// for the key and removes. The key itself never goes in a URL. If the ticket can't be had, the plain page.
+    func chatURL(base: URL, apiKey: String?) async -> URL? {
+        guard let apiKey, !apiKey.isEmpty else { return base }
+        var request = URLRequest(url: base.appending(path: "auth/ticket"))
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 5
+        struct Ticket: Decodable {
+            let ticket: String
+        }
+        guard let (data, response) = try? await urlSession.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let ticket = try? JSONDecoder().decode(Ticket.self, from: data).ticket,
+              var components = URLComponents(url: base, resolvingAgainstBaseURL: false)
+        else { return base }
+        components.fragment = "ticket=\(ticket)"
+        return components.url ?? base
     }
 }
 

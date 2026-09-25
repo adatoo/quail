@@ -49,6 +49,39 @@ struct ServerCompatibilityTests {
         #expect(loaded)
     }
 
+    @Test("Quail server's chat link carries a one-time ticket that the page trades for the key, once")
+    func chatSignIn() async throws {
+        let fixture = try await Fixture(apiKey: "sekret")
+        defer { fixture.server.stop() }
+        let runtime = QuailServerRuntime(executableURL: URL(fileURLWithPath: "/bin/true"))
+
+        let url = try #require(await runtime.chatURL(base: fixture.base, apiKey: "sekret"))
+        #expect(url.absoluteString.hasPrefix(fixture.base.absoluteString))
+        #expect(!url.absoluteString.contains("sekret"))
+        let fragment = try #require(url.fragment)
+        #expect(fragment.hasPrefix("ticket="))
+        let ticket = String(fragment.dropFirst("ticket=".count))
+
+        func exchange(_ ticket: String) async throws -> (Int, [String: Any]) {
+            var request = URLRequest(url: fixture.base.appending(path: "auth/exchange"))
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: ["ticket": ticket])
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let json = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+            return ((response as? HTTPURLResponse)?.statusCode ?? 0, json)
+        }
+        let first = try await exchange(ticket)
+        #expect(first.0 == 200 && first.1["key"] as? String == "sekret")
+        #expect(try await exchange(ticket).0 == 401) // used
+
+        // Without a key there is nothing to hand over, and llama.cpp's page can't take one.
+        #expect(await runtime.chatURL(base: fixture.base, apiKey: nil) == fixture.base)
+        #expect(await fixture.runtime.chatURL(base: fixture.base, apiKey: "sekret") == fixture.base)
+        // A wrong key gets no ticket, and the plain page.
+        #expect(await runtime.chatURL(base: fixture.base, apiKey: "wrong") == fixture.base)
+    }
+
     @Test("with a key: /health is open, the rest 401s without it and works with it")
     func apiKey() async throws {
         let fixture = try await Fixture(apiKey: "sekret")

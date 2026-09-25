@@ -92,17 +92,20 @@ struct MenuView: View {
             bringToFront { openSettings() }
         }
 
-        // D-001: runtimes ship their own chat UIs — link to them. llama.cpp's
-        // lets you pick any installed model; the API key is on by default
-        // (ADR D-039), so enter it in the web UI's settings (Settings →
-        // Endpoint has a Copy button).
+        // D-001: runtimes ship their own chat UIs — link to them. Quail server's page is signed in with a
+        // one-time ticket (D-042); llama.cpp's needs the key pasted into its settings (Settings → Endpoint
+        // has a Copy button), since it reads nothing from the URL.
         // A runtime with no web UI of its own (Rapid-MLX) gets `quail chat`
         // instead: the same item, copying the command to the clipboard.
         let chat = chatEntry
         Button(chat.menuTitle) {
             switch chat {
             case let .browser(url):
-                NSWorkspace.shared.open(url)
+                let runtime = appState.runtime, key = appState.serverController.apiKey
+                Task {
+                    let signedIn = await runtime.chatURL(base: url, apiKey: key) ?? url
+                    NSWorkspace.shared.open(signedIn)
+                }
             case let .terminal(command):
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(command, forType: .string)
