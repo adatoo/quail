@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.31.1] - 2026-09-25
+
+### Fixed
+
+- Internal, affects the Quail server runtime: a connection that had carried more than 64 KB of requests (a long agent session, a benchmark run) had every later request refused with "request headers too large". Found by running the benchmark suite against `quail-server` for the parity gate.
+- Internal: `quail-server` timed a prompt only until its work was queued on the GPU, so short prompts reported impossible speeds (200,000 tokens/s); it now times until the result is ready, as llama-server does. It also uses one thread per performance core, as llama-server does, instead of libllama's default of four.
+
 ## [0.31.0] - 2026-09-25
 
 ### Added

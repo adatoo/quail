@@ -23,6 +23,16 @@ struct HTTPParserTests {
         #expect(length == text.utf8.count - body.utf8.count)
     }
 
+    @Test("a head at the front of a slice whose indices are far past 64 KB still parses")
+    func sliceIndices() throws {
+        var buffer = Data(repeating: 0, count: 100_000)
+        buffer.append(Data("GET /health HTTP/1.1\r\nHost: x\r\n\r\n".utf8))
+        buffer.removeFirst(100_000) // what a connection does after taking earlier requests off the front
+        #expect(buffer.startIndex == 100_000)
+        let (head, length) = try #require(try HTTPRequestParser.parseHead(buffer, maxBodyBytes: 1024))
+        #expect(head.target == "/health" && length == buffer.count)
+    }
+
     @Test("an incomplete head asks for more bytes")
     func incomplete() throws {
         #expect(try parse("GET /health HTTP/1.1\r\nHost: x\r\n") == nil)

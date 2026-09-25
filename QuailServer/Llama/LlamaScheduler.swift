@@ -230,7 +230,6 @@ extension LlamaRuntime {
             job.nextPosition = evaluated.next
             slot.job = job
             job.phase = .generating
-            job.promptDone = ContinuousClock().now
             for token in job.prompt {
                 llama_sampler_accept(sampler, token)
             }
@@ -444,7 +443,6 @@ extension LlamaRuntime {
                 job.chunk = 0
                 guard job.fed == job.prompt.count else { continue }
                 job.phase = .generating
-                job.promptDone = ContinuousClock().now
                 // The samplers that look back (penalties, DRY) see the prompt too, as llama-server's do.
                 for token in job.prompt {
                     llama_sampler_accept(job.sampler, token)
@@ -461,6 +459,11 @@ extension LlamaRuntime {
         guard let context, let vocab else { return }
         let request = job.pending.request
         let token = sample(job.sampler, grammar: job.grammar, context: context, row: job.row)
+        // The prompt is done when its logits can be read: `llama_decode` returns once the work is queued on the
+        // GPU, and reading the logits is what waits for it (llama-server times it the same way).
+        if job.promptDone == nil {
+            job.promptDone = ContinuousClock().now
+        }
         if !request.ignoreEndOfSequence, llama_vocab_is_eog(vocab, token) {
             job.counted += 1
             finish(job, in: slot, reason: .stop)
