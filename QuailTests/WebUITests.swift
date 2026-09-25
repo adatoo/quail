@@ -169,4 +169,137 @@ struct WebUITests {
         let traded = await open.json("/auth/exchange", #"{"ticket":"\#(openTicket)"}"#)
         #expect(traded.status == 200 && traded.json["key"] is NSNull)
     }
+
+    // MARK: Markdown
+
+    /// `MD.parse(source)` run in JavaScriptCore, as JSON.
+    private func parse(_ source: String) throws -> Any {
+        let context = try #require(JSContext())
+        context.evaluateScript(WebUI.markdown)
+        context.setObject(source, forKeyedSubscript: "source" as NSString)
+        let json = try #require(context.evaluateScript("JSON.stringify(MD.parse(source))")?.toString())
+        #expect(context.exception == nil, "\(String(describing: context.exception))")
+        return try JSONSerialization.jsonObject(with: Data(json.utf8))
+    }
+
+    private func types(_ tree: Any) -> [String] {
+        ((tree as? [[String: Any]]) ?? []).compactMap { $0["t"] as? String }
+    }
+
+    @Test("Markdown blocks: headings, paragraphs, fences, quotes, lists, tables, rules and maths")
+    func markdownBlocks() throws {
+        let tree = try parse("""
+        # Title
+        Some *text* and **bold** with `code`.
+        Next line.
+
+        ```swift
+        let x = 1
+        ```
+
+        > quoted
+
+        - one
+        - two
+          - nested
+
+        1. first
+        2. second
+
+        | a | b |
+        |:--|--:|
+        | 1 | 2 |
+
+        ---
+
+        $$
+        x^2
+        $$
+        """)
+        #expect(types(tree) == ["h", "p", "code", "quote", "list", "list", "table", "hr", "math"])
+        let blocks = try #require(tree as? [[String: Any]])
+        #expect(blocks[2]["lang"] as? String == "swift" && blocks[2]["text"] as? String == "let x = 1")
+        #expect(blocks[5]["ordered"] as? Bool == true)
+        let items = try #require(blocks[4]["items"] as? [[[String: Any]]])
+        #expect(items.count == 2)
+        #expect(types(items[1]) == ["p", "list"]) // the nested list belongs to the second item
+        #expect(blocks[6]["align"] as? [String] == ["left", "right"])
+        #expect(blocks[8]["text"] as? String == "x^2")
+        let paragraph = try #require(blocks[1]["inline"] as? [[String: Any]])
+        #expect(paragraph.compactMap { $0["t"] as? String } == [
+            "text",
+            "em",
+            "text",
+            "strong",
+            "text",
+            "code",
+            "text",
+            "br",
+            "text",
+        ])
+    }
+
+    @Test("Markdown inline: links, strikethrough, escapes, intraword underscores, dollars in prose")
+    func markdownInline() throws {
+        let tree =
+            try parse(#"[site](https://example.org) ~~gone~~ \*literal\* snake_case_name costs $5 and $10 $x^2$"#)
+        let inline = try #require((tree as? [[String: Any]])?.first?["inline"] as? [[String: Any]])
+        let kinds = inline.compactMap { $0["t"] as? String }
+        #expect(kinds == ["link", "text", "del", "text", "math"])
+        #expect(inline[0]["href"] as? String == "https://example.org")
+        let text = inline.compactMap { $0["text"] as? String }.joined()
+        #expect(text.contains("*literal*") && text.contains("snake_case_name") && text.contains("$5 and $10"))
+    }
+
+    @Test("hostile Markdown stays text: HTML is never parsed, and only http(s) and mailto links survive")
+    func markdownHostile() throws {
+        let tree =
+            try parse(
+                #"<img src=x onerror=alert(1)> <script>alert(1)</script> [x](javascript:alert(1)) [y](data:text/html,hi)"#
+            )
+        let inline = try #require((tree as? [[String: Any]])?.first?["inline"] as? [[String: Any]])
+        #expect((inline.first?["text"] as? String)?.hasPrefix("<img src=x onerror=alert(1)>") == true)
+        let context = try #require(JSContext())
+        context.evaluateScript(WebUI.markdown)
+        for href in [
+            "javascript:alert(1)",
+            "JaVaScRiPt:alert(1)",
+            "data:text/html,hi",
+            "/models/unload",
+            "//evil.example",
+            "vbscript:x",
+        ] {
+            context.setObject(href, forKeyedSubscript: "href" as NSString)
+            #expect(context.evaluateScript("MD.safeHref(href)")?.isNull == true, "\(href)")
+        }
+        for href in ["https://example.org/a?b=c", "http://localhost:8080", "mailto:someone@example.org"] {
+            context.setObject(href, forKeyedSubscript: "href" as NSString)
+            #expect(context.evaluateScript("MD.safeHref(href)")?.toString() == href)
+        }
+        // Parsing never throws, whatever the input.
+        for odd in [
+            "```",
+            "* ",
+            "|",
+            "|-|",
+            "> ",
+            "[",
+            "](",
+            "$$",
+            "**",
+            "~~~\n",
+            "1.",
+            String(repeating: "*", count: 500),
+        ] {
+            _ = try parse(odd)
+        }
+    }
+
+    @Test("the model list says each model's format, so the page knows which settings apply")
+    func modelFormat() async throws {
+        let response = await RouteHarness().get("/v1/models")
+        let json = try #require(JSONSerialization.jsonObject(with: Data(body(response).utf8)) as? [String: Any])
+        let first = try #require((json["data"] as? [[String: Any]])?.first)
+        #expect(first["format"] as? String == "gguf")
+    }
 }

@@ -222,12 +222,14 @@ private struct ModelJSON: Encodable {
     let status: Status
     let architecture: Architecture
     let source: String
+    /// `gguf` or `mlx`, which the chat page uses to show which settings apply (not in llama-server's list).
+    let format: String
     let canRemove = false
 
     enum CodingKeys: String, CodingKey {
         case id, aliases, tags, object
         case ownedBy = "owned_by"
-        case created, status, architecture, source
+        case created, status, architecture, source, format
         case canRemove = "can_remove"
     }
 
@@ -235,6 +237,7 @@ private struct ModelJSON: Encodable {
         id = snapshot.entry.id
         created = Int(snapshot.entry.createdAt.timeIntervalSince1970)
         source = snapshot.entry.kind == .gguf ? "models_dir" : "mlx_dir"
+        format = snapshot.entry.kind.rawValue
         architecture = Architecture(inputModalities: snapshot.entry.projector == nil ? ["text"] : ["text", "image"])
         // llama-server reports a failed load as "unloaded" plus `failed`, which
         // is what `ServedModel` decodes.
