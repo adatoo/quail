@@ -37,6 +37,8 @@ struct ServerArguments: Equatable, Sendable {
     var logFile: URL?
     /// Web origins allowed to call this server from a browser (ADR D-036); none by default.
     var allowedOrigins: [String] = []
+    /// Serve the chat page at `/` (ADR D-042).
+    var webUI = true
     var engine = EngineChoice.auto
 
     static let usage = """
@@ -50,6 +52,7 @@ struct ServerArguments: Equatable, Sendable {
       --models-preset <ini>  per-model settings (llama-server preset format)
       --models-max <n>       models kept loaded at once (default 1)
       --allow-origin <o>     let a web page at this origin (http://localhost:3000) call the server; repeatable, `*` for any
+      --no-webui             don't serve the chat page at /
       --log-file <path>      also append the log to this file
       --version, --help
     """
@@ -105,6 +108,8 @@ struct ServerArguments: Equatable, Sendable {
                 result.modelsMax = count
             case "--allow-origin":
                 try result.allowedOrigins.append(value(for: flag, inline: inline))
+            case "--no-webui":
+                result.webUI = false
             case "--log-file":
                 result.logFile = try URL(fileURLWithPath: value(for: flag, inline: inline))
             #if DEBUG

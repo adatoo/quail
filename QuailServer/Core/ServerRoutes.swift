@@ -2,28 +2,32 @@ import Foundation
 
 /// The HTTP surface, in the shapes llama-server's router mode uses, so
 /// `LlamaCppRuntime`, the benchmark, `quail chat` and every Connect snippet see
-/// no difference. Step 2 has the management routes; the inference routes
-/// (`/v1/chat/completions`, `/v1/messages`, …) arrive with the shared chat layer.
-/// Every request passes `RequestGuard` first (ADR D-036).
+/// no difference: the management routes, the inference routes (`InferenceRoutes`) and the
+/// chat page at `/`. Every request passes `RequestGuard` first (ADR D-036).
 struct ServerRoutes: Sendable {
     let router: ModelRouter
     let apiKey: String?
     let log: ServerLog
     let requestGuard: RequestGuard
     private let inference: InferenceRoutes
+    /// Serve the chat page at `/` (ADR D-042). The page holds no secret, so it needs no key;
+    /// every call it makes does.
+    private let webUI: Bool
 
     init(
         router: ModelRouter,
         apiKey: String?,
         log: ServerLog,
         requestGuard: RequestGuard = RequestGuard(bindHost: "127.0.0.1"),
-        buildLabel: String = "quail-server"
+        buildLabel: String = "quail-server",
+        webUI: Bool = true
     ) {
         self.router = router
         self.apiKey = apiKey
         self.log = log
         self.requestGuard = requestGuard
-        inference = InferenceRoutes(router: router, log: log, buildLabel: buildLabel)
+        inference = InferenceRoutes(router: router, log: log, buildLabel: buildLabel, webUI: webUI)
+        self.webUI = webUI
     }
 
     func handle(_ request: HTTPRequest) async -> HTTPResponse {
@@ -40,6 +44,13 @@ struct ServerRoutes: Sendable {
         // Open like llama-server's: a liveness probe carries no key.
         if path == "/health" {
             return request.method == "GET" ? .json(200, ["status": "ok"]) : methodNotAllowed()
+        }
+        if webUI, path == "/" || path == "/index.html" {
+            return request.method == "GET" ? WebUI.response : methodNotAllowed()
+        }
+        // Browsers ask for an icon on their own; an empty answer keeps that out of the log.
+        if path == "/favicon.ico" {
+            return HTTPResponse(status: 204)
         }
         if let denied = authorize(request) {
             return denied

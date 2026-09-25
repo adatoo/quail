@@ -26,7 +26,8 @@ struct RouteHarness {
         pieces: [String] = ["Hello", "!"],
         template: String? = RouteHarness.template("qwen3"),
         apiKey: String? = nil,
-        endless: Bool = false
+        endless: Bool = false,
+        webUI: Bool = true
     ) {
         let world = world
         let log = ServerLog(toStandardError: false)
@@ -44,11 +45,15 @@ struct RouteHarness {
             },
             log: log
         )
-        routes = ServerRoutes(router: router, apiKey: apiKey, log: log, buildLabel: "quail-server test")
+        routes = ServerRoutes(router: router, apiKey: apiKey, log: log, buildLabel: "quail-server test", webUI: webUI)
     }
 
     func send(_ path: String, _ body: String, headers: [String: String] = [:]) async -> HTTPResponse {
         await routes.handle(HTTPRequest(method: "POST", target: path, headers: headers, body: Data(body.utf8)))
+    }
+
+    func get(_ path: String, headers: [String: String] = [:]) async -> HTTPResponse {
+        await routes.handle(HTTPRequest(method: "GET", target: path, headers: headers, body: Data()))
     }
 
     func json(

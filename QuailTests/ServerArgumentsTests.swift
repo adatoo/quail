@@ -36,6 +36,12 @@ struct ServerArgumentsTests {
         #expect(parsed.engine == .auto)
     }
 
+    @Test("the chat page is served unless --no-webui says otherwise")
+    func webUIFlag() throws {
+        #expect(try run(["--models-dir", "/m"]).webUI)
+        #expect(try !run(["--models-dir", "/m", "--no-webui"]).webUI)
+    }
+
     @Test("--flag=value works, and an empty key means no key")
     func inlineValues() throws {
         let parsed = try run(["--models-dir=/m", "--port=1234", "--api-key="])

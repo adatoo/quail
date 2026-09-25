@@ -8,6 +8,8 @@ struct InferenceRoutes: Sendable {
     let log: ServerLog
     /// Reported as `system_fingerprint` and `build_info`.
     let buildLabel: String
+    /// Whether `/` serves the chat page; `/props` says so.
+    var webUI = true
     private let templates = TemplateCache()
 
     /// `nil` for a path this type doesn't serve.
@@ -514,7 +516,7 @@ struct InferenceRoutes: Sendable {
                 "endpoint_slots": false,
                 "endpoint_props": false,
                 "endpoint_metrics": false,
-                "ui": false,
+                "ui": webUI,
                 "ui_settings": [String: Any](),
                 "chat_template": template,
                 "bos_token": info.bosToken,
