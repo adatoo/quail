@@ -1,12 +1,15 @@
 name: Auto-merge
 
 # Turns on auto-merge (merge commit — the only method main allows) for every
-# PR, so it merges itself once the required checks pass (ADR D-024).
+# PR, so it merges itself once the required checks pass (ADR D-024, D-046).
 #
-# Uses BOT_TOKEN, not GITHUB_TOKEN: a merge made with GITHUB_TOKEN starts no
-# workflows, so release.yml would never run. BOT_TOKEN is a fine-grained PAT
-# (this repo; Contents + Pull requests: read and write), added as a secret
-# in both the Actions and the Dependabot secret stores.
+# Authenticated as the "quail-release" GitHub App, not GITHUB_TOKEN: a merge
+# made with GITHUB_TOKEN starts no workflows, so release.yml would never run.
+# An App's merge is an ordinary actor event, so `push: main` fires. The App is
+# installed on this repo only (Contents + Pull requests: read and write); its
+# client ID and private key are the RELEASE_APP_CLIENT_ID and
+# RELEASE_APP_PRIVATE_KEY secrets, in both the Actions and the Dependabot
+# secret stores (Dependabot's workflows read only the latter).
 on:
   pull_request:
     branches: [main]
@@ -20,13 +23,29 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - name: Enable auto-merge
+      - name: Check for the App's credentials
+        id: creds
         env:
-          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
+          CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
         run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::notice::BOT_TOKEN isn't set — enable auto-merge on this PR by hand (gh pr merge --auto --merge)."
-            exit 0
+          if [ -z "$CLIENT_ID" ]; then
+            echo "::notice::RELEASE_APP_CLIENT_ID isn't set — enable auto-merge on this PR by hand (gh pr merge --auto --merge)."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
           fi
-          gh pr merge --auto --merge "$PR_URL"
+
+      - name: Mint the App's token
+        if: steps.creds.outputs.present == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Enable auto-merge
+        if: steps.creds.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --merge "$PR_URL"
