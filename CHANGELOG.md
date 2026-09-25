@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-09-25
+
+### Added
+
+- Settings → General → About → Open-source licences now shows the licence and notice text of everything Quail
+  bundles (MLX, the tokenizer and their dependencies, Sparkle, llama.cpp), not just llama.cpp's. The file is generated
+  and checked in CI, so a new dependency can't ship without an entry (ADR D-044).
+
 ## [0.21.1] - 2026-09-25
 
 ### Fixed

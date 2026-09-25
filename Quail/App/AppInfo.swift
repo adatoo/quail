@@ -44,6 +44,12 @@ enum AppInfo {
         return tag.isEmpty ? nil : tag
     }
 
+    /// The notices file (`task notices`, ADR D-044): every bundled library's licence text.
+    static func thirdPartyNotices(in bundle: Bundle = .main) -> String? {
+        guard let url = bundle.url(forResource: "THIRD_PARTY_NOTICES", withExtension: "md") else { return nil }
+        return try? String(contentsOf: url, encoding: .utf8)
+    }
+
     /// llama.cpp's licence text, which its MIT licence requires to travel with
     /// the app; `task embed:llama` copies it into Resources.
     static func llamaCppLicence(in bundle: Bundle = .main) -> String? {

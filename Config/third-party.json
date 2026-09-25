@@ -1,0 +1,38 @@
+{
+  "_comment": "The decision record for what Quail ships from other people (ADR D-044). Config/generate-notices.py builds Quail/Resources/THIRD_PARTY_NOTICES.md from it and fails on a Swift package it doesn't list, so a new dependency, direct or transitive, can't arrive without someone deciding it belongs here. `shipped: false` means it is resolved but not linked into anything Quail ships.",
+  "packages": {
+    "eventsource": {"name": "EventSource", "license": "MIT", "shipped": true, "in": "quail-server", "via": "swift-huggingface"},
+    "mlx-swift": {
+      "name": "mlx-swift", "license": "MIT", "shipped": true, "in": "quail-server", "via": "mlx-swift-lm",
+      "parts": [
+        {"name": "mlx", "license": "MIT", "path": "Source/Cmlx/mlx/LICENSE"},
+        {"name": "mlx-c", "license": "MIT", "path": "Source/Cmlx/mlx-c/LICENSE"},
+        {"name": "metal-cpp", "license": "Apache-2.0", "path": "Source/Cmlx/metal-cpp/LICENSE.txt"},
+        {"name": "fmt", "license": "MIT with an exception for embedded use", "path": "Source/Cmlx/fmt/LICENSE"},
+        {"name": "nlohmann/json", "license": "MIT", "path": "Source/Cmlx/json/LICENSE.MIT"}
+      ]
+    },
+    "mlx-swift-lm": {"name": "mlx-swift-lm", "license": "MIT", "shipped": true, "in": "quail-server"},
+    "sparkle": {"name": "Sparkle", "license": "MIT and the licences of its bundled components (text below)", "shipped": true, "in": "Quail (the direct-download build only)"},
+    "swift-argument-parser": {"name": "swift-argument-parser", "license": "Apache-2.0", "shipped": true, "in": "the quail command-line tool"},
+    "swift-asn1": {"name": "swift-asn1", "license": "Apache-2.0", "shipped": true, "in": "quail-server", "via": "swift-crypto"},
+    "swift-collections": {"name": "swift-collections", "license": "Apache-2.0", "shipped": true, "in": "quail-server"},
+    "swift-crypto": {"name": "swift-crypto", "license": "Apache-2.0", "shipped": true, "in": "quail-server", "via": "swift-huggingface and swift-transformers"},
+    "swift-huggingface": {"name": "swift-huggingface", "license": "Apache-2.0", "shipped": true, "in": "quail-server", "via": "swift-transformers"},
+    "swift-jinja": {"name": "swift-jinja", "license": "Apache-2.0", "shipped": true, "in": "quail-server"},
+    "swift-numerics": {"name": "swift-numerics", "license": "Apache-2.0", "shipped": true, "in": "quail-server", "via": "mlx-swift"},
+    "swift-syntax": {"name": "swift-syntax", "license": "Apache-2.0 with a runtime library exception", "shipped": false, "note": "macro support for mlx-swift-lm; not linked into any Quail binary (checked with strings on quail-server)"},
+    "swift-transformers": {"name": "swift-transformers", "license": "Apache-2.0", "shipped": true, "in": "quail-server"},
+    "yyjson": {"name": "yyjson", "license": "MIT", "shipped": true, "in": "quail-server", "via": "swift-transformers"}
+  },
+  "vendored": [
+    {
+      "name": "llama.cpp",
+      "license": "MIT",
+      "in": "quail-server and the bundled llama-server",
+      "url": "https://github.com/ggml-org/llama.cpp",
+      "versionFile": "Vendor/llama.version",
+      "licenseFile": "Vendor/llama.cpp/LICENSE-llama.cpp"
+    }
+  ]
+}
