@@ -16,6 +16,8 @@ public struct ModelEntry: Equatable, Sendable {
     public var gpuLayers: Int?
     /// A vision model's `mmproj` companion (GGUF only).
     public var projector: URL?
+    /// Requests decoded together by a GGUF model (llama-server's `parallel`); nil takes the server's setting.
+    public var parallel: Int?
     public var loadOnStartup = false
     /// Preset keys this server doesn't implement, so startup can say so once
     /// instead of silently dropping a setting.
@@ -25,7 +27,15 @@ public struct ModelEntry: Equatable, Sendable {
 
 enum ModelDiscovery {
     /// The preset keys `quail-server` understands.
-    static let knownPresetKeys: Set<String> = ["model", "n-gpu-layers", "ctx-size", "mmproj", "load-on-startup"]
+    static let knownPresetKeys: Set<String> = [
+        "model",
+        "n-gpu-layers",
+        "ctx-size",
+        "mmproj",
+        "load-on-startup",
+        "parallel",
+        "np",
+    ]
 
     /// Scans the model folders, then lays the presets over the result. A preset
     /// that names a `model` is listed even if the file is missing (it fails when
@@ -96,6 +106,9 @@ enum ModelDiscovery {
             }
             if let gpuLayers = preset.int("n-gpu-layers") {
                 entry.gpuLayers = gpuLayers
+            }
+            if let parallel = preset.int("parallel") ?? preset.int("np"), parallel >= 1 {
+                entry.parallel = parallel
             }
             if let projector = preset.string("mmproj") {
                 entry.projector = URL(fileURLWithPath: projector)

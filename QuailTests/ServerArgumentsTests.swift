@@ -36,6 +36,13 @@ struct ServerArgumentsTests {
         #expect(parsed.engine == .auto)
     }
 
+    @Test("--parallel sets how many requests a GGUF model decodes together, -np too")
+    func parallelFlag() throws {
+        #expect(try run(["--models-dir", "/m"]).parallel == ServerArguments.defaultParallel)
+        #expect(try run(["--models-dir", "/m", "--parallel", "4"]).parallel == 4)
+        #expect(try run(["--models-dir", "/m", "-np", "2"]).parallel == 2)
+    }
+
     @Test("the chat page is served unless --no-webui says otherwise")
     func webUIFlag() throws {
         #expect(try run(["--models-dir", "/m"]).webUI)
@@ -66,6 +73,8 @@ struct ServerArgumentsTests {
             (["--models-dir", "/m", "--port", "http"], "--port"),
             (["--models-dir", "/m", "--port", "70000"], "--port"),
             (["--models-dir", "/m", "--models-max", "0"], "--models-max"),
+            (["--models-dir", "/m", "--parallel", "0"], "--parallel"),
+            (["--models-dir", "/m", "--parallel", "65"], "--parallel"),
             (["--models-dir", "/m", "--wat"], "--wat"),
             (["--models-dir"], "--models-dir needs a value"),
             (["--port", "80"], "--models-dir or --mlx-dir"),

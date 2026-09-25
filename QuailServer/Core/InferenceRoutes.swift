@@ -587,7 +587,7 @@ struct InferenceRoutes: Sendable {
             ]
             let props: [String: Any] = [
                 "default_generation_settings": ["params": params, "n_ctx": info.contextSize] as [String: Any],
-                "total_slots": 1,
+                "total_slots": info.slots,
                 "model_alias": id,
                 "model_path": snapshot?.entry.path.path ?? "",
                 "modalities": [

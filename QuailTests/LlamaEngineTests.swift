@@ -17,6 +17,26 @@ struct LlamaEngineTests {
     private static let blocks = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         .appendingPathComponent("TestFixtures/Images/blocks.png")
 
+    /// Text for a chat-style prompt, so a small model answers something (the tests compare texts, not read them).
+    private func chat(_ engine: LlamaEngine, _ question: String, tokens: Int = 40, cache: Bool = false) async throws
+        -> GenerationRequest
+    {
+        let prompt = try await engine.tokenize(
+            "<|im_start|>user\n/no_think \(question)<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+            addSpecial: false, parseSpecial: true
+        )
+        var request = GenerationRequest(promptTokens: prompt, maxTokens: tokens)
+        request.sampling.temperature = 0
+        request.cachePrompt = cache
+        return request
+    }
+
+    private static let questions = [
+        "Write a short story about a lighthouse keeper.", "Explain how a hash table works.",
+        "List ten facts about octopuses.", "Describe the water cycle.", "What is a monad?",
+        "Give me a recipe for pancakes.", "Explain TCP slow start.", "Write a haiku about rain.",
+    ]
+
     private func entry(_ url: URL) -> ModelEntry {
         ModelEntry(id: url.deletingPathExtension().lastPathComponent, kind: .gguf, path: url)
     }
@@ -355,6 +375,212 @@ struct LlamaEngineTests {
         request.media = [image, image] // two images, one marker
         await #expect(throws: EngineError.self) { _ = try await collect(engine, request) }
         await engine.unload()
+    }
+
+    // MARK: several requests at once (ADR D-048)
+
+    @Test("Qwen3-0.6B: four requests decoded together each give what they give alone", .enabled(if: smallExists))
+    func parallelEqualsSerial() async throws {
+        let engine = LlamaEngine(parallel: 4)
+        try await engine.load(entry(Self.small))
+        #expect(await engine.info().slots == 4)
+        var requests: [GenerationRequest] = []
+        for question in Self.questions.prefix(4) {
+            try await requests.append(chat(engine, question))
+        }
+        var alone: [String] = []
+        for request in requests {
+            try await alone.append(collect(engine, request).text)
+        }
+        let together = try await withThrowingTaskGroup(of: (Int, String).self) { group in
+            for (index, request) in requests.enumerated() {
+                group.addTask { try await (index, collect(engine, request).text) }
+            }
+            var texts = [String](repeating: "", count: requests.count)
+            for try await (index, text) in group {
+                texts[index] = text
+            }
+            return texts
+        }
+        #expect(together == alone)
+        #expect(!alone.contains(""))
+        await eventuallyIdle(engine)
+        await engine.unload()
+    }
+
+    @Test(
+        "Qwen3-0.6B: a client that leaves doesn't disturb the others, and its slot comes back",
+        .enabled(if: smallExists)
+    )
+    func hangUpAmongOthers() async throws {
+        let engine = LlamaEngine(parallel: 3)
+        try await engine.load(entry(Self.small))
+        var requests: [GenerationRequest] = []
+        for question in Self.questions.prefix(3) {
+            try await requests.append(chat(engine, question, tokens: 60))
+        }
+        var alone: [String] = []
+        for request in requests {
+            try await alone.append(collect(engine, request).text)
+        }
+        let texts = try await withThrowingTaskGroup(of: (Int, String).self) { group in
+            for (index, request) in requests.enumerated() {
+                group.addTask {
+                    if index == 1 { // leaves after three tokens
+                        var seen = 0
+                        for try await event in engine.generate(request) {
+                            if case .token = event {
+                                seen += 1
+                            }
+                            if seen == 3 {
+                                break
+                            }
+                        }
+                        return (index, "")
+                    }
+                    return try await (index, collect(engine, request).text)
+                }
+            }
+            var texts = [String](repeating: "", count: requests.count)
+            for try await (index, text) in group {
+                texts[index] = text
+            }
+            return texts
+        }
+        #expect(texts[0] == alone[0] && texts[2] == alone[2])
+        await eventuallyIdle(engine)
+        #expect(try await collect(engine, requests[1]).text == alone[1]) // the freed slot serves the next
+        await engine.unload()
+    }
+
+    @Test("Qwen3-0.6B: a conversation that comes back finds its own slot's cache", .enabled(if: smallExists))
+    func slotsKeepTheirConversations() async throws {
+        let engine = LlamaEngine(parallel: 2)
+        try await engine.load(entry(Self.small))
+        let filler = String(repeating: "Please answer carefully and in plain words. ", count: 5)
+        let a = try await chat(
+            engine,
+            filler + "Tell me about the moon and its phases in detail please.",
+            tokens: 8,
+            cache: true
+        )
+        let b = try await chat(
+            engine,
+            "Tell me how planes stay in the air. " + filler,
+            tokens: 8,
+            cache: true
+        )
+        _ = try await collect(engine, a)
+        _ = try await collect(engine, b)
+        // Each again, longer: the cache is the whole earlier prompt, whichever slot is free.
+        for request in [b, a, b, a] {
+            let again = try await collect(engine, request)
+            #expect(
+                (again.finished?.1.cachedTokens ?? 0) >= request.promptTokens.count - 1,
+                "cached \(again.finished?.1.cachedTokens ?? -1) of \(request.promptTokens.count)"
+            )
+        }
+        await engine.unload()
+    }
+
+    @Test(
+        "Qwen3-0.6B: a start another conversation holds is shared, and the answer is what a full decode gives",
+        .enabled(if: smallExists)
+    )
+    func slotsShareAStart() async throws {
+        let engine = LlamaEngine(parallel: 2)
+        try await engine.load(entry(Self.small))
+        let preamble = String(repeating: "You are a careful assistant who answers briefly and plainly. ", count: 6)
+        let a = try await chat(engine, preamble + "What is the capital of France?", tokens: 12, cache: true)
+        var b = try await chat(engine, preamble + "What is the capital of Japan?", tokens: 12, cache: true)
+        _ = try await collect(engine, a)
+        let shared = try await collect(engine, b)
+        // Most of the prompt came from the other slot, not from decoding.
+        #expect((shared.finished?.1.cachedTokens ?? 0) >= 60, "\(shared.finished?.1.cachedTokens ?? -1)")
+        // The first conversation still has its own cache.
+        let again = try await collect(engine, a)
+        #expect(
+            (again.finished?.1.cachedTokens ?? 0) >= a.promptTokens.count - 1,
+            "again cached \(again.finished?.1.cachedTokens ?? -1) of \(a.promptTokens.count); shared \(shared.finished?.1.cachedTokens ?? -1)"
+        )
+        // And what the second got is what decoding it all gives (a request that asks for no cache takes the
+        // least recently used slot, whatever it held).
+        b.cachePrompt = false
+        let fresh = try await collect(engine, b)
+        #expect(fresh.finished?.1.cachedTokens == 0)
+        #expect(shared.text == fresh.text)
+        await engine.unload()
+    }
+
+    @Test("Qwen3-0.6B: constrained and plain requests run side by side", .enabled(if: smallExists))
+    func constrainedBesidePlain() async throws {
+        let engine = LlamaEngine(parallel: 3)
+        try await engine.load(entry(Self.small))
+        var constrained = try await chat(engine, "Is water wet?")
+        constrained.grammar = #"root ::= "yes" | "no""#
+        let plain = try await chat(engine, "Explain how a hash table works.")
+        let alone = try await collect(engine, plain).text
+        async let first = collect(engine, constrained)
+        async let second = collect(engine, plain)
+        async let third = collect(engine, constrained)
+        let (one, two, three) = try await (first, second, third)
+        #expect(["yes", "no"].contains(one.text) && one.text == three.text)
+        #expect(two.text == alone)
+        await engine.unload()
+    }
+
+    @Test(
+        "Qwen3-0.6B: a hundred mixed requests with clients coming and going leave no slot held",
+        .enabled(if: smallExists)
+    )
+    func stress() async throws {
+        let engine = LlamaEngine(parallel: 3)
+        try await engine.load(entry(Self.small))
+        var requests: [GenerationRequest] = []
+        for question in Self.questions {
+            try await requests.append(chat(engine, question, tokens: 30, cache: true))
+        }
+        let prepared = requests
+        await withTaskGroup(of: Void.self) { group in
+            for index in 0 ..< 100 {
+                group.addTask {
+                    var request = prepared[index % prepared.count]
+                    request.sampling.temperature = 0.8
+                    request.sampling.seed = UInt64(index)
+                    if index % 7 == 0 {
+                        request.grammar = #"root ::= "a" | "b""#
+                    }
+                    let leaveAfter = index % 3 == 0 ? Int.random(in: 0 ... 5) : Int.max
+                    var seen = 0
+                    do {
+                        for try await event in engine.generate(request) {
+                            if case .token = event {
+                                seen += 1
+                            }
+                            if seen >= leaveAfter {
+                                break
+                            }
+                        }
+                    } catch {
+                        Issue.record("request \(index) failed: \(error)")
+                    }
+                }
+            }
+        }
+        await eventuallyIdle(engine)
+        // Nothing is left over: a request afterwards is what it would have been alone.
+        let after = try await collect(engine, requests[0])
+        #expect(after.finished?.0 == .length || after.finished?.0 == .stop)
+        #expect(!after.text.isEmpty)
+        await engine.unload()
+    }
+
+    /// Waits for every slot to be free (a request that ended has its slot released on the engine's queue).
+    private func eventuallyIdle(_ engine: LlamaEngine) async {
+        for _ in 0 ..< 200 where await engine.busySlots() > 0 {
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+        #expect(await engine.busySlots() == 0)
     }
 }
 
