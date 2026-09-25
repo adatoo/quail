@@ -201,6 +201,16 @@ tasks:
             exit 1
           fi
         done
+        # quail-server links llama.framework from Contents/Frameworks (ADR D-043); a missing or
+        # unloadable one only shows when the server is started, so start it.
+        if [ ! -f "$APP/Contents/Frameworks/llama.framework/Versions/A/llama" ]; then
+          echo "::error::llama.framework is missing from Quail.app/Contents/Frameworks — check taskfiles/embed.yml and run task vendor:llama" >&2
+          exit 1
+        fi
+        if ! "$APP/Contents/MacOS/quail-server" --version > /dev/null; then
+          echo "::error::quail-server won't launch from $APP — its llama.framework can't be loaded (rpath, architecture or code-signing Team ID)" >&2
+          exit 1
+        fi
         # A release must carry the Sparkle public key, or no installed copy could ever
         # verify an update (ADR D-032). Local and CI builds have none, so it's opt-in.
         if [ -n "${REQUIRE_UPDATE_KEY:-}" ]; then
@@ -211,7 +221,7 @@ tasks:
           fi
           echo "update key present: $KEY"
         fi
-        echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp present"
+        echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp, llama.framework present; quail-server launches"
 
   install:
     desc: Build Release and install to ~/Apps/Quail.app (INSTALL_DIR=… to change; ad-hoc signed, without the hardened runtime, unless QUAIL_SIGN_IDENTITY is set)

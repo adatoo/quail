@@ -36,8 +36,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "0.19.1"
-    CURRENT_PROJECT_VERSION: "29"
+    MARKETING_VERSION: "0.20.0"
+    CURRENT_PROJECT_VERSION: "30"
     ENABLE_HARDENED_RUNTIME: YES
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_LSUIElement: YES
@@ -221,6 +221,30 @@ targets:
         Release-AppStore:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "APPSTORE"
 
+  # The GGUF engine (ADR D-043): libllama through the xcframework `task vendor:llama` stages.
+  # A separate library so QuailServerCore, and what the app and CLI link, never carry it.
+  QuailServerLlama:
+    type: library.static
+    platform: macOS
+    sources:
+      - path: QuailServer/Llama
+    dependencies:
+      - target: QuailServerCore
+      - framework: Vendor/llama.xcframework
+        embed: false
+    settings:
+      base:
+        PRODUCT_NAME: QuailServerLlama
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+      configs:
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG"
+        Debug-AppStore:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG APPSTORE"
+        Release-AppStore:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "APPSTORE"
+
   # `quail-server`, shipped at Quail.app/Contents/MacOS in both builds (it
   # needs no Python). The version comes from an Info.plist linked into the
   # binary, so `--version` can't drift from the app (ADR D-024).
@@ -231,6 +255,9 @@ targets:
       - path: QuailServer/Main
     dependencies:
       - target: QuailServerCore
+      - target: QuailServerLlama
+      - framework: Vendor/llama.xcframework
+        embed: false
       # A static library doesn't carry its package products to whatever links it.
       - package: Jinja
       - package: Collections
@@ -240,6 +267,9 @@ targets:
         PRODUCT_NAME: quail-server
         PRODUCT_MODULE_NAME: QuailServerMain
         PRODUCT_BUNDLE_IDENTIFIER: com.datoos.quail.server
+        # llama.framework sits in Quail.app/Contents/Frameworks (embed:llama); a Debug build run from
+        # the products folder finds the copy Xcode leaves beside the binary.
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks @executable_path"
         SKIP_INSTALL: YES
         CREATE_INFOPLIST_SECTION_IN_BINARY: YES
       configs:
@@ -265,6 +295,9 @@ targets:
       - target: Quail
         embed: false
       - target: QuailServerCore
+      - target: QuailServerLlama
+      - framework: Vendor/llama.xcframework
+        embed: true
       - package: Jinja
       - package: Collections
         product: OrderedCollections

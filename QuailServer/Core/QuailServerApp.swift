@@ -1,9 +1,11 @@
 import Foundation
 
 /// The whole server, start to signal. The `quail-server` tool is one line that
-/// calls this; it's public because the tool is a separate module.
+/// calls this; it's public because the tool is a separate module. The engines are handed in by
+/// the tool, so this module links no model runtime and the tests never load one.
 public enum QuailServerApp {
-    public static func run(arguments: [String]) async -> Int32 {
+    /// - Parameter engines: how to make the engine for each model format this build can serve.
+    public static func run(arguments: [String], engines: [ModelKind: EngineFactory] = [:]) async -> Int32 {
         let command: ServerCommand
         do {
             command = try ServerArguments.parse(arguments)
@@ -20,7 +22,7 @@ public enum QuailServerApp {
             print("quail-server \(version)")
             return 0
         case let .run(arguments):
-            return await serve(arguments)
+            return await serve(arguments, engines: engines)
         }
     }
 
@@ -28,18 +30,23 @@ public enum QuailServerApp {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
     }
 
-    static func engineFactory(for choice: ServerArguments.EngineChoice) -> EngineFactory {
+    static func engineFactory(
+        for choice: ServerArguments.EngineChoice,
+        engines: [ModelKind: EngineFactory] = [:]
+    ) -> EngineFactory {
         #if DEBUG
             if choice == .echo {
                 return { _ in EchoEngine() }
             }
         #endif
-        // The real engines land in Phase 3 steps 4 (MLX) and 5 (GGUF); until
-        // then a load says so instead of pretending.
-        return { entry in throw EngineError.noEngine(entry.kind) }
+        // A format with no engine in this build says so, instead of pretending.
+        return { entry in
+            guard let make = engines[entry.kind] else { throw EngineError.noEngine(entry.kind) }
+            return try make(entry)
+        }
     }
 
-    private static func serve(_ arguments: ServerArguments) async -> Int32 {
+    private static func serve(_ arguments: ServerArguments, engines: [ModelKind: EngineFactory]) async -> Int32 {
         let log = ServerLog(fileURL: arguments.logFile)
         let presets = arguments.presetsFile.map(PresetsFile.load) ?? []
         let entries = ModelDiscovery.discover(
@@ -55,7 +62,7 @@ public enum QuailServerApp {
         let router = ModelRouter(
             entries: entries,
             modelsMax: arguments.modelsMax,
-            makeEngine: engineFactory(for: arguments.engine),
+            makeEngine: engineFactory(for: arguments.engine, engines: engines),
             log: log
         )
         let routes = ServerRoutes(
