@@ -5,12 +5,15 @@ import QuailServerCore
 /// The GGUF engine: `libllama` behind the `Engine` seam (ADR D-043). One instance holds one loaded
 /// model, and its blocking C calls all run on one dedicated queue, never on Swift's cooperative pool.
 public struct LlamaEngine: Engine {
-    private let runtime = LlamaRuntime()
+    private let runtime: LlamaRuntime
 
-    public init() {}
+    /// - Parameter parallel: how many requests are decoded together (slots); 1 serves one at a time (ADR D-048).
+    public init(parallel: Int = 1) {
+        runtime = LlamaRuntime(slotCount: max(1, parallel))
+    }
 
     public var capabilities: EngineCapabilities {
-        EngineCapabilities(extraSamplers: true, grammar: true, vision: true)
+        EngineCapabilities(extraSamplers: true, grammar: true, vision: true, concurrentRequests: true)
     }
 
     public func load(_ model: ModelEntry) async throws {
@@ -33,6 +36,11 @@ public struct LlamaEngine: Engine {
         await (try? runtime.run { $0.info }) ?? EngineInfo(contextSize: 0, bosToken: "", eosToken: "")
     }
 
+    /// How many slots are serving a request right now (for the tests and, later, `/slots`).
+    func busySlots() async -> Int {
+        await (try? runtime.run { $0.slots.filter { $0.job != nil }.count }) ?? 0
+    }
+
     public func chatTemplate() async -> String? {
         try? await runtime.run { $0.chatTemplate }
     }
@@ -41,16 +49,19 @@ public struct LlamaEngine: Engine {
         let runtime = runtime
         return AsyncThrowingStream { continuation in
             let cancelled = CancelFlag()
-            runtime.enqueue {
-                do {
-                    try $0.generate(request, cancelled: cancelled) { continuation.yield($0) }
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
+            runtime.submit(
+                request, cancelled: cancelled,
+                emit: { continuation.yield($0) },
+                finish: { error in
+                    if let error {
+                        continuation.finish(throwing: error)
+                    } else {
+                        continuation.finish()
+                    }
                 }
-            }
+            )
             // The consumer going away (the client left, or a stop string matched) stops decoding
-            // at the next token or prompt batch.
+            // at the next step.
             continuation.onTermination = { _ in cancelled.set() }
         }
     }
@@ -113,16 +124,31 @@ private final class LogFilter: @unchecked Sendable {
 
 /// The loaded model and everything that touches it. Every member runs on `queue`.
 final class LlamaRuntime: @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.datoos.quail.llama", qos: .userInitiated)
+    let queue = DispatchQueue(label: "com.datoos.quail.llama", qos: .userInitiated)
 
-    private var model: OpaquePointer?
-    private var context: OpaquePointer?
-    private var vocab: OpaquePointer?
+    var model: OpaquePointer?
+    var context: OpaquePointer?
+    var vocab: OpaquePointer?
     /// libmtmd's context for the model's vision projector, if it has one.
-    private var vision: OpaquePointer?
-    /// The tokens whose keys and values are in the context's memory, for prompt-prefix reuse.
-    private var cached: [Int32] = []
-    private var batchSize = 512
+    var vision: OpaquePointer?
+    var batchSize = 512
+
+    /// The requests being served, one per slot (a sequence of the context), and the batch they share.
+    let slotCount: Int
+    var slots: [Slot] = []
+    var batch: llama_batch?
+    /// Requests handed in from any thread, and whether a scheduler step is already queued.
+    let incomingLock = NSLock()
+    var incoming: [PendingRequest] = []
+    var stepQueued = false
+    /// Requests admitted from `incoming` that are waiting for a free slot, oldest first.
+    var waiting: [PendingRequest] = []
+    var tick: UInt64 = 0
+    var rotor = 0
+
+    init(slotCount: Int) {
+        self.slotCount = slotCount
+    }
 
     private(set) var info = EngineInfo(contextSize: 0, bosToken: "", eosToken: "")
     private(set) var chatTemplate: String?
@@ -175,7 +201,9 @@ final class LlamaRuntime: @unchecked Sendable {
 
         var contextParams = llama_context_default_params()
         contextParams.n_ctx = UInt32(max(wanted, 256))
-        contextParams.n_seq_max = 1
+        contextParams.n_seq_max = UInt32(slotCount)
+        // The slots share one pool of KV cells, so a lone long request can use all of the context (ADR D-048).
+        contextParams.kv_unified = slotCount > 1
         guard let made = llama_init_from_model(loaded, contextParams) else {
             llama_model_free(loaded)
             throw EngineError.loadFailed(
@@ -186,12 +214,14 @@ final class LlamaRuntime: @unchecked Sendable {
         model = loaded
         context = made
         vocab = llama_model_get_vocab(loaded)
-        cached = []
         batchSize = max(1, Int(llama_n_batch(made)))
+        batch = llama_batch_init(Int32(batchSize), 0, 1)
+        slots = (0 ..< slotCount).map { Slot(id: llama_seq_id($0)) }
         info = EngineInfo(
             contextSize: Int(llama_n_ctx(made)),
             bosToken: text(of: llama_vocab_bos(vocab)),
-            eosToken: text(of: llama_vocab_eos(vocab))
+            eosToken: text(of: llama_vocab_eos(vocab)),
+            slots: slotCount
         )
         chatTemplate = llama_model_chat_template(loaded, nil).map { String(cString: $0) }
         if let projector = entry.projector {
@@ -201,7 +231,7 @@ final class LlamaRuntime: @unchecked Sendable {
 
     /// A vision model's `mmproj` file. llama-server refuses to serve the model when this fails, and so do we: a
     /// model that's advertised as reading images and doesn't is worse than one that doesn't start.
-    private func loadProjector(_ path: URL, model: OpaquePointer) throws {
+    func loadProjector(_ path: URL, model: OpaquePointer) throws {
         guard FileManager.default.fileExists(atPath: path.path) else {
             unload()
             throw EngineError.loadFailed("the vision projector \(path.path) doesn't exist")
@@ -225,6 +255,12 @@ final class LlamaRuntime: @unchecked Sendable {
     }
 
     func unload() {
+        failEverything(EngineError.notLoaded)
+        if let batch {
+            llama_batch_free(batch)
+        }
+        batch = nil
+        slots = []
         if let vision {
             mtmd_free(vision)
         }
@@ -238,10 +274,9 @@ final class LlamaRuntime: @unchecked Sendable {
         context = nil
         model = nil
         vocab = nil
-        cached = []
     }
 
-    private func text(of token: llama_token) -> String {
+    func text(of token: llama_token) -> String {
         guard token >= 0, let piece = llama_vocab_get_text(vocab, token) else { return "" }
         return String(cString: piece)
     }
@@ -278,7 +313,7 @@ final class LlamaRuntime: @unchecked Sendable {
     }
 
     /// One token's bytes. A token can be part of a multi-byte character, so this is bytes, not text.
-    private func piece(of token: llama_token) -> [UInt8] {
+    func piece(of token: llama_token) -> [UInt8] {
         var buffer = [CChar](repeating: 0, count: 64)
         var count = llama_token_to_piece(vocab, token, &buffer, Int32(buffer.count), 0, true)
         if count < 0 {
@@ -290,127 +325,12 @@ final class LlamaRuntime: @unchecked Sendable {
 
     // MARK: Generation
 
-    func generate(
-        _ request: GenerationRequest,
-        cancelled: CancelFlag,
-        emit: (GenerationEvent) -> Void
-    ) throws {
-        guard let context, let vocab else { throw EngineError.notLoaded }
-        if cancelled.isSet {
-            return
-        }
-        let clock = ContinuousClock()
-        let started = clock.now
-        var maxTokens = request.maxTokens
-        var prompt: [llama_token]
-        var reused = 0
-        var promptCount: Int
-        // With images, positions aren't token counts (an M-RoPE model gives an image's tokens a smaller span
-        // than their number), so the reply's tokens are placed by where the prompt ended, as llama-server does.
-        var nextPosition: llama_pos?
-        // Images can't be reused from the cache (yet), so a request with them starts from empty memory and
-        // leaves it empty; the next text request then finds nothing to reuse and nothing stale.
-        let hasImages = !request.media.isEmpty
-        if hasImages {
-            resetMemory()
-        }
-        defer {
-            if hasImages {
-                resetMemory()
-            }
-        }
-        if hasImages {
-            guard let evaluated = try evaluateImagePrompt(request, cancelled: cancelled) else { return }
-            (prompt, promptCount, nextPosition) = (evaluated.textTokens, evaluated.total, evaluated.next)
-            maxTokens = min(maxTokens, info.contextSize - evaluated.total)
-        } else {
-            prompt = request.promptTokens.map { llama_token(truncatingIfNeeded: $0) }
-            guard !prompt.isEmpty else { throw EngineError.generationFailed("the prompt has no tokens") }
-            promptCount = prompt.count
-
-            reused = try prepareMemory(for: prompt, reuse: request.cachePrompt)
-            // Decode what the cache doesn't have, in batches, so a client that leaves during a long
-            // prompt stops it at the next batch rather than at the end.
-            var position = reused
-            while position < prompt.count {
-                if cancelled.isSet {
-                    return
-                }
-                let end = min(position + batchSize, prompt.count)
-                try decode(Array(prompt[position ..< end]))
-                cached += prompt[position ..< end]
-                position = end
-            }
-        }
-        let promptDone = clock.now
-
-        let sampler = makeSampler(request)
-        defer { llama_sampler_free(sampler) }
-        var grammar: UnsafeMutablePointer<llama_sampler>?
-        if let text = request.grammar {
-            guard let made = llama_sampler_init_grammar(vocab, text, "root") else {
-                throw EngineError.invalidRequest("the grammar couldn't be parsed (GBNF, start rule \"root\")")
-            }
-            grammar = made
-        }
-        defer { grammar.map { llama_sampler_free($0) } }
-        // The samplers that look back (penalties, DRY) see the prompt too, as llama-server's do.
-        for token in prompt {
-            llama_sampler_accept(sampler, token)
-        }
-        var utf8 = UTF8Assembler()
-        var produced = 0
-        // llama-server counts the end-of-generation token that stopped a reply, though it sends no text.
-        var counted = 0
-        var reason = FinishReason.stop
-        while true {
-            if cancelled.isSet {
-                return
-            }
-            let token = sample(sampler, grammar: grammar, context: context)
-            if !request.ignoreEndOfSequence, llama_vocab_is_eog(vocab, token) {
-                counted += 1
-                break
-            }
-            produced += 1
-            counted += 1
-            emit(.token(id: Int(token), text: utf8.append(piece(of: token))))
-            if produced >= maxTokens {
-                reason = .length
-                break
-            }
-            if let position = nextPosition {
-                try decode(token, at: position)
-                nextPosition = position + 1
-            } else {
-                try decode([token])
-                cached.append(token)
-            }
-        }
-
-        let done = clock.now
-        emit(.finished(reason, GenerationTimings(
-            promptTokens: promptCount - reused,
-            promptSeconds: (promptDone - started).seconds,
-            generatedTokens: counted,
-            generatedSeconds: (done - promptDone).seconds,
-            cachedTokens: reused
-        )))
-    }
-
-    /// Empties the context's memory and forgets what was cached.
-    private func resetMemory() {
-        guard let context else { return }
-        llama_memory_clear(llama_get_memory(context), true)
-        cached = []
-    }
-
     /// Tokenizes a prompt that has images (text chunks and image chunks, by libmtmd) and evaluates it into
     /// the empty context, chunk by chunk so a client that leaves stops it between chunks. Returns the text
     /// tokens (for the samplers that look back) and the prompt's total size in tokens, or nil if cancelled.
-    private func evaluateImagePrompt(
-        _ request: GenerationRequest, cancelled: CancelFlag
-    ) throws -> (textTokens: [llama_token], total: Int, next: llama_pos)? {
+    func evaluateImagePrompt(
+        _ request: GenerationRequest, sequence: llama_seq_id
+    ) throws -> (textTokens: [llama_token], total: Int, next: llama_pos) {
         guard let vision, let context else { throw EngineError.invalidRequest("this model can't read images") }
         guard let text = request.promptText
         else { throw EngineError.invalidRequest("an image request needs its prompt text") }
@@ -470,9 +390,6 @@ final class LlamaRuntime: @unchecked Sendable {
         var position: llama_pos = 0
         let count = mtmd_input_chunks_size(chunks)
         for index in 0 ..< count {
-            if cancelled.isSet {
-                return nil
-            }
             guard let chunk = mtmd_input_chunks_get(chunks, index) else { continue }
             if mtmd_input_chunk_get_type(chunk) == MTMD_INPUT_CHUNK_TYPE_TEXT {
                 var length = 0
@@ -481,7 +398,7 @@ final class LlamaRuntime: @unchecked Sendable {
                 }
             }
             let code = mtmd_helper_eval_chunk_single(
-                vision, context, chunk, position, 0, Int32(batchSize), index == count - 1, &position
+                vision, context, chunk, position, sequence, Int32(batchSize), index == count - 1, &position
             )
             guard code == 0 else {
                 throw EngineError.generationFailed("llama.cpp failed to evaluate the prompt's images (code \(code))")
@@ -490,73 +407,16 @@ final class LlamaRuntime: @unchecked Sendable {
         return (textTokens, total, position)
     }
 
-    /// Makes the context's memory hold a prefix of `prompt` and no more; returns how many tokens
-    /// of it are there already. The last prompt token is always decoded afresh, because sampling
-    /// needs its logits.
-    private func prepareMemory(for prompt: [llama_token], reuse: Bool) throws -> Int {
-        guard let context else { throw EngineError.notLoaded }
-        let memory = llama_get_memory(context)
-        var common = 0
-        if reuse {
-            let limit = min(cached.count, prompt.count - 1)
-            while common < limit, cached[common] == prompt[common] {
-                common += 1
-            }
-        }
-        if common < cached.count {
-            // A model whose memory can't drop a tail (recurrent, sliding-window) refuses; start over.
-            if common == 0 || !llama_memory_seq_rm(memory, 0, llama_pos(common), -1) {
-                llama_memory_clear(memory, true)
-                cached = []
-                return 0
-            }
-            cached = Array(cached[..<common])
-        }
-        return common
-    }
-
-    /// One token at a given position (the batch helper would work the position out from the memory).
-    private func decode(_ token: llama_token, at position: llama_pos) throws {
-        guard let context else { throw EngineError.notLoaded }
-        var batch = llama_batch_init(1, 0, 1)
-        defer { llama_batch_free(batch) }
-        batch.n_tokens = 1
-        batch.token[0] = token
-        batch.pos[0] = position
-        batch.n_seq_id[0] = 1
-        batch.seq_id[0]![0] = 0
-        batch.logits[0] = 1
-        let code = llama_decode(context, batch)
-        switch code {
-        case 0: break
-        case 1: throw EngineError.generationFailed("the prompt and reply don't fit in the model's context")
-        default: throw EngineError.generationFailed("llama.cpp failed to decode (code \(code))")
-        }
-    }
-
-    private func decode(_ tokens: [llama_token]) throws {
-        guard let context else { throw EngineError.notLoaded }
-        var tokens = tokens
-        let code = tokens.withUnsafeMutableBufferPointer { buffer in
-            llama_decode(context, llama_batch_get_one(buffer.baseAddress, Int32(buffer.count)))
-        }
-        switch code {
-        case 0: break
-        case 1: throw EngineError.generationFailed("the prompt and reply don't fit in the model's context")
-        default: throw EngineError.generationFailed("llama.cpp failed to decode (code \(code))")
-        }
-    }
-
     /// Draws the next token the way llama-server does: from the ordinary chain first, keeping the token if the
     /// grammar allows it, and only otherwise drawing again from the logits the grammar has already masked.
     /// (Masking first would be the same distribution but a different draw for the same seed.)
-    private func sample(
+    func sample(
         _ chain: UnsafeMutablePointer<llama_sampler>, grammar: UnsafeMutablePointer<llama_sampler>?,
-        context: OpaquePointer
+        context: OpaquePointer, row: Int32
     ) -> llama_token {
-        guard let grammar else { return llama_sampler_sample(chain, context, -1) }
+        guard let grammar else { return llama_sampler_sample(chain, context, row) }
         let vocabSize = Int(llama_vocab_n_tokens(vocab))
-        let logits = llama_get_logits_ith(context, -1)!
+        let logits = llama_get_logits_ith(context, row)!
         var candidates = (0 ..< vocabSize).map { llama_token_data(id: Int32($0), logit: logits[$0], p: 0) }
 
         func pick(_ samplers: [UnsafeMutablePointer<llama_sampler>]) -> llama_token {
@@ -594,7 +454,7 @@ final class LlamaRuntime: @unchecked Sendable {
     /// llama-server's default order: penalties, DRY, top-n-sigma, top-k, typical-p, top-p, min-p, XTC,
     /// temperature, then the draw. Temperature 0 is greedy; mirostat, when asked for, replaces the
     /// truncation samplers and the draw, as it does there.
-    private func makeSampler(_ request: GenerationRequest) -> UnsafeMutablePointer<llama_sampler> {
+    func makeSampler(_ request: GenerationRequest) -> UnsafeMutablePointer<llama_sampler> {
         let chain = llama_sampler_chain_init(llama_sampler_chain_default_params())!
         let s = request.sampling
         let vocabSize = llama_vocab_n_tokens(vocab)
@@ -654,7 +514,7 @@ final class LlamaRuntime: @unchecked Sendable {
         return chain
     }
 
-    private func addDRY(_ s: SamplingParameters, to chain: UnsafeMutablePointer<llama_sampler>) {
+    func addDRY(_ s: SamplingParameters, to chain: UnsafeMutablePointer<llama_sampler>) {
         // The C API takes an array of C strings that must stay alive for the call.
         let breakers = s.drySequenceBreakers.map { strdup($0) }
         defer { breakers.forEach { free($0) } }
@@ -693,11 +553,5 @@ struct UTF8Assembler {
             return needed > seen ? seen : 0
         }
         return 0
-    }
-}
-
-private extension Duration {
-    var seconds: Double {
-        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }

@@ -130,6 +130,18 @@ struct ModelDiscoveryTests {
         #expect(entry.path.lastPathComponent == "A.gguf")
     }
 
+    @Test("a preset's parallel (or np) sets a model's slots, and isn't reported as ignored")
+    func presetParallel() throws {
+        let store = try Store()
+        defer { store.remove() }
+        try store.touch("A.gguf")
+        try store.touch("B.gguf")
+        let presets = PresetsFile.parse("[A]\nparallel = 4\n\n[B]\nnp = 2\n")
+        let entries = ModelDiscovery.discover(modelsDirectory: store.gguf, mlxDirectory: nil, presets: presets)
+        #expect(entries.map(\.parallel) == [4, 2])
+        #expect(entries.flatMap(\.ignoredPresetKeys).isEmpty)
+    }
+
     @Test("a preset naming a model outside the folder is listed; one naming nothing is dropped")
     func presetOnly() {
         let presets = PresetsFile.parse("[Elsewhere]\nmodel = /somewhere/else.gguf\n\n[Ghost]\nctx-size = 1\n")

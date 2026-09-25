@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-09-25
+
+### Added
+
+- Internal, no visible change yet: `quail-server --parallel N` (and a preset's `parallel`) lets a GGUF model decode several requests together in slots that share one context, sharing prompt starts between them. Four small-model requests together were 2.4 times faster than one after another, with identical text; the default stays 1 (ADR D-048).
+
 ## [0.27.1] - 2026-09-25
 
 ### Changed

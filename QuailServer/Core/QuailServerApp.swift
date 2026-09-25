@@ -53,7 +53,11 @@ public enum QuailServerApp {
             modelsDirectory: arguments.modelsDirectory,
             mlxDirectory: arguments.mlxDirectory,
             presets: presets
-        )
+        ).map { entry -> ModelEntry in
+            var entry = entry
+            entry.parallel = entry.parallel ?? arguments.parallel
+            return entry
+        }
         log.log(.info, "quail-server \(version): \(entries.count) model(s)")
         for entry in entries where !entry.ignoredPresetKeys.isEmpty {
             log.log(.warn, "\(entry.id): ignoring preset keys \(entry.ignoredPresetKeys.joined(separator: ", "))")

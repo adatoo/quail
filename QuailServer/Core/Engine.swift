@@ -39,11 +39,17 @@ public struct EngineCapabilities: Equatable, Sendable {
     public var grammar = false
     /// Image input, through a vision projector (ADR D-047).
     public var vision = false
+    /// Several requests decoded together (slots); an engine without it is served one request at a time,
+    /// the others waiting their turn.
+    public var concurrentRequests = false
 
-    public init(extraSamplers: Bool = false, grammar: Bool = false, vision: Bool = false) {
+    public init(
+        extraSamplers: Bool = false, grammar: Bool = false, vision: Bool = false, concurrentRequests: Bool = false
+    ) {
         self.extraSamplers = extraSamplers
         self.grammar = grammar
         self.vision = vision
+        self.concurrentRequests = concurrentRequests
     }
 }
 
@@ -65,12 +71,17 @@ public struct EngineInfo: Equatable, Sendable {
     public var eosToken: String
     /// Whether the loaded model can read images (a vision projector is loaded).
     public var supportsImages: Bool
+    /// How many requests the engine decodes together (`total_slots`).
+    public var slots: Int
 
-    public init(contextSize: Int, bosToken: String, eosToken: String, supportsImages: Bool = false) {
+    public init(
+        contextSize: Int, bosToken: String, eosToken: String, supportsImages: Bool = false, slots: Int = 1
+    ) {
         self.contextSize = contextSize
         self.bosToken = bosToken
         self.eosToken = eosToken
         self.supportsImages = supportsImages
+        self.slots = slots
     }
 }
 
