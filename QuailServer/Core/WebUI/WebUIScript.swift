@@ -9,6 +9,7 @@ extension WebUI {
     for (const id of ["sidebar", "new-chat", "search", "conversations", "export", "import", "import-file",
                       "toggle-sidebar", "build", "key", "model", "load", "unload", "refresh", "open-settings",
                       "system", "log", "status", "form", "input", "send", "stop", "timings",
+                      "attachments", "attach", "attach-file",
                       "settings", "settings-fields", "settings-reset", "settings-close"]) {
       els[id] = $(id);
     }
@@ -254,6 +255,16 @@ extension WebUI {
         root.append(ui.thinking, ui.body);
         for (const call of message.calls || []) { root.append(make("pre", "call", call)); }
       } else {
+        if ((message.images || []).length) {
+          const images = make("div", "images");
+          for (const url of message.images) { const img = make("img"); img.src = url; img.alt = "Attached image"; images.append(img); }
+          root.append(images);
+        }
+        if ((message.files || []).length) {
+          const files = make("div", "files");
+          for (const file of message.files) { files.append(make("span", "chip", file.name + " · " + sizeText(file.text.length))); }
+          root.append(files);
+        }
         ui.body = make("pre", "plain", message.content || "");
         root.append(ui.body);
       }
@@ -282,9 +293,11 @@ extension WebUI {
       row.append(
         button("Save and send", "Replace this message and everything after it", async () => {
           const text = area.value.trim();
-          if (!text) { return; }
+          const was = current.messages[index];
+          if (!text && !(was.images || []).length && !(was.files || []).length) { return; }
+          const old = current.messages[index];
           current.messages = current.messages.slice(0, index);
-          current.messages.push({ role: "user", content: text });
+          current.messages.push(Object.assign({}, old, { content: text }));
           if (index === 0) { current.title = titleFrom(text); }
           await save(current);
           renderConversation();
@@ -517,12 +530,23 @@ extension WebUI {
 
     async function send() {
       const text = els.input.value.trim();
-      if (!text || controller) { return; }
+      if ((!text && !pending.length) || controller) { return; }
       if (!els.model.value) { setStatus("Choose a model first.", true); return; }
+      const images = pending.filter((a) => a.kind === "image").map((a) => a.url);
+      if (images.length && !modelReadsImages()) {
+        setStatus("This model can't read images (it has no vision projector). Choose a vision model, or remove the images.", true);
+        return;
+      }
       if (!current) { current = blankConversation(); }
+      const files = pending.filter((a) => a.kind === "text").map((a) => ({ name: a.name, text: a.text }));
       els.input.value = "";
-      if (!current.messages.length) { current.title = titleFrom(text); }
-      current.messages.push({ role: "user", content: text });
+      pending = [];
+      renderPending();
+      if (!current.messages.length) { current.title = titleFrom(text || (files[0] && files[0].name) || "Image"); }
+      const message = { role: "user", content: text };
+      if (images.length) { message.images = images; }
+      if (files.length) { message.files = files; }
+      current.messages.push(message);
       await save(current);
       renderConversation();
       generate();
@@ -540,7 +564,7 @@ extension WebUI {
       const system = (conversation.system || "").trim();
       if (system) { messages.push({ role: "system", content: system }); }
       for (const m of conversation.messages) {
-        if (!m.error) { messages.push({ role: m.role, content: m.content }); }
+        if (!m.error) { messages.push({ role: m.role, content: apiContent(m) }); }
       }
       const reply = { role: "assistant", content: "", reasoning: "", timings: null };
       conversation.messages.push(reply);
@@ -571,6 +595,77 @@ extension WebUI {
         if (conversation === current) { renderConversation(); }
         refreshModels();
       }
+    }
+
+    // MARK: attachments
+
+    // Files waiting to go with the next message: images as data URLs, text files as their text.
+    let pending = [];
+    const maxImage = 20 * 1024 * 1024;
+    const maxText = 256 * 1024;
+    const textTypes = /^(text\/|application\/(json|xml|x-yaml|yaml|javascript|x-sh))/;
+    const textNames = /\.(txt|md|markdown|json|csv|tsv|xml|ya?ml|toml|ini|log|py|js|ts|swift|c|h|cpp|rs|go|java|kt|rb|sh|sql|html|css)$/i;
+
+    function sizeText(bytes) {
+      return bytes < 1024 ? bytes + " B" : bytes < 1048576 ? (bytes / 1024).toFixed(0) + " KB" : (bytes / 1048576).toFixed(1) + " MB";
+    }
+
+    function modelReadsImages() {
+      const model = models.find((m) => m.id === els.model.value);
+      return Boolean(model && model.architecture && (model.architecture.input_modalities || []).includes("image"));
+    }
+
+    const readAs = (file, how) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      if (how === "url") { reader.readAsDataURL(file); } else { reader.readAsText(file); }
+    });
+
+    async function addFiles(fileList) {
+      for (const file of fileList) {
+        try {
+          if (file.type.startsWith("image/")) {
+            if (file.size > maxImage) { setStatus(file.name + " is larger than 20 MB.", true); continue; }
+            pending.push({ kind: "image", name: file.name || "image", url: await readAs(file, "url") });
+          } else if (textTypes.test(file.type) || textNames.test(file.name)) {
+            if (file.size > maxText) { setStatus(file.name + " is larger than 256 KB; paste the part you need.", true); continue; }
+            pending.push({ kind: "text", name: file.name, text: await readAs(file, "text") });
+          } else {
+            setStatus(file.name + " isn't an image or a text file.", true);
+          }
+        } catch (error) {
+          setStatus("Couldn't read " + file.name + ".", true);
+        }
+      }
+      renderPending();
+      if (pending.some((a) => a.kind === "image") && !modelReadsImages()) {
+        setStatus("The chosen model can't read images; choose a vision model before sending.", false);
+      }
+    }
+
+    function renderPending() {
+      els.attachments.replaceChildren();
+      els.attachments.hidden = !pending.length;
+      pending.forEach((item, index) => {
+        const chip = make("span", "chip");
+        if (item.kind === "image") { const img = make("img"); img.src = item.url; img.alt = item.name; chip.append(img); }
+        chip.append(make("span", "name", item.kind === "image" ? item.name : item.name + " · " + sizeText(item.text.length)));
+        chip.append(button("×", "Remove", () => { pending.splice(index, 1); renderPending(); }));
+        els.attachments.append(chip);
+      });
+    }
+
+    // What the API gets for a message: its text with any text files after it, and images as parts.
+    function apiContent(message) {
+      let text = message.content || "";
+      for (const file of message.files || []) {
+        text += (text ? "\n\n" : "") + "File: " + file.name + "\n```\n" + file.text.replace(/\n$/, "") + "\n```";
+      }
+      if (!(message.images || []).length) { return text; }
+      const parts = message.images.map((url) => ({ type: "image_url", image_url: { url } }));
+      if (text) { parts.push({ type: "text", text }); }
+      return parts;
     }
 
     // MARK: export and import
@@ -629,6 +724,19 @@ extension WebUI {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); startNew(); }
     });
     els.stop.addEventListener("click", () => { if (controller) { controller.abort(); } });
+    els.attach.addEventListener("click", () => els["attach-file"].click());
+    els["attach-file"].addEventListener("change", () => { addFiles([...els["attach-file"].files]); els["attach-file"].value = ""; });
+    els.input.addEventListener("paste", (event) => {
+      const files = [...(event.clipboardData ? event.clipboardData.files : [])];
+      if (files.length) { event.preventDefault(); addFiles(files); }
+    });
+    els.form.addEventListener("dragover", (event) => { event.preventDefault(); els.form.classList.add("dropping"); });
+    els.form.addEventListener("dragleave", () => els.form.classList.remove("dropping"));
+    els.form.addEventListener("drop", (event) => {
+      event.preventDefault();
+      els.form.classList.remove("dropping");
+      addFiles([...event.dataTransfer.files]);
+    });
     els["new-chat"].addEventListener("click", startNew);
     els.search.addEventListener("input", renderList);
     els["toggle-sidebar"].addEventListener("click", () => document.body.classList.toggle("side-closed"));

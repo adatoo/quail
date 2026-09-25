@@ -86,6 +86,15 @@ extension WebUI {
     #status { margin: 0; min-height: 1.4em; color: var(--muted); font-size: 0.9rem; }
     #status.error { color: var(--error); }
     #form textarea { width: 100%; resize: vertical; }
+    #form.dropping textarea { border-color: var(--accent); border-style: dashed; }
+    #attachments { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.4rem; }
+    .chip { display: flex; align-items: center; gap: 0.35rem; border: 1px solid var(--line); border-radius: 6px; padding: 0.2rem 0.35rem; background: var(--panel); font-size: 0.8rem; max-width: 16rem; }
+    .chip img, .msg .images img { display: block; max-height: 3.5rem; max-width: 6rem; border-radius: 4px; object-fit: cover; }
+    .chip .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip button { font-size: 0.75rem; padding: 0 0.35rem; }
+    .msg .images { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
+    .msg .images img { max-height: 10rem; max-width: 14rem; }
+    .msg .files { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
     .actions { display: flex; gap: 0.4rem; align-items: center; margin-top: 0.4rem; }
     #timings { color: var(--muted); font-size: 0.85rem; margin-left: auto; }
 

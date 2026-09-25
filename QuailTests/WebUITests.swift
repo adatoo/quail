@@ -82,7 +82,7 @@ struct WebUITests {
         let directives = Set(policy.components(separatedBy: "; "))
         #expect(directives == [
             "default-src 'none'", "script-src 'sha256-\(hash(script))'", "style-src 'sha256-\(hash(style))'",
-            "connect-src 'self'", "base-uri 'none'", "form-action 'none'", "frame-ancestors 'none'",
+            "connect-src 'self'", "img-src data:", "base-uri 'none'", "form-action 'none'", "frame-ancestors 'none'",
         ])
         #expect(header(response, "X-Content-Type-Options") == "nosniff")
         #expect(header(response, "Referrer-Policy") == "no-referrer")

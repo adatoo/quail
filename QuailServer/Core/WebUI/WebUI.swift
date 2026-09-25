@@ -35,6 +35,8 @@ enum WebUI {
         "script-src 'sha256-\(hash(script))'",
         "style-src 'sha256-\(hash(style))'",
         "connect-src 'self'",
+        // Thumbnails of the images a user attaches, which are data: URLs; nothing is fetched.
+        "img-src data:",
         "base-uri 'none'",
         "form-action 'none'",
         "frame-ancestors 'none'",
@@ -88,9 +90,12 @@ enum WebUI {
       <div id="log" aria-live="polite"></div>
       <p id="status" role="status"></p>
       <form id="form">
-        <textarea id="input" rows="3" placeholder="Message (Enter to send, Shift+Enter for a new line)"></textarea>
+        <div id="attachments" hidden></div>
+        <textarea id="input" rows="3" placeholder="Message (Enter to send, Shift+Enter for a new line; paste or drop images and text files)"></textarea>
         <div class="actions">
           <button id="send" type="submit">Send</button>
+          <button id="attach" type="button" title="Attach images (vision models) or text files">Attach</button>
+          <input id="attach-file" type="file" multiple hidden>
           <button id="stop" type="button" hidden title="Stop (Esc)">Stop</button>
           <span id="timings"></span>
         </div>
