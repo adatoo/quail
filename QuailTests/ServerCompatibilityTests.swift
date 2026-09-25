@@ -130,6 +130,47 @@ struct ServerCompatibilityTests {
         #expect(request.sampling.seed == 42)
     }
 
+    @Test("a client that hangs up during a long prompt stops the engine and frees the model")
+    func hangUpDuringPromptProcessing() async throws {
+        let world = ScriptedWorld()
+        let log = ServerLog(toStandardError: false)
+        let router = ModelRouter(
+            entries: [.fake("Alpha")],
+            modelsMax: 1,
+            makeEngine: { _ in
+                var engine = ScriptedEngine(world: world)
+                engine.firstTokenDelay = .seconds(30) // a huge prompt
+                return engine
+            },
+            log: log
+        )
+        let routes = ServerRoutes(router: router, apiKey: nil, log: log)
+        let server = HTTPServer(host: "127.0.0.1", port: 0, log: log)
+        let port = try await server.start { await routes.handle($0) }
+        defer { server.stop() }
+
+        for path in ["/v1/completions", "/v1/chat/completions"] {
+            let body = path == "/v1/completions"
+                ? #"{"model":"Alpha","prompt":"x"}"#
+                : #"{"model":"Alpha","messages":[{"role":"user","content":"x"}]}"#
+            let before = world.cancelled
+            func requestAndHangUp() async throws {
+                let client = try RawHTTPClient(port: port)
+                client
+                    .send(
+                        "POST \(path) HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: \(body.utf8.count)\r\n\r\n\(body)"
+                    )
+                #expect(await eventually {
+                    let leased = await router.leaseCount("Alpha")
+                    return !world.requests.isEmpty && leased == 1
+                })
+            }
+            try await requestAndHangUp()
+            #expect(await eventually(timeout: .seconds(5)) { world.cancelled == before + 1 }, "\(path)")
+            #expect(await eventually { await router.leaseCount("Alpha") == 0 }, "\(path)")
+        }
+    }
+
     @Test("the flags LlamaCppRuntime.launchSpec builds parse as the same settings")
     func launchSpecFlags() throws {
         let store = URL(fileURLWithPath: "/store/gguf")

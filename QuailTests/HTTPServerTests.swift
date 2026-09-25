@@ -209,6 +209,65 @@ struct HTTPServerTests {
         #expect(await eventually { stopped.isSet })
     }
 
+    @Test("a client that leaves while its request is being handled cancels the handler")
+    func departureCancelsHandler() async throws {
+        let cancelled = TestFlag()
+        let started = TestFlag()
+        let (server, port) = try await Self.start { _ in
+            started.set()
+            // A long wait that a cancelled task cuts short.
+            do { try await Task.sleep(for: .seconds(30)) } catch { cancelled.set() }
+            return HTTPResponse(status: 200)
+        }
+        defer { server.stop() }
+
+        func sendAndLeave() async throws {
+            let client = try RawHTTPClient(port: port)
+            client.send("POST /work HTTP/1.1\r\nHost: x\r\nContent-Length: 2\r\n\r\n{}")
+            #expect(await eventually { started.isSet })
+            // `client` is released here: the connection closes with the request still unanswered.
+        }
+        try await sendAndLeave()
+        #expect(await eventually(timeout: .seconds(5)) { cancelled.isSet })
+    }
+
+    @Test("a request pipelined behind a slow one is neither lost nor mistaken for a departure")
+    func pipelinedRequestSurvives() async throws {
+        let cancelled = TestFlag()
+        let (server, port) = try await Self.start { request in
+            if request.path == "/slow" {
+                do { try await Task.sleep(for: .milliseconds(200)) } catch { cancelled.set() }
+            }
+            return .json(200, ["path": request.path])
+        }
+        defer { server.stop() }
+
+        let client = try RawHTTPClient(port: port)
+        // Both at once: the second arrives while the first is still being handled.
+        client.send("GET /slow HTTP/1.1\r\nHost: x\r\n\r\nGET /fast HTTP/1.1\r\nHost: x\r\n\r\n")
+        let text = client.read(until: "/fast")
+        #expect(text.contains("\"path\":\"/slow\""))
+        #expect(text.contains("\"path\":\"/fast\""))
+        #expect(try #require(text.range(of: "/slow")?.lowerBound) < text.range(of: "/fast")!.lowerBound)
+        #expect(!cancelled.isSet)
+    }
+
+    @Test("an idle keep-alive connection that closes later is not treated as a cancelled request")
+    func closingAfterTheAnswerIsQuiet() async throws {
+        let cancelled = TestFlag()
+        let (server, port) = try await Self.start { _ in
+            withTaskCancellationHandlerFlag(cancelled)
+            return .json(200, ["ok": true])
+        }
+        defer { server.stop() }
+        let client = try RawHTTPClient(port: port)
+        client.send("GET / HTTP/1.1\r\nHost: x\r\n\r\n")
+        #expect(client.read(until: "}").contains("200 OK"))
+        _ = consume client
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(!cancelled.isSet)
+    }
+
     // MARK: Binding
 
     @Test("a port already in use is a clear error, not a silent second listener")
@@ -236,5 +295,13 @@ struct HTTPServerTests {
 
         server.stop()
         #expect(client.readToEnd().closed)
+    }
+}
+
+/// Marks `flag` if the current task is cancelled by the time this is called; a handler that has
+/// already returned can't be, which is the point of the test that uses it.
+private func withTaskCancellationHandlerFlag(_ flag: TestFlag) {
+    if Task.isCancelled {
+        flag.set()
     }
 }

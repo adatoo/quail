@@ -47,6 +47,8 @@ struct ScriptedEngine: Engine {
     var promptSeconds = 0.5
     var generatedSeconds = 0.25
     var cachedTokens = 0
+    /// Time spent "processing the prompt" before the first token; a cancelled request cuts it short.
+    var firstTokenDelay: Duration = .zero
 
     func load(_: ModelEntry) async throws {}
     func unload() async {}
@@ -76,6 +78,12 @@ struct ScriptedEngine: Engine {
                 if let message = script.failFirstToken {
                     continuation.finish(throwing: EngineError.loadFailed(message))
                     return
+                }
+                if script.firstTokenDelay > .zero {
+                    try? await Task.sleep(for: script.firstTokenDelay)
+                    if Task.isCancelled {
+                        return
+                    }
                 }
                 var produced = 0
                 var index = 0

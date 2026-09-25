@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-09-25
+
+### Changed
+
+- Internal, no visible change yet: `quail-server` stops work for a client that hangs up before its first token
+  (a long prompt, a model still loading), instead of finishing it for nobody (ADR D-037).
+
 ## [0.15.0] - 2026-09-25
 
 ### Security
