@@ -84,6 +84,14 @@ enum Paths {
             .appendingPathComponent("llama-server", isDirectory: false)
     }
 
+    /// Quail's own server, embedded next to `llama-server` in `Contents/MacOS` by the "Embed quail-server" build phase
+    /// (ADR D-027).
+    static var quailServerExecutable: URL {
+        (Bundle.main.executableURL ?? URL(fileURLWithPath: "/dev/null"))
+            .deletingLastPathComponent()
+            .appendingPathComponent("quail-server", isDirectory: false)
+    }
+
     /// Creates the two fixed directories this enum points at, if missing.
     /// Safe to call repeatedly (e.g. on every app launch). The model
     /// store's own subdirectories are `ModelStore.ensureDirectoriesExist`'s

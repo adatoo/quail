@@ -279,10 +279,14 @@ struct ModelStore: Sendable, Equatable {
         "mmproj-\(id).gguf"
     }
 
+    /// - Parameter includeMLX: also a section per MLX model directory, for a runtime that serves them
+    ///   (quail-server reads a `model` that is a directory as MLX, ADR D-044). llama-server would fail on one,
+    ///   so it's off unless the chosen runtime can use it.
     func regeneratePresets(
         catalog: StoreCatalog,
         defaultContextSize: Int = 8192,
-        defaultModelID: String? = nil
+        defaultModelID: String? = nil,
+        includeMLX: Bool = false
     ) throws {
         try ensureDirectoriesExist()
         var ini = ""
@@ -309,6 +313,20 @@ struct ModelStore: Sendable, Equatable {
                 ini += "load-on-startup = true\n"
             }
             ini += "\n"
+        }
+        if includeMLX {
+            for directory in installedMLXDirectories() {
+                let id = directory.lastPathComponent
+                ini += "[\(id)]\n"
+                ini += "model = \(directory.path)\n"
+                if let contextSize = catalog.entries.first(where: { $0.id == id })?.effectiveContextSize {
+                    ini += "ctx-size = \(contextSize)\n"
+                }
+                if id == defaultModelID {
+                    ini += "load-on-startup = true\n"
+                }
+                ini += "\n"
+            }
         }
         try ini.write(to: presetsFile, atomically: true, encoding: .utf8)
     }

@@ -205,10 +205,18 @@ private struct EndpointSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Runtime", selection: .constant(RuntimeID.llamaCpp)) {
-                    Text("llama.cpp").tag(RuntimeID.llamaCpp)
+                Picker(
+                    "Runtime",
+                    selection: Binding(get: { appState.runtime.id }, set: { appState.setRuntime($0) })
+                ) {
+                    ForEach(RuntimeID.available, id: \.self) { id in
+                        Text(id == .quail ? "Quail server (GGUF and MLX, preview)" : "\(id.displayName) (GGUF)").tag(id)
+                    }
                 }
-                .disabled(true) // oMLX and Rapid-MLX arrive in Phase 3
+                .disabled(!appState.canChangeRuntime || RuntimeID.available.count < 2)
+                .help(appState.canChangeRuntime
+                    ? "Which server Quail starts. llama.cpp is the default; Quail server also runs MLX models."
+                    : "Stop the server to change the runtime.")
 
                 TextField(
                     "Host",

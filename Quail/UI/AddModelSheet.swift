@@ -408,9 +408,9 @@ struct AddModelSheet: View {
                         quantPicker
                     }
                     .formStyle(.columns)
-                    if format == .mlxSafetensors {
+                    if format == .mlxSafetensors, !appState.canServe(.mlxSafetensors) {
                         Label(
-                            "Quail can download MLX models now, but can't serve them until MLX support ships. Choose GGUF to use it today.",
+                            "MLX models run on the Quail server runtime (Settings → Endpoint). With llama.cpp chosen, choose GGUF to use it now.",
                             systemImage: "info.circle"
                         )
                         .font(.callout)

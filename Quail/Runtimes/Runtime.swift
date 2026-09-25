@@ -1,11 +1,23 @@
 import Foundation
 
-/// Identifies one of the three runtimes Quail can drive. Raw values are also
-/// used as log file stems (`Paths.logFile(for:)`) and config values.
+/// Identifies a runtime Quail can drive. Raw values are also used as log file stems
+/// (`Paths.logFile(for:)`) and config values.
 enum RuntimeID: String, Sendable, CaseIterable, Codable {
     case llamaCpp
+    /// Quail's own `quail-server`: GGUF and MLX in one process (ADR D-027).
+    case quail
     case omlx
     case rapidMLX
+
+    /// The runtimes the app can start today; oMLX and Rapid-MLX are deferred (ADR D-027).
+    static var available: [RuntimeID] {
+        #if APPSTORE
+            // The sandbox work for quail-server is Phase 4; the App Store build stays on llama.cpp until then.
+            [.llamaCpp]
+        #else
+            [.llamaCpp, .quail]
+        #endif
+    }
 }
 
 /// GGUF (llama.cpp) or MLX safetensors (oMLX, Rapid-MLX).
@@ -54,6 +66,8 @@ struct EndpointConfig: Sendable, Equatable {
     /// that may not exist yet (existing tests construct `EndpointConfig`
     /// without this and don't need a real store on disk).
     var presetsFile: URL?
+    /// The store's `mlx/` folder, for a runtime that serves MLX models; `nil` for one that doesn't.
+    var mlxDirectory: URL?
 }
 
 /// Result of `Runtime.health(base:apiKey:)`. `status` is kept as the raw string
@@ -108,7 +122,7 @@ enum RuntimeError: Error, Sendable, Equatable {
     case decoding(String)
 }
 
-/// One of the three servers Quail can start: llama.cpp (bundled), oMLX or
+/// One of the servers Quail can start: llama.cpp or quail-server (both bundled), oMLX or
 /// Rapid-MLX (installed on demand, later phases). Every adapter is a thin,
 /// honest view of what the runtime already exposes — see
 /// docs/ARCHITECTURE.md §1 and §4.
