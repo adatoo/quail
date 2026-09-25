@@ -72,12 +72,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
+          SIGNING_ENABLED: ${{ vars.SIGNING_ENABLED }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "v$VERSION" -m "Quail $VERSION" "$GITHUB_SHA"
           git push origin "v$VERSION"
-          gh release create "v$VERSION" --title "Quail $VERSION" --notes-file release-notes.md --latest
+          # With signing on, the release becomes "latest" only once its DMG and update feed are
+          # attached (the dmg job does that): releases/latest/download/appcast.xml is what installed
+          # copies fetch, and until the feed exists it answers 404, which Sparkle shows as
+          # "An error occurred in retrieving update information".
+          if [ "$SIGNING_ENABLED" = "true" ]; then latest="--latest=false"; else latest="--latest"; fi
+          gh release create "v$VERSION" --title "Quail $VERSION" --notes-file release-notes.md "$latest"
 
   dmg:
     name: sign-and-attach-dmg
@@ -185,6 +191,13 @@ jobs:
         with:
           tag_name: v${{ needs.tag.outputs.version }}
           files: build/appcast.xml
+
+      # Only now does releases/latest, and so the feed installed copies read, point here.
+      - name: Make it the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.tag.outputs.version }}
+        run: gh release edit "v$VERSION" --latest
 
   homebrew:
     name: update-homebrew-cask

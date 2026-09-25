@@ -100,6 +100,8 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 **App Store:** Sparkle is linked into every configuration (XcodeGen can't link per configuration), so the Store build must have it removed before submission — recorded under Phase 4 step 5.
 **Alternatives:** A custom updater on the GitHub API (re-implements signature checking, atomic replacement and relaunch — the hard parts). Homebrew only (`auto_updates` false): no in-app update; rejected because you asked for it. A beta channel (D-031 chose every release).
 **Revisit if:** Sparkle 3 or a sandboxed Store build changes the packaging, or the appcast needs delta updates.
+**Amended 2026-09-25:** the release used to be marked latest as soon as the tag job created it, about six minutes before the DMG job attached the appcast, so a check in that window got a 404 and Sparkle showed "An error occurred in retrieving update information" (seen on 0.19.0). With signing on, the release is now created not-latest and made latest by the last step of the DMG job, after the appcast is attached; until then the previous release, with its working feed, stays latest. If the DMG job fails, the release stays not-latest, which is the safe way round.
+
 
 ## D-031 · 2026-09-24 · The repo is public; every workflow runs on GitHub-hosted runners
 
