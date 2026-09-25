@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-09-25
+
+### Fixed
+
+- Checking for updates in the minutes after a release no longer fails with "An error occurred in retrieving update
+  information": a release now becomes the latest one only once its update feed is attached (ADR D-032).
+
 ## [0.19.0] - 2026-09-25
 
 ### Added
