@@ -29,7 +29,16 @@ final class ServerController {
         }
     }
 
-    private(set) var phase: Phase = .stopped
+    private(set) var phase: Phase = .stopped {
+        didSet {
+            if phase != oldValue {
+                onPhaseChange?(phase)
+            }
+        }
+    }
+
+    /// Told of every phase change — `AppState` keeps the Mac awake while the server runs (ADR D-053).
+    @ObservationIgnored var onPhaseChange: ((Phase) -> Void)?
     private(set) var recentFailureLogs: [String] = []
 
     /// Swappable only while nothing is running (`setRuntime`), so a running server is never stopped

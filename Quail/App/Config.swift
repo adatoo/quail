@@ -24,6 +24,10 @@ struct Config: Sendable, Equatable, Codable {
     var apiKeyDefaultApplied: Bool = true
     var openAtLogin: Bool = false
     var autoStartServer: Bool = false
+    /// Keep the Mac from idle-sleeping while the server runs (ADR D-053).
+    var keepAwake: Bool = false
+    /// With `keepAwake`, also with a laptop's lid closed while plugged in (direct build only, D-053).
+    var keepAwakeLidClosed: Bool = false
     /// Set once the Models pane (Phase 2 step 7) lets someone relocate the
     /// store; `Paths.resolveModelsDirectory(bookmark:)` turns this back
     /// into a URL. `nil` means "use `Paths.defaultModelsDirectory`".
@@ -42,6 +46,7 @@ struct Config: Sendable, Equatable, Codable {
 
     private enum CodingKeys: String, CodingKey {
         case runtimeID, host, port, modelsMax, apiKeyEnabled, apiKeyDefaultApplied, openAtLogin, autoStartServer,
+             keepAwake, keepAwakeLidClosed,
              modelsDirectoryBookmark,
              defaultModelID
     }
@@ -58,6 +63,9 @@ struct Config: Sendable, Equatable, Codable {
         apiKeyDefaultApplied = try container.decodeIfPresent(Bool.self, forKey: .apiKeyDefaultApplied) ?? false
         openAtLogin = try container.decodeIfPresent(Bool.self, forKey: .openAtLogin) ?? fallback.openAtLogin
         autoStartServer = try container.decodeIfPresent(Bool.self, forKey: .autoStartServer) ?? fallback.autoStartServer
+        keepAwake = try container.decodeIfPresent(Bool.self, forKey: .keepAwake) ?? fallback.keepAwake
+        keepAwakeLidClosed = try container.decodeIfPresent(Bool.self, forKey: .keepAwakeLidClosed)
+            ?? fallback.keepAwakeLidClosed
         modelsDirectoryBookmark = try container.decodeIfPresent(Data.self, forKey: .modelsDirectoryBookmark)
             ?? fallback.modelsDirectoryBookmark
         defaultModelID = try container.decodeIfPresent(String.self, forKey: .defaultModelID) ?? fallback.defaultModelID

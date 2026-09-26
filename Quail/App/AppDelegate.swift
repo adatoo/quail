@@ -71,6 +71,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         source.resume()
         sigtermSource = source
 
+        #if !APPSTORE
+            // Sleep left disabled by the lid-closed option of a run that ended without cleaning up (ADR D-053).
+            appState.lidGuard.recoverIfLeftOn()
+        #endif
+
         // Weekly catalog refresh (docs/ARCHITECTURE.md §6) — no-ops
         // until a `QuailCatalogURL` exists in Info.plist; see
         // `AppState.refreshCatalog` for the cadence rationale.
@@ -108,6 +113,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_: Notification) {
         controlServer?.stop()
+        #if !APPSTORE
+            // The loop would notice Quail is gone anyway; this ends it at once.
+            appState.lidGuard.stop()
+        #endif
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

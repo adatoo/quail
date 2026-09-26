@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-09-27
+
+### Added
+
+- **Keep this Mac awake while the server runs** (Settings → General → Power, and in the menu), so a long download, benchmark or agent session isn't cut off by sleep. It uses the same kind of power assertion as `caffeinate`, with nothing to install; the display can still turn off.
+- In the direct download, **also with the lid closed, when plugged in**: macOS always sleeps a laptop on lid close, so this turns sleep off system-wide, after one password prompt when the server first starts. It applies only while the server runs on AC power. Sleep comes back when you unplug, stop the server or quit Quail (or crash; after a reboot, Quail offers to restore it).
+
 ## [0.40.1] - 2026-09-26
 
 ### Fixed

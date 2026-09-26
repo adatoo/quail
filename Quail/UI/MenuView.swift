@@ -117,6 +117,11 @@ struct MenuView: View {
             bringToFront { openWindow(id: "logs") }
         }
 
+        Toggle(
+            "Keep Mac Awake While Serving",
+            isOn: Binding(get: { appState.config.keepAwake }, set: { appState.setKeepAwake($0) })
+        )
+
         Divider()
 
         Button("Settings…") {

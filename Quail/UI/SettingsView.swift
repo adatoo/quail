@@ -91,6 +91,8 @@ private struct GeneralSettingsView: View {
                 )
             }
 
+            PowerSection(appState: appState)
+
             #if !APPSTORE
                 Section {
                     LabeledContent("quail command") {
