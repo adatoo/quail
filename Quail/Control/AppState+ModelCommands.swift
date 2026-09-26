@@ -82,17 +82,19 @@ extension AppState {
         }
         await task.value
 
-        switch installs.phase {
-        case let .installed(id):
+        // Read this download's own outcome: a download queued from the app may already have started.
+        let mine = ModelInstallController.Target(repo: spec.repo, format: .gguf, quant: quant)
+        switch installs.recent.last(where: { $0.target == mine }) {
+        case let outcome? where outcome.installedID != nil:
             installs.acknowledgeFinished()
-            var message = "Installed \(id)."
+            var message = "Installed \(outcome.installedID ?? spec.repo)."
             if serverController.phase == .ready {
                 message += " `quail restart` to serve it."
             }
             return ControlResponse(ok: true, message: message)
-        case let .failed(reason):
+        case let outcome? where outcome.failure != nil:
             installs.acknowledgeFinished()
-            return .failure(reason)
+            return .failure(outcome.failure ?? "the download failed")
         default:
             return .failure("Download cancelled — run the same command again to resume.")
         }

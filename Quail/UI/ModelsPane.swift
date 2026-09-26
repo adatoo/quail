@@ -316,7 +316,14 @@ struct ModelsPane: View {
                     ))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Button("Cancel") { appState.installs.cancel() }
+                HStack {
+                    Button("Cancel") { appState.installs.cancel() }
+                    if !appState.installs.queue.isEmpty {
+                        Text("\(appState.installs.queue.count) more queued")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         case let .failed(message):
             Label(message, systemImage: "exclamationmark.triangle")

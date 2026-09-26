@@ -170,21 +170,57 @@ struct ModelInstallControllerTests {
         }
     }
 
-    @Test("a second install while one is running is a no-op")
-    func secondInstallRejectedWhileActive() async throws {
-        let content = Data("x".utf8)
-        let file = HFFile(remotePath: "one.gguf", sizeBytes: 1, sha256: nil)
-        let (controller, store) = Self.makeController { _ in
+    @Test("a second install while one is running is queued, then runs; the same one twice is not queued twice")
+    func secondInstallQueued() async throws {
+        let first = Data("first".utf8), second = Data("second".utf8)
+        let (controller, store) = Self.makeController { request in
             Thread.sleep(forTimeInterval: 0.05)
-            return StubResponse(statusCode: 200, body: content)
+            return StubResponse(statusCode: 200, body: request.url?.path.contains("two") == true ? second : first)
         }
         defer { try? FileManager.default.removeItem(at: store.rootURL) }
+        let one = HFFile(remotePath: "one.gguf", sizeBytes: Int64(first.count), sha256: Self.shaHex(first))
+        let two = HFFile(remotePath: "two.gguf", sizeBytes: Int64(second.count), sha256: Self.shaHex(second))
 
-        let first = try #require(controller.install(repo: "org/a", files: [file], format: .gguf))
-        let second = controller.install(repo: "org/b", files: [file], format: .gguf)
-        #expect(second == nil)
-        await first.value
-        #expect(controller.target?.repo == "org/a")
+        let running = try #require(controller.install(repo: "org/a", files: [one], format: .gguf))
+        #expect(controller.install(repo: "org/b", files: [two], format: .gguf) == nil)
+        #expect(controller.install(repo: "org/b", files: [two], format: .gguf) == nil)
+        #expect(controller.install(repo: "org/a", files: [one], format: .gguf) == nil)
+        #expect(controller.queue.map(\.target.repo) == ["org/b"])
+        #expect(controller.standing(of: .init(repo: "org/a", format: .gguf, quant: nil)) == .downloading)
+        #expect(controller.standing(of: .init(repo: "org/b", format: .gguf, quant: nil)) == .queued)
+
+        await running.value
+        // The queued one started as soon as the first finished.
+        #expect(controller.target?.repo == "org/b")
+        #expect(controller.queue.isEmpty)
+        #expect(controller.recent.last?.installedID == "one")
+        for _ in 0 ..< 100 where controller.isDownloading {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(controller.phase == .installed(modelID: "two"))
+        #expect(controller.installedCount == 2)
+        #expect(Set(store.loadCatalog().entries.map(\.id)) == ["one", "two"])
+    }
+
+    @Test("cancelling the running download starts the next; a queued one can be removed")
+    func cancelStartsNext() async throws {
+        let chunk = Data(repeating: 0x7, count: 1024 * 1024)
+        let (controller, store) = Self.makeController { _ in
+            StubResponse(statusCode: 200, chunks: [chunk, chunk], interChunkDelay: 0.05)
+        }
+        defer { try? FileManager.default.removeItem(at: store.rootURL) }
+        let file = HFFile(remotePath: "big.gguf", sizeBytes: Int64(chunk.count * 2), sha256: nil)
+        let running = try #require(controller.install(repo: "org/a", files: [file], format: .gguf))
+        controller.install(repo: "org/b", files: [file], format: .gguf)
+        controller.install(repo: "org/c", files: [file], format: .gguf)
+        let removed = try #require(controller.queue.last?.id)
+        controller.removeQueued(removed)
+        #expect(controller.queue.map(\.target.repo) == ["org/b"])
+        controller.cancel()
+        await running.value
+        #expect(controller.target?.repo == "org/b" && controller.isDownloading)
+        controller.cancel()
+        #expect(controller.phase == .idle && controller.queue.isEmpty)
     }
 
     @Test("acknowledgeFinished clears installed back to idle")

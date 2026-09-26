@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-09-26
+
+### Added
+
+- Add Model queues downloads: while one downloads you can pick other models and choose **Add to Queue**; they start in order. The sheet always shows what is downloading (name, quantization, progress, Cancel) and what's waiting (with Remove) above the selected model, and the list marks models that are downloading or queued. Previously the progress replaced the model details without saying which model it was.
+
 ## [0.34.0] - 2026-09-26
 
 ### Changed
