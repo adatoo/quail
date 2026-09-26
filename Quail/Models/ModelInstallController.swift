@@ -314,7 +314,11 @@ final class ModelInstallController {
         return doneBefore + writtenForCurrent
     }
 
-    static func describe(_ error: HFDownloadError) -> String {
+    /// What every download, listing and `quail pull` says with no connection (ADR D-051).
+    nonisolated static let offlineMessage =
+        "no internet connection — adding models needs one; installed models work as normal, and a download resumes where it stopped"
+
+    nonisolated static func describe(_ error: HFDownloadError) -> String {
         switch error {
         case .invalidRepoID: "invalid repo id"
         case .gatedRepoRequiresToken: "this repo is gated — add your Hugging Face token in Settings"
@@ -322,6 +326,7 @@ final class ModelInstallController {
         case .invalidResponse: "invalid response"
         case let .checksumMismatch(file, _, _): "checksum mismatch for \(file)"
         case let .decoding(detail): "decoding error: \(detail)"
+        case .offline: offlineMessage
         }
     }
 }

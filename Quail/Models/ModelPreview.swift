@@ -9,6 +9,10 @@ enum RemoteFit: Sendable, Equatable {
     case estimate(FitEstimate)
     /// A short, user-facing reason ("Gated — add a Hugging Face token").
     case unknown(String)
+
+    /// No internet connection (ADR D-051): `AppState.loadCatalogVerdicts` stops asking once it sees
+    /// this, and the Add Model sheet says it's offline.
+    static let offline = RemoteFit.unknown("Offline — can't reach Hugging Face")
 }
 
 /// Fit verdicts for the Models pane, in two flavours: models already on
@@ -49,6 +53,8 @@ enum ModelPreview {
                 header = try await downloader.fetchHeader(repo: repo, file: first, maxBytes: budget, token: token)
             } catch HFDownloadError.gatedRepoRequiresToken {
                 return .unknown("Gated repo — add a Hugging Face token in Models")
+            } catch HFDownloadError.offline {
+                return .offline
             } catch {
                 return .unknown("Couldn't reach Hugging Face")
             }
@@ -103,6 +109,8 @@ enum ModelPreview {
             header = try await downloader.fetchHeader(repo: repo, file: configFile, token: token)
         } catch HFDownloadError.gatedRepoRequiresToken {
             return .unknown("Gated repo — add a Hugging Face token in Models")
+        } catch HFDownloadError.offline {
+            return .offline
         } catch {
             return .unknown("Couldn't reach Hugging Face")
         }
@@ -113,6 +121,27 @@ enum ModelPreview {
             return .unknown("Can't estimate \(metadata.modelType ?? "this") architecture yet")
         }
         cache.store(shape, for: key)
+        return estimateFit(shape, device: device, runtime: .omlx, bandwidthTable: bandwidthTable)
+    }
+
+    /// `catalogFit` from the shape cache alone — no network — or `nil` when the family hasn't been
+    /// looked up before. What the Add Model list shows for the rest once it knows it's offline.
+    static func cachedCatalogFit(
+        family: Catalog.Family,
+        device: DeviceInfo,
+        ggufRuntime: RuntimeID,
+        bandwidthTable: [String: Double],
+        cache: ModelShapeCache = .shared
+    ) -> RemoteFit? {
+        if let gguf = family.gguf {
+            guard let quant = gguf.defaultQuant ?? gguf.quants.first,
+                  let shape = cache.shape(for: catalogKey(repo: gguf.repo, quant: quant))
+            else { return nil }
+            return estimateFit(shape, device: device, runtime: ggufRuntime, bandwidthTable: bandwidthTable)
+        }
+        guard let mlx = family.mlx,
+              let shape = cache.shape(for: ModelShapeCache.key(repo: mlx.repo, format: .mlxSafetensors))
+        else { return nil }
         return estimateFit(shape, device: device, runtime: .omlx, bandwidthTable: bandwidthTable)
     }
 
@@ -138,6 +167,8 @@ enum ModelPreview {
                     repo: mlx.repo, listing: listing, downloader: downloader, device: device,
                     bandwidthTable: bandwidthTable, token: token, cache: cache
                 )
+            } catch HFDownloadError.offline {
+                return .offline
             } catch {
                 return .unknown("Couldn't reach Hugging Face")
             }
@@ -155,6 +186,8 @@ enum ModelPreview {
             return .unknown("Gated repo — add a Hugging Face token in Models")
         } catch HFDownloadError.httpStatus(404) {
             return .unknown("Repo not found on Hugging Face")
+        } catch HFDownloadError.offline {
+            return .offline
         } catch {
             return .unknown("Couldn't reach Hugging Face")
         }

@@ -591,6 +591,10 @@ final class AppState {
     /// Keyed by family id. A family with no entry hasn't been queued yet.
     private(set) var catalogFits: [String: RemoteFit] = [:]
 
+    /// The last Hugging Face request failed for want of a connection (ADR D-051) — the Add Model
+    /// sheet says so. Cleared by the next one that gets through.
+    var hubOffline = false
+
     /// `catalogFits`' successful estimates, keyed by GGUF repo id — the
     /// shape `Recommender.finalize` takes.
     var catalogVerdicts: [String: FitEstimate] {
@@ -648,6 +652,20 @@ final class AppState {
             }
             for await (id, fit) in group {
                 catalogFits[id] = fit
+                if fit == .offline {
+                    // No point asking for the rest: they'd each wait out the same missing connection.
+                    // Cached families still resolve, without the network.
+                    hubOffline = true
+                    for family in pending {
+                        catalogFits[family.id] = ModelPreview.cachedCatalogFit(
+                            family: family, device: device, ggufRuntime: ggufRuntime,
+                            bandwidthTable: bandwidth, cache: cache
+                        ) ?? .offline
+                    }
+                    pending = []
+                } else if case .estimate = fit {
+                    hubOffline = false
+                }
                 addNext()
             }
         }

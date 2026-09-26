@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.36.1] - 2026-09-26
+
+### Fixed
+
+- Offline, the Add Model sheet says "You're offline" and shows a model straight away, instead of waiting minutes for fit checks and printing raw network errors. Models looked up before still show their fit. Downloads, listings and `quail pull` say "no internet connection" in plain words and give up within seconds (15 s for model details, 30 s of silence for a download, which resumes later).
+
+### Added
+
+- `task check:offline` proves Quail works with no internet connection. It runs both servers, the app and opencode, Codex and Claude Code in a sandbox that blocks everything beyond this Mac. All of them pass: once models are downloaded, only browsing and downloading need a connection.
+
 ## [0.36.0] - 2026-09-26
 
 ### Added
