@@ -73,6 +73,7 @@ struct ModelCommandTests {
             )),
             modelsRootURL: scratch.appendingPathComponent("Models", isDirectory: true),
             catalogLocations: .init(bundle: .main, directory: scratch),
+            shapeCache: ModelShapeCache(url: nil),
             benchmarkStore: BenchmarkStore(fileURL: scratch.appendingPathComponent("benchmarks.json")),
             serverPreflight: nil
         )

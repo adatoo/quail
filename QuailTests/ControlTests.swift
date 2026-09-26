@@ -81,6 +81,7 @@ struct AppStateControlTests {
             )),
             modelsRootURL: scratch.appendingPathComponent("Models", isDirectory: true),
             catalogLocations: .init(bundle: .main, directory: scratch),
+            shapeCache: ModelShapeCache(url: nil),
             serverPreflight: nil
         )
         return (appState, scratch)

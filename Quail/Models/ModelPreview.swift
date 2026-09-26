@@ -31,10 +31,15 @@ enum ModelPreview {
         device: DeviceInfo,
         ggufRuntime: RuntimeID,
         bandwidthTable: [String: Double],
-        token: String?
+        token: String?,
+        cache: ModelShapeCache = .shared
     ) async -> RemoteFit {
         let weights = files.filter { ModelAddPlan.isMainGGUF($0.localFilename) }
         guard let first = weights.first else { return .unknown("No matching GGUF file in the repo") }
+        let key = ModelShapeCache.key(repo: repo, format: .gguf, file: first.remotePath)
+        if let shape = cache.shape(for: key) {
+            return estimateFit(shape, device: device, runtime: ggufRuntime, bandwidthTable: bandwidthTable)
+        }
         // 8 MiB first (what `fetchHeader` defaults to); only if the
         // model's shape keys genuinely sit beyond that, one 32 MiB retry.
         var metadata: GGUFMetadata?
@@ -61,12 +66,54 @@ enum ModelPreview {
         guard let shape = ModelShape.from(gguf: metadata, weightBytes: weightBytes) else {
             return .unknown("Can't estimate \(metadata.architecture ?? "this") architecture yet")
         }
+        cache.store(shape, for: key)
+        return estimateFit(shape, device: device, runtime: ggufRuntime, bandwidthTable: bandwidthTable)
+    }
+
+    private static func estimateFit(
+        _ shape: ModelShape, device: DeviceInfo, runtime: RuntimeID, bandwidthTable: [String: Double]
+    ) -> RemoteFit {
         guard let estimate = FitEstimator.estimate(
-            model: shape, device: device, runtime: ggufRuntime, bandwidthTable: bandwidthTable
+            model: shape, device: device, runtime: runtime, bandwidthTable: bandwidthTable
         ) else {
             return .unknown("Couldn't read this Mac's GPU memory")
         }
         return .estimate(estimate)
+    }
+
+    /// The MLX counterpart: the shape from the repo's `config.json`, the weights from the whole listing.
+    static func remoteMLXFit(
+        repo: String,
+        listing: HFRepo,
+        downloader: HFDownloader,
+        device: DeviceInfo,
+        bandwidthTable: [String: Double],
+        token: String?,
+        cache: ModelShapeCache = .shared
+    ) async -> RemoteFit {
+        let key = ModelShapeCache.key(repo: repo, format: .mlxSafetensors)
+        if let shape = cache.shape(for: key) {
+            return estimateFit(shape, device: device, runtime: .omlx, bandwidthTable: bandwidthTable)
+        }
+        guard let configFile = listing.files.first(where: { $0.localFilename == "config.json" }) else {
+            return .unknown("The repo has no config.json")
+        }
+        let header: Data
+        do {
+            header = try await downloader.fetchHeader(repo: repo, file: configFile, token: token)
+        } catch HFDownloadError.gatedRepoRequiresToken {
+            return .unknown("Gated repo — add a Hugging Face token in Models")
+        } catch {
+            return .unknown("Couldn't reach Hugging Face")
+        }
+        guard let metadata = try? MLXMetadata.parse(header)
+        else { return .unknown("Couldn't read this model's config.json") }
+        guard let shape = ModelShape.from(mlx: metadata, weightBytes: listing.files.reduce(0) { $0 + $1.sizeBytes })
+        else {
+            return .unknown("Can't estimate \(metadata.modelType ?? "this") architecture yet")
+        }
+        cache.store(shape, for: key)
+        return estimateFit(shape, device: device, runtime: .omlx, bandwidthTable: bandwidthTable)
     }
 
     /// The Add-model list's per-family verdict: the catalog's default
@@ -77,9 +124,30 @@ enum ModelPreview {
         device: DeviceInfo,
         ggufRuntime: RuntimeID,
         bandwidthTable: [String: Double],
-        token: String?
+        token: String?,
+        cache: ModelShapeCache = .shared
     ) async -> RemoteFit {
-        guard let gguf = family.gguf else { return .unknown("MLX only — not servable until MLX support lands") }
+        guard let gguf = family.gguf else {
+            guard let mlx = family.mlx else { return .unknown("No downloadable variant in the catalog") }
+            if let shape = cache.shape(for: ModelShapeCache.key(repo: mlx.repo, format: .mlxSafetensors)) {
+                return estimateFit(shape, device: device, runtime: .omlx, bandwidthTable: bandwidthTable)
+            }
+            do {
+                let listing = try await downloader.listFiles(repo: mlx.repo, token: token)
+                return await remoteMLXFit(
+                    repo: mlx.repo, listing: listing, downloader: downloader, device: device,
+                    bandwidthTable: bandwidthTable, token: token, cache: cache
+                )
+            } catch {
+                return .unknown("Couldn't reach Hugging Face")
+            }
+        }
+        // A family already looked up needs no listing either: its default quant's shape is cached.
+        if let quant = gguf.defaultQuant ?? gguf.quants.first,
+           let shape = cache.shape(for: catalogKey(repo: gguf.repo, quant: quant))
+        {
+            return estimateFit(shape, device: device, runtime: ggufRuntime, bandwidthTable: bandwidthTable)
+        }
         let listing: HFRepo
         do {
             listing = try await downloader.listFiles(repo: gguf.repo, token: token)
@@ -95,10 +163,21 @@ enum ModelPreview {
         }
         let files = ModelAddPlan.ggufFiles(for: listing, quant: quant, mmproj: nil)
         guard !files.isEmpty else { return .unknown("No \(quant) file in the repo") }
-        return await remoteGGUFFit(
+        let fit = await remoteGGUFFit(
             repo: gguf.repo, files: files, downloader: downloader, device: device,
-            ggufRuntime: ggufRuntime, bandwidthTable: bandwidthTable, token: token
+            ggufRuntime: ggufRuntime, bandwidthTable: bandwidthTable, token: token, cache: cache
         )
+        // Also under the family's quant, so the next lookup skips the listing too.
+        if let first = files.first(where: { ModelAddPlan.isMainGGUF($0.localFilename) }),
+           let shape = cache.shape(for: ModelShapeCache.key(repo: gguf.repo, format: .gguf, file: first.remotePath))
+        {
+            cache.store(shape, for: catalogKey(repo: gguf.repo, quant: quant))
+        }
+        return fit
+    }
+
+    private static func catalogKey(repo: String, quant: String) -> String {
+        ModelShapeCache.key(repo: repo, format: .gguf, file: "quant:" + quant)
     }
 
     /// A verdict for a catalog row that's installed on disk. `nil` when

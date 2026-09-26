@@ -78,6 +78,7 @@ struct AppStateTests {
             logStore: LogStore(),
             modelsRootURL: scratchDir.appendingPathComponent("Models", isDirectory: true),
             catalogLocations: .init(bundle: bundle, directory: scratchDir),
+            shapeCache: ModelShapeCache(url: nil),
             downloader: downloader,
             // The live preflight inspects this machine's real processes
             // and ports (8080 is often taken on a dev machine).
@@ -308,6 +309,7 @@ struct AppStateTests {
             logStore: LogStore(),
             modelsRootURL: scratch.appendingPathComponent("Models", isDirectory: true),
             catalogLocations: .init(bundle: .main, directory: scratch),
+            shapeCache: ModelShapeCache(url: nil),
             serverPreflight: nil
         )
         #expect(appState.runtime.id == .llamaCpp && appState.config.runtimeID == .llamaCpp)

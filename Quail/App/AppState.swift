@@ -43,6 +43,8 @@ final class AppState {
     private let configURL: URL
     private let secretStore: any SecretStore
     let catalogLocations: Catalog.Locations
+    /// Model shapes read from Hugging Face, kept between launches for the Add Model list's fit badges.
+    let shapeCache: ModelShapeCache
 
     /// The curated download list, bundled ⊕ weekly-refresh cache ⊕
     /// user-added repos — see `Catalog.swift`. A stored property, not a
@@ -75,6 +77,7 @@ final class AppState {
         logStore: LogStore = LogStore(),
         modelsRootURL: URL? = nil,
         catalogLocations: Catalog.Locations = .default,
+        shapeCache: ModelShapeCache = .shared,
         downloader: HFDownloader = HFDownloader(),
         benchmarkStore: BenchmarkStore = .default,
         serverPreflight: (@Sendable (EndpointConfig) async -> PreflightResult)? = ServerPreflight.live
@@ -98,6 +101,7 @@ final class AppState {
         self.secretStore = secretStore
         self.logStore = logStore
         self.catalogLocations = catalogLocations
+        self.shapeCache = shapeCache
         catalog = Catalog.current(locations: catalogLocations)
         let resolvedRoot = modelsRootURL
             ?? Paths.resolveModelsDirectory(bookmark: config.modelsDirectoryBookmark)
@@ -611,6 +615,7 @@ final class AppState {
         let ggufRuntime = config.runtimeID
         let downloader = installs.downloader
         let token = hfToken
+        let cache = shapeCache
         let candidateIDs = Set(Recommender.candidates(catalog: catalog, device: device).map(\.id))
         let families = catalog.families
             .filter { family in
@@ -632,7 +637,7 @@ final class AppState {
                 group.addTask {
                     let fit = await ModelPreview.catalogFit(
                         family: family, downloader: downloader, device: device,
-                        ggufRuntime: ggufRuntime, bandwidthTable: bandwidth, token: token
+                        ggufRuntime: ggufRuntime, bandwidthTable: bandwidth, token: token, cache: cache
                     )
                     return (family.id, fit)
                 }
