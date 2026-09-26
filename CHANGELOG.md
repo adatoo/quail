@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.38.2] - 2026-09-26
+
+### Fixed
+
+- An MLX model set as the default was forgotten every time the server started, so nothing loaded. The check for "the default model was deleted outside Quail" only looked at GGUF files. It now looks at every installed model, and a default that's really gone is still cleared.
+
 ## [0.38.1] - 2026-09-26
 
 ### Fixed

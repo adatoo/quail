@@ -689,6 +689,53 @@ struct AppStateTests {
         #expect(reloaded.modelsMax == 4)
     }
 
+    @Test("an MLX default survives Start and loads on startup (it was cleared as 'missing')")
+    func mlxDefaultSurvivesStart() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let launchSpec = LaunchSpec(
+            executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["30"], environment: [:],
+            currentDirectoryURL: nil
+        )
+        let appState = makeAppState(
+            scratchDir: scratch,
+            runtime: FakeRuntime(launchSpec: launchSpec, id: .quail, formats: [.gguf, .mlxSafetensors])
+        )
+        try appState.modelStore.ensureDirectoriesExist()
+        let mlx = appState.modelStore.mlxDirectory.appendingPathComponent("org--Model-4bit", isDirectory: true)
+        try FileManager.default.createDirectory(at: mlx, withIntermediateDirectories: true)
+        try Data(#"{"model_type":"qwen3"}"#.utf8).write(to: mlx.appendingPathComponent("config.json"))
+        try writeFixtureGGUF(named: "Alpha", to: appState.modelStore)
+
+        appState.setDefaultModel("org--Model-4bit")
+        await appState.start()
+        #expect(appState.config.defaultModelID == "org--Model-4bit")
+        #expect(Config.load(from: scratch.appendingPathComponent("config.json")).defaultModelID == "org--Model-4bit")
+        let ini = try String(contentsOf: appState.modelStore.presetsFile, encoding: .utf8)
+        let section = try #require(ini.components(separatedBy: "[org--Model-4bit]").last)
+        #expect(section.contains("load-on-startup = true"))
+        await appState.stop()
+
+        // Really gone from the store: now it's cleared.
+        try FileManager.default.removeItem(at: mlx)
+        await appState.reconcileStore()
+        #expect(appState.config.defaultModelID == nil)
+    }
+
+    @Test("a GGUF default removed outside Quail is still cleared")
+    func missingGGUFDefaultCleared() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        let file = try writeFixtureGGUF(named: "Alpha", to: appState.modelStore)
+        appState.setDefaultModel("Alpha")
+        await appState.reconcileStore()
+        #expect(appState.config.defaultModelID == "Alpha")
+        try FileManager.default.removeItem(at: file)
+        await appState.reconcileStore()
+        #expect(appState.config.defaultModelID == nil)
+    }
+
     @Test("setDefaultModel persists and is reflected in presets.ini on the next Start")
     func setDefaultModelPersistsAndAppliesAtStart() async throws {
         let scratch = scratchDirectory()
