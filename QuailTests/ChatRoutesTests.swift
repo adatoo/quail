@@ -504,7 +504,7 @@ struct ChatRoutesTests {
         (#"{"model":"Alpha","messages":[5]}"#, "each message needs a \"role\""),
         (
             #"{"model":"Alpha","messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":"data:image/png;base64,AAAA"}}]}]}"#,
-            "the engine serving this model can't read images yet"
+            InferenceRoutes.noImagesMessage
         ),
         (
             #"{"model":"Alpha","messages":[{"role":"user","content":[{"type":"input_audio","input_audio":{}}]}]}"#,
@@ -599,13 +599,13 @@ struct ChatRoutesTests {
         #expect(harness.world.requests.isEmpty)
     }
 
-    @Test("a model without a projector says so")
+    @Test("a model that can't read images says how Quail does read them")
     func imagesWithoutProjector() async {
         let harness = Harness { $0.capabilities = .init(vision: true) }
         let reply = await harness.json(Self.imageBody(Self.image("data:image/png;base64,\(Self.pixel)")))
         #expect(reply.status == 400)
         #expect((reply.json["error"] as? [String: Any])?["message"] as? String
-            == "this model has no vision projector (an mmproj file), so it can't read images")
+            == InferenceRoutes.noImagesMessage)
     }
 
     @Test("a conversation with no images is unchanged: no media, no prompt text")

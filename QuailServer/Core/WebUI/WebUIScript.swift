@@ -785,7 +785,9 @@ extension WebUI {
       if (!els.model.value) { setStatus("Choose a model first.", true); return; }
       const images = pending.filter((a) => a.kind === "image").map((a) => a.url);
       if (images.length && !modelReadsImages()) {
-        setStatus("This model can't read images (it has no vision projector). Choose a vision model, or remove the images.", true);
+        setStatus(formatOf(models.find((m) => m.id === els.model.value)) === "mlx"
+          ? "This MLX model can't read images in Quail: of MLX models, only the Qwen3.5 family (3.5, 3.6, 3.8) and Gemma 4 26B-A4B and 31B can so far. Choose one of those or a GGUF vision model, or remove the images."
+          : "This model can't read images: a GGUF model needs its vision projector (mmproj). Choose a vision model, or remove the images.", true);
         return;
       }
       if (!current) { current = blankConversation(); }

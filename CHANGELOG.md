@@ -10,6 +10,20 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-09-26
+
+### Added
+
+- MLX models read images on Quail server: the Qwen3.5 family (Qwen3.5, 3.6, 3.8) and Gemma 4 26B-A4B and 31B. Previously every MLX model was text-only, so Qwen3.8 27B MLX refused an image even though it has a vision half. Quail now loads that half, from the same folder with no download, when an image arrives. Text-only chats keep the faster text-only load, which generates about twice as fast. The chat page shows "vision" for these models and lets you attach images, and the Add Model list shows the Vision chip for the MLX variants checked to work (Qwen3.8 27B, Qwen3.6 35B-A3B, Gemma 4 26B-A4B).
+
+### Fixed
+
+- Gemma 4 26B-A4B MLX loads. It used to fail ("Unhandled keys [experts, router…]") because mlx-swift-lm's text-only Gemma 4 lacks its mixture-of-experts layers; Quail now loads it through its vision model, which has them.
+
+### Changed
+
+- When a model can't read images, the message says why for both formats: GGUF needs its vision projector, and of MLX models only the Qwen3.5 family and Gemma 4 26B-A4B and 31B read images so far.
+
 ## [0.39.0] - 2026-09-26
 
 ### Changed

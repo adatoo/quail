@@ -27,6 +27,15 @@ struct ModelStrengthTests {
         #expect(!ModelStrength.strengths(of: withProjector, format: .mlxSafetensors).contains(.vision))
     }
 
+    @Test("an MLX variant marked vision reads images as MLX; the GGUF projector counts only for GGUF")
+    func mlxVision() {
+        var family = Self.family(strengths: ["chat"])
+        family.mlx = .init(repo: "mlx-community/M-4bit", vision: true)
+        #expect(ModelStrength.strengths(of: family, format: .mlxSafetensors).contains(.vision))
+        #expect(!ModelStrength.strengths(of: family, format: .gguf).contains(.vision))
+        #expect(ModelStrength.strengths(of: family).contains(.vision))
+    }
+
     @Test("audio is kept as a fact but not offered as something Quail can use")
     func audio() {
         #expect(ModelStrength.strengths(of: Self.family(strengths: ["audio"])) == [.audio])

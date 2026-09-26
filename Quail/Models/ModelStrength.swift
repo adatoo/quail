@@ -2,9 +2,9 @@ import Foundation
 
 /// What a model is good for, shown as chips in the Add Model sheet and the Models list so people
 /// can choose knowingly (ADR D-052). Curated per family in `catalog.json`'s `strengths`, except
-/// `vision`, which comes from the catalog's own facts: a family shows it only when its GGUF
-/// download has a vision projector, because that's the only way Quail can pass it an image today
-/// (D-047; the MLX engine is text-only).
+/// `vision`, which comes from the catalog's own facts: a GGUF download with a vision projector, or an
+/// MLX variant marked `vision` (a Qwen3.5-family or Gemma 4 model, whose vision half Quail's MLX engine loads —
+/// D-047 amendment).
 enum ModelStrength: String, CaseIterable, Identifiable, Sendable {
     case chat
     case coding
@@ -62,7 +62,7 @@ enum ModelStrength: String, CaseIterable, Identifiable, Sendable {
         case .longContext:
             "Trained for 128K tokens or more: long documents, big codebases, long agent sessions. The context Quail gives it still depends on this Mac's memory."
         case .vision:
-            "Reads images you attach — screenshots, photos, diagrams. Works with the GGUF download, which includes the vision projector; Quail's MLX engine is text-only for now."
+            "Reads images you attach — screenshots, photos, diagrams. Works with the GGUF download (it includes the vision projector), and with MLX for Qwen3.5-family models and Gemma 4 26B-A4B and 31B."
         case .multilingual:
             "Strong in many languages, not just English."
         case .embedding:
@@ -78,11 +78,18 @@ enum ModelStrength: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// `family`'s strengths, in display order: the curated ones Quail knows (unknown strings from a
-    /// newer remote catalog are skipped), with `vision` decided by the GGUF projector — and dropped
-    /// for an installed MLX copy, which Quail can't show images to.
+    /// newer remote catalog are skipped), with `vision` decided per format: the GGUF projector, or the
+    /// MLX variant's own flag. With no format (the family as a whole), either will do.
     static func strengths(of family: Catalog.Family, format: ModelFormat? = nil) -> [ModelStrength] {
         var set = Set(family.strengths.compactMap(ModelStrength.init(rawValue:)))
-        if family.gguf?.mmproj != nil, format != .mlxSafetensors {
+        let ggufVision = family.gguf?.mmproj != nil
+        let mlxVision = family.mlx?.vision == true
+        let vision = switch format {
+        case .gguf?: ggufVision
+        case .mlxSafetensors?: mlxVision
+        case nil: ggufVision || mlxVision
+        }
+        if vision {
             set.insert(.vision)
         } else {
             set.remove(.vision)

@@ -253,7 +253,7 @@ private struct ModelJSON: Encodable {
         sizeBytes = snapshot.entry.sizeBytes
         contextSize = snapshot.entry.contextSize
         loadOnStartup = snapshot.entry.loadOnStartup
-        architecture = Architecture(inputModalities: snapshot.entry.projector == nil ? ["text"] : ["text", "image"])
+        architecture = Architecture(inputModalities: snapshot.entry.supportsImages ? ["text", "image"] : ["text"])
         // llama-server reports a failed load as "unloaded" plus `failed`, which
         // is what `ServedModel` decodes.
         switch snapshot.state {

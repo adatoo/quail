@@ -26,6 +26,13 @@ public struct ModelEntry: Equatable, Sendable {
     /// Bytes on disk (the file, or everything in the MLX folder), measured once at discovery, for the
     /// chat page's model picker. nil when the path can't be read.
     public var sizeBytes: Int64?
+    /// An MLX model whose vision half Quail can load (`MLXVision.supports`), found at discovery.
+    public var mlxVision = false
+
+    /// Whether this model can read images in Quail: a GGUF with its projector, or a supported MLX one.
+    public var supportsImages: Bool {
+        projector != nil || (kind == .mlx && mlxVision)
+    }
 }
 
 enum ModelDiscovery {
@@ -127,6 +134,7 @@ enum ModelDiscovery {
             .map { entry in
                 var entry = entry
                 entry.sizeBytes = size(of: entry.path)
+                entry.mlxVision = entry.kind == .mlx && MLXVision.supports(directory: entry.path)
                 return entry
             }
             .sorted { $0.id < $1.id }

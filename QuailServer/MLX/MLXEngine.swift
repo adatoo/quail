@@ -1,8 +1,10 @@
+import CoreImage
 import Foundation
 import MLX
 import MLXLLM
 import MLXLMCommon
 import MLXNN
+import MLXVLM
 import QuailServerCore
 import Tokenizers
 
@@ -16,8 +18,18 @@ final class MLXEngine: Engine, @unchecked Sendable {
 
     private let lock = NSLock()
     private var loaded: Loaded?
+    /// The model asked for, kept to switch between its text-only and vision loads.
+    private var entry: ModelEntry?
+    /// Set when only the vision half loads: mlx-swift-lm's text-only Gemma 4 lacks the mixture-of-experts
+    /// layers of Gemma 4 26B-A4B, which its vision model has.
+    private var visionOnly = false
 
     init() {}
+
+    /// Images, for a model whose vision half Quail can load (`MLXVision`).
+    var capabilities: EngineCapabilities {
+        EngineCapabilities(vision: lock.withLock { entry?.mlxVision } ?? false)
+    }
 
     /// Everything a request needs from the loaded model; replaced whole on load.
     private final class Loaded: @unchecked Sendable {
@@ -25,17 +37,20 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let info: EngineInfo
         let chatTemplate: String?
         let tokenizer: any MLXLMCommon.Tokenizer
+        /// Set when the vision half is loaded: how this architecture writes an image into the prompt.
+        let vision: VisionSetup?
         /// The prompt-prefix cache, touched only inside the container's serial access.
         var reusable: ReusableCache?
 
         init(
             container: ModelContainer, info: EngineInfo, chatTemplate: String?,
-            tokenizer: any MLXLMCommon.Tokenizer
+            tokenizer: any MLXLMCommon.Tokenizer, vision: VisionSetup?
         ) {
             self.container = container
             self.info = info
             self.chatTemplate = chatTemplate
             self.tokenizer = tokenizer
+            self.vision = vision
         }
     }
 
@@ -56,8 +71,22 @@ final class MLXEngine: Engine, @unchecked Sendable {
 
     // MARK: Load
 
+    /// Loads text-only, even a model that can read images: mlx-swift-lm's vision models generate text at
+    /// about half the speed of its text models (measured on Qwen3.6-35B-A3B: 11 against 20 tokens a
+    /// second), so the vision half is loaded only when an image arrives, and dropped again at the next
+    /// request without one (a reload of a few seconds from the page cache).
     func load(_ entry: ModelEntry) async throws {
         await unload()
+        lock.withLock { self.entry = entry }
+        do {
+            try await load(entry, vision: false)
+        } catch where entry.mlxVision {
+            try await load(entry, vision: true)
+            lock.withLock { visionOnly = true }
+        }
+    }
+
+    private func load(_ entry: ModelEntry, vision: Bool) async throws {
         // A model folder that is a symlink (a model kept elsewhere and linked into the store) loads nothing
         // through mlx-swift-lm's file enumeration ("Key lm_head.weight not found"), so load the real folder.
         let directory = entry.path.resolvingSymlinksInPath()
@@ -68,17 +97,24 @@ final class MLXEngine: Engine, @unchecked Sendable {
         }
         let files = ModelFiles(directory: directory)
         do {
-            let container = try await LLMModelFactory.shared.loadContainer(
-                from: directory, using: TokenizerBridgeLoader()
-            )
+            // Both from the local folder: no download either way.
+            let container = if vision {
+                try await VLMModelFactory.shared.loadContainer(from: directory, using: TokenizerBridgeLoader())
+            } else {
+                try await LLMModelFactory.shared.loadContainer(from: directory, using: TokenizerBridgeLoader())
+            }
             let tokenizer = await container.tokenizer
             let contextSize = entry.contextSize ?? files.contextLength ?? Self.defaultContext
             let info = EngineInfo(
                 contextSize: contextSize,
                 bosToken: files.token("bos_token") ?? tokenizer.bosToken ?? "",
-                eosToken: files.token("eos_token") ?? tokenizer.eosToken ?? ""
+                eosToken: files.token("eos_token") ?? tokenizer.eosToken ?? "",
+                supportsImages: entry.mlxVision
             )
-            let made = Loaded(container: container, info: info, chatTemplate: files.chatTemplate, tokenizer: tokenizer)
+            let made = Loaded(
+                container: container, info: info, chatTemplate: files.chatTemplate, tokenizer: tokenizer,
+                vision: vision ? files.visionSetup : nil
+            )
             lock.withLock { loaded = made }
         } catch let error as EngineError {
             throw error
@@ -88,8 +124,27 @@ final class MLXEngine: Engine, @unchecked Sendable {
         }
     }
 
-    func unload() async {
+    /// The load a request needs: the vision half for one with images, the faster text-only load otherwise.
+    /// Requests reach an MLX engine one at a time (the router's lease), so swapping here is safe.
+    private func loadedFor(_ request: GenerationRequest) async throws -> Loaded {
+        guard let current else { throw EngineError.notLoaded }
+        let wantsVision = !request.media.isEmpty
+        guard wantsVision != (current.vision != nil), !lock.withLock({ visionOnly }),
+              let entry = lock.withLock({ entry }), entry.mlxVision || !wantsVision
+        else { return current }
         lock.withLock { loaded = nil }
+        Memory.clearCache()
+        try await load(entry, vision: wantsVision)
+        guard let swapped = self.current else { throw EngineError.notLoaded }
+        return swapped
+    }
+
+    func unload() async {
+        lock.withLock {
+            loaded = nil
+            entry = nil
+            visionOnly = false
+        }
         // Weights and caches are freed with the container; give the GPU back what MLX pooled.
         Memory.clearCache()
     }
@@ -124,7 +179,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             let cancelled = CancelFlag()
             let task = Task {
                 do {
-                    guard let loaded = current else { throw EngineError.notLoaded }
+                    let loaded = try await self.loadedFor(request)
                     try await loaded.container.perform { context in
                         try await Self.run(
                             request, context: context, loaded: loaded, cancelled: cancelled,
@@ -150,6 +205,14 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let prompt = request.promptTokens
         guard !prompt.isEmpty else { throw EngineError.generationFailed("the prompt has no tokens") }
         let parameters = Self.parameters(for: request)
+        if !request.media.isEmpty {
+            try await runWithImages(request, context: context, loaded: loaded, cancelled: cancelled, emit: emit)
+            return
+        }
+        // A text turn on a vision load (a model that only loads that way, Gemma 4 26B-A4B): only the
+        // iterator's `prepare` resets the model's position state, so the prompt isn't fed in slices
+        // first, and it goes in as a batch of one ([1, n]), as the vision half's language model reads it.
+        let isVision = loaded.vision != nil
 
         // Keep the longest prefix of the last prompt that this one shares (and always feed at least
         // one token, whose logits the first sample needs).
@@ -183,7 +246,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let started = ContinuousClock.now
         var remaining = LMInput.Text(tokens: MLXArray(prompt[reused...].map { Int32(truncatingIfNeeded: $0) }))
         var fed = reused
-        while remaining.tokens.size > 2 * step {
+        while !isVision, remaining.tokens.size > 2 * step {
             if cancelled.isSet || Task.isCancelled {
                 // What the cache holds now is a prefix of this prompt; keep it for a retry.
                 loaded.reusable = ReusableCache(layers: layers, tokens: Array(prompt.prefix(fed)))
@@ -195,7 +258,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
             fed += step
         }
         let sliced = started.duration(to: .now)
-        let input = LMInput(text: remaining)
+        let input = isVision
+            ? LMInput(text: .init(tokens: remaining.tokens.expandedDimensions(axis: 0)))
+            : LMInput(text: remaining)
         var processor = parameters.processor()
         if request.ignoreEndOfSequence {
             processor = BanTokens(ids: Self.stopTokens(context), wrapping: processor)
@@ -245,6 +310,114 @@ final class MLXEngine: Engine, @unchecked Sendable {
             promptTokens: prompt.count - reused, promptSeconds: info.promptTime + sliced.seconds,
             generatedTokens: info.generationTokenCount, generatedSeconds: info.generateTime,
             cachedTokens: reused
+        )))
+    }
+
+    /// An image turn (ADR D-047 amendment): the prompt text with each image's placeholder, the images
+    /// through the model's own processor, and each placeholder widened to its image's share of tokens.
+    /// A fresh cache, and nothing kept for the next request: positions after an image aren't a plain
+    /// count of tokens, so a prefix can't safely be reused.
+    private static func runWithImages(
+        _ request: GenerationRequest, context: ModelContext, loaded: Loaded, cancelled: CancelFlag,
+        emit: @escaping @Sendable (GenerationEvent) -> Void
+    ) async throws {
+        loaded.reusable = nil
+        guard let vision = loaded.vision, let text = request.promptText else {
+            throw EngineError.invalidRequest(ImageInput.unsupportedMessage)
+        }
+        let family = vision.family
+        guard let imageID = context.tokenizer.convertTokenToId(family.imageToken) else {
+            throw EngineError.generationFailed("the tokenizer has no \(family.imageToken) token")
+        }
+        let started = ContinuousClock.now
+        let promptText = text.replacingOccurrences(of: ImageInput.marker, with: family.placeholder)
+        let bos = loaded.info.bosToken
+        var tokens = context.tokenizer.encode(
+            text: promptText, addSpecialTokens: bos.isEmpty || !promptText.hasPrefix(bos)
+        )
+        var pixels: [MLXArray] = []
+        var frames: [THW] = []
+        for data in request.media {
+            guard let image = CIImage(data: data) else {
+                throw EngineError.invalidRequest("an image couldn't be read (is it a PNG, JPEG, HEIC or similar?)")
+            }
+            let (imagePixels, frame): (MLXArray, THW)
+            switch vision {
+            case .qwen35:
+                guard let processor = context.processor as? Qwen3VLProcessor else {
+                    throw EngineError.generationFailed("this model's image processor isn't the one Quail drives")
+                }
+                // This processor renders pixels without colour matching, so they'd come out in Core
+                // Image's linear working space: mid-tones too dark (orange read as red). Put the sRGB
+                // curve back first, as the image processors the model was trained with see it.
+                (imagePixels, frame) = try processor.preprocess(
+                    images: [MediaProcessing.inSRGBToneCurveSpace(image)], processing: nil
+                )
+            case .gemma4:
+                guard let processor = context.processor as? Gemma4Processor else {
+                    throw EngineError.generationFailed("this model's image processor isn't the one Quail drives")
+                }
+                // Gemma 4's processor applies the sRGB curve itself.
+                (imagePixels, frame) = try processor.preprocess(images: [image], processing: nil)
+            }
+            pixels.append(imagePixels)
+            frames.append(frame)
+        }
+        switch vision {
+        case let .qwen35(mergeSize):
+            tokens = try MLXVision.expand(
+                tokens, padID: imageID, counts: frames.map { $0.t * $0.h * $0.w / (mergeSize * mergeSize) }
+            )
+        case let .gemma4(boi, eoi, seqLength):
+            let run = [boi] + Array(repeating: imageID, count: seqLength) + (eoi.map { [$0] } ?? [])
+            tokens = try MLXVision.expand(
+                tokens, marker: imageID, replacements: Array(repeating: run, count: frames.count)
+            )
+        }
+        guard tokens.count < loaded.info.contextSize else {
+            throw EngineError.invalidRequest(
+                "with its images the prompt is \(tokens.count) tokens, more than the model's context of \(loaded.info.contextSize)"
+            )
+        }
+        let ids = MLXArray(tokens.map { Int32(truncatingIfNeeded: $0) }).expandedDimensions(axis: 0)
+        let input = LMInput(
+            text: .init(tokens: ids, mask: ones(like: ids).asType(.int8)),
+            image: .init(pixels: concatenated(pixels), frames: frames)
+        )
+        let parameters = Self.parameters(for: request)
+        var processorChain = parameters.processor()
+        if request.ignoreEndOfSequence {
+            processorChain = BanTokens(ids: Self.stopTokens(context), wrapping: processorChain)
+        }
+        let prepared = started.duration(to: .now)
+        let iterator = try TokenIterator(
+            input: input, model: context.model, cache: context.model.newCache(parameters: parameters),
+            processor: processorChain, sampler: SeededSampler(request.sampling),
+            prefillStepSize: parameters.prefillStepSize, maxTokens: request.maxTokens
+        )
+        let (stream, task) = generateTokenTask(
+            promptTokenCount: tokens.count, modelConfiguration: context.configuration,
+            tokenizer: context.tokenizer, iterator: iterator
+        )
+        defer { task.cancel() }
+        var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
+        var finished: GenerateCompletionInfo?
+        for await event in stream {
+            if cancelled.isSet || Task.isCancelled {
+                return
+            }
+            switch event {
+            case let .token(id):
+                detokenizer.append(token: id)
+                emit(.token(id: id, text: detokenizer.next() ?? ""))
+            case let .info(info):
+                finished = info
+            }
+        }
+        guard let info = finished, !cancelled.isSet, !Task.isCancelled else { return }
+        emit(.finished(info.stopReason == .stop ? .stop : .length, GenerationTimings(
+            promptTokens: tokens.count, promptSeconds: info.promptTime + prepared.seconds,
+            generatedTokens: info.generationTokenCount, generatedSeconds: info.generateTime
         )))
     }
 
@@ -364,6 +537,19 @@ extension Duration {
     }
 }
 
+/// A vision-loaded model's image layout (`MLXVision.Family`), with what its config files say.
+enum VisionSetup {
+    case qwen35(mergeSize: Int)
+    case gemma4(boi: Int, eoi: Int?, seqLength: Int)
+
+    var family: MLXVision.Family {
+        switch self {
+        case .qwen35: .qwen35
+        case .gemma4: .gemma4
+        }
+    }
+}
+
 // MARK: Model folder files
 
 /// What the server reads from the model folder itself: the chat template, the special-token strings
@@ -374,6 +560,25 @@ private struct ModelFiles {
     private func json(_ name: String) -> [String: Any]? {
         (try? Data(contentsOf: directory.appendingPathComponent(name)))
             .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+    }
+
+    /// How this architecture writes an image into the prompt, from its config files (defaults are the
+    /// library's own).
+    var visionSetup: VisionSetup? {
+        guard let config = json("config.json"), let type = config["model_type"] as? String,
+              let family = MLXVision.Family(modelType: type)
+        else { return nil }
+        let processor = json("preprocessor_config.json") ?? json("processor_config.json") ?? [:]
+        switch family {
+        case .qwen35:
+            return .qwen35(mergeSize: processor["merge_size"] as? Int ?? 2)
+        case .gemma4:
+            return .gemma4(
+                boi: config["boi_token_id"] as? Int ?? 255_999,
+                eoi: config["eoi_token_id"] as? Int ?? 258_882,
+                seqLength: processor["image_seq_length"] as? Int ?? 280
+            )
+        }
     }
 
     /// `max_position_embeddings`, at the top level or inside `text_config` (multimodal models).

@@ -352,6 +352,9 @@ struct InferenceRoutes: Sendable {
         var timings: GenerationTimings
     }
 
+    /// Why a model can't take the images it was sent — both ways Quail reads images, so the fix is clear.
+    static let noImagesMessage = ImageInput.unsupportedMessage
+
     /// Loads the model if need be, renders and tokenizes the prompt, and starts generating.
     func startChat(_ chat: ChatRequest, settings: GenerationSettings, model id: String) async throws -> ChatRun {
         let lease = try await router.acquire(id)
@@ -360,12 +363,8 @@ struct InferenceRoutes: Sendable {
             let info = await lease.engine.info()
             let tokens = try await promptTokens(for: chat, engine: lease.engine, info: info)
             if !tokens.media.isEmpty {
-                guard lease.engine.capabilities.vision else {
-                    throw RequestError.invalid("the engine serving this model can't read images yet")
-                }
-                guard info.supportsImages else {
-                    throw RequestError
-                        .invalid("this model has no vision projector (an mmproj file), so it can't read images")
+                guard lease.engine.capabilities.vision, info.supportsImages else {
+                    throw RequestError.invalid(Self.noImagesMessage)
                 }
             }
             // A constrained reply comes after the thinking block, if the template has one.
@@ -591,7 +590,7 @@ struct InferenceRoutes: Sendable {
                 "model_alias": id,
                 "model_path": snapshot?.entry.path.path ?? "",
                 "modalities": [
-                    "vision": snapshot?.entry.projector != nil,
+                    "vision": snapshot?.entry.supportsImages ?? false,
                     "video": false,
                     "audio": false,
                 ] as [String: Any],
