@@ -176,6 +176,15 @@ struct ModelsPane: View {
         Recommender.topPick(catalog: appState.catalog, device: DeviceInfo.current())
     }
 
+    /// `entry`'s catalog family's strengths (ADR D-052), matched as the Add Model sheet matches
+    /// installed models to families.
+    private func strengths(of entry: InstalledModel) -> [ModelStrength] {
+        guard let family = appState.catalog.families.first(where: {
+            !InstalledLookup.entries(for: $0, in: [entry]).isEmpty
+        }) else { return [] }
+        return ModelStrength.strengths(of: family, format: entry.format)
+    }
+
     private var measuredSpeeds: [String: Double] {
         appState.benchmarks.measuredSpeeds(chip: chip)
     }
@@ -207,6 +216,7 @@ struct ModelsPane: View {
                     isDefault: appState.config.defaultModelID == entry.id,
                     contextChoices: contextChoices[entry.id] ?? [],
                     measuredSpeed: measuredSpeeds[entry.id],
+                    strengths: strengths(of: entry),
                     onSetContext: { tokens in
                         Task { await appState.setContextSize(tokens, forModel: entry.id) }
                     },
@@ -436,6 +446,8 @@ private struct ModelRow: View {
     let contextChoices: [ContextChoice]
     /// Generation speed from this model's latest Benchmark on this Mac.
     let measuredSpeed: Double?
+    /// What its catalog family is good for; empty for a model from outside the catalog.
+    let strengths: [ModelStrength]
     let onSetContext: (Int?) -> Void
     let onLoad: () -> Void
     let onToggleDefault: () -> Void
@@ -502,6 +514,10 @@ private struct ModelRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                if !strengths.isEmpty {
+                    StrengthChips(strengths: strengths, limit: 5)
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer(minLength: 8)
             // Hot swap (step 8): an installed model can be loaded into the running router with a click, if the
