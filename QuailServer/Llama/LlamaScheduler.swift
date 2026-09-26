@@ -90,6 +90,8 @@ final class Job {
 extension LlamaRuntime {
     /// Fewer shared tokens than this aren't worth a copy.
     static let minimumSharedPrefix = 32
+    /// How long one block of the runtime's queue keeps stepping before letting other work run.
+    static let stepSliceMilliseconds = 50
 
     // MARK: Entry
 
@@ -135,29 +137,37 @@ extension LlamaRuntime {
 
     /// One round: take in new requests, give them slots, decode one batch, and hand each request its token.
     func step() {
-        guard context != nil, batch != nil else {
-            failEverything(EngineError.notLoaded)
-            incomingLock.withLock { stepQueued = false }
-            return
-        }
-        let arrived = incomingLock.withLock { () -> [PendingRequest] in
-            defer { incoming = [] }
-            return incoming
-        }
-        waiting += arrived
-        dropCancelled()
-        admit()
-        decodeBatch()
-
-        let more = incomingLock.withLock { () -> Bool in
-            let busy = !incoming.isEmpty || !waiting.isEmpty || slots.contains { $0.job != nil }
-            if !busy {
-                stepQueued = false
+        // Several steps per block: handing the queue back after every token cost a thread wake-up per token,
+        // several percent of generation speed on a busy Mac. After a slice the block ends anyway, so a
+        // `tokenize` or `load` waiting on the queue gets its turn between steps.
+        let slice = ContinuousClock.now.advanced(by: .milliseconds(Self.stepSliceMilliseconds))
+        while true {
+            guard context != nil, batch != nil else {
+                failEverything(EngineError.notLoaded)
+                incomingLock.withLock { stepQueued = false }
+                return
             }
-            return busy
-        }
-        if more {
-            queue.async { self.step() }
+            let arrived = incomingLock.withLock { () -> [PendingRequest] in
+                defer { incoming = [] }
+                return incoming
+            }
+            waiting += arrived
+            dropCancelled()
+            admit()
+            decodeBatch()
+
+            let more = incomingLock.withLock { () -> Bool in
+                let busy = !incoming.isEmpty || !waiting.isEmpty || slots.contains { $0.job != nil }
+                if !busy {
+                    stepQueued = false
+                }
+                return busy
+            }
+            guard more else { return }
+            if ContinuousClock.now >= slice {
+                queue.async { self.step() }
+                return
+            }
         }
     }
 

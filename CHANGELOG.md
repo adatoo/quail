@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.31.3] - 2026-09-26
+
+### Fixed
+
+- Internal: `quail-server`'s engine handed its queue back after every generated token, which cost a thread wake-up per token on a busy Mac (a streamed Qwen3-8B reply ran several percent slower than llama-server's); it now runs several steps per turn and still lets other work in every 50 ms. Streamed Qwen3-8B: 44.5 vs llama-server's 42.7 tokens/s.
+
 ## [0.31.2] - 2026-09-26
 
 ### Fixed
