@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.31.4] - 2026-09-26
+
+### Fixed
+
+- `quail-server`'s `/v1/messages` refused Claude Code's current requests ("each message needs a role of user or assistant"): Claude Code now puts part of its instructions in a `system` message among the others. That text now joins the system prompt, in order. With the fix, Claude Code completed a tool-using task (writing a file with its Write tool) against Qwen3.6-35B-A3B on `quail-server`.
+
 ## [0.31.3] - 2026-09-26
 
 ### Fixed

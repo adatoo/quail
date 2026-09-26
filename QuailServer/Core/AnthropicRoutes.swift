@@ -96,16 +96,36 @@ enum AnthropicRequest {
     /// The same request in chat-completions form.
     static func chatBody(_ body: Value) throws -> Value {
         var messages: [Value] = []
+        var systemParts: [String] = []
         if let system = body["system"], !system.isNull {
             let text = try text(of: system, what: "system")
             if !text.isEmpty {
-                messages.append(.record([("role", .string("system")), ("content", .string(text))]))
+                systemParts.append(text)
             }
         }
         guard let list = body["messages"]?.arrayValue else { throw RequestError.invalid("'messages' is required") }
         guard !list.isEmpty else { throw RequestError.invalid("'messages' must not be empty") }
         for message in list {
+            // Claude Code puts some of its instructions (the environment, for one) in a `system` message among
+            // the others. Chat templates mostly allow one system message, first, so its text joins the system
+            // prompt, in order.
+            if message["role"]?.stringValue == "system" {
+                guard let content = message["content"], !content.isNull else {
+                    throw RequestError.invalid("each message needs \"content\"")
+                }
+                let text = try text(of: content, what: "a system message")
+                if !text.isEmpty {
+                    systemParts.append(text)
+                }
+                continue
+            }
             try messages += convert(message)
+        }
+        if !systemParts.isEmpty {
+            messages.insert(
+                .record([("role", .string("system")), ("content", .string(systemParts.joined(separator: "\n\n")))]),
+                at: 0
+            )
         }
 
         var members: [(String, Value?)] = [("model", body["model"]), ("messages", .array(messages))]
@@ -166,7 +186,7 @@ enum AnthropicRequest {
     /// `tool` message, in the order it appears.
     private static func convert(_ message: Value) throws -> [Value] {
         guard let role = message["role"]?.stringValue, role == "user" || role == "assistant" else {
-            throw RequestError.invalid("each message needs a \"role\" of \"user\" or \"assistant\"")
+            throw RequestError.invalid("each message needs a \"role\" of \"user\", \"assistant\" or \"system\"")
         }
         guard let content = message["content"], !content.isNull else {
             throw RequestError.invalid("each message needs \"content\"")

@@ -54,6 +54,25 @@ struct MessagesRoutesTests {
         #expect(harness.prompt.contains("<|im_start|>assistant\nHello<|im_end|>\n<|im_start|>user\nAgain"))
     }
 
+    @Test("a system message among the messages (as Claude Code sends) joins the system prompt, in order")
+    func systemRoleMessage() async {
+        let harness = RouteHarness()
+        let reply = await harness.json(path, """
+        {"model":"Alpha","max_tokens":9,"system":[{"type":"text","text":"You are a helper."}],
+         "messages":[{"role":"user","content":[{"type":"text","text":"Hi"}]},
+                     {"role":"system","content":[{"type":"text","text":"# Environment\\nPlatform: darwin"}]}]}
+        """)
+        #expect(reply.status == 200)
+        #expect(harness.prompt
+            .hasPrefix("<|im_start|>system\nYou are a helper.\n\n# Environment\nPlatform: darwin<|im_end|>"))
+        #expect(harness.prompt.contains("<|im_start|>user\nHi<|im_end|>"))
+        let bad = await harness.json(
+            path,
+            #"{"model":"Alpha","max_tokens":9,"messages":[{"role":"tool","content":"x"}]}"#
+        )
+        #expect(bad.status == 400)
+    }
+
     @Test("reasoning comes back as a thinking block before the text")
     func thinking() async {
         let harness = RouteHarness(pieces: ["<think>", "\nHmm.\n", "</think>", "\n\n", "Hi"])
