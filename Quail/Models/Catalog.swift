@@ -34,6 +34,9 @@ struct Catalog: Sendable, Equatable {
         var role: String?
         var rank: Int?
         var license: String?
+        /// What the model is good for, as the catalog curates it — raw strings, like `role`, so a
+        /// remote catalog can add one; `ModelStrength.strengths(of:)` reads them (ADR D-052).
+        var strengths: [String] = []
         var gguf: GGUFVariant?
         var mlx: MLXVariant?
         var isCurated: Bool
@@ -145,6 +148,7 @@ struct Catalog: Sendable, Equatable {
             var role: String?
             var rank: Int?
             var license: String?
+            var strengths: [String]?
             var variants: Variants
         }
 
@@ -182,6 +186,7 @@ struct Catalog: Sendable, Equatable {
                         role: raw.role,
                         rank: raw.rank,
                         license: raw.license,
+                        strengths: raw.strengths ?? [],
                         gguf: raw.variants.gguf.map { GGUFVariant(
                             repo: $0.repo,
                             quants: $0.quants,

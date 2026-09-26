@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-09-26
+
+### Added
+
+- The Add Model sheet and the Models list show what each model is good for (chat, coding, agents and tools, reasoning, long context, vision, multilingual, embeddings) as chips, each with an explanation, plus a "Good for" filter. Vision appears only where Quail can pass images: GGUF downloads with a vision projector. Audio-capable models say Quail can't pass audio yet.
+
 ## [0.36.1] - 2026-09-26
 
 ### Fixed

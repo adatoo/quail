@@ -29,6 +29,8 @@ struct AddModelSheet: View {
     private let device = DeviceInfo.current()
 
     @State private var filter: ModelsPane.FormatFilter = .all
+    /// "Good for" — `nil` shows every family (ADR D-052).
+    @State private var strengthFilter: ModelStrength?
     @State private var query = ""
     @State private var selection: Selection?
     @State private var listing: HFRepo?
@@ -138,6 +140,16 @@ struct AddModelSheet: View {
                 }
             }
             Spacer()
+            Picker("Good for", selection: $strengthFilter) {
+                Text("Any use").tag(ModelStrength?.none)
+                Divider()
+                ForEach(ModelStrength.filterChoices) { strength in
+                    Label(strength.label, systemImage: strength.systemImage).tag(ModelStrength?.some(strength))
+                }
+            }
+            .labelsHidden()
+            .fixedSize()
+            .help("Show models that are good for…")
             Picker("Format", selection: $filter) {
                 ForEach(ModelsPane.FormatFilter.allCases) { Text($0.rawValue).tag($0) }
             }
@@ -273,6 +285,7 @@ struct AddModelSheet: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                StrengthChips(strengths: ModelStrength.strengths(of: family), limit: 3)
             }
             Spacer(minLength: 4)
             // A tick, not a pill: with both pills the family's name lost
@@ -302,7 +315,8 @@ struct AddModelSheet: View {
         return installs.queue.contains { repos.contains($0.target.repo) } ? .queued : nil
     }
 
-    /// "32B · 3B active · coding · GGUF, MLX"
+    /// "32B · 3B active · GGUF, MLX" — what it's good for is in the chips beneath, so the role
+    /// appears only when it says something they don't ("smoke-test").
     private func subtitle(for family: Catalog.Family) -> String {
         var parts: [String] = []
         if let params = family.paramsB {
@@ -311,7 +325,7 @@ struct AddModelSheet: View {
         if let active = family.activeParamsB {
             parts.append("\(Self.formatParams(active))B active")
         }
-        if let role = family.role, role != "general" {
+        if let role = family.role, !["general", "coding", "reasoning", "embedding"].contains(role) {
             parts.append(role)
         }
         let formats = [family.gguf != nil ? "GGUF" : nil, family.mlx != nil ? "MLX" : nil].compactMap(\.self)
@@ -325,11 +339,15 @@ struct AddModelSheet: View {
 
     private var filteredFamilies: [Catalog.Family] {
         appState.catalog.families.filter { family in
-            switch filter {
+            let formatMatches = switch filter {
             case .all: true
             case .gguf: family.gguf != nil
             case .mlx: family.mlx != nil
             }
+            guard formatMatches else { return false }
+            guard let strengthFilter else { return true }
+            return ModelStrength.strengths(of: family, format: filter == .mlx ? .mlxSafetensors : nil)
+                .contains(strengthFilter)
         }
     }
 
@@ -528,6 +546,8 @@ struct AddModelSheet: View {
                 if let license = family.license {
                     Text("License: \(license)").font(.caption).foregroundStyle(.secondary)
                 }
+                StrengthList(strengths: ModelStrength.strengths(of: family, format: format))
+                    .padding(.top, 8)
             case let .pasted(repo):
                 Text(repo).font(.title2.bold())
                 Text("From Hugging Face — not in Quail's curated catalog").foregroundStyle(.secondary)
