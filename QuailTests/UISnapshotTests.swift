@@ -88,4 +88,13 @@ struct UISnapshotTests {
             )
         }
     }
+
+    @Test("Settings → General")
+    func generalSettings() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        appState.settingsTab = .general
+        appState.setKeepAwake(true)
+        try await render(SettingsView(appState: appState), size: CGSize(width: 900, height: 760), name: "general")
+    }
 }

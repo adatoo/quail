@@ -18,6 +18,14 @@ import SwiftUI
 final class AppState {
     private(set) var config: Config
     let serverController: ServerController
+    /// Holds off idle sleep while the server runs, when `Config.keepAwake` asks (ADR D-053).
+    let keepAwake: KeepAwake
+    #if !APPSTORE
+        /// Keeps a plugged-in laptop awake with its lid closed, when `Config.keepAwakeLidClosed` asks.
+        @ObservationIgnored let lidGuard = LidSleepGuard()
+    #endif
+    /// For Settings: whether the lid-closed option is running, or why it isn't.
+    private(set) var lidGuardStatus: String?
 
     /// The runtime `ServerController` is driving, exposed because the Ping sheet and Logs window talk to it
     /// too. Chosen in Settings → Endpoint (`setRuntime`), only while the server is stopped.
@@ -80,6 +88,7 @@ final class AppState {
         shapeCache: ModelShapeCache = .shared,
         downloader: HFDownloader = HFDownloader(),
         benchmarkStore: BenchmarkStore = .default,
+        keepAwake: KeepAwake = KeepAwake(),
         serverPreflight: (@Sendable (EndpointConfig) async -> PreflightResult)? = ServerPreflight.live
     ) {
         // ADR D-039: the API key is on by default. A config from before that rule reads "off" only
@@ -119,6 +128,7 @@ final class AppState {
         installs = ModelInstallController(downloader: downloader, modelStore: store)
         benchmarks = BenchmarkController(store: benchmarkStore)
         serverController = ServerController(runtime: runtime, logStore: logStore, preflight: serverPreflight)
+        self.keepAwake = keepAwake
         var key = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
         if config.apiKeyEnabled, key == nil {
             // First launch, or the Keychain entry is gone: an enabled key that doesn't exist would
@@ -132,6 +142,61 @@ final class AppState {
         if appliesKeyDefault {
             persist()
         }
+        serverController.onPhaseChange = { [weak self] _ in self?.updatePower() }
+    }
+
+    // MARK: - Keeping the Mac awake (ADR D-053)
+
+    private var serverRunning: Bool {
+        serverController.phase == .starting || serverController.phase == .ready
+    }
+
+    /// Takes or releases the idle-sleep assertion, and starts or ends the lid-closed loop, to match the
+    /// settings and whether the server runs. Called on every phase change and settings change.
+    func updatePower() {
+        keepAwake.update(active: config.keepAwake && serverRunning)
+        #if !APPSTORE
+            guard config.keepAwake, config.keepAwakeLidClosed else {
+                lidGuard.stop()
+                lidGuardStatus = nil
+                return
+            }
+            if serverRunning {
+                lidGuard.start() // the password prompt, once per launch
+            }
+            lidGuard.setServing(serverRunning)
+            switch lidGuard.state {
+            case .on:
+                lidGuardStatus = LidSleepGuard.onACPower
+                    ? "On: with the lid closed, this Mac stays awake while the server runs."
+                    : "On, but paused: this Mac is on battery, so closing the lid will sleep it."
+            case .off:
+                lidGuardStatus = "Starts with the server (you'll be asked for your password once)."
+            case let .failed(reason):
+                lidGuardStatus = "Not on: \(reason). Turn it off and on again to retry."
+            }
+        #endif
+    }
+
+    func setKeepAwake(_ enabled: Bool) {
+        guard enabled != config.keepAwake else { return }
+        config.keepAwake = enabled
+        persist()
+        updatePower()
+    }
+
+    func setKeepAwakeLidClosed(_ enabled: Bool) {
+        guard enabled != config.keepAwakeLidClosed else { return }
+        config.keepAwakeLidClosed = enabled
+        persist()
+        #if !APPSTORE
+            if !enabled {
+                lidGuard.stop()
+            } else if case .failed = lidGuard.state {
+                lidGuard.stop() // so the next start asks again
+            }
+        #endif
+        updatePower()
     }
 
     // MARK: - Server state, as the menu wants to show it
