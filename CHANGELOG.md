@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-09-26
+
+### Added
+
+- Xiaomi's **MiMo V2.6 9B** in the catalog: an MIT-licensed fine-tune of Qwen3.5-9B for coding and agents, which can also read images (GGUF). Checked before listing: in GGUF Q4_K_M it chats, reads an image and calls tools on both runtimes, and finished an opencode task by itself; the MLX download (mlx-community's mixed 4/8-bit) loads and calls tools on Quail server. Claude Code completed a file-writing task with a 64K context; at 32K its prompt left too little room and it gave up compacting.
+
 ## [0.37.0] - 2026-09-26
 
 ### Added
