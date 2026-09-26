@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-09-26
+
+### Added
+
+- Quail server's chat page takes attachments: images for vision models (paste, drop or pick; shown as thumbnails) and text files, saved with the chat (ADR D-042).
+
 ## [0.31.4] - 2026-09-26
 
 ### Fixed
