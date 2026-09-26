@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.35.1] - 2026-09-26
+
+### Fixed
+
+- Fit verdicts for MLX models of newer architectures (Qwen3.6, Qwen3.8, Gemma 4), which said "Fit unknown": their settings sit in a nested part of `config.json` the app didn't read. MLX models now also cap their context at what they were trained for, and mixture-of-experts MLX models get a proper speed estimate.
+- The Add Model list's fit badges no longer download each model's details every time the sheet opens: what's been looked up is kept for 30 days, so the badges appear straight away.
+
 ## [0.35.0] - 2026-09-26
 
 ### Added

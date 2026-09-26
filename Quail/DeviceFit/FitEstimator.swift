@@ -4,7 +4,7 @@ import Foundation
 /// independent of which format (GGUF or MLX) it came from. `weightBytes`
 /// isn't part of either metadata parser's output — it's a file size, not
 /// a header field — so every initializer takes it separately.
-struct ModelShape: Sendable, Equatable {
+struct ModelShape: Sendable, Equatable, Codable {
     /// W in the formula: total weight bytes (file size for GGUF,
     /// directory size for MLX).
     var weightBytes: Int64
@@ -95,7 +95,8 @@ struct ModelShape: Sendable, Equatable {
                 total: weightBytes,
                 used: metadata.numExpertsPerToken,
                 of: metadata.numLocalExperts
-            )
+            ),
+            trainedContext: metadata.trainedContext
         )
     }
 

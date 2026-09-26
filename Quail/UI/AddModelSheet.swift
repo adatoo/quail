@@ -705,19 +705,14 @@ struct AddModelSheet: View {
             pickFit = await ModelPreview.remoteGGUFFit(
                 repo: listing.id, files: files, downloader: appState.installs.downloader,
                 device: DeviceInfo.current(), ggufRuntime: appState.config.runtimeID,
-                bandwidthTable: bandwidth, token: appState.hfToken
+                bandwidthTable: bandwidth, token: appState.hfToken, cache: appState.shapeCache
             )
         case .mlxSafetensors:
-            do {
-                let estimate = try await ModelPreview.remote(
-                    repo: listing.id, format: .mlxSafetensors, listing: listing, ggufFile: nil,
-                    downloader: appState.installs.downloader, device: DeviceInfo.current(),
-                    ggufRuntime: appState.config.runtimeID, bandwidthTable: bandwidth, token: appState.hfToken
-                )
-                pickFit = estimate.map(RemoteFit.estimate) ?? .unknown("Couldn't read this model's config.json")
-            } catch {
-                pickFit = .unknown("Couldn't reach Hugging Face")
-            }
+            pickFit = await ModelPreview.remoteMLXFit(
+                repo: listing.id, listing: listing, downloader: appState.installs.downloader,
+                device: DeviceInfo.current(), bandwidthTable: bandwidth, token: appState.hfToken,
+                cache: appState.shapeCache
+            )
         }
     }
 

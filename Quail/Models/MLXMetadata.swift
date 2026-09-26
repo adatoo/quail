@@ -24,6 +24,8 @@ struct MLXMetadata: Sendable, Equatable {
     var numExpertsPerToken: Int?
     /// MoE routing: how many experts exist to route between.
     var numLocalExperts: Int?
+    /// The context the model was trained for (`max_position_embeddings`).
+    var trainedContext: Int?
 
     enum MLXReadError: Error, Equatable {
         case invalidJSON
@@ -41,6 +43,13 @@ struct MLXMetadata: Sendable, Equatable {
         var headDim: Int?
         var numExpertsPerTok: Int?
         var numLocalExperts: Int?
+        /// Other names architectures use for the expert counts (Qwen3 MoE, Qwen3.5+, Gemma 4, gpt-oss).
+        var numExperts: Int?
+        var topKExperts: Int?
+        var expertsPerToken: Int?
+        var maxPositionEmbeddings: Int?
+        /// Multimodal architectures (Qwen3.5+, Gemma 4) keep the language model's settings here, not at the top.
+        var textConfig: TextConfig?
         var quantization: Quantization?
         /// Some repos (following a later `transformers` convention) write
         /// `quantization_config` instead of `quantization`. Preferring
@@ -68,8 +77,41 @@ struct MLXMetadata: Sendable, Equatable {
             case headDim = "head_dim"
             case numExpertsPerTok = "num_experts_per_tok"
             case numLocalExperts = "num_local_experts"
+            case numExperts = "num_experts"
+            case topKExperts = "top_k_experts"
+            case expertsPerToken = "experts_per_token"
+            case maxPositionEmbeddings = "max_position_embeddings"
+            case textConfig = "text_config"
             case quantization
             case quantizationConfig = "quantization_config"
+        }
+    }
+
+    private struct TextConfig: Decodable {
+        var hiddenSize: Int?
+        var numAttentionHeads: Int?
+        var numHiddenLayers: Int?
+        var numKeyValueHeads: Int?
+        var headDim: Int?
+        var numExpertsPerTok: Int?
+        var numLocalExperts: Int?
+        var numExperts: Int?
+        var topKExperts: Int?
+        var expertsPerToken: Int?
+        var maxPositionEmbeddings: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case hiddenSize = "hidden_size"
+            case numAttentionHeads = "num_attention_heads"
+            case numHiddenLayers = "num_hidden_layers"
+            case numKeyValueHeads = "num_key_value_heads"
+            case headDim = "head_dim"
+            case numExpertsPerTok = "num_experts_per_tok"
+            case numLocalExperts = "num_local_experts"
+            case numExperts = "num_experts"
+            case topKExperts = "top_k_experts"
+            case expertsPerToken = "experts_per_token"
+            case maxPositionEmbeddings = "max_position_embeddings"
         }
     }
 
@@ -91,16 +133,22 @@ struct MLXMetadata: Sendable, Equatable {
             throw MLXReadError.invalidJSON
         }
 
+        // Top-level values first; a multimodal config's `text_config` fills in what the top level lacks.
+        let text = raw.textConfig
         var result = MLXMetadata()
         result.modelType = raw.modelType
-        result.hiddenLayers = raw.numHiddenLayers
-        result.headCountKV = raw.numKeyValueHeads
-        result.numExpertsPerToken = raw.numExpertsPerTok
-        result.numLocalExperts = raw.numLocalExperts
+        result.hiddenLayers = raw.numHiddenLayers ?? text?.numHiddenLayers
+        result.headCountKV = raw.numKeyValueHeads ?? text?.numKeyValueHeads
+        result.numExpertsPerToken = raw.numExpertsPerTok ?? raw.topKExperts ?? raw.expertsPerToken
+            ?? text?.numExpertsPerTok ?? text?.topKExperts ?? text?.expertsPerToken
+        result.numLocalExperts = raw.numLocalExperts ?? raw.numExperts ?? text?.numLocalExperts ?? text?.numExperts
+        result.trainedContext = raw.maxPositionEmbeddings ?? text?.maxPositionEmbeddings
 
-        if let headDim = raw.headDim {
+        let hiddenSize = raw.hiddenSize ?? text?.hiddenSize
+        let heads = raw.numAttentionHeads ?? text?.numAttentionHeads
+        if let headDim = raw.headDim ?? text?.headDim {
             result.headDim = headDim
-        } else if let hiddenSize = raw.hiddenSize, let heads = raw.numAttentionHeads, heads > 0 {
+        } else if let hiddenSize, let heads, heads > 0 {
             result.headDim = hiddenSize / heads
         }
 

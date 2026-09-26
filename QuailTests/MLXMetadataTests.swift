@@ -201,4 +201,92 @@ struct MLXMetadataTests {
             try MLXMetadata.read(from: url)
         }
     }
+
+    // MARK: multimodal configs (text_config)
+
+    /// Trimmed from mlx-community/Qwen3.6-35B-A3B-4bit: the language model's settings sit under
+    /// `text_config`, and the experts are `num_experts`.
+    private static let qwen36Config = """
+    {
+        "model_type": "qwen3_5_moe",
+        "quantization": { "group_size": 64, "bits": 4 },
+        "text_config": {
+            "hidden_size": 2048, "head_dim": 256, "num_attention_heads": 16, "num_hidden_layers": 40,
+            "num_key_value_heads": 2, "num_experts": 256, "num_experts_per_tok": 8,
+            "max_position_embeddings": 262144, "full_attention_interval": 4
+        },
+        "vision_config": { "hidden_size": 1152, "num_hidden_layers": 27 }
+    }
+    """
+
+    /// Trimmed from mlx-community/gemma-4-26b-a4b-it-4bit: nested too, with `top_k_experts`.
+    private static let gemma4Config = """
+    {
+        "model_type": "gemma4",
+        "quantization": { "group_size": 64, "bits": 4 },
+        "text_config": {
+            "hidden_size": 2816, "head_dim": 256, "num_attention_heads": 16, "num_hidden_layers": 30,
+            "num_key_value_heads": 8, "num_experts": 128, "top_k_experts": 8, "max_position_embeddings": 262144
+        }
+    }
+    """
+
+    @Test("a multimodal config's text_config supplies the shape, experts and trained context")
+    func nestedTextConfig() throws {
+        let qwen = try MLXMetadata.parse(Data(Self.qwen36Config.utf8))
+        #expect(qwen.hiddenLayers == 40 && qwen.headCountKV == 2 && qwen.headDim == 256)
+        #expect(qwen.numLocalExperts == 256 && qwen.numExpertsPerToken == 8)
+        #expect(qwen.trainedContext == 262_144 && qwen.quantBits == 4)
+        let gemma = try MLXMetadata.parse(Data(Self.gemma4Config.utf8))
+        #expect(gemma.hiddenLayers == 30 && gemma.headCountKV == 8 && gemma.headDim == 256)
+        #expect(gemma.numLocalExperts == 128 && gemma.numExpertsPerToken == 8)
+
+        let shape = try #require(ModelShape.from(mlx: qwen, weightBytes: 20_000_000_000))
+        #expect(shape.layerCount == 40 && shape.trainedContext == 262_144)
+        #expect(shape.activeWeightBytes == Int64(625_000_000), "\(String(describing: shape.activeWeightBytes))")
+    }
+
+    @Test("a top-level value wins over the nested one; a flat config reads its trained context")
+    func topLevelWins() throws {
+        let both = try MLXMetadata
+            .parse(
+                Data(
+                    #"{"num_hidden_layers": 12, "text_config": {"num_hidden_layers": 40, "num_key_value_heads": 4, "head_dim": 64}}"#
+                        .utf8
+                )
+            )
+        #expect(both.hiddenLayers == 12 && both.headCountKV == 4)
+        let flat = try MLXMetadata
+            .parse(
+                Data(
+                    #"{"num_hidden_layers": 36, "num_key_value_heads": 8, "head_dim": 128, "max_position_embeddings": 40960, "num_experts": 128, "num_experts_per_tok": 8}"#
+                        .utf8
+                )
+            )
+        #expect(flat.trainedContext == 40960 && flat.numLocalExperts == 128)
+    }
+
+    /// Every MLX repo in the bundled catalog, read from Hugging Face, yields a shape. Network, so only when
+    /// `QUAIL_TEST_NETWORK` is set.
+    @Test(
+        "every catalog MLX config gives a fit shape",
+        .enabled(if: ProcessInfo.processInfo.environment["QUAIL_TEST_NETWORK"] != nil)
+    )
+    func catalogConfigs() async throws {
+        let catalog = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Quail/Resources/catalog.json")
+        let json = try JSONSerialization.jsonObject(with: Data(contentsOf: catalog)) as? [String: Any]
+        let repos = ((json?["families"] as? [[String: Any]]) ?? []).compactMap {
+            (($0["variants"] as? [String: Any])?["mlx"] as? [String: Any])?["repo"] as? String
+        }
+        #expect(repos.count >= 10)
+        for repo in repos {
+            let (data, _) = try await URLSession.shared
+                .data(from: #require(URL(string: "https://huggingface.co/\(repo)/resolve/main/config.json")))
+            let metadata = try MLXMetadata.parse(data)
+            let shape = ModelShape.from(mlx: metadata, weightBytes: 1)
+            #expect(shape != nil, "\(repo)")
+            #expect(metadata.trainedContext != nil, "\(repo) has no trained context")
+        }
+    }
 }
