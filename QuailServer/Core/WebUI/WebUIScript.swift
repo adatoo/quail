@@ -7,10 +7,11 @@ extension WebUI {
     const $ = (id) => document.getElementById(id);
     const els = {};
     for (const id of ["sidebar", "new-chat", "search", "conversations", "export", "import", "import-file",
-                      "toggle-sidebar", "build", "key", "model", "load", "unload", "refresh", "open-settings",
-                      "system", "log", "status", "form", "input", "send", "stop", "timings",
+                      "toggle-sidebar", "build", "key", "key-toggle", "key-panel", "model", "model-dot", "model-action",
+                      "refresh", "open-settings", "system", "system-toggle", "system-panel",
+                      "log", "status", "form", "input", "send", "stop", "timings",
                       "attachments", "attach", "attach-file",
-                      "settings", "settings-fields", "settings-reset", "settings-close"]) {
+                      "settings", "settings-fields", "settings-reset", "settings-close", "settings-x"]) {
       els[id] = $(id);
     }
     const store = {
@@ -64,7 +65,8 @@ extension WebUI {
 
     function fail(error) {
       if (error.status === 401) {
-        setStatus("This server needs an API key. Paste it above (Quail: Settings, Endpoint, Copy).", true);
+        setStatus("This server needs its API key. Open the chat from Quail's menu, or paste the key.", true);
+        showPanel("key", true);
         els.key.focus();
       } else {
         setStatus(error.message, true);
@@ -209,7 +211,9 @@ extension WebUI {
       current = conversation;
       store.set("quail.current", conversation.id);
       els.system.value = conversation.system || "";
-      if (conversation.model && models.some((m) => m.id === conversation.model)) { els.model.value = conversation.model; }
+      markSystemButton();
+      if (!userPicked) { chooseModel(); }
+      updateModelControls();
       updateSettingsAvailability();
       renderConversation();
       renderList();
@@ -228,7 +232,11 @@ extension WebUI {
       els.log.replaceChildren();
       els.timings.textContent = "";
       if (!current || !current.messages.length) {
-        els.log.append(make("p", "empty", "Ask something to start. Chats are kept in this browser."));
+        const empty = make("div", "empty");
+        const model = els.model.value;
+        empty.append(make("strong", "", model ? "Chat with " + model : "Start a chat"),
+          make("span", "", models.length ? "Your chats are kept in this browser." : "Add a model in Quail to start."));
+        els.log.append(empty);
         return;
       }
       current.messages.forEach((message, index) => els.log.append(messageView(message, index)));
@@ -330,24 +338,59 @@ extension WebUI {
       return model && model.format ? model.format : "";
     }
 
+    const statusOf = (model) => (model && model.status && (model.status.failed ? "failed" : model.status.value)) || "";
+    // Set once someone picks a model in this page; until then the picker follows what the server has loaded.
+    let userPicked = false;
+
+    // The model the picker should show: the one you picked, else this chat's model if it's loaded, else the
+    // loaded model, else this chat's or the last one used.
+    function chooseModel() {
+      const known = (id) => id && models.some((m) => m.id === id);
+      const loaded = models.filter((m) => statusOf(m) === "loaded" || statusOf(m) === "loading");
+      const chatModel = current && current.model;
+      let id = "";
+      if (userPicked && known(els.model.value)) { id = els.model.value; }
+      else if (chatModel && loaded.some((m) => m.id === chatModel)) { id = chatModel; }
+      else if (loaded.length) { id = loaded[0].id; }
+      else if (known(chatModel)) { id = chatModel; }
+      else if (known(store.get("quail.model"))) { id = store.get("quail.model"); }
+      else if (models.length) { id = models[0].id; }
+      if (id) { els.model.value = id; }
+    }
+
+    function updateModelControls() {
+      const model = models.find((m) => m.id === els.model.value);
+      const status = statusOf(model);
+      els["model-dot"].className = "dot " + status;
+      els["model-dot"].title = status ? "Model " + status : "";
+      const action = els["model-action"];
+      action.disabled = !model || status === "loading" || Boolean(controller);
+      action.textContent = status === "loaded" ? "Unload" : status === "loading" ? "Loading…" : "Load";
+      action.title = status === "loaded" ? "Free this model's memory" : "Load this model now (a message loads it too)";
+      action.dataset.action = status === "loaded" ? "unload" : "load";
+    }
+
     async function refreshModels() {
       try {
         const res = await api("/v1/models");
         models = (await res.json()).data || [];
-        const wanted = els.model.value || (current && current.model) || store.get("quail.model");
+        const previous = els.model.value;
         els.model.replaceChildren();
         for (const model of models) {
           const option = make("option");
           option.value = model.id;
-          const parts = [formatOf(model).toUpperCase(), model.status && model.status.value].filter(Boolean);
-          const vision = (model.architecture && (model.architecture.input_modalities || []).includes("image")) ? ", vision" : "";
-          option.textContent = model.id + " (" + parts.join(", ") + vision + ")";
+          const vision = (model.architecture && (model.architecture.input_modalities || []).includes("image")) ? " · vision" : "";
+          const status = statusOf(model);
+          option.textContent = model.id + "  ·  " + formatOf(model).toUpperCase() + vision + (status && status !== "unloaded" ? "  ·  " + status : "");
           els.model.append(option);
         }
-        if (models.some((model) => model.id === wanted)) { els.model.value = wanted; }
+        if (previous) { els.model.value = previous; }
+        chooseModel();
         if (!models.length) { setStatus("No models yet. Add one in Quail.", false); }
         else if (els.status.className !== "error") { setStatus("", false); }
+        updateModelControls();
         updateSettingsAvailability();
+        if (current && !current.messages.length) { renderConversation(); }
         return models;
       } catch (error) {
         fail(error);
@@ -365,74 +408,195 @@ extension WebUI {
     async function manage(action) {
       const model = els.model.value;
       if (!model) { return; }
-      setStatus((action === "load" ? "Loading " : "Unloading ") + model + "…", false);
+      els["model-action"].disabled = true;
+      els["model-action"].textContent = action === "load" ? "Loading…" : "Unloading…";
       try {
         await api("/models/" + action, { method: "POST", body: JSON.stringify({ model }) });
         for (let tries = 0; tries < 600; tries++) {
           const list = await refreshModels();
           const entry = list.find((m) => m.id === model);
-          if (!entry || !entry.status || entry.status.value !== "loading") { break; }
+          if (!entry || statusOf(entry) !== "loading") {
+            if (entry && statusOf(entry) === "failed") { setStatus(model + " failed to load. Quail's Logs window says why.", true); }
+            break;
+          }
           await sleep(1000);
         }
-        setStatus("", false);
       } catch (error) { fail(error); }
+      updateModelControls();
+    }
+
+    // The two panels under the top bar (API key, system prompt): one open at a time.
+    function showPanel(name, open) {
+      for (const which of ["key", "system"]) {
+        const show = which === name ? (open === undefined ? els[which + "-panel"].hidden : open) : false;
+        els[which + "-panel"].hidden = !show;
+        els[which + "-toggle"].setAttribute("aria-expanded", String(show));
+      }
+      if (!els[name + "-panel"].hidden) { els[name].focus(); }
+    }
+
+    function markSystemButton() {
+      els["system-toggle"].textContent = els.system.value.trim() ? "System prompt ✓" : "System prompt";
+    }
+
+    function updateKeyButton() {
+      const has = Boolean(els.key.value.trim());
+      els["key-toggle"].textContent = has ? "Key ✓" : "Key";
+      els["key-toggle"].title = has ? "The API key is set for this browser" : "Paste the server's API key";
     }
 
     // MARK: settings
 
     // `only`: which model formats the server honours it for; others ignore it (samplers) or refuse it (JSON mode).
+    // `info`: what the setting does, and a good and a bad value, shown under the ⓘ button.
+    const settingGroups = [
+      { title: "Basics", keys: ["temperature", "max_tokens", "thinking", "seed", "json"] },
+      { title: "Which words can be picked", keys: ["top_k", "top_p", "min_p", "typical_p", "top_n_sigma"] },
+      { title: "Repetition", keys: ["repeat_penalty", "presence_penalty", "frequency_penalty", "dry_multiplier"] },
+      { title: "Advanced", keys: ["xtc_probability", "xtc_threshold", "mirostat", "stop"] },
+    ];
     const settingSpec = [
-      { key: "temperature", label: "Temperature", kind: "number", step: "0.05", min: "0", placeholder: "0.8" },
-      { key: "max_tokens", label: "Max tokens", kind: "number", step: "1", min: "1", placeholder: "no limit" },
-      { key: "top_k", label: "Top-k", kind: "number", step: "1", min: "0", placeholder: "40" },
-      { key: "top_p", label: "Top-p", kind: "number", step: "0.01", min: "0", placeholder: "0.95" },
-      { key: "min_p", label: "Min-p", kind: "number", step: "0.01", min: "0", placeholder: "0.05" },
-      { key: "seed", label: "Seed", kind: "number", step: "1", placeholder: "random" },
-      { key: "repeat_penalty", label: "Repeat penalty", kind: "number", step: "0.01", placeholder: "1.0" },
-      { key: "presence_penalty", label: "Presence penalty", kind: "number", step: "0.01", placeholder: "0" },
-      { key: "frequency_penalty", label: "Frequency penalty", kind: "number", step: "0.01", placeholder: "0" },
-      { key: "dry_multiplier", label: "DRY multiplier", kind: "number", step: "0.05", min: "0", placeholder: "0 (off)", only: "gguf" },
-      { key: "xtc_probability", label: "XTC probability", kind: "number", step: "0.05", min: "0", placeholder: "0 (off)", only: "gguf" },
-      { key: "xtc_threshold", label: "XTC threshold", kind: "number", step: "0.01", placeholder: "0.1", only: "gguf" },
-      { key: "typical_p", label: "Typical-p", kind: "number", step: "0.01", placeholder: "1 (off)", only: "gguf" },
-      { key: "top_n_sigma", label: "Top-n-sigma", kind: "number", step: "0.1", placeholder: "-1 (off)", only: "gguf" },
-      { key: "mirostat", label: "Mirostat", kind: "select", options: [["", "Off"], ["1", "Mirostat 1"], ["2", "Mirostat 2"]], only: "gguf" },
-      { key: "thinking", label: "Thinking", kind: "select", options: [["", "Model's default"], ["on", "On"], ["off", "Off"]] },
-      { key: "json", label: "Reply format", kind: "select", options: [["", "Text"], ["json", "JSON object"]], only: "gguf" },
-      { key: "stop", label: "Stop strings (one per line)", kind: "textarea", wide: true },
+      { key: "temperature", label: "Temperature", kind: "number", step: "0.05", min: "0", placeholder: "0.8",
+        info: ["How random each next word is. 0 always takes the likeliest word, so the same question gets the same answer.",
+               "0.1–0.3 for code, maths or pulling facts out of text; 0.7–0.9 for conversation and writing.",
+               "Above about 1.3 the text drifts into nonsense; 0 can get stuck repeating itself."] },
+      { key: "max_tokens", label: "Max tokens", kind: "number", step: "1", min: "1", placeholder: "no limit",
+        info: ["The longest a reply may be, in tokens (a token is about three quarters of a word). Blank lets the model stop by itself.",
+               "512 for short answers; blank for long ones.",
+               "16 cuts replies off mid-sentence; a thinking model needs room to think before it answers."] },
+      { key: "thinking", label: "Thinking", kind: "select", options: [["", "Model's default"], ["on", "On"], ["off", "Off"]],
+        info: ["Whether a reasoning model (Qwen3, DeepSeek R1 and similar) thinks before it answers. Others ignore it.",
+               "On for maths, code and questions with several steps; off for quick chat.",
+               "On for a simple question wastes time and tokens; off makes hard questions go wrong more often."] },
+      { key: "seed", label: "Seed", kind: "number", step: "1", placeholder: "random",
+        info: ["The starting point for the random choices. The same seed, settings and prompt give the same reply again.",
+               "Any number (42) when you want to repeat a result or compare settings fairly.",
+               "A fixed seed in normal chat makes Regenerate give the same answer."] },
+      { key: "json", label: "Reply format", kind: "select", options: [["", "Text"], ["json", "JSON object"]], only: "gguf",
+        info: ["JSON object makes the reply valid JSON, for a program to read.",
+               "Pulling data out of text: \"List the people in this email as JSON\".",
+               "Ordinary chat: the model is forced into braces and quotes."] },
+      { key: "top_k", label: "Top-k", kind: "number", step: "1", min: "0", placeholder: "40",
+        info: ["Only the k likeliest next words are considered.",
+               "20–60; 40 is the usual default.",
+               "1 always takes the top word (like temperature 0); 0 turns the limit off."] },
+      { key: "top_p", label: "Top-p", kind: "number", step: "0.01", min: "0", placeholder: "0.95",
+        info: ["Keeps the smallest set of likely words whose chances add up to p, and picks among those.",
+               "0.9–0.95.",
+               "0.1 is very repetitive; 1 turns it off."] },
+      { key: "min_p", label: "Min-p", kind: "number", step: "0.01", min: "0", placeholder: "0.05",
+        info: ["Drops words less than p times as likely as the best one. It keeps higher temperatures sensible.",
+               "0.05–0.1, especially with a temperature of 1 or more.",
+               "0.5 leaves few choices, so the text gets bland and repetitive."] },
+      { key: "typical_p", label: "Typical-p", kind: "number", step: "0.01", placeholder: "1 (off)", only: "gguf",
+        info: ["Prefers words about as surprising as the text usually is, which can read more naturally.",
+               "0.9–0.95 for prose.",
+               "0.2 makes odd choices; 1 turns it off."] },
+      { key: "top_n_sigma", label: "Top-n-sigma", kind: "number", step: "0.1", placeholder: "-1 (off)", only: "gguf",
+        info: ["Keeps only words scored within n standard deviations of the best, so it stays coherent even at high temperature.",
+               "1–2 with a high temperature for varied but sensible text.",
+               "0.1 is almost always the top word; -1 turns it off."] },
+      { key: "repeat_penalty", label: "Repeat penalty", kind: "number", step: "0.01", placeholder: "1.0",
+        info: ["Makes words used in the last 64 tokens less likely.",
+               "1.0 (off) to 1.1 when replies repeat themselves.",
+               "1.5 avoids words it needs (\"the\", variable names), which breaks code and grammar."] },
+      { key: "presence_penalty", label: "Presence penalty", kind: "number", step: "0.01", placeholder: "0",
+        info: ["Penalises any word already used, once, which nudges the model towards new topics.",
+               "0–0.5.",
+               "2 makes it ramble away from the question."] },
+      { key: "frequency_penalty", label: "Frequency penalty", kind: "number", step: "0.01", placeholder: "0",
+        info: ["Penalises words by how often they have appeared so far.",
+               "0–0.5 to cut down repeated phrases.",
+               "2 leads to strange word choices."] },
+      { key: "dry_multiplier", label: "DRY multiplier", kind: "number", step: "0.05", min: "0", placeholder: "0 (off)", only: "gguf",
+        info: ["DRY (\"don't repeat yourself\") stops the model repeating long runs of text it has already written.",
+               "0.8 for stories or chats that start looping.",
+               "Any value for code or data, which repeat on purpose; 0 turns it off."] },
+      { key: "xtc_probability", label: "XTC probability", kind: "number", step: "0.05", min: "0", placeholder: "0 (off)", only: "gguf",
+        info: ["XTC (\"exclude top choices\") sometimes removes the likeliest words, for less predictable writing.",
+               "0.5 with threshold 0.1 for creative writing.",
+               "Any value for code, facts or maths; 0 turns it off."] },
+      { key: "xtc_threshold", label: "XTC threshold", kind: "number", step: "0.01", placeholder: "0.1", only: "gguf",
+        info: ["Words more likely than this count as \"top choices\" that XTC may remove.",
+               "0.1.",
+               "0.5 or more makes XTC do nothing."] },
+      { key: "mirostat", label: "Mirostat", kind: "select", options: [["", "Off"], ["1", "Mirostat 1"], ["2", "Mirostat 2"]], only: "gguf",
+        info: ["Adjusts the choice as it goes to keep the text equally surprising throughout, instead of fixed top-k and top-p.",
+               "Mirostat 2 for long creative writing.",
+               "On for code or short answers, where it gains nothing."] },
+      { key: "stop", label: "Stop strings (one per line)", kind: "textarea", wide: true,
+        info: ["The reply ends as soon as one of these appears.",
+               "A blank line (type Enter twice) for one paragraph; \"User:\" for script-style prompts.",
+               "A common word, which ends replies early."] },
     ];
     let settings = {};
     try { settings = JSON.parse(store.get("quail.settings") || "{}") || {}; } catch (e) { settings = {}; }
     const inputs = {};
 
+    function settingField(spec) {
+      const field = make("div", "field" + (spec.wide ? " wide" : ""));
+      const id = "setting-" + spec.key;
+      const head = make("div", "field-head");
+      const label = make("label", "", spec.label);
+      label.htmlFor = id;
+      head.append(label);
+      const infoButton = make("button", "info-button", "i");
+      infoButton.type = "button";
+      infoButton.title = "What " + spec.label + " does";
+      infoButton.setAttribute("aria-label", "About " + spec.label);
+      infoButton.setAttribute("aria-expanded", "false");
+      head.append(infoButton);
+      if (spec.only) { head.append(make("span", "tag", "GGUF only")); }
+      field.append(head);
+      let input;
+      if (spec.kind === "select") {
+        input = make("select");
+        for (const [value, text] of spec.options) { const o = make("option", "", text); o.value = value; input.append(o); }
+      } else if (spec.kind === "textarea") {
+        input = make("textarea");
+        input.rows = 2;
+      } else {
+        input = make("input");
+        input.type = "number";
+        input.step = spec.step;
+        if (spec.min !== undefined) { input.min = spec.min; }
+        input.placeholder = spec.placeholder || "";
+      }
+      input.id = id;
+      input.value = settings[spec.key] === undefined ? "" : settings[spec.key];
+      input.addEventListener("change", () => {
+        if (input.value === "") { delete settings[spec.key]; } else { settings[spec.key] = input.value; }
+        store.set("quail.settings", JSON.stringify(settings));
+      });
+      const info = make("div", "info");
+      info.hidden = true;
+      info.id = id + "-info";
+      infoButton.setAttribute("aria-controls", info.id);
+      const [what, good, bad] = spec.info || ["", "", ""];
+      info.append(make("p", "", what));
+      const goodLine = make("p");
+      goodLine.append(make("span", "good", "Good: "), document.createTextNode(good));
+      const badLine = make("p");
+      badLine.append(make("span", "bad", "Bad: "), document.createTextNode(bad));
+      info.append(goodLine, badLine);
+      if (spec.only) { info.append(make("p", "", "Only GGUF models use this; an MLX model ignores it.")); }
+      infoButton.addEventListener("click", () => {
+        info.hidden = !info.hidden;
+        infoButton.setAttribute("aria-expanded", String(!info.hidden));
+      });
+      field.append(input, info);
+      inputs[spec.key] = { input, field, spec };
+      return field;
+    }
+
     function buildSettings() {
       els["settings-fields"].replaceChildren();
-      for (const spec of settingSpec) {
-        const field = make("label", "field" + (spec.wide ? " wide" : ""));
-        field.append(make("span", "", spec.label));
-        let input;
-        if (spec.kind === "select") {
-          input = make("select");
-          for (const [value, text] of spec.options) { const o = make("option", "", text); o.value = value; input.append(o); }
-        } else if (spec.kind === "textarea") {
-          input = make("textarea");
-          input.rows = 2;
-        } else {
-          input = make("input");
-          input.type = "number";
-          input.step = spec.step;
-          if (spec.min !== undefined) { input.min = spec.min; }
-          input.placeholder = spec.placeholder || "";
-        }
-        input.value = settings[spec.key] === undefined ? "" : settings[spec.key];
-        input.addEventListener("change", () => {
-          if (input.value === "") { delete settings[spec.key]; } else { settings[spec.key] = input.value; }
-          store.set("quail.settings", JSON.stringify(settings));
-        });
-        field.append(input);
-        if (spec.only) { const note = make("span", "note", "GGUF models only"); field.append(note); field.dataset.only = spec.only; }
-        inputs[spec.key] = { input, field, spec };
-        els["settings-fields"].append(field);
+      const byKey = Object.fromEntries(settingSpec.map((s) => [s.key, s]));
+      for (const group of settingGroups) {
+        const set = make("fieldset", "group");
+        set.append(make("legend", "", group.title));
+        for (const key of group.keys) { set.append(settingField(byKey[key])); }
+        els["settings-fields"].append(set);
       }
       updateSettingsAvailability();
     }
@@ -472,6 +636,7 @@ extension WebUI {
       els.send.hidden = busy;
       els.stop.hidden = !busy;
       els.model.disabled = busy;
+      els["model-action"].disabled = busy;
     }
 
     function handleChunk(data, reply, ui) {
@@ -540,6 +705,7 @@ extension WebUI {
       if (!current) { current = blankConversation(); }
       const files = pending.filter((a) => a.kind === "text").map((a) => ({ name: a.name, text: a.text }));
       els.input.value = "";
+      els.input.style.height = "auto";
       pending = [];
       renderPending();
       if (!current.messages.length) { current.title = titleFrom(text || (files[0] && files[0].name) || "Image"); }
@@ -750,13 +916,33 @@ extension WebUI {
     els.system.addEventListener("change", () => {
       if (!current) { current = blankConversation(); }
       current.system = els.system.value;
+      markSystemButton();
       if (current.messages.length) { save(current); }
     });
-    els.load.addEventListener("click", () => manage("load"));
-    els.unload.addEventListener("click", () => manage("unload"));
+    els["model-action"].addEventListener("click", () => manage(els["model-action"].dataset.action || "load"));
+    els["key-toggle"].addEventListener("click", () => showPanel("key"));
+    els["system-toggle"].addEventListener("click", () => showPanel("system"));
+    els["settings-x"].addEventListener("click", () => els.settings.close());
+    // The message box grows with what's typed, up to its maximum height.
+    const fitInput = () => {
+      els.input.style.height = "auto";
+      els.input.style.height = Math.min(els.input.scrollHeight, 224) + "px";
+    };
+    els.input.addEventListener("input", fitInput);
     els.refresh.addEventListener("click", () => { refreshModels(); showBuild(); });
-    els.model.addEventListener("change", () => { store.set("quail.model", els.model.value); updateSettingsAvailability(); });
-    els.key.addEventListener("change", () => { store.set("quail.key", els.key.value.trim()); refreshModels(); showBuild(); });
+    els.model.addEventListener("change", () => {
+      userPicked = true;
+      store.set("quail.model", els.model.value);
+      updateModelControls();
+      updateSettingsAvailability();
+      if (current && !current.messages.length) { renderConversation(); }
+    });
+    els.key.addEventListener("change", () => {
+      store.set("quail.key", els.key.value.trim());
+      updateKeyButton();
+      refreshModels();
+      showBuild();
+    });
     els["open-settings"].addEventListener("click", () => els.settings.showModal());
     els["settings-close"].addEventListener("click", () => els.settings.close());
     els["settings-reset"].addEventListener("click", () => {
@@ -777,6 +963,7 @@ extension WebUI {
         if (typeof body.key === "string" && body.key) {
           els.key.value = body.key;
           store.set("quail.key", body.key);
+          updateKeyButton();
         }
       } catch (error) {
         setStatus("The link from Quail has expired or was used. Open the chat from Quail's menu again, or paste the key.", true);
@@ -801,6 +988,7 @@ extension WebUI {
       document.body.classList.toggle("side-closed", narrow.matches);
       narrow.addEventListener("change", () => document.body.classList.toggle("side-closed", narrow.matches));
       els.key.value = store.get("quail.key");
+      updateKeyButton();
       buildSettings();
       try { conversations = (await db.all()) || []; } catch (e) { conversations = []; }
       conversations.sort((a, b) => b.updated - a.updated);

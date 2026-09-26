@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-09-26
+
+### Changed
+
+- Quail server's chat page is tidier: one top bar with the model picker (a dot shows whether the model is loaded, and one Load/Unload button), the API key and system prompt tucked behind buttons, a single message box that grows as you type with attach and send inside it, and cleaner messages. The picker now starts on the model that's loaded. The settings are grouped, each with an ⓘ that explains it with a good and a bad value, and focus rings are no longer cut off at the dialog's edges.
+
 ## [0.33.0] - 2026-09-26
 
 ### Added
