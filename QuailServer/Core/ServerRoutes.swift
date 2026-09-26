@@ -229,12 +229,20 @@ private struct ModelJSON: Encodable {
     /// `gguf` or `mlx`, which the chat page uses to show which settings apply (not in llama-server's list).
     let format: String
     let canRemove = false
+    /// Quail's own additions for the chat page's picker (not in llama-server's list): bytes on disk, the
+    /// context it loads with, and whether it loads at startup (the app's default model).
+    let sizeBytes: Int64?
+    let contextSize: Int?
+    let loadOnStartup: Bool
 
     enum CodingKeys: String, CodingKey {
         case id, aliases, tags, object
         case ownedBy = "owned_by"
         case created, status, architecture, source, format
         case canRemove = "can_remove"
+        case sizeBytes = "size_bytes"
+        case contextSize = "context_size"
+        case loadOnStartup = "load_on_startup"
     }
 
     init(_ snapshot: ModelSnapshot) {
@@ -242,6 +250,9 @@ private struct ModelJSON: Encodable {
         created = Int(snapshot.entry.createdAt.timeIntervalSince1970)
         source = snapshot.entry.kind == .gguf ? "models_dir" : "mlx_dir"
         format = snapshot.entry.kind.rawValue
+        sizeBytes = snapshot.entry.sizeBytes
+        contextSize = snapshot.entry.contextSize
+        loadOnStartup = snapshot.entry.loadOnStartup
         architecture = Architecture(inputModalities: snapshot.entry.projector == nil ? ["text"] : ["text", "image"])
         // llama-server reports a failed load as "unloaded" plus `failed`, which
         // is what `ServedModel` decodes.

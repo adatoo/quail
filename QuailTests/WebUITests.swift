@@ -90,6 +90,17 @@ struct WebUITests {
         #expect(header(response, "Cache-Control") == "no-store")
     }
 
+    @Test("the model picker is a list with details, over the hidden select the rest of the page reads")
+    func modelPicker() {
+        let page = WebUI.html
+        for id in ["model-button", "model-list", "model-name", "model-meta"] {
+            #expect(page.contains("id=\"\(id)\""), "\(id)")
+        }
+        #expect(page.contains(#"role="listbox""#))
+        #expect(page.contains(#"aria-haspopup="listbox""#))
+        #expect(WebUI.app.contains("size_bytes") && WebUI.app.contains("context_size"))
+    }
+
     @Test("the page has one inline script, one inline style, and loads nothing")
     func selfContained() {
         let html = WebUI.html
@@ -301,6 +312,22 @@ struct WebUITests {
         let json = try #require(JSONSerialization.jsonObject(with: Data(body(response).utf8)) as? [String: Any])
         let first = try #require((json["data"] as? [[String: Any]])?.first)
         #expect(first["format"] as? String == "gguf")
+        // The picker's details: always whether it loads at start; size and context when known.
+        #expect(first["load_on_startup"] is Bool)
+    }
+
+    @Test("a model's size on disk: the file, or everything in an MLX folder")
+    func modelSizeOnDisk() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("size-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let mlx = dir.appendingPathComponent("org--model/sub", isDirectory: true)
+        try FileManager.default.createDirectory(at: mlx, withIntermediateDirectories: true)
+        try Data(count: 100).write(to: dir.appendingPathComponent("org--model/config.json"))
+        try Data(count: 50).write(to: mlx.appendingPathComponent("weights.safetensors"))
+        try Data(count: 30).write(to: dir.appendingPathComponent("m.gguf"))
+        #expect(ModelDiscovery.size(of: dir.appendingPathComponent("org--model")) == 150)
+        #expect(ModelDiscovery.size(of: dir.appendingPathComponent("m.gguf")) == 30)
+        #expect(ModelDiscovery.size(of: dir.appendingPathComponent("missing")) == nil)
     }
 
     @Test("/sw.js retires the service worker llama.cpp's page left on this origin, and needs no key")

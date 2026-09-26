@@ -8,6 +8,7 @@ extension WebUI {
     const els = {};
     for (const id of ["sidebar", "new-chat", "search", "conversations", "export", "import", "import-file",
                       "toggle-sidebar", "build", "key", "key-toggle", "key-panel", "model", "model-dot", "model-action",
+                      "model-button", "model-name", "model-meta", "model-list",
                       "refresh", "open-settings", "system", "system-toggle", "system-panel",
                       "log", "status", "form", "input", "send", "stop", "timings",
                       "attachments", "attach", "attach-file",
@@ -358,11 +359,96 @@ extension WebUI {
       if (id) { els.model.value = id; }
     }
 
+    const hasVision = (model) => Boolean(model && model.architecture && (model.architecture.input_modalities || []).includes("image"));
+    function formatBytes(bytes) {
+      if (!bytes) { return ""; }
+      const units = ["B", "KB", "MB", "GB", "TB"];
+      let value = bytes;
+      let unit = 0;
+      while (value >= 1000 && unit < units.length - 1) { value /= 1000; unit++; }
+      return (value >= 10 || unit === 0 ? Math.round(value) : value.toFixed(1)) + " " + units[unit];
+    }
+    // An MLX folder is named owner--repo; the repo is the name, the owner goes in the details.
+    const displayName = (id) => (id.includes("--") ? id.slice(id.indexOf("--") + 2) : id);
+    const ownerOf = (id) => (id.includes("--") ? id.slice(0, id.indexOf("--")) : "");
+    // "5.0 GB · 32K context · vision · loads at start" — what the picker says under each name, after the
+    // format badge.
+    function describeModel(model) {
+      const parts = [ownerOf(model.id)];
+      if (model.size_bytes) { parts.push(formatBytes(model.size_bytes)); }
+      if (model.context_size) { parts.push(Math.round(model.context_size / 1024) + "K context"); }
+      if (hasVision(model)) { parts.push("vision"); }
+      if (model.load_on_startup) { parts.push("loads at start"); }
+      return parts.filter(Boolean).join(" · ");
+    }
+    const formatBadge = (model) => make("span", "badge " + formatOf(model), formatOf(model).toUpperCase());
+    const stateLabel = (status) => ({ loaded: "loaded", loading: "loading…", failed: "failed" })[status] || "";
+
+    // The picker: a button showing the chosen model, over a list with each model's details. The hidden
+    // <select> stays the source of truth, so everything that reads els.model.value is unchanged.
+    let activeIndex = -1;
+    function renderPicker() {
+      const model = models.find((m) => m.id === els.model.value);
+      els["model-name"].textContent = model ? displayName(model.id) : (models.length ? "Choose a model" : "No models");
+      els["model-meta"].replaceChildren(...(model ? [formatBadge(model), document.createTextNode(describeModel(model))] : []));
+      els["model-button"].title = model ? model.id : "Choose a model";
+      const list = els["model-list"];
+      list.replaceChildren();
+      models.forEach((m, index) => {
+        const status = statusOf(m);
+        const row = make("li", "option" + (index === activeIndex ? " active" : ""));
+        row.id = "model-option-" + index;
+        row.setAttribute("role", "option");
+        row.setAttribute("aria-selected", String(m.id === els.model.value));
+        row.title = m.id;
+        const text = make("span", "option-text");
+        const meta = make("span", "option-meta");
+        meta.append(formatBadge(m), document.createTextNode(describeModel(m)));
+        text.append(make("span", "option-name", displayName(m.id)), meta);
+        row.append(make("span", "dot " + status), text, make("span", "option-state " + status, stateLabel(status)));
+        row.addEventListener("mousedown", (event) => event.preventDefault()); // keep focus on the list
+        row.addEventListener("click", () => pickModel(index));
+        row.addEventListener("mousemove", () => { if (activeIndex !== index) { activeIndex = index; highlight(); } });
+        list.append(row);
+      });
+    }
+    function highlight() {
+      [...els["model-list"].children].forEach((row, index) => row.classList.toggle("active", index === activeIndex));
+      const row = els["model-list"].children[activeIndex];
+      if (row) {
+        els["model-list"].setAttribute("aria-activedescendant", row.id);
+        row.scrollIntoView({ block: "nearest" });
+      }
+    }
+    function openPicker() {
+      if (els["model-button"].disabled || !models.length) { return; }
+      activeIndex = Math.max(0, models.findIndex((m) => m.id === els.model.value));
+      renderPicker();
+      els["model-list"].hidden = false;
+      els["model-button"].setAttribute("aria-expanded", "true");
+      els["model-list"].focus();
+      highlight();
+    }
+    function closePicker(refocus) {
+      if (els["model-list"].hidden) { return; }
+      els["model-list"].hidden = true;
+      els["model-button"].setAttribute("aria-expanded", "false");
+      if (refocus) { els["model-button"].focus(); }
+    }
+    function pickModel(index) {
+      const model = models[index];
+      closePicker(true);
+      if (!model || model.id === els.model.value) { return; }
+      els.model.value = model.id;
+      els.model.dispatchEvent(new Event("change"));
+    }
+
     function updateModelControls() {
       const model = models.find((m) => m.id === els.model.value);
       const status = statusOf(model);
       els["model-dot"].className = "dot " + status;
       els["model-dot"].title = status ? "Model " + status : "";
+      renderPicker();
       const action = els["model-action"];
       action.disabled = !model || status === "loading" || Boolean(controller);
       action.textContent = status === "loaded" ? "Unload" : status === "loading" ? "Loading…" : "Load";
@@ -379,9 +465,7 @@ extension WebUI {
         for (const model of models) {
           const option = make("option");
           option.value = model.id;
-          const vision = (model.architecture && (model.architecture.input_modalities || []).includes("image")) ? " · vision" : "";
-          const status = statusOf(model);
-          option.textContent = model.id + "  ·  " + formatOf(model).toUpperCase() + vision + (status && status !== "unloaded" ? "  ·  " + status : "");
+          option.textContent = model.id;
           els.model.append(option);
         }
         if (previous) { els.model.value = previous; }
@@ -636,6 +720,8 @@ extension WebUI {
       els.send.hidden = busy;
       els.stop.hidden = !busy;
       els.model.disabled = busy;
+      els["model-button"].disabled = busy;
+      if (busy) { closePicker(false); }
       els["model-action"].disabled = busy;
     }
 
@@ -930,6 +1016,31 @@ extension WebUI {
     };
     els.input.addEventListener("input", fitInput);
     els.refresh.addEventListener("click", () => { refreshModels(); showBuild(); });
+    els["model-button"].addEventListener("click", () => {
+      if (els["model-list"].hidden) { openPicker(); } else { closePicker(true); }
+    });
+    // Pressing the button while the list is open must close it, not blur-close then reopen.
+    els["model-button"].addEventListener("mousedown", (event) => {
+      if (!els["model-list"].hidden) { event.preventDefault(); }
+    });
+    els["model-button"].addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); openPicker(); }
+    });
+    els["model-list"].addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown") { activeIndex = Math.min(models.length - 1, activeIndex + 1); highlight(); }
+      else if (event.key === "ArrowUp") { activeIndex = Math.max(0, activeIndex - 1); highlight(); }
+      else if (event.key === "Home") { activeIndex = 0; highlight(); }
+      else if (event.key === "End") { activeIndex = models.length - 1; highlight(); }
+      else if (event.key === "Enter" || event.key === " ") { pickModel(activeIndex); }
+      else if (event.key === "Escape") { closePicker(true); }
+      else if (event.key === "Tab") { closePicker(false); return; }
+      else { return; }
+      event.preventDefault();
+    });
+    els["model-list"].addEventListener("blur", () => closePicker(false));
+    document.addEventListener("mousedown", (event) => {
+      if (!event.target.closest(".model-picker")) { closePicker(false); }
+    });
     els.model.addEventListener("change", () => {
       userPicked = true;
       store.set("quail.model", els.model.value);

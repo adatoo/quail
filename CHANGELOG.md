@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-09-26
+
+### Changed
+
+- Quail server's chat page has a richer model picker. Each model shows a GGUF/MLX badge, its size, the context it loads with, whether it reads images, whether it's the default that loads at start, and whether it's loaded. MLX names drop the `mlx-community--` prefix into the details. The loaded-state dot no longer overlaps the model's name. It works from the keyboard too.
+
 ## [0.38.2] - 2026-09-26
 
 ### Fixed
