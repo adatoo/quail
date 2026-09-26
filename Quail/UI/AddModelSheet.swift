@@ -80,10 +80,8 @@ struct AddModelSheet: View {
             }
         }
         .onChange(of: selection) { _, _ in appState.installs.acknowledgeFinished() }
-        .onChange(of: appState.installs.phase) { _, newPhase in
-            if case .installed = newPhase {
-                Task { await reloadInstalled() }
-            }
+        .onChange(of: appState.installs.installedCount) { _, _ in
+            Task { await reloadInstalled() }
         }
         .task { await reloadInstalled() }
         .onChange(of: appState.storeRevision) { _, _ in Task { await reloadInstalled() } }
@@ -163,12 +161,7 @@ struct AddModelSheet: View {
     private var footer: some View {
         HStack {
             switch appState.installs.phase {
-            case .downloading:
-                Spacer()
-                Button("Cancel Download", role: .destructive) { appState.installs.cancel() }
-                Button("Hide") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-            case .installed:
+            case .installed where installedPick == nil && !appState.installs.isDownloading:
                 Spacer()
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.defaultAction)
@@ -189,13 +182,13 @@ struct AddModelSheet: View {
                             .monospacedDigit()
                     }
                     Spacer()
-                    // `.sheet` supplies no close chrome on macOS.
-                    Button("Cancel") { dismiss() }
+                    // `.sheet` supplies no close chrome on macOS; downloads carry on when it's hidden.
+                    Button(appState.installs.isDownloading ? "Hide" : "Cancel") { dismiss() }
                         .keyboardShortcut(.cancelAction)
-                    Button("Download") { startDownload() }
+                    Button(downloadButtonTitle) { startDownload() }
                         .keyboardShortcut(.defaultAction)
                         .buttonStyle(.borderedProminent)
-                        .disabled(!canDownload || appState.installs.isDownloading)
+                        .disabled(!canDownload || pickStanding != nil)
                 }
             }
         }
@@ -274,7 +267,11 @@ struct AddModelSheet: View {
             Spacer(minLength: 4)
             // A tick, not a pill: with both pills the family's name lost
             // its last words ("Qwen3.6 35B-A3B (…").
-            if !InstalledLookup.entries(for: family, in: installed).isEmpty {
+            if let standing = familyStanding(family) {
+                Image(systemName: standing == .downloading ? "arrow.down.circle.fill" : "clock")
+                    .foregroundStyle(standing == .downloading ? Color.accentColor : .secondary)
+                    .help(standing == .downloading ? "Downloading" : "Queued")
+            } else if !InstalledLookup.entries(for: family, in: installed).isEmpty {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.blue)
                     .help("Installed")
@@ -284,6 +281,15 @@ struct AddModelSheet: View {
         }
         .padding(.vertical, 2)
         .tag(Selection.curated(family))
+    }
+
+    private func familyStanding(_ family: Catalog.Family) -> ModelInstallController.Standing? {
+        let repos = [family.gguf?.repo, family.mlx?.repo].compactMap(\.self)
+        let installs = appState.installs
+        if installs.isDownloading, let target = installs.target, repos.contains(target.repo) {
+            return .downloading
+        }
+        return installs.queue.contains { repos.contains($0.target.repo) } ? .queued : nil
     }
 
     /// "32B · 3B active · coding · GGUF, MLX"
@@ -357,36 +363,92 @@ struct AddModelSheet: View {
 
     // MARK: - Right: the selected model
 
-    @ViewBuilder private var detail: some View {
-        switch appState.installs.phase {
-        case let .downloading(written, total, file):
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Downloading").font(.title3.bold())
-                Text(file).font(.callout).foregroundStyle(.secondary)
-                ProgressView(value: total > 0 ? Double(written) / Double(total) : 0)
-                Text(ByteCountFormatter.string(fromByteCount: written, countStyle: .file)
-                    + " of " + ByteCountFormatter.string(fromByteCount: total, countStyle: .file))
-                    .font(.callout).foregroundStyle(.secondary).monospacedDigit()
-                Text("You can hide this window — the download continues in the background.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-        case .installed:
-            VStack(alignment: .leading, spacing: 10) {
-                Label("Installed", systemImage: "checkmark.circle.fill")
-                    .font(.title3.bold())
-                    .foregroundStyle(.green)
-                Text("It's in your Models list. Star it there to make it the default that loads on Start.")
-                    .foregroundStyle(.secondary)
-            }
-        case let .failed(message):
-            VStack(alignment: .leading, spacing: 16) {
-                Label("Download failed: \(message)", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
-                detailForSelection
-            }
-        case .idle:
+    /// The downloads (running, waiting, and how the last one ended) above whatever model is selected, so
+    /// choosing another model never hides what's downloading.
+    private var detail: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            downloads
             detailForSelection
+        }
+    }
+
+    @ViewBuilder private var downloads: some View {
+        let installs = appState.installs
+        if installs.isDownloading || !installs.queue.isEmpty || installs.phase != .idle {
+            GroupBox {
+                VStack(alignment: .leading, spacing: 8) {
+                    if case let .downloading(written, total, file) = installs.phase, let target = installs.target {
+                        HStack(alignment: .firstTextBaseline) {
+                            Label(Self.describe(target), systemImage: "arrow.down.circle")
+                                .font(.headline)
+                            Spacer()
+                            Button("Cancel", role: .destructive) { installs.cancel() }
+                                .controlSize(.small)
+                        }
+                        ProgressView(value: total > 0 ? Double(written) / Double(total) : 0)
+                        Text(ByteCountFormatter.string(fromByteCount: written, countStyle: .file)
+                            + " of " + ByteCountFormatter.string(fromByteCount: total, countStyle: .file)
+                            + " · " + file)
+                            .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                            .lineLimit(1).truncationMode(.middle)
+                    }
+                    switch installs.phase {
+                    case let .installed(id):
+                        Label(
+                            "Installed \(id). Star it in the Models list to load it on Start.",
+                            systemImage: "checkmark.circle.fill"
+                        )
+                        .foregroundStyle(.green)
+                    case let .failed(message):
+                        Label("Download failed: \(message)", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    case .idle, .downloading:
+                        EmptyView()
+                    }
+                    if !installs.queue.isEmpty {
+                        Text("Up next").font(.caption.bold()).foregroundStyle(.secondary)
+                        ForEach(installs.queue) { job in
+                            HStack {
+                                Image(systemName: "clock").foregroundStyle(.secondary)
+                                Text(Self.describe(job.target)).lineLimit(1).truncationMode(.middle)
+                                Spacer()
+                                Button("Remove") { installs.removeQueued(job.id) }
+                                    .controlSize(.small)
+                            }
+                            .font(.callout)
+                        }
+                    }
+                    if installs.isDownloading {
+                        Text("Downloads carry on if you close this window. You can queue more meanwhile.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    /// "owner/name · Q4_K_M · GGUF"
+    private static func describe(_ target: ModelInstallController.Target) -> String {
+        [target.repo, target.quant, target.format == .gguf ? "GGUF" : "MLX"].compactMap(\.self).joined(separator: " · ")
+    }
+
+    /// What Download would fetch for the current pick, to compare against running and queued downloads.
+    private var pickTarget: ModelInstallController.Target? {
+        guard let repo = listing?.id else { return nil }
+        return .init(repo: repo, format: format, quant: format == .gguf ? quant ?? quantOptions.first : nil)
+    }
+
+    private var pickStanding: ModelInstallController.Standing? {
+        pickTarget.flatMap { appState.installs.standing(of: $0) }
+    }
+
+    private var downloadButtonTitle: String {
+        switch pickStanding {
+        case .downloading: "Downloading…"
+        case .queued: "Queued"
+        case nil: appState.installs.isDownloading ? "Add to Queue" : "Download"
         }
     }
 
@@ -698,7 +760,7 @@ struct AddModelSheet: View {
     }
 
     private func startDownload() {
-        guard canDownload, !appState.installs.isDownloading,
+        guard canDownload, pickStanding == nil,
               let files = resolvedFiles, let repo = listing?.id else { return }
         let familyID: String?
         if case let .curated(family)? = selection {

@@ -4,9 +4,9 @@ import os
 
 /// The observable download state `ModelStore`'s UI (docs/IMPLEMENTATION_
 /// PLAN.md Phase 2 step 7's Models pane and "Add model…" sheet) binds to.
-/// Owns at most one active download at a time — step 5's `HFDownloader`
-/// concurrency rule ("1 file at a time") was about bytes; this is about
-/// the UI: one progress bar, one cancel button, no queueing design yet.
+/// One download runs at a time (`HFDownloader` fetches one file at a time, and a second transfer would
+/// only share the bandwidth); more are queued and start in order as each one ends — finished, failed or
+/// cancelled.
 ///
 /// A thin state machine, deliberately: every real failure mode (gated
 /// repo, checksum mismatch, transport error) arrives as an
@@ -42,6 +42,30 @@ final class ModelInstallController {
 
     private(set) var target: Target?
 
+    /// A download waiting its turn.
+    struct Job: Identifiable, Sendable, Equatable {
+        let id = UUID()
+        var target: Target
+        var files: [HFFile]
+        var family: String?
+    }
+
+    /// Waiting downloads, in the order they'll start. The running one is `target`.
+    private(set) var queue: [Job] = []
+
+    /// How recent downloads ended, newest last (what a caller that queued one reads back).
+    struct Outcome: Sendable, Equatable {
+        var target: Target
+        var installedID: String?
+        var failure: String?
+    }
+
+    private(set) var recent: [Outcome] = []
+
+    /// Bumped each time a model is installed, so a view can reload even when the next queued download has
+    /// already replaced the `.installed` phase.
+    private(set) var installedCount = 0
+
     let downloader: HFDownloader
     /// Swappable rather than fixed at init: relocating the store (step 7)
     /// repoints `AppState.modelStore`, and this has to follow — it writes
@@ -62,14 +86,24 @@ final class ModelInstallController {
         return false
     }
 
-    /// Starts downloading `files` from `repo` into the store, returning
-    /// the driving `Task` so tests (and a future queueing UI) can await
-    /// completion; the observed state is `phase`, not the task's result.
-    /// No-ops (returning `nil`) if a download is already running — the
-    /// caller (UI) disables the button; this guard is the backstop.
-    /// Resumes transparently: files already partially in
-    /// `ModelStore.partialDirectory` continue from their existing bytes
-    /// (ADR D-015).
+    /// Where a download stands: running, waiting, or neither.
+    enum Standing: Equatable {
+        case downloading
+        case queued
+    }
+
+    func standing(of candidate: Target) -> Standing? {
+        if isDownloading, target == candidate {
+            return .downloading
+        }
+        return queue.contains { $0.target == candidate } ? .queued : nil
+    }
+
+    /// Starts downloading `files` from `repo` into the store, or queues it behind the running download.
+    /// Returns the driving `Task` when it starts now (tests and `quail pull` await it; the observed state is
+    /// `phase`, not the task's result), `nil` when it was queued, is already running or queued, or has no
+    /// files. Resumes transparently: files already partially in `ModelStore.partialDirectory` continue from
+    /// their existing bytes (ADR D-015).
     @discardableResult
     func install(
         repo: String,
@@ -78,8 +112,35 @@ final class ModelInstallController {
         quant: String? = nil,
         family: String? = nil
     ) -> Task<Void, Never>? {
-        guard !isDownloading, !files.isEmpty else { return nil }
-        target = Target(repo: repo, format: format, quant: quant)
+        let wanted = Target(repo: repo, format: format, quant: quant)
+        guard !files.isEmpty, standing(of: wanted) == nil else { return nil }
+        if isDownloading {
+            queue.append(Job(target: wanted, files: files, family: family))
+            return nil
+        }
+        return start(Job(target: wanted, files: files, family: family))
+    }
+
+    /// Takes a waiting download off the queue.
+    func removeQueued(_ id: Job.ID) {
+        queue.removeAll { $0.id == id }
+    }
+
+    private func startNext() {
+        guard !isDownloading, !queue.isEmpty else { return }
+        start(queue.removeFirst())
+    }
+
+    @discardableResult
+    private func start(_ job: Job) -> Task<Void, Never> {
+        let (repo, files, format, quant, family) = (
+            job.target.repo,
+            job.files,
+            job.target.format,
+            job.target.quant,
+            job.family
+        )
+        target = job.target
         phase = .downloading(
             bytesWritten: 0,
             totalBytes: files.reduce(0) { $0 + $1.sizeBytes },
@@ -120,8 +181,8 @@ final class ModelInstallController {
                 }
             }
 
-            // cancel() already reset the phase and the downloader left
-            // the partial bytes in place for a future resume.
+            // cancel() already reset the phase (and started the next one), and the downloader left the
+            // partial bytes in place for a future resume.
             guard !Task.isCancelled else { return }
             if finished {
                 recordInstalledRow(
@@ -134,11 +195,20 @@ final class ModelInstallController {
                 )
             } else if let failure {
                 phase = .failed(message: Self.describe(failure))
+                remember(Outcome(target: job.target, failure: Self.describe(failure)))
                 Logger(subsystem: "com.datoos.quail", category: "Install")
                     .error("install of \(repo, privacy: .public) failed: \(Self.describe(failure), privacy: .public)")
             }
+            startNext()
         }
-        return task
+        return task!
+    }
+
+    private func remember(_ outcome: Outcome) {
+        recent.append(outcome)
+        if recent.count > 10 {
+            recent.removeFirst(recent.count - 10)
+        }
     }
 
     /// Clears a finished (`.installed`/`.failed`) phase back to `.idle` once
@@ -164,6 +234,7 @@ final class ModelInstallController {
         task = nil
         phase = .idle
         target = nil
+        startNext()
     }
 
     /// The per-format store location (docs/ARCHITECTURE.md §6): GGUFs
@@ -227,6 +298,8 @@ final class ModelInstallController {
             try? modelStore.regeneratePresets(catalog: catalog)
         }
         phase = .installed(modelID: id)
+        installedCount += 1
+        remember(Outcome(target: Target(repo: repo, format: format, quant: quant), installedID: id))
         Logger(subsystem: "com.datoos.quail", category: "Install").notice("installed \(id, privacy: .public)")
     }
 
