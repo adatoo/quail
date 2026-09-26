@@ -23,6 +23,9 @@ public struct ModelEntry: Equatable, Sendable {
     /// instead of silently dropping a setting.
     public var ignoredPresetKeys: [String] = []
     public var createdAt = Date(timeIntervalSince1970: 0)
+    /// Bytes on disk (the file, or everything in the MLX folder), measured once at discovery, for the
+    /// chat page's model picker. nil when the path can't be read.
+    public var sizeBytes: Int64?
 }
 
 enum ModelDiscovery {
@@ -120,7 +123,33 @@ enum ModelDiscovery {
             byID[preset.id] = entry
         }
 
-        return byID.values.sorted { $0.id < $1.id }
+        return byID.values
+            .map { entry in
+                var entry = entry
+                entry.sizeBytes = size(of: entry.path)
+                return entry
+            }
+            .sorted { $0.id < $1.id }
+    }
+
+    /// A file's size, or the total of the regular files under a folder; nil if nothing's there.
+    static func size(of url: URL) -> Int64? {
+        let fm = FileManager.default
+        var isDirectory: ObjCBool = false
+        guard fm.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return nil }
+        guard isDirectory.boolValue else {
+            return (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize.map(Int64.init)
+        }
+        let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey]
+        guard let files = fm.enumerator(at: url, includingPropertiesForKeys: keys) else { return nil }
+        var total: Int64 = 0
+        for case let file as URL in files {
+            let values = try? file.resourceValues(forKeys: Set(keys))
+            if values?.isRegularFile == true {
+                total += Int64(values?.fileSize ?? 0)
+            }
+        }
+        return total
     }
 
     private static func modificationDate(_ url: URL) -> Date {

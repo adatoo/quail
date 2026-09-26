@@ -76,8 +76,13 @@ enum WebUI {
       <header class="topbar">
         <button id="toggle-sidebar" type="button" class="icon" aria-label="Show or hide chats" title="Chats"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="7.5" y1="3.5" x2="7.5" y2="16.5" stroke="currentColor" stroke-width="1.5"/></svg></button>
         <div class="model-picker">
-          <span id="model-dot" class="dot" aria-hidden="true"></span>
-          <select id="model" aria-label="Model"></select>
+          <select id="model" aria-label="Model" hidden tabindex="-1"></select>
+          <button id="model-button" type="button" class="picker" aria-haspopup="listbox" aria-expanded="false" aria-controls="model-list" title="Choose a model">
+            <span id="model-dot" class="dot" aria-hidden="true"></span>
+            <span class="picker-text"><span id="model-name" class="picker-name">No models</span><span id="model-meta" class="picker-meta"></span></span>
+            <svg class="caret" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 8l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <ul id="model-list" class="picker-list" role="listbox" aria-label="Models" tabindex="-1" hidden></ul>
         </div>
         <button id="model-action" type="button" class="small">Load</button>
         <span class="spacer"></span>

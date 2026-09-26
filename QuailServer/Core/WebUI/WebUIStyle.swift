@@ -50,9 +50,25 @@ extension WebUI {
     main { flex: 1; min-width: 0; height: 100vh; height: 100dvh; margin: 0 auto; max-width: 52rem; padding: 0.6rem 1rem 0.9rem; display: flex; flex-direction: column; gap: 0.6rem; }
     .topbar { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
     .spacer { flex: 1; }
-    .model-picker { position: relative; display: flex; align-items: center; min-width: 12rem; flex: 0 1 24rem; }
-    .model-picker select { width: 100%; padding-left: 1.6rem; }
-    .dot { position: absolute; left: 0.65rem; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--line); pointer-events: none; }
+    .model-picker { position: relative; display: flex; align-items: center; min-width: 12rem; flex: 0 1 26rem; }
+    .picker { display: flex; align-items: center; gap: 0.5rem; width: 100%; min-width: 0; text-align: left; padding: 0.3rem 0.5rem 0.3rem 0.65rem; }
+    .picker-text { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.2; }
+    .picker-name, .option-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .picker-meta, .option-meta { color: var(--muted); font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .badge { display: inline-block; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.02em; padding: 0 0.3rem; margin-right: 0.35rem; border-radius: 4px; vertical-align: 1px; }
+    .badge.gguf { color: #2f6fd6; background: rgba(47, 111, 214, 0.13); }
+    .badge.mlx { color: #9a3fc4; background: rgba(154, 63, 196, 0.13); }
+    .caret { width: 1rem; height: 1rem; flex: none; color: var(--muted); }
+    .picker-list { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; width: max(100%, 22rem); max-height: 60vh; overflow-y: auto; margin: 0; padding: 0.3rem; list-style: none; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16); }
+    .picker-list[hidden] { display: none; }
+    .option { display: flex; align-items: center; gap: 0.55rem; padding: 0.45rem 0.55rem; border-radius: 7px; cursor: pointer; }
+    .option.active { background: var(--panel); }
+    .option[aria-selected="true"] .option-name { font-weight: 600; }
+    .option-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+    .option-state { font-size: 0.7rem; color: var(--muted); flex: none; }
+    .option-state.loaded { color: #2e9d63; }
+    .option-state.failed { color: var(--error); }
+    .dot { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--line); }
     .dot.loaded { background: #2e9d63; }
     .dot.loading { background: #d99b2b; }
     .dot.failed { background: var(--error); }
