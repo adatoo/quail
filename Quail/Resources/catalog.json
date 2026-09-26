@@ -1,7 +1,7 @@
 {
-  "revision": 4,
+  "revision": 5,
   "asOf": "2026-09-26",
-  "notes": "Revision 4: every family lists what it is good for (strengths, D-052), each checked against its model card: chat, coding, agentic (tool calling), reasoning (a thinking mode), long-context (trained for 128K or more, from its config), multilingual, embedding, audio (Gemma 4 12B; Quail cannot pass audio yet). Vision is not listed here — the app derives it from a GGUF mmproj, the only way Quail passes images. Revision 3: re-ranked for cross-size recommendations (D-019) — rank now means best-of-its-kind today regardless of size: current generation (Qwen3.8, Qwen3.6, Gemma 4) 1, current specialists/smaller 2, previous generation 3, small/older 4; a model never outranks its own successor. Revision 2: refreshed against the live Hub (repo id resolves, quant filenames match case-insensitively, mmproj exists for vision families — same bar as revision 1's own verification). Replaced qwen3-30b-a3b with its direct successor qwen3.6-35b-a3b (fills the large RAM tier, previously empty); replaced the gemma-3-12b/27b entries with three Gemma 4 sizes (Apache-2.0 as of this generation, not the old Gemma license); added qwen3.8-27b (vision) and the DeepSeek-R1-Distill 8B/32B reasoning distills. Sizes and bandwidths remain approximate, used only for fit/speed estimates.",
+  "notes": "Revision 5: added Xiaomi's MiMo-V2.6-Distill-Qwen-9B (MIT; a Qwen3.5-9B fine-tune for coding and agents), checked on 2026-09-26 on this pinned llama.cpp and quail-server: GGUF Q4_K_M with its f16 mmproj chats, reads an image and calls tools on both servers, and completed an opencode task; the mlx-community OptiQ 4-bit (mixed 4/8-bit) loads and calls tools on quail-server; Claude Code finished a Write task at 64K context (at 32K it thrashed on compaction). Revision 4: every family lists what it is good for (strengths, D-052), each checked against its model card: chat, coding, agentic (tool calling), reasoning (a thinking mode), long-context (trained for 128K or more, from its config), multilingual, embedding, audio (Gemma 4 12B; Quail cannot pass audio yet). Vision is not listed here — the app derives it from a GGUF mmproj, the only way Quail passes images. Revision 3: re-ranked for cross-size recommendations (D-019) — rank now means best-of-its-kind today regardless of size: current generation (Qwen3.8, Qwen3.6, Gemma 4) 1, current specialists/smaller 2, previous generation 3, small/older 4; a model never outranks its own successor. Revision 2: refreshed against the live Hub (repo id resolves, quant filenames match case-insensitively, mmproj exists for vision families — same bar as revision 1's own verification). Replaced qwen3-30b-a3b with its direct successor qwen3.6-35b-a3b (fills the large RAM tier, previously empty); replaced the gemma-3-12b/27b entries with three Gemma 4 sizes (Apache-2.0 as of this generation, not the old Gemma license); added qwen3.8-27b (vision) and the DeepSeek-R1-Distill 8B/32B reasoning distills. Sizes and bandwidths remain approximate, used only for fit/speed estimates.",
   "ramTiersGB": {
     "small": { "max": 24, "recommendParamsB": [0, 9] },
     "medium": { "max": 48, "recommendParamsB": [9, 35] },
@@ -80,6 +80,19 @@
       "variants": {
         "gguf": { "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
         "mlx": { "repo": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit" }
+      }
+    },
+    {
+      "id": "mimo-v2.6-distill-9b",
+      "name": "MiMo V2.6 9B (Xiaomi, vision)",
+      "paramsB": 9,
+      "role": "coding",
+      "rank": 2,
+      "license": "MIT",
+      "strengths": ["coding", "agentic", "reasoning", "long-context"],
+      "variants": {
+        "gguf": { "repo": "bartowski/MiMo-V2.6-Distill-Qwen-9B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-MiMo-V2.6-Distill-Qwen-9B-f16.gguf" },
+        "mlx": { "repo": "mlx-community/MiMo-V2.6-Distill-Qwen-9B-OptiQ-4bit" }
       }
     },
     {
