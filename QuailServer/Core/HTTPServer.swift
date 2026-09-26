@@ -28,15 +28,76 @@ final class HTTPServer: @unchecked Sendable {
     private var listener: NWListener?
     private var connections: [ObjectIdentifier: HTTPConnection] = [:]
 
-    init(host: String, port: Int, maxBodyBytes: Int = 64 * 1024 * 1024, log: ServerLog) {
+    /// How long to wait for a port that nothing listens on but that can't be bound yet (see `start`).
+    let bindWait: Duration
+
+    init(
+        host: String, port: Int, maxBodyBytes: Int = 64 * 1024 * 1024, bindWait: Duration = .seconds(75),
+        log: ServerLog
+    ) {
         self.host = host
         self.port = port
         self.maxBodyBytes = maxBodyBytes
+        self.bindWait = bindWait
         self.log = log
     }
 
     /// Binds and starts serving; returns the bound port (useful with port 0).
+    ///
+    /// Right after another server on this port stops, the port can refuse a bind for up to a minute though
+    /// nothing listens on it: a client that kept a connection open (a browser tab, a polling app) leaves the
+    /// old server's side in FIN_WAIT_2, and Network.framework's `allowLocalEndpointReuse` doesn't get past that
+    /// the way BSD `SO_REUSEADDR` does. That is what a switch from llama-server to `quail-server` on the same
+    /// port looks like, so a refused bind with no listener is waited out; a port something really listens on
+    /// still fails at once.
     func start(handler: @escaping HTTPHandler) async throws -> Int {
+        let deadline = ContinuousClock.now.advanced(by: bindWait)
+        var announced = false
+        while true {
+            do {
+                return try await listen(handler: handler)
+            } catch let HTTPServerError.bindFailed(_, _, reason)
+                where reason == "address already in use" && port != 0 && ContinuousClock.now < deadline
+                && !Self.somethingListens(host: host, port: port)
+            {
+                if !announced {
+                    announced = true
+                    log.log(
+                        .warn,
+                        "port \(port) is still held by connections to a server that just stopped; waiting for it"
+                    )
+                }
+                try await Task.sleep(for: .milliseconds(500))
+            }
+        }
+    }
+
+    /// A plain connect: true only if something accepts connections on the port.
+    static func somethingListens(host: String, port: Int) -> Bool {
+        let probe = host == "0.0.0.0" || host == "::" ? "127.0.0.1" : host == "localhost" ? "127.0.0.1" : host
+        var hints = addrinfo(
+            ai_flags: 0, ai_family: AF_UNSPEC, ai_socktype: SOCK_STREAM, ai_protocol: IPPROTO_TCP,
+            ai_addrlen: 0, ai_canonname: nil, ai_addr: nil, ai_next: nil
+        )
+        var result: UnsafeMutablePointer<addrinfo>?
+        guard getaddrinfo(probe, String(port), &hints, &result) == 0, let first = result else { return false }
+        defer { freeaddrinfo(result) }
+        var cursor: UnsafeMutablePointer<addrinfo>? = first
+        while let info = cursor {
+            let fd = socket(info.pointee.ai_family, info.pointee.ai_socktype, info.pointee.ai_protocol)
+            if fd >= 0 {
+                let connected = connect(fd, info.pointee.ai_addr, info.pointee.ai_addrlen) == 0
+                close(fd)
+                if connected {
+                    return true
+                }
+            }
+            cursor = info.pointee.ai_next
+        }
+        return false
+    }
+
+    private func listen(handler: @escaping HTTPHandler) async throws -> Int {
         let tcp = NWProtocolTCP.Options()
         tcp.noDelay = true // SSE tokens shouldn't wait for a full packet
         let parameters = NWParameters(tls: nil, tcp: tcp)

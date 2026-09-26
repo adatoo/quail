@@ -52,6 +52,10 @@ struct ServerRoutes: Sendable {
         if webUI, path == "/" || path == "/index.html" {
             return request.method == "GET" ? WebUI.response : methodNotAllowed()
         }
+        // llama.cpp's page left a service worker behind on this origin; this retires it (ADR D-042).
+        if webUI, path == "/sw.js" || path == "/service-worker.js" {
+            return request.method == "GET" ? WebUI.serviceWorkerResponse : methodNotAllowed()
+        }
         // Browsers ask for an icon on their own; an empty answer keeps that out of the log.
         if path == "/favicon.ico" {
             return HTTPResponse(status: 204)

@@ -783,7 +783,19 @@ extension WebUI {
       }
     }
 
+    // A service worker another page left on this origin (llama.cpp's, when the app ran llama-server here)
+    // would keep serving its own cached page; this page has none, so any registration goes.
+    async function retireServiceWorkers() {
+      try {
+        if (!navigator.serviceWorker) { return; }
+        for (const registration of await navigator.serviceWorker.getRegistrations()) { await registration.unregister(); }
+        // Its cached copies too: this page keeps nothing in Cache Storage.
+        if (window.caches) { for (const name of await caches.keys()) { await caches.delete(name); } }
+      } catch (e) { /* not allowed here: nothing to do */ }
+    }
+
     async function start() {
+      retireServiceWorkers();
       // On a narrow window the chat list is an overlay, closed until asked for.
       const narrow = window.matchMedia("(max-width: 760px)");
       document.body.classList.toggle("side-closed", narrow.matches);
