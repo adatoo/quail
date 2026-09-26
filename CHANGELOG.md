@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.32.2] - 2026-09-26
+
+### Fixed
+
+- Settings → General → About → **Third-party licences** opens at once with a spinner, then shows the component list as a proper table, each project's licence as its own block and its link as a link, instead of the raw Markdown file, which took seconds to appear.
+
 ## [0.32.1] - 2026-09-26
 
 ### Fixed
