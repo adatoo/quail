@@ -59,55 +59,68 @@ enum WebUI {
     <body>
     <aside id="sidebar" aria-label="Chats">
       <div class="side-top">
-        <button id="new-chat" type="button" title="New chat (Ctrl+K)">New chat</button>
+        <button id="new-chat" type="button" class="primary" title="New chat (Ctrl+K)">New chat</button>
         <input id="search" type="search" placeholder="Search chats" aria-label="Search chats" autocomplete="off">
       </div>
       <nav id="conversations"></nav>
       <div class="side-bottom">
-        <button id="export" type="button" title="Save every chat as a JSON file">Export</button>
-        <button id="import" type="button" title="Add chats from an exported JSON file">Import</button>
-        <input id="import-file" type="file" accept="application/json,.json" hidden>
+        <div class="side-links">
+          <button id="export" type="button" class="link" title="Save every chat as a JSON file">Export</button>
+          <button id="import" type="button" class="link" title="Add chats from an exported JSON file">Import</button>
+          <input id="import-file" type="file" accept="application/json,.json" hidden>
+        </div>
+        <div id="build"></div>
       </div>
     </aside>
     <main>
-      <header>
-        <button id="toggle-sidebar" type="button" aria-label="Show or hide chats" title="Chats">Chats</button>
-        <h1>Quail</h1>
-        <span id="build"></span>
-        <label>API key <input id="key" type="password" autocomplete="off" spellcheck="false"></label>
+      <header class="topbar">
+        <button id="toggle-sidebar" type="button" class="icon" aria-label="Show or hide chats" title="Chats"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="7.5" y1="3.5" x2="7.5" y2="16.5" stroke="currentColor" stroke-width="1.5"/></svg></button>
+        <div class="model-picker">
+          <span id="model-dot" class="dot" aria-hidden="true"></span>
+          <select id="model" aria-label="Model"></select>
+        </div>
+        <button id="model-action" type="button" class="small">Load</button>
+        <span class="spacer"></span>
+        <button id="system-toggle" type="button" class="small ghost" aria-expanded="false" title="The system prompt for this chat">System prompt</button>
+        <button id="key-toggle" type="button" class="small ghost" aria-expanded="false" title="The server's API key">Key</button>
+        <button id="refresh" type="button" class="icon" aria-label="Refresh the model list" title="Refresh"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 10a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14.5 2.8v3.6h-3.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="open-settings" type="button" class="icon" aria-label="Generation settings" title="Settings"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h9M15 6h2M3 14h2M8 14h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="13.5" cy="6" r="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="14" r="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
       </header>
-      <div class="bar">
-        <select id="model" aria-label="Model"></select>
-        <button id="load" type="button">Load</button>
-        <button id="unload" type="button">Unload</button>
-        <button id="refresh" type="button" title="Refresh the model list">Refresh</button>
-        <button id="open-settings" type="button" title="Generation settings">Settings</button>
+      <div id="key-panel" class="panel" hidden>
+        <label for="key">API key</label>
+        <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the key from Quail: Settings, Endpoint, Copy">
+        <p class="hint">Opening the chat from Quail's menu fills this in for you. It stays in this browser only.</p>
       </div>
-      <details class="system">
-        <summary>System prompt</summary>
-        <textarea id="system" rows="3" placeholder="Optional, kept with this chat"></textarea>
-      </details>
+      <div id="system-panel" class="panel" hidden>
+        <label for="system">System prompt</label>
+        <textarea id="system" rows="3" placeholder="Instructions for this chat, for example: You are a concise assistant who answers in British English."></textarea>
+        <p class="hint">Kept with this chat. The model reads it before every message.</p>
+      </div>
       <div id="log" aria-live="polite"></div>
       <p id="status" role="status"></p>
-      <form id="form">
+      <form id="form" class="composer">
         <div id="attachments" hidden></div>
-        <textarea id="input" rows="3" placeholder="Message (Enter to send, Shift+Enter for a new line; paste or drop images and text files)"></textarea>
-        <div class="actions">
-          <button id="send" type="submit">Send</button>
-          <button id="attach" type="button" title="Attach images (vision models) or text files">Attach</button>
+        <textarea id="input" rows="1" placeholder="Message the model…" aria-label="Message"></textarea>
+        <div class="composer-bar">
+          <button id="attach" type="button" class="icon" aria-label="Attach images or text files" title="Attach images (vision models) or text files"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.5 6.5 8 12a1.8 1.8 0 0 0 2.5 2.5l6-6a3.5 3.5 0 0 0-5-5l-6.2 6.2a5.2 5.2 0 0 0 7.4 7.4L17 12.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           <input id="attach-file" type="file" multiple hidden>
-          <button id="stop" type="button" hidden title="Stop (Esc)">Stop</button>
+          <span class="hint">Enter to send · Shift+Enter for a new line</span>
           <span id="timings"></span>
+          <button id="stop" type="button" class="stop" hidden title="Stop (Esc)">Stop</button>
+          <button id="send" type="submit" class="send" title="Send (Enter)">Send</button>
         </div>
       </form>
     </main>
     <dialog id="settings" aria-labelledby="settings-title">
-      <h2 id="settings-title">Generation settings</h2>
-      <p class="hint">Blank uses the server's default. Kept in this browser, for every chat.</p>
+      <div class="dialog-head">
+        <h2 id="settings-title">Generation settings</h2>
+        <button id="settings-x" type="button" class="icon" aria-label="Close"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+      </div>
+      <p class="hint">Blank uses the server's default. Kept in this browser, for every chat. Select ⓘ for what a setting does.</p>
       <div id="settings-fields"></div>
       <div class="actions">
         <button id="settings-reset" type="button">Reset to defaults</button>
-        <button id="settings-close" type="button">Done</button>
+        <button id="settings-close" type="button" class="primary">Done</button>
       </div>
     </dialog>
     <script>\(script)</script>
