@@ -4,35 +4,59 @@ import SwiftUI
 /// Strengths Quail can't use yet (audio) are left to `StrengthList`, which says so.
 struct StrengthChips: View {
     let strengths: [ModelStrength]
-    /// Past this many, the rest collapse into "+N" (its tooltip names them).
+    /// Labelled chips at most; the rest collapse into "+N" (its tooltip names them).
     var limit = 4
 
     private var usable: [ModelStrength] {
         strengths.filter(\.isUsableInQuail)
     }
 
+    /// Never wider than the row offers: as many labelled chips as fit (down to one), then icons
+    /// only. A fixed-width row of chips once pushed the row's name, size and fit badge out of the
+    /// way (2026-09-26 screenshots).
     var body: some View {
-        let shown = usable.prefix(limit)
-        let rest = usable.dropFirst(limit)
+        ViewThatFits(in: .horizontal) {
+            ForEach(Array(Set([limit, 3, 2, 1].map { min($0, usable.count) })).sorted(by: >), id: \.self) { count in
+                chips(labelled: count)
+            }
+            icons
+        }
+        .font(.caption2)
+        .imageScale(.small)
+        .lineLimit(1)
+    }
+
+    private func chips(labelled count: Int) -> some View {
         HStack(spacing: 4) {
-            ForEach(Array(shown)) { strength in
+            ForEach(usable.prefix(count)) { strength in
                 Label(strength.label, systemImage: strength.systemImage)
-                    .labelStyle(.titleAndIcon)
-                    .font(.caption2)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .background(.quaternary, in: Capsule())
                     .help(strength.explanation)
             }
-            if !rest.isEmpty {
-                Text("+\(rest.count)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .help(rest.map(\.label).joined(separator: ", "))
+            more(after: count)
+        }
+        .fixedSize()
+    }
+
+    private var icons: some View {
+        HStack(spacing: 5) {
+            ForEach(usable) { strength in
+                Image(systemName: strength.systemImage)
+                    .help("\(strength.label): \(strength.explanation)")
             }
         }
-        .lineLimit(1)
         .fixedSize()
+    }
+
+    @ViewBuilder private func more(after count: Int) -> some View {
+        let rest = usable.dropFirst(count)
+        if !rest.isEmpty {
+            Text("+\(rest.count)")
+                .foregroundStyle(.secondary)
+                .help(rest.map(\.label).joined(separator: ", "))
+        }
     }
 }
 

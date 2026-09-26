@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.38.1] - 2026-09-26
+
+### Fixed
+
+- The "Good for" chips no longer squeeze the rest of a row: in the Models list they had pushed the model's name, format, size and fit badge into ellipses, and in Add Model they pushed the fit badge off the edge. The chips now take only the room the row has, showing as many labels as fit, then icons. The "Good for" list in Add Model moved below the download choices and fit.
+- `QUAIL_SNAPSHOT_DIR` (as `TEST_RUNNER_QUAIL_SNAPSHOT_DIR`) renders the Add Model sheet and the Models list to PNGs, so their layout can be checked without clicking through the app.
+
 ## [0.38.0] - 2026-09-26
 
 ### Added

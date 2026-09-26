@@ -6,6 +6,8 @@ Quail starts a runtime, exposes an OpenAI-compatible endpoint, and gets out of t
 
 ## Install
 
+Quail is free and open source, built for developers on Apple Silicon Macs. Homebrew is the recommended installation path; Mac App Store publication is not planned (D-053 in [the decision records](docs/DECISIONS.md)).
+
 ```
 brew install --cask adatoo/tap/quail-ai
 ```

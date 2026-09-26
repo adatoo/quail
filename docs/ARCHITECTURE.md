@@ -1,6 +1,6 @@
 # Quail — Architecture
 
-*As of 2026-09-21. Owner: Arif Datoo.*
+*Distribution updated 2026-09-26 (D-053). Owner: Arif Datoo.*
 
 Quail is a Postgres.app for local LLM servers: a menu bar item that starts a runtime, exposes an OpenAI-compatible endpoint, and gets out of the way. It manages three runtimes behind one interface (llama.cpp, oMLX, Rapid-MLX), one model folder, and one opinion about what fits on the machine.
 
@@ -22,26 +22,18 @@ Quail is a Postgres.app for local LLM servers: a menu bar item that starts a run
 - Chat, agents, image or audio generation — the runtimes' own web UIs are linked instead
 - Running more than one runtime concurrently
 - Linux or Intel Macs; Apple Silicon only
+- Mac App Store publication (D-053)
 - Remote or multi-user hosting (Rapid-MLX's LaunchDaemon mode covers that)
 
 **Principle:** every feature is a thin, honest view of what the runtime already exposes. If a runtime can't do something over its API or CLI, Quail doesn't fake it.
 
-## 2. Distribution: two builds, one codebase
+## 2. Distribution: Homebrew and a signed DMG
 
-Ship a full Developer ID build and a reduced Mac App Store build from the same Xcode project, differing only by a build configuration flag (`APPSTORE`) and entitlements. The App Store build is llama.cpp-only; the external Python runtimes are compiled out, not hidden.
+Quail is free and open source, aimed at developers on Apple Silicon Macs. Homebrew is the primary installation path: `brew install --cask adatoo/tap/quail-ai`. A direct DMG from GitHub Releases carries the same Developer ID-signed, notarized app for people who do not use Homebrew. The cask also exposes the bundled `quail` CLI on PATH (D-033).
 
-| | Developer ID (direct DMG) | Mac App Store |
-| --- | --- | --- |
-| Sandbox | Off (hardened runtime + notarization only) | On, mandatory |
-| Bundled llama-server | Yes, spawned as a child process | Yes; helper signed with `app-sandbox` + `inherit`, inherits the app's sandbox |
-| oMLX / Rapid-MLX | Yes, via app-managed uv installs | No: can't run uv, write outside the container, or spawn unsandboxed processes |
-| Listening socket | Any host/port | Needs `network.server` entitlement; loopback and LAN both allowed |
-| Model store | `~/Library/Application Support/Quail/Models` | Inside the app container, or a user-picked folder via security-scoped bookmark |
-| Open at login | `SMAppService.mainApp` | Same |
-| Updates | Sparkle 2 (EdDSA-signed appcast) | App Store |
-| Review risk | None | Downloading executable code is forbidden, so no runtime installs; model weights are data and fine |
+The app uses the hardened runtime without App Sandbox. Runtimes run as supervised child processes; the model store defaults to `~/Library/Application Support/Quail/Models` and can be relocated by the user. Updates use Sparkle 2 with an EdDSA-signed appcast (D-032); Homebrew's cask declares `auto_updates true`.
 
-The App Store build is a discovery channel only. Build it second, after the direct build is stable, and gate every runtime-install code path behind `#if !APPSTORE`.
+Mac App Store publication is dropped (D-053, superseding D-006). The existing `APPSTORE` compile guards, configurations and CI checks are legacy machinery retained until a separate cleanup; they do not represent a planned distribution channel. Release validation focuses on fresh Homebrew/DMG installs, CLI availability and updates from an existing release.
 
 Notarization needs every Mach-O in the bundle signed with the hardened runtime, including llama.cpp's dylibs. Bundled Python runtimes are avoided precisely because notarizing thousands of `.so` files inside a venv is slow and brittle.
 
@@ -113,7 +105,7 @@ Phase 3 replaces the vendored `llama-server` with a server Quail builds and ship
 - Rapid-MLX: the CLI patches IDE configs (`rapid-mlx launch`) and can install a system LaunchDaemon (`rapid-mlx service install`). Quail must never call those; it only ever runs `serve` and `pull`.
 - Version drift: each adapter declares a tested version range. Outside it Quail still launches the runtime but shows "untested version" in the status menu rather than refusing.
 - `quail-server` (Phase 3, D-027/D-028): built from source by Quail's CI as a second executable target — only `libllama` is vendored (the pinned xcframework, sha256-checked like the binaries today) — and built with `xcodebuild` because `mlx-swift` compiles Metal shaders at build time. `--api-key` and a loopback-by-default `--host` from day one, matching every other runtime. Request bodies are parsed with an order-preserving JSON parser, because tool-schema key order is part of the prompt. Several requests at once through `--parallel N` slots on one unified KV context (D-048; default 1 until step 7).
-- `quail-server` **in the app** (step 6): `RuntimeID.quail` and `QuailServerRuntime`, chosen in Settings → Endpoint while the server is stopped (llama.cpp stays the default until step 7). It launches with llama-server's flags plus `--mlx-dir <store>/mlx`, and the generated `presets.ini` gains a section per MLX folder (`model = <dir>`, `ctx-size`, `load-on-startup`) only while this runtime is chosen, since llama-server can't read one. The app's format gates ask `runtime.supportedFormats`, so MLX rows load, can be the default, and count as servable only here; under llama.cpp they say which runtime they need. Its web UI is its own page at `/` (D-042). The App Store build keeps llama.cpp only until the sandbox work (Phase 4).
+- `quail-server` **in the app** (step 6): `RuntimeID.quail` and `QuailServerRuntime`, chosen in Settings → Endpoint while the server is stopped (llama.cpp stays the default until step 7). It launches with llama-server's flags plus `--mlx-dir <store>/mlx`, and the generated `presets.ini` gains a section per MLX folder (`model = <dir>`, `ctx-size`, `load-on-startup`) only while this runtime is chosen, since llama-server can't read one. The app's format gates ask `runtime.supportedFormats`, so MLX rows load, can be the default, and count as servable only here; under llama.cpp they say which runtime they need. Its web UI is its own page at `/` (D-042). The legacy App Store configuration remains llama.cpp-only; publication and sandbox work are cancelled (D-053).
 
 ## 5. Runtime installation and updates (app-managed uv)
 
@@ -141,7 +133,7 @@ Install is one command per runtime, always pinned: `uv tool install --python 3.1
 
 This keeps the two moving targets (runtime code, MLX wheels) fully outside the signed bundle, so an upstream release never forces an app release, and an app release never forces a runtime reinstall.
 
-**App Store build:** this whole section is compiled out; the Runtimes pane shows llama.cpp only and a line pointing at the direct download for MLX runtimes.
+**Distribution scope:** these Python runtimes remain deferred by D-027. Dropping App Store publication (D-053) does not bring their implementation forward.
 
 ## 6. Unified model store
 
@@ -219,7 +211,7 @@ The menu stays short: status line, current model, Start/Stop, a Models submenu, 
 
 ## 9. Packaging, signing, notarization, updates
 
-The direct build is a Developer ID-signed, notarized DMG updated by Sparkle 2; the App Store build is a separate scheme with sandbox entitlements. Both come out of one GitHub Actions pipeline on a macOS Apple Silicon runner.
+The Developer ID-signed, notarized DMG is published on GitHub Releases and installed by the Homebrew cask. Sparkle 2 updates the app. The release pipeline has no App Store submission stage (D-053).
 
 ```mermaid
 flowchart LR
@@ -229,7 +221,7 @@ flowchart LR
   D --> E[notarytool submit + staple]
   E --> F[create-dmg, sign DMG]
   F --> G[Sparkle: generate_appcast<br/>EdDSA sign, upload]
-  D --> H[App Store scheme<br/>upload via Transporter]
+  G --> H[Update Homebrew cask]
 ```
 
 **Signing rules that bite**
@@ -237,7 +229,6 @@ flowchart LR
 - Every Mach-O gets the hardened runtime: `llama-server`, `libllama.dylib`, `libggml*.dylib`, `libmtmd.dylib`, `uv` — and, once Phase 3 lands, `quail-server` and `llama.framework` (one universal dynamic framework that already contains ggml, Metal and `mtmd`). The app, the framework and the server must share one Team ID, or library validation refuses the load. Sign inside-out (dylibs, then executables, then the app) with `--timestamp --options runtime`.
 - Keep entitlements minimal so notarization stays boring. llama.cpp's Metal path does not JIT, so no unsigned-executable-memory entitlement is needed.
 - The uv-installed Python runtimes are not part of the bundle and are never signed by us; they run as ordinary user processes. uv's managed Python is already signed by its builders.
-- App Store: `llama-server` is signed with `app-sandbox` + `inherit`; the app has `network.client`, `network.server`, and `files.user-selected.read-write` for a relocated model store.
 
 **Updates.** Sparkle 2 (ADR D-032) with an EdDSA key generated once; the appcast is a release asset (`releases/latest/download/appcast.xml`). Settings → General → Updates chooses Daily / Weekly / Monthly / Never, and whether updates install without asking (off by default: Quail asks first). Runtime updates and catalog updates are separate channels with separate cadences.
 
