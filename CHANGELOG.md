@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.40.1] - 2026-09-26
+
+### Fixed
+
+- `quail chat` has line editing. ↑/↓ recall earlier messages, kept across chats as `ollama run` does. ←/→ and Ctrl-A/E move along the line, and Ctrl-R searches. Previously the arrow keys typed escape codes. The history file is readable only by you, and conversations themselves are still not saved.
+
 ## [0.40.0] - 2026-09-26
 
 ### Added
