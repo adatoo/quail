@@ -42,7 +42,8 @@ struct Integration: Sendable, Equatable, Identifiable, Decodable {
     let `where`: String
     let format: Format
     /// With `{{baseURL}}` (no trailing slash, no `/v1`), `{{apiKey}}`,
-    /// `{{model}}`, `{{host}}`, `{{port}}` placeholders.
+    /// `{{model}}`, `{{host}}`, `{{port}}`, `{{contextSize}}` and
+    /// `{{maxOutput}}` placeholders.
     let snippet: String
     let docsURL: URL
     let notes: String?
@@ -57,6 +58,10 @@ struct Integration: Sendable, Equatable, Identifiable, Decodable {
         let command: String
         let args: [String]
         let env: [String: String]
+        /// Placed after the user's own arguments (`quail launch x -- …`),
+        /// for tools whose flags must follow a subcommand — opencode's
+        /// `--standalone` goes after `run`, not before it.
+        let trailingArgs: [String]?
         /// File name → contents, written to a temp dir (`{{tempDir}}`).
         let files: [String: String]?
         /// Short names for `quail launch` ("claude" for "claude-code").
@@ -87,6 +92,19 @@ enum SnippetRenderer {
         /// on a non-empty key, so a harmless stand-in is rendered instead.
         var apiKey: String?
         var model: String
+        /// The context the model runs at; `nil` when unknown (no model
+        /// picked yet), rendered as `defaultContext`.
+        var contextSize: Int?
+    }
+
+    /// `{{contextSize}}` when the model's context isn't known.
+    static let defaultContext = 32768
+
+    /// `{{maxOutput}}`: the reply budget a tool reserves out of the
+    /// context — 8K, or a quarter of a small context, so the prompt keeps
+    /// most of it.
+    static func maxOutput(forContext context: Int) -> Int {
+        min(8192, context / 4)
     }
 
     /// What a snippet shows when the endpoint has no key: llama-server
@@ -98,12 +116,15 @@ enum SnippetRenderer {
         while base.hasSuffix("/") {
             base.removeLast()
         }
+        let context = values.contextSize ?? defaultContext
         let replacements: [String: String] = [
             "{{baseURL}}": base,
             "{{apiKey}}": values.apiKey.flatMap { $0.isEmpty ? nil : $0 } ?? noKeyStandIn,
             "{{model}}": values.model,
             "{{host}}": values.baseURL.host() ?? "127.0.0.1",
             "{{port}}": values.baseURL.port.map(String.init) ?? "8080",
+            "{{contextSize}}": String(context),
+            "{{maxOutput}}": String(maxOutput(forContext: context)),
         ]
         return replacements.reduce(template) { $0.replacingOccurrences(of: $1.key, with: $1.value) }
     }

@@ -1,5 +1,5 @@
 {
-  "_comment": "Connect tab tools (docs/IMPLEMENTATION_PLAN.md Phase 2b step 1). Placeholders: {{baseURL}} (no /v1), {{apiKey}}, {{model}}, {{host}}, {{port}}. Verified against each tool's docs on 2026-09-23 — re-check docsURL when editing. minContext (optional): the smallest model context the tool works with — Claude Code's first request measured 15,114 tokens, Codex's about 7,000; Cline/Roo per their docs. launch (optional): how `quail launch <id|alias>` starts the tool pointed at Quail — command, args, env, and files written to a temp dir ({{tempDir}}); never the user's own config files.",
+  "_comment": "Connect tab tools (docs/IMPLEMENTATION_PLAN.md Phase 2b step 1). Placeholders: {{baseURL}} (no /v1), {{apiKey}}, {{model}}, {{host}}, {{port}}, {{contextSize}} (the model's context; 32768 when unknown), {{maxOutput}} (min(8192, context/4)). Verified against each tool's docs on 2026-09-23 — re-check docsURL when editing. minContext (optional): the smallest model context the tool works with — Claude Code's first request measured 15,114 tokens, Codex's about 7,000, opencode's about 9,500; Cline/Roo per their docs. launch (optional): how `quail launch <id|alias>` starts the tool pointed at Quail — command, args, env, and files written to a temp dir ({{tempDir}}), and trailingArgs placed after the user's own arguments; never the user's own config files.",
   "integrations": [
     {
       "id": "claude-code",
@@ -8,9 +8,9 @@
       "api": "anthropic",
       "where": "Your shell (before running `claude`), or the \"env\" block of ~/.claude/settings.json",
       "format": "shell",
-      "snippet": "export ANTHROPIC_BASE_URL={{baseURL}}\nexport ANTHROPIC_AUTH_TOKEN={{apiKey}}\nexport ANTHROPIC_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_OPUS_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_SONNET_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_HAIKU_MODEL={{model}}\nexport CLAUDE_CODE_SUBAGENT_MODEL={{model}}\nexport CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1\nclaude",
+      "snippet": "export ANTHROPIC_BASE_URL={{baseURL}}\nexport ANTHROPIC_AUTH_TOKEN={{apiKey}}\nexport ANTHROPIC_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_OPUS_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_SONNET_MODEL={{model}}\nexport ANTHROPIC_DEFAULT_HAIKU_MODEL={{model}}\nexport CLAUDE_CODE_SUBAGENT_MODEL={{model}}\nexport CLAUDE_CODE_MAX_CONTEXT_TOKENS={{contextSize}}\nexport CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1\nclaude",
       "docsURL": "https://code.claude.com/docs/en/llm-gateway-connect",
-      "notes": "Best-effort: Anthropic doesn't support Claude Code with non-Claude models, so tool use depends on the model. The base URL has no /v1 — Claude Code adds /v1/messages itself. Every model variable points at this model because Claude Code also asks for separate background and sub-agent models, which the server would reject. Needs a large context; Quail sets it per model from this Mac's memory. Don't put this in a project's committed .claude/settings.json.",
+      "notes": "Best-effort: Anthropic doesn't support Claude Code with non-Claude models, so tool use depends on the model. The base URL has no /v1 — Claude Code adds /v1/messages itself. Every model variable points at this model because Claude Code also asks for separate background and sub-agent models, which the server would reject. Needs a large context; Quail sets it per model from this Mac's memory, and CLAUDE_CODE_MAX_CONTEXT_TOKENS tells Claude Code that size — otherwise it assumes 200K and only compacts after the model's window has overflowed. Don't put this in a project's committed .claude/settings.json.",
       "minContext": 32768,
       "launch": {
         "command": "claude",
@@ -23,6 +23,7 @@
           "ANTHROPIC_DEFAULT_SONNET_MODEL": "{{model}}",
           "ANTHROPIC_DEFAULT_HAIKU_MODEL": "{{model}}",
           "CLAUDE_CODE_SUBAGENT_MODEL": "{{model}}",
+          "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "{{contextSize}}",
           "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
         },
         "aliases": [
@@ -37,9 +38,9 @@
       "api": "openai-responses",
       "where": "~/.codex/config.toml, plus QUAIL_API_KEY in your shell",
       "format": "toml",
-      "snippet": "model = \"{{model}}\"\nmodel_provider = \"quail\"\n\n[model_providers.quail]\nname = \"Quail (llama.cpp)\"\nbase_url = \"{{baseURL}}/v1\"\nenv_key = \"QUAIL_API_KEY\"\nwire_api = \"responses\"\n\n# and in your shell:\n# export QUAIL_API_KEY={{apiKey}}",
+      "snippet": "model = \"{{model}}\"\nmodel_provider = \"quail\"\nmodel_context_window = {{contextSize}}\n\n[model_providers.quail]\nname = \"Quail\"\nbase_url = \"{{baseURL}}/v1\"\nenv_key = \"QUAIL_API_KEY\"\nwire_api = \"responses\"\n\n# and in your shell:\n# export QUAIL_API_KEY={{apiKey}}",
       "docsURL": "https://learn.chatgpt.com/docs/config-file/config-advanced",
-      "notes": "Codex only speaks the Responses API now; llama.cpp serves /v1/responses, but agent-loop support (tools, reasoning items) is newer than its chat API. The provider id can't be openai, ollama or lmstudio. Add model_context_window = <tokens> so compaction works for a model Codex doesn't know.",
+      "notes": "Codex only speaks the Responses API now; llama.cpp serves /v1/responses, but agent-loop support (tools, reasoning items) is newer than its chat API. The provider id can't be openai, ollama or lmstudio. model_context_window is the model's context, so compaction works for a model Codex doesn't know.",
       "minContext": 16384,
       "launch": {
         "command": "codex",
@@ -54,6 +55,8 @@
           "model_providers.quail.env_key=\"QUAIL_API_KEY\"",
           "-c",
           "model_providers.quail.wire_api=\"responses\"",
+          "-c",
+          "model_context_window={{contextSize}}",
           "-m",
           "{{model}}"
         ],
@@ -107,9 +110,9 @@
       "api": "openai-chat",
       "where": "Zed settings.json (zed: open settings); the API key in the Agent panel's settings for \"quail\"",
       "format": "json",
-      "snippet": "{\n  \"language_models\": {\n    \"openai_compatible\": {\n      \"quail\": {\n        \"api_url\": \"{{baseURL}}/v1\",\n        \"available_models\": [\n          {\n            \"name\": \"{{model}}\",\n            \"display_name\": \"{{model}} (Quail)\",\n            \"max_tokens\": 32768\n          }\n        ]\n      }\n    }\n  },\n  \"agent\": {\n    \"default_model\": {\n      \"provider\": \"quail\",\n      \"model\": \"{{model}}\"\n    }\n  }\n}",
+      "snippet": "{\n  \"language_models\": {\n    \"openai_compatible\": {\n      \"quail\": {\n        \"api_url\": \"{{baseURL}}/v1\",\n        \"available_models\": [\n          {\n            \"name\": \"{{model}}\",\n            \"display_name\": \"{{model}} (Quail)\",\n            \"max_tokens\": {{contextSize}}\n          }\n        ]\n      }\n    }\n  },\n  \"agent\": {\n    \"default_model\": {\n      \"provider\": \"quail\",\n      \"model\": \"{{model}}\"\n    }\n  }\n}",
       "docsURL": "https://zed.dev/docs/ai/use-api-access",
-      "notes": "Zed keeps keys out of settings.json: enter {{apiKey}} in the Agent panel's provider settings, or launch Zed with QUAIL_API_KEY set. max_tokens is the context window — match the model's."
+      "notes": "Zed keeps keys out of settings.json: enter {{apiKey}} in the Agent panel's provider settings, or launch Zed with QUAIL_API_KEY set. max_tokens is the context window — the model's own."
     },
     {
       "id": "aider",
@@ -141,9 +144,22 @@
       "api": "openai-chat",
       "where": "~/.config/opencode/opencode.json (or opencode.json in a project)",
       "format": "json",
-      "snippet": "{\n  \"$schema\": \"https://opencode.ai/config.json\",\n  \"provider\": {\n    \"quail\": {\n      \"npm\": \"@ai-sdk/openai-compatible\",\n      \"name\": \"Quail (llama.cpp)\",\n      \"options\": {\n        \"baseURL\": \"{{baseURL}}/v1\",\n        \"apiKey\": \"{{apiKey}}\"\n      },\n      \"models\": {\n        \"{{model}}\": {\n          \"name\": \"{{model}}\",\n          \"limit\": { \"context\": 32768, \"output\": 8192 }\n        }\n      }\n    }\n  },\n  \"model\": \"quail/{{model}}\"\n}",
+      "snippet": "{\n  \"$schema\": \"https://opencode.ai/config.json\",\n  \"provider\": {\n    \"quail\": {\n      \"npm\": \"@ai-sdk/openai-compatible\",\n      \"name\": \"Quail\",\n      \"options\": {\n        \"baseURL\": \"{{baseURL}}/v1\",\n        \"apiKey\": \"{{apiKey}}\"\n      },\n      \"models\": {\n        \"{{model}}\": {\n          \"name\": \"{{model}}\",\n          \"limit\": {\n            \"context\": {{contextSize}},\n            \"output\": {{maxOutput}}\n          }\n        }\n      }\n    }\n  },\n  \"model\": \"quail/{{model}}\"\n}",
       "docsURL": "https://opencode.ai/docs/providers/",
-      "notes": "If your global opencode config sets a default model, it wins over this file's \"model\" — pick Quail's with /models in the TUI, or opencode run -m quail/{{model}}. List every model you want under models; limit.context drives compaction. Known issue under investigation: in one test opencode reported \"Cannot connect to API\" against Quail's endpoint even though other clients reached it — if you hit this, please report it."
+      "notes": "opencode 2 runs a background service that reads this file when it starts: after editing it, run opencode service restart. An agent with a model of its own in your config (build and plan often have one) ignores \"model\" — pick Quail's with /models, or opencode run -m quail/{{model}}. limit.context drives compaction. quail launch opencode needs none of this: it passes the config in OPENCODE_CONFIG_CONTENT, points build, plan and the title model at Quail, and adds --standalone so a private server reads it instead of the background service.",
+      "launch": {
+        "command": "opencode",
+        "args": [],
+        "env": {
+          "QUAIL_API_KEY": "{{apiKey}}",
+          "OPENCODE_CONFIG_CONTENT": "{\"provider\":{\"quail\":{\"npm\":\"@ai-sdk/openai-compatible\",\"name\":\"Quail\",\"options\":{\"baseURL\":\"{{baseURL}}/v1\",\"apiKey\":\"{env:QUAIL_API_KEY}\"},\"models\":{\"{{model}}\":{\"name\":\"{{model}}\",\"limit\":{\"context\":{{contextSize}},\"output\":{{maxOutput}}}}}}},\"model\":\"quail/{{model}}\",\"small_model\":\"quail/{{model}}\",\"agents\":{\"build\":{\"model\":\"quail/{{model}}\"},\"plan\":{\"model\":\"quail/{{model}}\"}}}"
+        },
+        "trailingArgs": [
+          "--standalone"
+        ],
+        "aliases": []
+      },
+      "minContext": 16384
     },
     {
       "id": "goose",
@@ -152,9 +168,9 @@
       "api": "openai-chat",
       "where": "Your shell (or goose configure)",
       "format": "shell",
-      "snippet": "export GOOSE_PROVIDER=openai\nexport GOOSE_MODEL={{model}}\nexport OPENAI_HOST={{baseURL}}\nexport OPENAI_API_KEY={{apiKey}}\ngoose session",
+      "snippet": "export GOOSE_PROVIDER=openai\nexport GOOSE_MODEL={{model}}\nexport OPENAI_HOST={{baseURL}}\nexport OPENAI_API_KEY={{apiKey}}\nexport GOOSE_CONTEXT_LIMIT={{contextSize}}\ngoose session",
       "docsURL": "https://github.com/aaif-goose/goose/blob/main/documentation/docs/getting-started/providers.md",
-      "notes": "OPENAI_HOST has no /v1 — Goose adds v1/chat/completions itself.",
+      "notes": "OPENAI_HOST has no /v1 — Goose adds v1/chat/completions itself. GOOSE_CONTEXT_LIMIT is the model's context — Goose otherwise assumes 128K.",
       "launch": {
         "command": "goose",
         "args": [
@@ -164,9 +180,38 @@
           "GOOSE_PROVIDER": "openai",
           "GOOSE_MODEL": "{{model}}",
           "OPENAI_HOST": "{{baseURL}}",
-          "OPENAI_API_KEY": "{{apiKey}}"
+          "OPENAI_API_KEY": "{{apiKey}}",
+          "GOOSE_CONTEXT_LIMIT": "{{contextSize}}"
         },
         "aliases": []
+      }
+    },
+    {
+      "id": "qwen-code",
+      "name": "Qwen Code",
+      "category": "coding-agent",
+      "api": "openai-chat",
+      "where": "Your shell",
+      "format": "shell",
+      "snippet": "export OPENAI_API_KEY={{apiKey}}\nqwen --auth-type openai --openai-base-url {{baseURL}}/v1 --model {{model}}",
+      "docsURL": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/configuration/model-providers.md",
+      "notes": "Works with any model, not only Qwen's. The key stays in OPENAI_API_KEY rather than --openai-api-key so it isn't visible in ps. Qwen Code's context setting lives in ~/.qwen/settings.json (model.generationConfig.contextWindowSize) — set it to the model's context, {{contextSize}}.",
+      "launch": {
+        "command": "qwen",
+        "args": [
+          "--auth-type",
+          "openai",
+          "--openai-base-url",
+          "{{baseURL}}/v1",
+          "--model",
+          "{{model}}"
+        ],
+        "env": {
+          "OPENAI_API_KEY": "{{apiKey}}"
+        },
+        "aliases": [
+          "qwen"
+        ]
       }
     },
     {

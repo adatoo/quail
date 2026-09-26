@@ -188,10 +188,11 @@ extension AppState {
     func launchResponse(tool: String, model requested: String?) -> ControlResponse {
         let integrations = Integration.bundled().filter { $0.launch != nil }
         let key = tool.lowercased()
+        let names = integrations.map { $0.launch?.aliases?.first ?? $0.id }.joined(separator: ", ")
+        guard !key.isEmpty else { return .failure("Name a tool to launch: \(names).") }
         guard let integration = integrations.first(where: { $0.id == key || ($0.launch?.aliases ?? []).contains(key) }),
               let recipe = integration.launch
         else {
-            let names = integrations.map { $0.launch?.aliases?.first ?? $0.id }.joined(separator: ", ")
             return .failure("Unknown tool '\(tool)'. quail launch supports: \(names).")
         }
         let installed = modelStore.loadCatalog().entries
@@ -206,7 +207,8 @@ extension AppState {
         let values = SnippetRenderer.Values(
             baseURL: base,
             apiKey: endpointInfo.apiKey,
-            model: model
+            model: model,
+            contextSize: entry.effectiveContextSize
         )
         func fill(_ text: String) -> String {
             SnippetRenderer.render(text, with: values)
@@ -217,6 +219,11 @@ extension AppState {
                 "\(integration.name) needs at least \(needed / 1024)K of context; \(model) runs at \(entry.effectiveContextSize / 1024)K. Raise it in Quail → Settings → Models (the ctx menu), then `quail restart`."
             )
         }
+        if !canServe(entry.format) {
+            warnings.append(
+                "\(model) is an MLX model, which the llama.cpp runtime can't serve — switch the runtime to Quail server in Quail → Settings → Endpoint."
+            )
+        }
         if serverController.phase == .ready, !servedModels.contains(where: { $0.id == model }) {
             warnings.append("\(model) was added after the server started — run `quail restart` first.")
         }
@@ -225,7 +232,8 @@ extension AppState {
             args: recipe.args.map(fill),
             env: recipe.env.mapValues(fill),
             files: (recipe.files ?? [:]).mapValues(fill),
-            warnings: warnings
+            warnings: warnings,
+            trailingArgs: (recipe.trailingArgs ?? []).map(fill)
         ))
     }
 }

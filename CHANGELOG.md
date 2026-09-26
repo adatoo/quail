@@ -10,6 +10,20 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-09-26
+
+### Added
+
+- `quail launch opencode` starts opencode 2 on a Quail model, with nothing to set up: the settings are passed in for that run only, and your own opencode config and background service are left alone. `quail launch opencode -- run "…"` works for one-off prompts.
+- Qwen Code in Connect and `quail launch qwen`.
+
+### Changed
+
+- Every tool `quail launch` starts, and the Connect tab's snippets, now know the model's context size, so Claude Code, Codex, Goose, opencode and Zed compact before the model runs out of room (Claude Code previously assumed 200K).
+- The Connect tab's model picker lists MLX models too.
+- `quail launch` warns when the model is MLX and the runtime can't serve it, and lists the tools when you don't name one.
+- The opencode snippet explains opencode 2's background service (run `opencode service restart` after editing its config), in place of the old "Cannot connect to API" note.
+
 ## [0.35.1] - 2026-09-26
 
 ### Fixed

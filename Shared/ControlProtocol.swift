@@ -145,6 +145,8 @@ struct ToolLaunch: Codable, Sendable, Equatable {
     /// directory; `{{tempDir}}` in `args`/`env` is replaced with its path.
     var files: [String: String]
     var warnings: [String]
+    /// After the user's own arguments; `nil` from an app older than 0.36.
+    var trailingArgs: [String]?
 }
 
 struct BenchProgress: Codable, Sendable, Equatable {

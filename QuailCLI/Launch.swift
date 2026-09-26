@@ -9,17 +9,20 @@ import Foundation
 /// config files.
 struct Launch: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Start a coding tool pointed at Quail (claude, codex, aider, goose).",
-        discussion: "Arguments after -- are passed to the tool."
+        abstract: "Start a coding tool pointed at Quail (claude, codex, opencode, qwen, aider, goose).",
+        discussion: """
+        Arguments after -- are passed to the tool, e.g. `quail launch opencode -- run "fix the tests"`. \
+        Nothing in the tool's own config files changes; the settings apply to this run only.
+        """
     )
 
-    @Argument(help: "claude, codex, aider or goose.") var tool: String
+    @Argument(help: "claude, codex, opencode, qwen, aider or goose.") var tool: String?
     @Option(name: .shortAndLong, help: "Model to use (default: the default model).") var model: String?
     @Argument(parsing: .postTerminator, help: "Passed through to the tool.") var passthrough: [String] = []
 
     func run() async throws {
         try await AppLink.ensureRunning()
-        let response = try await AppLink.request(ControlRequest(command: .launch, tool: tool, model: model))
+        let response = try await AppLink.request(ControlRequest(command: .launch, tool: tool ?? "", model: model))
         try AppLink.check(response)
         guard let launch = response.launch else { throw CLIError("No launch recipe from Quail.") }
         for warning in launch.warnings {
@@ -45,7 +48,7 @@ struct Launch: AsyncParsableCommand {
         for (key, value) in launch.env {
             setenv(key, fill(value), 1)
         }
-        let arguments = [launch.command] + launch.args.map(fill) + passthrough
+        let arguments = [launch.command] + launch.args.map(fill) + passthrough + (launch.trailingArgs ?? []).map(fill)
         let cArgs = arguments.map { strdup($0) } + [nil]
         execvp(launch.command, cArgs) // only returns on failure
         throw CLIError(

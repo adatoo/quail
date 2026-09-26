@@ -51,10 +51,11 @@ struct ControlTests {
             model: "M"
         )
         let launchable = Integration.bundled().filter { $0.launch != nil }
-        #expect(Set(launchable.map(\.id)).isSuperset(of: ["claude-code", "codex-cli"]))
+        #expect(Set(launchable.map(\.id)).isSuperset(of: ["claude-code", "codex-cli", "opencode", "qwen-code"]))
         for integration in launchable {
             let recipe = try #require(integration.launch)
-            let rendered = (recipe.args + Array(recipe.env.values) + Array((recipe.files ?? [:]).values))
+            let rendered = (recipe.args + (recipe.trailingArgs ?? []) + Array(recipe.env.values)
+                + Array((recipe.files ?? [:]).values))
                 .map { SnippetRenderer.render($0, with: values) }
                 .joined(separator: "\n")
             let leftovers = SnippetRenderer.unfilledPlaceholders(in: rendered).filter { $0 != "{{tempDir}}" }
@@ -103,6 +104,26 @@ struct AppStateControlTests {
         #expect(launch.env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:8080")
         #expect(launch.warnings.contains { $0.contains("needs at least 32K") })
 
+        #expect(launch.env["CLAUDE_CODE_MAX_CONTEXT_TOKENS"] == "8192")
+
+        // opencode 2: the config travels in the environment (its background
+        // service would ignore it), sized to the model, with --standalone
+        // after any `run …` the user passes.
+        let opencode = try #require(appState.launchResponse(tool: "opencode", model: "Small").launch)
+        #expect(opencode.trailingArgs == ["--standalone"])
+        #expect(opencode.env["QUAIL_API_KEY"]?.isEmpty == false)
+        let content = try #require(opencode.env["OPENCODE_CONFIG_CONTENT"])
+        let config = try #require(
+            JSONSerialization.jsonObject(with: Data(content.utf8)) as? [String: Any]
+        )
+        #expect(config["model"] as? String == "quail/Small")
+        let agents = try #require(config["agents"] as? [String: [String: String]])
+        #expect(agents["build"]?["model"] == "quail/Small")
+        #expect(agents["plan"]?["model"] == "quail/Small")
+        #expect(content.contains(#""limit":{"context":8192,"output":2048}"#))
+        #expect(content.contains(#""apiKey":"{env:QUAIL_API_KEY}""#)) // the key itself stays out of the config
+
+        #expect(appState.launchResponse(tool: "", model: nil).error?.contains("Name a tool") == true)
         #expect(appState.launchResponse(tool: "nope", model: nil).error?.contains("Unknown tool") == true)
         #expect(appState.launchResponse(tool: "codex", model: "Missing").error?.contains("No installed model") == true)
     }
