@@ -21,6 +21,7 @@ or download the DMG from the [latest release](https://github.com/adatoo/quail/re
 - Ping test: server up, model loaded, time to first token — no chat window
 - Live logs
 - Open at login, auto-start last runtime and model
+- Works offline once models are downloaded: serving, chat, benchmarks and `quail launch` need no internet; only browsing and downloading models do (`task check:offline` proves it)
 
 ## What it deliberately doesn't do
 

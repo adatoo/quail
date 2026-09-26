@@ -26,6 +26,33 @@ actor HFDownloader {
     /// small enough that progress still updates several times a second.
     private static let chunkSize = 1 << 20 // 1 MiB
 
+    /// How long a request may go without receiving a byte (ADR D-051). URLSession's default is 60 s,
+    /// which on a network that looks connected but goes nowhere (a captive portal, a dead proxy)
+    /// left the Add Model sheet waiting minutes. Metadata is small; a download keeps its partial
+    /// bytes and resumes, so failing sooner costs nothing.
+    static let metadataTimeout: TimeInterval = 15
+    static let downloadTimeout: TimeInterval = 30
+
+    /// `.offline` for the URL errors that mean "no connection" rather than "Hugging Face said no";
+    /// anything else unchanged.
+    static func offline(_ error: Error) -> Error {
+        // A firewall, or a sandbox, refusing the connection surfaces as a bare POSIX error.
+        let nsError = error as NSError
+        if nsError.domain == NSPOSIXErrorDomain,
+           [EPERM, ENETDOWN, ENETUNREACH, EHOSTUNREACH, ETIMEDOUT].contains(Int32(nsError.code))
+        {
+            return HFDownloadError.offline
+        }
+        guard let urlError = error as? URLError else { return error }
+        switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost,
+             .timedOut, .dnsLookupFailed, .internationalRoamingOff, .dataNotAllowed:
+            return HFDownloadError.offline
+        default:
+            return error
+        }
+    }
+
     init(
         urlSession: URLSession = .shared,
         hubBaseURL: URL = URL(string: "https://huggingface.co")!,
@@ -54,9 +81,15 @@ actor HFDownloader {
         guard let url = components.url else { throw HFDownloadError.invalidRepoID }
 
         var request = URLRequest(url: url)
+        request.timeoutInterval = Self.metadataTimeout
         Self.authorize(&request, token: token)
 
-        let (data, response) = try await urlSession.data(for: request)
+        let data: Data, response: URLResponse
+        do {
+            (data, response) = try await urlSession.data(for: request)
+        } catch {
+            throw Self.offline(error)
+        }
         try Self.checkStatus(response)
 
         struct RawResponse: Decodable {
@@ -108,8 +141,14 @@ actor HFDownloader {
         var request = URLRequest(url: resolveURL)
         Self.authorize(&request, token: token)
         request.setValue("bytes=0-\(maxBytes - 1)", forHTTPHeaderField: "Range")
+        request.timeoutInterval = Self.metadataTimeout
         let delegate = RangePreservingRedirectDelegate()
-        let (data, response) = try await urlSession.data(for: request, delegate: delegate)
+        let data: Data, response: URLResponse
+        do {
+            (data, response) = try await urlSession.data(for: request, delegate: delegate)
+        } catch {
+            throw Self.offline(error)
+        }
         try Self.checkStatus(response)
         return data
     }
@@ -204,7 +243,12 @@ actor HFDownloader {
                 } catch let error as HFDownloadError {
                     continuation.yield(.failed(error))
                 } catch {
-                    continuation.yield(.failed(.decoding(String(describing: error))))
+                    // A connection dropped mid-file surfaces here, from the byte stream.
+                    if Self.offline(error) as? HFDownloadError == .offline {
+                        continuation.yield(.failed(.offline))
+                    } else {
+                        continuation.yield(.failed(.decoding(String(describing: error))))
+                    }
                 }
                 continuation.finish()
             }
@@ -266,8 +310,14 @@ actor HFDownloader {
                 request.setValue("bytes=\(existingBytes)-", forHTTPHeaderField: "Range")
             }
 
+            request.timeoutInterval = Self.downloadTimeout
             let delegate = RangePreservingRedirectDelegate()
-            let (asyncBytes, response) = try await urlSession.bytes(for: request, delegate: delegate)
+            let asyncBytes: URLSession.AsyncBytes, response: URLResponse
+            do {
+                (asyncBytes, response) = try await urlSession.bytes(for: request, delegate: delegate)
+            } catch {
+                throw Self.offline(error)
+            }
             let honoredRange = try Self.checkStatus(response)
 
             if requestedRange, !honoredRange {

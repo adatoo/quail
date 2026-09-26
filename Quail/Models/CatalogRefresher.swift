@@ -5,16 +5,18 @@ import Foundation
 /// an app release"), from the URL set in `Info.plist` under
 /// `QuailCatalogURL`.
 ///
-/// No such URL is set yet — there is no update host until Phase 4's
-/// Sparkle work lands a place to put one — so in every build today this
-/// returns `.noRemoteURL` and does nothing, by design. The mechanism is
-/// built and tested now (stubbed session, scratch cache file) so Phase 4
-/// is one Info.plist key, not a new subsystem.
+/// The URL is the repo's own `catalog.json` on GitHub. It runs in the
+/// background at launch and only when the cache is a week old; with no
+/// connection it fails quietly, within `timeout`, and the bundled or
+/// cached catalog serves as before (ADR D-051).
 struct CatalogRefresher: Sendable {
     /// "Weekly", per the plan. A failed refresh does not update
     /// `fetchedAt`, so the next app launch retries rather than waiting
     /// out the week on a transient error.
     static let refreshInterval: TimeInterval = 7 * 24 * 60 * 60
+
+    /// Idle timeout for the fetch: a background nicety, so it gives up well before URLSession's 60 s.
+    static let timeout: TimeInterval = 15
 
     let locations: Catalog.Locations
     let urlSession: URLSession
@@ -83,7 +85,9 @@ struct CatalogRefresher: Sendable {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await urlSession.data(from: remoteURL)
+            var request = URLRequest(url: remoteURL)
+            request.timeoutInterval = Self.timeout
+            (data, response) = try await urlSession.data(for: request)
         } catch {
             return .failed(.transport(String(describing: error)))
         }

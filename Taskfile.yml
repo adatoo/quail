@@ -234,10 +234,15 @@ tasks:
         fi
         echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp, THIRD_PARTY_NOTICES.md, llama.framework and the MLX shader bundle present; quail-server launches"
 
-  check:mlx-offline:
-    desc: Prove quail-server's MLX path makes no network connection (sandbox-exec; needs a built app and an MLX model — ADR D-044)
+  check:offline:
+    desc: Prove Quail works with no internet connection — both servers, the app and the coding tools, under sandbox-exec (needs a Debug build and models — ADR D-051)
     cmds:
-      - Config/check-mlx-offline.sh
+      - Config/check-offline.sh
+
+  check:mlx-offline:
+    desc: The old name for check:offline, which covers the MLX path among the rest (ADR D-044, D-051)
+    cmds:
+      - task: check:offline
 
   install:
     desc: Build Release and install to ~/Apps/Quail.app (INSTALL_DIR=… to change; ad-hoc signed, without the hardened runtime, unless QUAIL_SIGN_IDENTITY is set)

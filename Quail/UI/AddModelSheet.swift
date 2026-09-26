@@ -111,7 +111,9 @@ struct AddModelSheet: View {
         // so reopening the sheet is cheap.
         .task {
             await appState.loadCatalogVerdicts()
-            if selection == nil, let first = recommendedFamilies.first {
+            // Offline there are no verdicts to recommend from, so fall back to the best candidate
+            // for this Mac's size rather than an empty detail pane.
+            if selection == nil, let first = recommendedFamilies.first ?? candidateFamilies.first {
                 selection = .curated(first)
             }
         }
@@ -126,6 +128,14 @@ struct AddModelSheet: View {
                 Text(deviceLine)
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                if appState.hubOffline {
+                    Label(
+                        "You're offline — installed models work as normal; browsing and downloading need a connection.",
+                        systemImage: "wifi.slash"
+                    )
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                }
             }
             Spacer()
             Picker("Format", selection: $filter) {
@@ -354,6 +364,12 @@ struct AddModelSheet: View {
         )
         let allowed = Set(filteredFamilies.map(\.id))
         return finalized.filter { allowed.contains($0.id) }
+    }
+
+    /// The recommendation candidates before any verdict — what `recommendedFamilies` narrows.
+    private var candidateFamilies: [Catalog.Family] {
+        let allowed = Set(filteredFamilies.map(\.id))
+        return Recommender.candidates(catalog: appState.catalog, device: device).filter { allowed.contains($0.id) }
     }
 
     private func lookupPasted() {
@@ -653,6 +669,7 @@ struct AddModelSheet: View {
         guard let repo else { return }
         do {
             let found = try await appState.installs.downloader.listFiles(repo: repo, token: appState.hfToken)
+            appState.hubOffline = false
             guard listing?.id != found.id else { return }
             listing = found
             if case let .curated(family) = selection, family.repo(for: format) == nil,
@@ -662,9 +679,12 @@ struct AddModelSheet: View {
             }
             quant = defaultQuant()
         } catch let error as HFDownloadError {
+            if error == .offline {
+                appState.hubOffline = true
+            }
             listingError = ModelInstallController.describe(error)
         } catch {
-            listingError = String(describing: error)
+            listingError = error.localizedDescription
         }
     }
 

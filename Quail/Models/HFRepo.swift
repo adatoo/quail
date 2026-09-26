@@ -75,4 +75,7 @@ enum HFDownloadError: Error, Sendable, Equatable {
     case invalidResponse
     case checksumMismatch(file: String, expected: String, actual: String)
     case decoding(String)
+    /// No internet connection, or Hugging Face is out of reach (no route,
+    /// no DNS, a timeout) — see `HFDownloader.offline(_:)`.
+    case offline
 }
