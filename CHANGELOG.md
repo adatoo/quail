@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.32.1] - 2026-09-26
+
+### Fixed
+
+- After switching to the Quail server runtime, **Open Chat** kept showing llama.cpp's page: that page leaves a service worker in the browser that serves its cached copy for the same address. `quail-server` now answers `/sw.js` with a worker that removes itself and its cache and reloads the page, and its own page clears any leftover worker. Selecting an MLX model in that stale page is what failed.
+- Starting the Quail server right after llama-server on the same port failed four times with "address already in use" before a later start worked: connections the browser and the app still held to the old server kept the port from being reused for up to a minute. `quail-server` now waits for such a port (logging that it is) instead of exiting; a port another program really listens on still fails at once.
+
 ## [0.32.0] - 2026-09-26
 
 ### Added

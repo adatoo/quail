@@ -302,4 +302,25 @@ struct WebUITests {
         let first = try #require((json["data"] as? [[String: Any]])?.first)
         #expect(first["format"] as? String == "gguf")
     }
+
+    @Test("/sw.js retires the service worker llama.cpp's page left on this origin, and needs no key")
+    func serviceWorkerKillSwitch() async {
+        let harness = RouteHarness(apiKey: "k")
+        for path in ["/sw.js", "/service-worker.js"] {
+            let response = await harness.get(path)
+            #expect(response.status == 200, "\(path)")
+            #expect(header(response, "Content-Type") == "application/javascript; charset=utf-8")
+            #expect(header(response, "Cache-Control") == "no-store")
+            let script = body(response)
+            for needed in ["skipWaiting", "caches.delete", "registration.unregister", "client.navigate"] {
+                #expect(script.contains(needed), "\(needed)")
+            }
+        }
+        #expect(await RouteHarness(webUI: false).get("/sw.js").status == 404)
+        for pattern in ["http://", "https://", "importScripts", "eval(", "fetch("] {
+            #expect(!WebUI.serviceWorkerKillSwitch.contains(pattern), "\(pattern)")
+        }
+        // The page itself removes any registration it finds, in case the worker was already gone.
+        #expect(WebUI.script.contains("getRegistrations()") && WebUI.script.contains("unregister()"))
+    }
 }

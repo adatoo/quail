@@ -72,6 +72,28 @@ struct HTTPServerTests {
         }
     }
 
+    @Test("a port something really listens on fails at once; the wait is only for a port nothing listens on")
+    func busyPortFailsFast() async throws {
+        let (first, port) = try await Self.start()
+        defer { first.stop() }
+        let second = HTTPServer(
+            host: "127.0.0.1",
+            port: port,
+            bindWait: .seconds(30),
+            log: ServerLog(toStandardError: false)
+        )
+        let started = ContinuousClock.now
+        await #expect(throws: HTTPServerError.bindFailed(
+            host: "127.0.0.1",
+            port: port,
+            reason: "address already in use"
+        )) {
+            _ = try await second.start(handler: Self.describe)
+        }
+        #expect(ContinuousClock.now - started < .seconds(5))
+        #expect(HTTPServer.somethingListens(host: "127.0.0.1", port: port))
+    }
+
     @Test("Expect: 100-continue gets its interim response before the body is sent")
     func expectContinue() async throws {
         let (server, port) = try await Self.start()
