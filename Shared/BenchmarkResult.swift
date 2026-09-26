@@ -53,7 +53,7 @@ struct BenchmarkResult: Codable, Sendable, Equatable, Identifiable {
     }
 
     struct Engine: Codable, Sendable, Equatable {
-        /// "llama.cpp"
+        /// "llama.cpp" or "Quail server"
         var runtime: String
         /// The runtime's own build id, e.g. "b11081-161755f29".
         var build: String?

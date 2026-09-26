@@ -43,7 +43,7 @@ enum BenchmarkError: Error, Equatable, CustomStringConvertible {
         switch self {
         case .serverNotRunning: "Start the server first."
         case let .unknownModel(id): "No installed model called \(id)."
-        case let .notGGUF(id): "\(id) is an MLX model — only llama.cpp (GGUF) models can be benchmarked so far."
+        case let .notGGUF(id): "\(id) is an MLX model: choose the Quail server runtime (Settings → Endpoint) to benchmark it."
         case .alreadyRunning: "A benchmark is already running."
         case let .http(status, message): "The server answered HTTP \(status)\(message.map { ": \($0)" } ?? "")."
         case let .badResponse(what): "Unexpected answer from the server (\(what))."

@@ -245,6 +245,27 @@ struct AppStateTests {
         #expect(quail.hasServableModel && quail.canStart)
     }
 
+    @Test("the Benchmark pane lists MLX models only under a runtime that serves them, and labels the format")
+    func benchmarkableModels() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let llama = makeAppState(scratchDir: scratch)
+        try writeFixtureGGUF(named: "Alpha", to: llama.modelStore)
+        try writeFixtureMLX(named: "owner--Beta-4bit", to: llama.modelStore)
+        try llama.modelStore.saveCatalog(llama.modelStore.refreshedCatalog(
+            device: DeviceInfo.current(), ggufRuntime: .llamaCpp, bandwidthTable: [:]
+        ))
+        #expect(llama.benchmarkableModels == ["Alpha"])
+
+        let quail = makeAppState(
+            scratchDir: scratch,
+            runtime: FakeRuntime(launchSpec: Self.sleeper, id: .quail, formats: [.gguf, .mlxSafetensors])
+        )
+        #expect(quail.benchmarkableModels == ["Alpha", "owner--Beta-4bit"])
+        #expect(quail.formatLabel(ofModel: "Alpha") == "GGUF" && quail
+            .formatLabel(ofModel: "owner--Beta-4bit") == "MLX")
+    }
+
     @Test("the runtime changes only while stopped, is remembered, and decides whether presets list MLX models")
     func runtimeSwitch() async throws {
         let scratch = scratchDirectory()

@@ -458,7 +458,7 @@ private struct ModelRow: View {
                                 NSPasteboard.general.clearContents()
                                 NSPasteboard.general.setString(entry.id, forType: .string)
                             }
-                            if entry.format == .gguf {
+                            if servable {
                                 Button("Benchmark…", action: onBenchmark)
                             }
                         }

@@ -65,11 +65,16 @@ struct BenchmarkPane: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
                 if appState.benchmarkableModels.isEmpty {
-                    Text("No GGUF models installed — add one in Settings → Models.")
+                    Text(appState.canServe(.mlxSafetensors)
+                        ? "No models installed — add one in Settings → Models."
+                        :
+                        "No GGUF models installed — add one in Settings → Models, or choose the Quail server runtime for MLX.")
                         .foregroundStyle(.secondary)
                 } else {
                     Picker("Model", selection: $model) {
-                        ForEach(appState.benchmarkableModels, id: \.self) { Text($0).tag($0) }
+                        ForEach(appState.benchmarkableModels, id: \.self) { id in
+                            Text(appState.formatLabel(ofModel: id).map { "\(id)  ·  \($0)" } ?? id).tag(id)
+                        }
                     }
                     .frame(maxWidth: 340)
                     .disabled(benchmarks.isRunning)
@@ -176,6 +181,16 @@ struct BenchmarkPane: View {
                 TableColumn("Model") { result in
                     HStack(spacing: 4) {
                         Text(result.model.id).lineLimit(1).truncationMode(.middle)
+                        Text(result.model.format.uppercased())
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(
+                                (result.model.format == "mlx" ? Color.purple : Color.blue).opacity(0.18),
+                                in: Capsule()
+                            )
+                            .foregroundStyle(result.model.format == "mlx" ? Color.purple : Color.blue)
+                            .help("Run on \(result.engine.runtime)\(result.engine.build.map { " (\($0))" } ?? "")")
                         let notes = result.conditions.warnings + result.measurements.skipped
                         if !notes.isEmpty {
                             Image(systemName: "exclamationmark.triangle.fill")
