@@ -525,6 +525,10 @@ struct AddModelSheet: View {
                     }
                     FitCard(fit: pickFit, gpuCeilingBytes: device.gpuWorkingSetCeilingBytes)
                 }
+                // After what to download and whether it fits: those decide the pick.
+                if case let .curated(family) = selection {
+                    StrengthList(strengths: ModelStrength.strengths(of: family, format: format))
+                }
             }
         } else {
             VStack(spacing: 8) {
@@ -546,8 +550,7 @@ struct AddModelSheet: View {
                 if let license = family.license {
                     Text("License: \(license)").font(.caption).foregroundStyle(.secondary)
                 }
-                StrengthList(strengths: ModelStrength.strengths(of: family, format: format))
-                    .padding(.top, 8)
+
             case let .pasted(repo):
                 Text(repo).font(.title2.bold())
                 Text("From Hugging Face — not in Quail's curated catalog").foregroundStyle(.secondary)

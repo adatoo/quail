@@ -2,6 +2,20 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-053 · 2026-09-26 · Developer distribution through Homebrew and a signed DMG
+
+**Decision:** Quail is a free, open-source tool for developers on Apple Silicon Macs. Homebrew (`brew install --cask adatoo/tap/quail-ai`) is the primary installation path; the same Developer ID-signed, notarized app remains available as a DMG on GitHub Releases. Sparkle continues to provide in-app updates (D-032), with the cask's existing update behavior (D-033).
+
+Mac App Store publication is dropped. This supersedes D-006's two-channel distribution plan and cancels the Store submission work in Phase 4, including Store-specific helper signing and removing Sparkle from a Store product. Existing App Store configurations, compile guards and CI checks remain unchanged for now; removing that legacy machinery, and updating AGENTS.md's corresponding conventions, is a separate cleanup task.
+
+**Why:** the intended audience is the developer community, for whom Homebrew is an acceptable distribution channel. Maintaining a second distribution variant would take time from offline reliability, coding-tool compatibility, model curation and reproducible benchmarks.
+
+**Release requirements:** retain Developer ID signing, notarization, signed updates, dependency notices and model licence review. Validate installation on a fresh Mac through Homebrew and the DMG, plus CLI availability and an update from an existing release. Dropping Store publication does not remove these requirements or expand the deferred runtime scope.
+
+**Alternatives:** Maintain a reduced App Store edition as a discovery channel (rejected because it adds packaging and validation work for a secondary audience). Homebrew only (keep the DMG too, so installation does not require Homebrew).
+
+**Revisit if:** demonstrated demand from users who require App Store distribution justifies maintaining and testing another product variant.
+
 ## D-052 · 2026-09-26 · What each model is good for: curated strengths, vision derived
 
 **Decision:** Catalog families carry `strengths`, raw strings from a fixed vocabulary (`ModelStrength`): chat, coding, agentic, reasoning, long-context, vision, multilingual, embedding, audio.
@@ -464,6 +478,8 @@ One request alone, `-np 1` vs `-np 4`: 44.7 vs 40.8 tok/s (8B), 157.6 vs 228.7 (
 **Revisit if:** a trademark search turns up a conflicting software product.
 
 ## D-006 · 2026-09-21 · Two builds: Developer ID direct + Mac App Store
+
+**Superseded by D-053 (2026-09-26):** publication now targets Homebrew and the signed DMG; the Store configuration remains only until a separate cleanup.
 
 **Decision:** One codebase, two schemes. Direct build has everything; App Store build is llama.cpp-only with `#if !APPSTORE` compiling out runtime installs.
 **Why:** The sandbox forbids downloading executable code and spawning unsandboxed processes, which rules out oMLX/Rapid-MLX on the Store. The Store is still useful for discovery.

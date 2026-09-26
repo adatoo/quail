@@ -1,6 +1,6 @@
 # Quail — Implementation Plan
 
-*As of 2026-09-24. Read [ARCHITECTURE.md](ARCHITECTURE.md) first; this document says what to build in what order, and how to know each step is done.*
+*Distribution plan updated 2026-09-26 (D-053). Read [ARCHITECTURE.md](ARCHITECTURE.md) first; this document says what to build in what order, and how to know each step is done.*
 
 Five phases. Each ends with something usable every day. Phase 1 is deliberately llama.cpp-only so packaging and signing are solved before any Python enters the picture. Phase 5 was added 2026-09-23 (D-016) — see its own section for why it's ordered after Phase 3.
 
@@ -9,7 +9,7 @@ Five phases. Each ends with something usable every day. Phase 1 is deliberately 
 | 1 — Skeleton | MenuBarExtra, `Runtime` protocol, bundled llama-server, start/stop, endpoint settings, health ping, log window, open at login | A signed, notarized DMG from CI that serves a GGUF placed by hand in the store |
 | 2 — Models | Unified store, HF downloader with quant picker, catalog, device-fit verdicts, hot swap via `/models/load` | First public beta: a fresh Mac goes from download to a working endpoint with no terminal |
 | 3 — MLX runtimes | Bundled uv, oMLX and Rapid-MLX adapters, install/update/rollback flow, tested version ranges | Switching runtime in Settings works, and a runtime update can be rolled back |
-| 4 — Polish and Store | Sparkle, import from other tools, LAN warning, App Store scheme, measured-speed calibration | App Store submission accepted; Sparkle update applied on a real machine |
+| 4 — Polish and developer distribution | Sparkle, Homebrew/DMG installation, import from other tools, LAN warning, measured-speed calibration | Fresh Homebrew and DMG installs work on another Mac, the CLI is available through Homebrew, and a Sparkle update applies from a shipped release |
 | 5 — Multiple endpoints | Concurrent `ServerController`s, per-endpoint config/logs/menu row, cross-endpoint RAM accounting | Two runtimes serve concurrently on distinct ports, each ping-passes, and fit verdicts account for both |
 
 ## Project layout
@@ -75,7 +75,7 @@ Goal: a menu bar app that runs the bundled `llama-server` against a folder and t
 - [x] 8. **Ping sheet.** Three rows with timings: server up (`/health`), model loaded (`/models` non-empty), first token (`/v1/chat/completions` streamed, `max_tokens: 1`, time to first SSE chunk). No chat. Opened as its own `Window` scene, not a `.sheet` presented from the `MenuBarExtra` — see `PingSheet.swift`. Two things only found by testing against a real b11081 build: router mode lists a never-used model as `"unloaded"`, not `"loaded"`, so "model loaded" checks list non-emptiness (matching this step's own wording above) rather than filtering by status; and `/v1/chat/completions` 400s with "model name is missing from the request" without an explicit `"model"` field, so the first-token step uses the id `listModels` returned.
 - [x] 9. **Logs window.** Live tail of the ring buffer (polling `LogStore.recentLines` twice a second — no publisher, per AGENTS.md's "No Combine"), level filter, Reveal in Finder, Copy last 200 lines.
 - [x] 10. **Open at login.** `SMAppService.mainApp.register()/unregister()` via `LoginItem.swift`. "start server automatically" (`Config.autoStartServer`) is stored but not yet wired to anything — there's no app-launch-time auto-start call yet; that belongs with step 8/9's PR once there's a model to auto-start with.
-- [x] 11. **CI.** `release.yml` on a `v*` tag push: vendor, `xcodebuild archive` + `-exportArchive` (Developer ID, reusing the same identity `lookout` already uses — same Apple Developer account), `notarytool submit --wait`, staple, `create-dmg`, GitHub Release. The actual sign/export/notarize/staple logic lives in `scripts/sign-and-notarize.sh`/`scripts/make-dmg.sh`, shared with the local dev entry point `scripts/install.sh` — not duplicated CI-only logic. CI-specific: importing the cert into a dedicated build keychain (`.github/workflows/release.yml`'s own step, copied from the `documail` project's own release workflow). Secrets: `APPLE_DEVELOPER_ID_APPLICATION_CERT_P12`/`_PASSWORD`, `APPLE_TEAM_ID`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` — see ADR D-018. App Store Connect submission is a separate, not-yet-built path (Phase 4).
+- [x] 11. **CI.** `release.yml` on a `v*` tag push: vendor, `xcodebuild archive` + `-exportArchive` (Developer ID, reusing the same identity `lookout` already uses — same Apple Developer account), `notarytool submit --wait`, staple, `create-dmg`, GitHub Release. The actual sign/export/notarize/staple logic lives in `scripts/sign-and-notarize.sh`/`scripts/make-dmg.sh`, shared with the local dev entry point `scripts/install.sh` — not duplicated CI-only logic. CI-specific: importing the cert into a dedicated build keychain (`.github/workflows/release.yml`'s own step, copied from the `documail` project's own release workflow). Secrets: `APPLE_DEVELOPER_ID_APPLICATION_CERT_P12`/`_PASSWORD`, `APPLE_TEAM_ID`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` — see ADR D-018. App Store submission was subsequently cancelled by D-053; Phase 4 now validates Homebrew and DMG distribution.
 
 **Done when:** placing a GGUF in `~/Library/Application Support/Quail/Models/gguf/` and clicking Start yields a passing ping test, and a notarized DMG installs on a second Mac without Gatekeeper complaint.
 
@@ -149,14 +149,18 @@ Originally Phase 3 steps 4–10 (direct build only, per D-006). Deferred by D-02
 11. **Supervisor hardening.** `PYTHONUNBUFFERED=1`, `TERM=dumb`, stdin closed, 90 s bind timeout with a clear failure message.
 12. **Cross-runtime benchmark.** Extend Phase 2b's suite into a comparison across all MLX runtimes present (same model, same chip), per ARCHITECTURE §7's calibration story. Only meaningful once a Python runtime exists.
 
-## Phase 4 — Polish and Store
+## Phase 4 — Polish and developer distribution
+
+Mac App Store publication is cancelled (D-053). Completed steps in earlier phases retain the history of the Store configuration; the remaining release work targets the same free, signed app through Homebrew and the direct DMG.
 
 1. [x] Sparkle 2 (SPM), EdDSA key, appcast on GitHub Releases, `generate_appcast` in CI, and Settings → General → Updates (ADR D-032). Tested end to end locally; the first real update from a shipped release is still to see.
 1a. [x] Homebrew: `brew install --cask adatoo/tap/quail-ai` (ADR D-033); the Release workflow updates the tap's cask each release.
 2. Import on first run from `~/.cache/llama.cpp`, `~/.omlx/models`, `~/.cache/huggingface/hub`, `~/.lmstudio/models` (move, not copy; never symlink).
 3. LAN binding one-time warning; API key strongly suggested when host is `0.0.0.0`.
 4. Measured-speed calibration: store TTFT and tok/s per (model, chip) — delivered by Phase 2b's benchmark, shown on installed models; still to do: feed measurements back into estimates for models not yet benchmarked (e.g. a per-chip correction factor).
-5. App Store scheme: sandbox entitlements, `llama-server` signed with `app-sandbox` + `inherit`, model store inside the container by default, `#if !APPSTORE` compiled out and verified by a CI grep that no uv/PyPI code survives in that binary. **Also remove Sparkle from that build** (D-032): it's linked into every configuration today.
+5. **Cancelled — App Store submission** (D-053): no Store-specific helper signing, Sparkle removal or submission pipeline is planned.
+5a. [ ] **Remove legacy Store build machinery.** In a separate cleanup, remove the App Store schemes/configurations, entitlements, compile guards and CI task; update AGENTS.md and contributor/build instructions together. Preserve the direct build's runtime behavior, signing, notarization and Sparkle updates. Until then, existing build checks remain in place.
+5b. [ ] **Developer distribution acceptance.** On another Mac, verify a fresh Homebrew installation, `quail` on PATH, a fresh DMG installation, Gatekeeper acceptance, model installation and a passing Ping, offline operation after model download, and a Sparkle update from a shipped release. Record the app/OS versions and results.
 6. ~~About pane~~ — done as a section of Settings → General, not a pane (D-029): app version, distribution, llama.cpp tag, catalog revision, macOS, Copy Details and the open-source licences. Still to add there as they exist: the `quail-server` version, runtime pins, the update check.
 
 ## Phase 5 — Multiple endpoints
