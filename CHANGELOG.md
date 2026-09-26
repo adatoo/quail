@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-09-26
+
+### Added
+
+- MLX models can be benchmarked with the Quail server runtime, and the Benchmark pane says which format each model and result is (GGUF or MLX), and which server ran it.
+
 ## [0.32.2] - 2026-09-26
 
 ### Fixed

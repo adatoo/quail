@@ -114,7 +114,7 @@ final class BenchmarkController {
             hardware: context.hardware,
             model: context.model,
             engine: BenchmarkResult.Engine(
-                runtime: "llama.cpp",
+                runtime: context.runtimeName,
                 build: output.properties.build,
                 contextSize: output.properties.contextSize,
                 slots: output.properties.slots
@@ -176,4 +176,6 @@ struct BenchmarkContext: Sendable {
     var hardware: BenchmarkResult.Hardware
     var model: BenchmarkResult.Model
     var estimatedTokensPerSecond: Double?
+    /// Which server ran it ("llama.cpp", "Quail server"), recorded in the result.
+    var runtimeName: String = "llama.cpp"
 }

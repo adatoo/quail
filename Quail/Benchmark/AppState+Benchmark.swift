@@ -2,10 +2,16 @@ import Foundation
 import os
 
 extension AppState {
-    /// Installed GGUF models — the ones the running server can benchmark.
+    /// Installed models the chosen runtime can serve, so can benchmark: GGUF under llama.cpp, GGUF and MLX
+    /// under the Quail server.
     var benchmarkableModels: [String] {
         _ = storeRevision // re-read when the store changes
-        return modelStore.loadCatalog().entries.filter { $0.format == .gguf }.map(\.id).sorted()
+        return modelStore.loadCatalog().entries.filter { canServe($0.format) }.map(\.id).sorted()
+    }
+
+    /// "GGUF" or "MLX", for labelling a model in the Benchmark pane.
+    func formatLabel(ofModel id: String) -> String? {
+        modelStore.loadCatalog().entries.first { $0.id == id }.map { $0.format == .gguf ? "GGUF" : "MLX" }
     }
 
     /// Benchmarks `id` on the running server and saves the result.
@@ -16,14 +22,15 @@ extension AppState {
         guard let entry = modelStore.loadCatalog().entries.first(where: { $0.id == id }) else {
             throw BenchmarkError.unknownModel(id)
         }
-        guard entry.format == .gguf else { throw BenchmarkError.notGGUF(id) }
+        guard canServe(entry.format) else { throw BenchmarkError.notGGUF(id) }
 
         let store = modelStore
         let runtime = config.runtimeID
+        let runtimeName = self.runtime.id.displayName
         let apiKey = serverController.apiKey
         return try await benchmarks.execute(model: id) { [self] controller in
             let context = await Task.detached(priority: .userInitiated) {
-                Self.benchmarkContext(for: entry, store: store, runtime: runtime)
+                Self.benchmarkContext(for: entry, store: store, runtime: runtime, runtimeName: runtimeName)
             }.value
             try Task.checkCancellation()
             await benchmarkLog("benchmark of \(id) started")
@@ -53,10 +60,17 @@ extension AppState {
     nonisolated static func benchmarkContext(
         for entry: InstalledModel,
         store: ModelStore,
-        runtime: RuntimeID
+        runtime: RuntimeID,
+        runtimeName: String = RuntimeID.llamaCpp.displayName
     ) -> BenchmarkContext {
         let device = DeviceInfo.current()
-        let metadata = try? GGUFMetadata.read(from: store.ggufDirectory.appendingPathComponent("\(entry.id).gguf"))
+        let architecture: String? = switch entry.format {
+        case .gguf:
+            (try? GGUFMetadata.read(from: store.ggufDirectory.appendingPathComponent("\(entry.id).gguf")))?.architecture
+        case .mlxSafetensors:
+            (try? MLXMetadata.read(from: store.mlxDirectory.appendingPathComponent(entry.id)
+                    .appendingPathComponent("config.json")))?.modelType
+        }
         let estimate = ModelPreview.installed(
             entry: entry, store: store, device: device,
             ggufRuntime: runtime, bandwidthTable: ChipBandwidthTable.loadFromBundle()
@@ -76,16 +90,17 @@ extension AppState {
             ),
             model: BenchmarkResult.Model(
                 id: entry.id,
-                format: "gguf",
+                format: entry.format == .gguf ? "gguf" : "mlx",
                 sourceRepo: entry.sourceRepo,
                 quant: entry.quant,
                 params: entry.params,
                 bytes: entry.bytes,
                 sha256: entry.sha256,
-                architecture: metadata?.architecture,
+                architecture: architecture,
                 trainedContext: entry.trainedContext
             ),
-            estimatedTokensPerSecond: estimate?.estimatedTokensPerSecond
+            estimatedTokensPerSecond: estimate?.estimatedTokensPerSecond,
+            runtimeName: runtimeName
         )
     }
 }
