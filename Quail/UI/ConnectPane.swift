@@ -65,7 +65,10 @@ struct ConnectPane: View {
 
     private var installedModels: [String] {
         _ = appState.storeRevision // re-read when the store changes
-        return appState.modelStore.installedGGUFFiles().map { $0.deletingPathExtension().lastPathComponent }
+        // The store's catalog, not a GGUF scan, so MLX models are offered too.
+        return appState.modelStore.loadCatalog().entries
+            .filter { appState.canServe($0.format) }
+            .map(\.id)
     }
 
     /// The context `model` will run at (what presets.ini says).
@@ -89,7 +92,8 @@ struct ConnectPane: View {
         return SnippetRenderer.Values(
             baseURL: base,
             apiKey: appState.config.apiKeyEnabled ? appState.apiKey : nil,
-            model: model.isEmpty ? "your-model-id" : model
+            model: model.isEmpty ? "your-model-id" : model,
+            contextSize: model.isEmpty ? nil : contextSize(of: model)
         )
     }
 

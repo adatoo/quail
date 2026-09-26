@@ -17,6 +17,10 @@ struct ConnectTests {
         noKey.apiKey = nil
         #expect(SnippetRenderer.render("{{apiKey}}", with: noKey) == SnippetRenderer.noKeyStandIn)
         #expect(SnippetRenderer.unfilledPlaceholders(in: "a {{typo}} b") == ["{{typo}}"])
+        #expect(SnippetRenderer.render("{{contextSize}} {{maxOutput}}", with: Self.values) == "32768 8192")
+        var small = Self.values
+        small.contextSize = 8192
+        #expect(SnippetRenderer.render("{{contextSize}} {{maxOutput}}", with: small) == "8192 2048")
     }
 
     @Test("every bundled integration decodes and renders with no leftover placeholders")
