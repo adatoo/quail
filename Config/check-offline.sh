@@ -105,8 +105,21 @@ messages() { # messages port model — Anthropic Messages API, as Claude Code us
     -d "{\"model\":\"$2\",\"max_tokens\":40,\"messages\":[{\"role\":\"user\",\"content\":\"/no_think Reply with the single word pong\"}]}" \
     | grep -qi pong
 }
-page() { curl -sf --compressed -m 10 "localhost:$1/" | grep -qi "<html"; } # llama-server serves its page gzipped only
-models() { curl -sf -m 10 "localhost:$1/v1/models" | grep -q "$2"; }
+image_chat() { # image_chat port model — the app icon (a quail) as an image; the reply must mention a bird
+  local icon="$ROOT/Quail/Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png"
+  printf '{"model":"%s","max_tokens":200,"temperature":0,"chat_template_kwargs":{"enable_thinking":false},"messages":[{"role":"user","content":[{"type":"text","text":"What animal is in this picture? One sentence."},{"type":"image_url","image_url":{"url":"data:image/png;base64,%s"}}]}]}' \
+    "$2" "$(base64 -i "$icon")" > "$WORK/image.json"
+  curl -sf -m 600 "localhost:$1/v1/chat/completions" -H 'content-type: application/json' -d @"$WORK/image.json" \
+    | grep -Eqi 'bird|quail|pheasant|partridge'
+}
+reads_images() { curl -sf -m 10 "localhost:$1/v1/models" | /usr/bin/python3 -c "
+import json, sys
+m = [x for x in json.load(sys.stdin)['data'] if x['id'] == sys.argv[1]]
+sys.exit(0 if m and 'image' in m[0]['architecture']['input_modalities'] else 1)" "$2"; }
+# Read whole bodies before grepping: `grep -q` stops at the first match, and with pipefail the writer's
+# SIGPIPE would fail the check.
+page() { local body; body="$(curl -sf --compressed -m 10 "localhost:$1/")" && grep -qi "<html" <<<"$body"; } # llama-server serves its page gzipped only
+models() { local body; body="$(curl -sf -m 10 "localhost:$1/v1/models")" && grep -q "$2" <<<"$body"; }
 alive() { kill -0 "$1" 2>/dev/null; }
 
 echo "==> quail-server, every outbound connection fatal (GGUF $GGUF_MODEL${MLX_MODEL:+, MLX $MLX_MODEL})"
@@ -125,6 +138,11 @@ if wait_health "$PORT" "$QS"; then
     check "MLX chat" chat "$PORT" "$MLX_MODEL"
     check "MLX streamed chat" stream "$PORT" "$MLX_MODEL"
     check "MLX /v1/messages" messages "$PORT" "$MLX_MODEL"
+    if reads_images "$PORT" "$MLX_MODEL"; then
+      check "MLX image chat (its vision half)" image_chat "$PORT" "$MLX_MODEL"
+    else
+      echo "  - $MLX_MODEL is text-only; MLX image chat skipped (MLX_MODEL=<a Qwen3.5-family model> to include it)"
+    fi
   else
     echo "  - no MLX model in the store; MLX skipped"
   fi

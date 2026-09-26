@@ -71,6 +71,9 @@ struct Catalog: Sendable, Equatable {
 
     struct MLXVariant: Sendable, Equatable, Hashable {
         var repo: String
+        /// Checked to read images in Quail's MLX engine (a Qwen3.5-family model with its vision half,
+        /// ADR D-047 amendment).
+        var vision = false
     }
 
     struct RAMTier: Sendable, Equatable {
@@ -135,6 +138,7 @@ struct Catalog: Sendable, Equatable {
 
                 struct MLX: Sendable, Equatable, Codable {
                     var repo: String
+                    var vision: Bool?
                 }
 
                 var gguf: GGUF?
@@ -193,7 +197,7 @@ struct Catalog: Sendable, Equatable {
                             defaultQuant: $0.default,
                             mmproj: $0.mmproj
                         ) },
-                        mlx: raw.variants.mlx.map { MLXVariant(repo: $0.repo) },
+                        mlx: raw.variants.mlx.map { MLXVariant(repo: $0.repo, vision: $0.vision ?? false) },
                         isCurated: true,
                         addedAt: nil
                     )

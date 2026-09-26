@@ -44,8 +44,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "0.39.0"
-    CURRENT_PROJECT_VERSION: "65"
+    MARKETING_VERSION: "0.40.0"
+    CURRENT_PROJECT_VERSION: "66"
     ENABLE_HARDENED_RUNTIME: YES
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_LSUIElement: YES
@@ -271,6 +271,8 @@ targets:
         product: MLXLLM
       - package: MLXSwiftLM
         product: MLXLMCommon
+      - package: MLXSwiftLM
+        product: MLXVLM
       - package: SwiftTransformers
         product: Tokenizers
       # A static library doesn't carry its package products to whatever links it.

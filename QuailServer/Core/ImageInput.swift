@@ -9,6 +9,10 @@ public enum ImageInput {
     /// libmtmd's default marker, checked against the library when the engine loads a projector.
     public static let marker = "<__media__>"
 
+    /// Why a model can't take the images it was sent — both ways Quail reads images, so the fix is clear.
+    public static let unsupportedMessage =
+        "this model can't read images in Quail: a GGUF model needs its vision projector (mmproj), and of MLX models only the Qwen3.5 family (Qwen3.5, 3.6, 3.8) and Gemma 4 26B-A4B and 31B read images so far"
+
     /// The most one image may weigh once decoded (the request body has its own, larger limit).
     static let maxBytes = 32 << 20
 
