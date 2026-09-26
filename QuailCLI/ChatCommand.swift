@@ -22,7 +22,8 @@ struct ChatCommand: AsyncParsableCommand {
           quail chat qwen3 why is the sky blue
           quail chat -m qwen3 why is the sky blue
 
-        In a chat: /clear forgets the conversation, /bye exits.
+        In a chat: ↑/↓ recall earlier messages (kept across chats), ←/→ and Ctrl-A/E \
+        edit the line, Ctrl-R searches; /clear forgets the conversation, /bye exits.
         """
     )
 
@@ -68,12 +69,12 @@ struct ChatCommand: AsyncParsableCommand {
             return try await Self.send(piped, with: chat)
         }
 
-        print(Output.dim("Chatting with \(model). /clear to forget, /bye to exit."))
+        print(Output.dim("Chatting with \(model). ↑ for earlier messages, /clear to forget, /bye to exit."))
+        let editor = LineEditor()
         while true {
-            print(">>> ", terminator: "")
-            fflush(stdout)
-            guard let line = readLine() else { break }
+            guard let line = editor.read(prompt: ">>> ") else { break }
             let text = line.trimmingCharacters(in: .whitespaces)
+            editor.remember(text)
             switch text {
             case "": continue
             case "/bye", "/exit", "/quit": return
