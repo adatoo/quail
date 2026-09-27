@@ -36,18 +36,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let appState = isHostingUnitTests ? AppState(secretStore: NullSecretStore()) : AppState()
 
-    #if !APPSTORE
-        /// The in-app updater. Not started when hosting unit tests (it would check the real feed).
-        private let updater = Updater(start: !isHostingUnitTests)
-    #endif
+    /// The in-app updater. Not started when hosting unit tests (it would check the real feed).
+    private let updater = Updater(start: !isHostingUnitTests)
 
-    /// What Settings → Updates and the menu's "Check for Updates…" use; `nil` in the App Store build.
+    /// What Settings → Updates and the menu's "Check for Updates…" use.
     var updateSettings: UpdateSettings? {
-        #if APPSTORE
-            nil
-        #else
-            updater.settings
-        #endif
+        updater.settings
     }
 
     private var sigtermSource: DispatchSourceSignal?
@@ -71,10 +65,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         source.resume()
         sigtermSource = source
 
-        #if !APPSTORE
-            // Sleep left disabled by the lid-closed option of a run that ended without cleaning up (ADR D-054).
-            appState.lidGuard.recoverIfLeftOn()
-        #endif
+        // Sleep left disabled by the lid-closed option of a run that ended without cleaning up (ADR D-054).
+        appState.lidGuard.recoverIfLeftOn()
 
         // Weekly catalog refresh (docs/ARCHITECTURE.md §6) — no-ops
         // until a `QuailCatalogURL` exists in Info.plist; see
@@ -113,10 +105,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_: Notification) {
         controlServer?.stop()
-        #if !APPSTORE
-            // The loop would notice Quail is gone anyway; this ends it at once.
-            appState.lidGuard.stop()
-        #endif
+        // The loop would notice Quail is gone anyway; this ends it at once.
+        appState.lidGuard.stop()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

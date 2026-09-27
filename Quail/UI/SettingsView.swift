@@ -17,7 +17,7 @@ enum SettingsTab: Hashable {
 /// in later phases per docs/IMPLEMENTATION_PLAN.md.
 struct SettingsView: View {
     let appState: AppState
-    /// `nil` in the App Store build, which has no in-app updater.
+    /// `nil` where no updater runs (previews and tests).
     var updateSettings: UpdateSettings?
 
     var body: some View {
@@ -93,37 +93,35 @@ private struct GeneralSettingsView: View {
 
             PowerSection(appState: appState)
 
-            #if !APPSTORE
-                Section {
-                    LabeledContent("quail command") {
-                        HStack {
-                            Button(cliInstalled ? "Reinstall" : "Install") {
-                                cliMessage = CommandLineTool.install()
-                                cliInstalled = CommandLineTool.isInstalled
-                            }
-                            .disabled(CommandLineTool.bundledURL == nil)
-                            Button("Uninstall") {
-                                cliMessage = CommandLineTool.uninstall()
-                                cliInstalled = CommandLineTool.isInstalled
-                            }
-                            .disabled(!cliInstalled)
+            Section {
+                LabeledContent("quail command") {
+                    HStack {
+                        Button(cliInstalled ? "Reinstall" : "Install") {
+                            cliMessage = CommandLineTool.install()
+                            cliInstalled = CommandLineTool.isInstalled
                         }
+                        .disabled(CommandLineTool.bundledURL == nil)
+                        Button("Uninstall") {
+                            cliMessage = CommandLineTool.uninstall()
+                            cliInstalled = CommandLineTool.isInstalled
+                        }
+                        .disabled(!cliInstalled)
                     }
-                    Text(cliMessage ?? (cliInstalled
-                            ? "Installed at ~/.local/bin/quail."
-                            : "Not installed."))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .lineLimit(3, reservesSpace: true)
-                } header: {
-                    Text("Command line")
-                } footer: {
-                    Text("quail start · quail chat · quail launch claude — like ollama.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
-            #endif
+                Text(cliMessage ?? (cliInstalled
+                        ? "Installed at ~/.local/bin/quail."
+                        : "Not installed."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .lineLimit(3, reservesSpace: true)
+            } header: {
+                Text("Command line")
+            } footer: {
+                Text("quail start · quail chat · quail launch claude — like ollama.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             if let updateSettings {
                 UpdatesSection(settings: updateSettings)
@@ -133,60 +131,56 @@ private struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .onAppear {
-            #if !APPSTORE
-                cliInstalled = CommandLineTool.isInstalled
-            #endif
+            cliInstalled = CommandLineTool.isInstalled
         }
     }
 }
 
-#if !APPSTORE
-    /// "Install quail Command": a symlink from `~/.local/bin/quail` to the
-    /// CLI inside this app (`Contents/Helpers/quail`) — no admin password,
-    /// unlike /usr/local/bin. The symlink follows the app, so updating
-    /// Quail updates the command.
-    enum CommandLineTool {
-        static var linkURL: URL {
-            FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent(".local/bin/quail")
-        }
+/// "Install quail Command": a symlink from `~/.local/bin/quail` to the
+/// CLI inside this app (`Contents/Helpers/quail`) — no admin password,
+/// unlike /usr/local/bin. The symlink follows the app, so updating
+/// Quail updates the command.
+enum CommandLineTool {
+    static var linkURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".local/bin/quail")
+    }
 
-        static var bundledURL: URL? {
-            let url = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/quail")
-            return FileManager.default.isExecutableFile(atPath: url.path) ? url : nil
-        }
+    static var bundledURL: URL? {
+        let url = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/quail")
+        return FileManager.default.isExecutableFile(atPath: url.path) ? url : nil
+    }
 
-        static var isInstalled: Bool {
-            (try? FileManager.default.destinationOfSymbolicLink(atPath: linkURL.path)) != nil
-        }
+    static var isInstalled: Bool {
+        (try? FileManager.default.destinationOfSymbolicLink(atPath: linkURL.path)) != nil
+    }
 
-        static func install() -> String {
-            guard let target = bundledURL else { return "This build of Quail doesn't include the quail command." }
-            let fm = FileManager.default
-            do {
-                try fm.createDirectory(at: linkURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-                if (try? fm.destinationOfSymbolicLink(atPath: linkURL.path)) != nil || fm
-                    .fileExists(atPath: linkURL.path)
-                {
-                    try fm.removeItem(at: linkURL)
-                }
-                try fm.createSymbolicLink(at: linkURL, withDestinationURL: target)
-            } catch {
-                return "Couldn't install: \(error.localizedDescription)"
+    static func install() -> String {
+        guard let target = bundledURL else { return "This build of Quail doesn't include the quail command." }
+        let fm = FileManager.default
+        do {
+            try fm.createDirectory(at: linkURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            if (try? fm.destinationOfSymbolicLink(atPath: linkURL.path)) != nil || fm
+                .fileExists(atPath: linkURL.path)
+            {
+                try fm.removeItem(at: linkURL)
             }
-            return "Installed at ~/.local/bin/quail. If your shell can't find it, add ~/.local/bin to your PATH."
+            try fm.createSymbolicLink(at: linkURL, withDestinationURL: target)
+        } catch {
+            return "Couldn't install: \(error.localizedDescription)"
         }
+        return "Installed at ~/.local/bin/quail. If your shell can't find it, add ~/.local/bin to your PATH."
+    }
 
-        static func uninstall() -> String {
-            do {
-                try FileManager.default.removeItem(at: linkURL)
-                return "Removed ~/.local/bin/quail."
-            } catch {
-                return "Couldn't remove it: \(error.localizedDescription)"
-            }
+    static func uninstall() -> String {
+        do {
+            try FileManager.default.removeItem(at: linkURL)
+            return "Removed ~/.local/bin/quail."
+        } catch {
+            return "Couldn't remove it: \(error.localizedDescription)"
         }
     }
-#endif
+}
 
 private struct EndpointSettingsView: View {
     let appState: AppState

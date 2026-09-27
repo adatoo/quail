@@ -9,11 +9,6 @@ struct AppInfoTests {
         #expect(!AppInfo.version.isEmpty)
     }
 
-    @Test("the Quail scheme is not compiled as an App Store build")
-    func developerIDSchemeIsNotAppStore() {
-        #expect(AppInfo.isAppStoreBuild == false)
-    }
-
     @Test("the display version is version and build, like `quail --version`")
     func displayVersion() {
         #expect(AppInfo.displayVersion == "\(AppInfo.version) (\(AppInfo.build))")

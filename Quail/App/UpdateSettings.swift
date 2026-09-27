@@ -48,8 +48,7 @@ enum UpdateFrequency: String, CaseIterable, Identifiable, Sendable {
 }
 
 /// The part of Sparkle's `SPUUpdater` the settings use, so the mapping below can
-/// be tested with a fake, and this file compiles in the App Store build (which
-/// has no updater) too.
+/// be tested with a fake.
 @MainActor
 protocol UpdateBackend: AnyObject {
     var automaticallyChecksForUpdates: Bool { get set }

@@ -70,6 +70,3 @@ jobs:
 
       - name: Test (Quail)
         run: task test
-
-      - name: Build (Quail-AppStore)
-        run: task build:appstore

@@ -9,8 +9,6 @@ options:
 configs:
   Debug: debug
   Release: release
-  Debug-AppStore: debug
-  Release-AppStore: release
 
 packages:
   # ADR D-032: the in-app updater (direct build only — see Quail/App/Updater.swift).
@@ -44,8 +42,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "0.48.0"
-    CURRENT_PROJECT_VERSION: "85"
+    MARKETING_VERSION: "0.48.1"
+    CURRENT_PROJECT_VERSION: "86"
     ENABLE_HARDENED_RUNTIME: YES
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_LSUIElement: YES
@@ -59,8 +57,6 @@ settings:
     # Shipped builds are Apple silicon only: the bundled llama-server is arm64-only
     # and MLX (Phase 3) needs Apple silicon, so an x86_64 slice can't run the server.
     Release:
-      ARCHS: arm64
-    Release-AppStore:
       ARCHS: arm64
 
 targets:
@@ -85,7 +81,6 @@ targets:
     # one up — see Config/LocalSigning.xcconfig for why (Keychain prompt).
     configFiles:
       Debug: Config/LocalSigning.xcconfig
-      Debug-AppStore: Config/LocalSigning.xcconfig
     # A real, XcodeGen-written Info.plist, not GENERATE_INFOPLIST_FILE:
     # confirmed empirically that INFOPLIST_KEY_<CustomKey> only works
     # for Apple-recognized keys — an arbitrary one like QuailCatalogURL
@@ -139,12 +134,6 @@ targets:
           CODE_SIGN_ENTITLEMENTS: Quail/Quail.entitlements
         Release:
           CODE_SIGN_ENTITLEMENTS: Quail/Quail.entitlements
-        Debug-AppStore:
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG APPSTORE"
-          CODE_SIGN_ENTITLEMENTS: Quail/Quail-AppStore.entitlements
-        Release-AppStore:
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "APPSTORE"
-          CODE_SIGN_ENTITLEMENTS: Quail/Quail-AppStore.entitlements
     postbuildScripts:
       - name: "Embed llama.cpp"
         script: |
@@ -201,7 +190,6 @@ targets:
         SKIP_INSTALL: YES
     configFiles:
       Debug: Config/LocalSigning.xcconfig
-      Debug-AppStore: Config/LocalSigning.xcconfig
 
   # The server's code (ADR D-027): HTTP layer, model router, engine seam,
   # routes. A static library so QuailTests can import it; the executable
@@ -224,10 +212,6 @@ targets:
       configs:
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG"
-        Debug-AppStore:
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG APPSTORE"
-        Release-AppStore:
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "APPSTORE"
 
   # The GGUF engine (ADR D-043): libllama through the xcframework `task vendor:llama` stages.
   # A separate library so QuailServerCore, and what the app and CLI link, never carry it.
@@ -248,13 +232,8 @@ targets:
       configs:
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG"
-        Debug-AppStore:
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG APPSTORE"
-        Release-AppStore:
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "APPSTORE"
 
-  # `quail-server`, shipped at Quail.app/Contents/MacOS in both builds (it
-  # needs no Python). The version comes from an Info.plist linked into the
+  # `quail-server`, shipped at Quail.app/Contents/MacOS. The version comes from an Info.plist linked into the
   # binary, so `--version` can't drift from the app (ADR D-024).
   QuailServer:
     type: tool
@@ -292,13 +271,8 @@ targets:
       configs:
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG"
-        Debug-AppStore:
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG APPSTORE"
-        Release-AppStore:
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "APPSTORE"
     configFiles:
       Debug: Config/LocalSigning.xcconfig
-      Debug-AppStore: Config/LocalSigning.xcconfig
 
   QuailTests:
     type: bundle.unit-test
@@ -307,7 +281,6 @@ targets:
       - path: QuailTests
     configFiles:
       Debug: Config/LocalSigning.xcconfig
-      Debug-AppStore: Config/LocalSigning.xcconfig
     dependencies:
       - target: Quail
         embed: false
@@ -336,16 +309,3 @@ schemes:
         - QuailTests
     archive:
       config: Release
-
-  Quail-AppStore:
-    build:
-      targets:
-        Quail: all
-    run:
-      config: Debug-AppStore
-    test:
-      config: Debug-AppStore
-      targets:
-        - QuailTests
-    archive:
-      config: Release-AppStore

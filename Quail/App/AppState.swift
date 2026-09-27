@@ -20,10 +20,8 @@ final class AppState {
     let serverController: ServerController
     /// Holds off idle sleep while the server runs, when `Config.keepAwake` asks (ADR D-054).
     let keepAwake: KeepAwake
-    #if !APPSTORE
-        /// Keeps a plugged-in laptop awake with its lid closed, when `Config.keepAwakeLidClosed` asks.
-        @ObservationIgnored let lidGuard = LidSleepGuard()
-    #endif
+    /// Keeps a plugged-in laptop awake with its lid closed, when `Config.keepAwakeLidClosed` asks.
+    @ObservationIgnored let lidGuard = LidSleepGuard()
     /// For Settings: whether the lid-closed option is running, or why it isn't.
     private(set) var lidGuardStatus: String?
 
@@ -109,7 +107,7 @@ final class AppState {
             config.quailDefaultApplied = true
         }
         // The runtime the config names, unless a test hands one in; one that can't be started here (oMLX,
-        // Rapid-MLX, or Quail server in the App Store build) falls back to llama.cpp, and the config says so.
+        // Rapid-MLX, deferred) falls back to llama.cpp, and the config says so.
         if runtime == nil, !RuntimeID.available.contains(config.runtimeID) {
             config.runtimeID = .llamaCpp
         }
@@ -164,27 +162,25 @@ final class AppState {
     /// settings and whether the server runs. Called on every phase change and settings change.
     func updatePower() {
         keepAwake.update(active: config.keepAwake && serverRunning)
-        #if !APPSTORE
-            guard config.keepAwake, config.keepAwakeLidClosed else {
-                lidGuard.stop()
-                lidGuardStatus = nil
-                return
-            }
-            if serverRunning {
-                lidGuard.start() // the password prompt, once per launch
-            }
-            lidGuard.setServing(serverRunning)
-            switch lidGuard.state {
-            case .on:
-                lidGuardStatus = LidSleepGuard.onACPower
-                    ? "On: with the lid closed, this Mac stays awake while the server runs."
-                    : "On, but paused: this Mac is on battery, so closing the lid will sleep it."
-            case .off:
-                lidGuardStatus = "Starts with the server (you'll be asked for your password once)."
-            case let .failed(reason):
-                lidGuardStatus = "Not on: \(reason). Turn it off and on again to retry."
-            }
-        #endif
+        guard config.keepAwake, config.keepAwakeLidClosed else {
+            lidGuard.stop()
+            lidGuardStatus = nil
+            return
+        }
+        if serverRunning {
+            lidGuard.start() // the password prompt, once per launch
+        }
+        lidGuard.setServing(serverRunning)
+        switch lidGuard.state {
+        case .on:
+            lidGuardStatus = LidSleepGuard.onACPower
+                ? "On: with the lid closed, this Mac stays awake while the server runs."
+                : "On, but paused: this Mac is on battery, so closing the lid will sleep it."
+        case .off:
+            lidGuardStatus = "Starts with the server (you'll be asked for your password once)."
+        case let .failed(reason):
+            lidGuardStatus = "Not on: \(reason). Turn it off and on again to retry."
+        }
     }
 
     func setKeepAwake(_ enabled: Bool) {
@@ -198,13 +194,11 @@ final class AppState {
         guard enabled != config.keepAwakeLidClosed else { return }
         config.keepAwakeLidClosed = enabled
         persist()
-        #if !APPSTORE
-            if !enabled {
-                lidGuard.stop()
-            } else if case .failed = lidGuard.state {
-                lidGuard.stop() // so the next start asks again
-            }
-        #endif
+        if !enabled {
+            lidGuard.stop()
+        } else if case .failed = lidGuard.state {
+            lidGuard.stop() // so the next start asks again
+        }
         updatePower()
     }
 
@@ -352,7 +346,6 @@ final class AppState {
         guard !canServe(.mlxSafetensors) else { return nil }
         let count = modelStore.installedMLXDirectories().count
         let name = runtime.id.displayName
-        // The legacy App Store build has no Quail server to switch to.
         let canSwitch = RuntimeID.available.contains(.quail)
         switch count {
         case 0:

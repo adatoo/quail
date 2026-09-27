@@ -6,7 +6,6 @@ Quail is a macOS menu bar app (SwiftUI, Swift 6, macOS 14+) that runs local LLM 
 
 - Swift 6 with strict concurrency. `Sendable` types, actors for the supervisor and model store, `@Observable` for UI state. No Combine.
 - No third-party UI. The only permitted dependencies are Sparkle (SPM, pinned, linked into the Quail app target only — ADR D-032), swift-argument-parser, linked into the `quail` CLI target only (ADR D-022), and `swift-jinja` (pinned), `OrderedCollections`, llama.cpp's `llama.xcframework` (the same pinned tag as the bundled `llama-server`; `QuailServerLlama` only, ADR D-043), and `mlx-swift-lm` and `swift-transformers` (both pinned exactly, with their transitive packages), linked into the `quail-server` tool only (ADRs D-028, D-035, D-044). Every Swift package that resolves, direct or transitive, needs an entry in `Config/third-party.json`; `task notices` regenerates `Quail/Resources/THIRD_PARTY_NOTICES.md` from it and CI checks the result.
-- App Store build must compile with every uv/PyPI/runtime-install code path removed: wrap those files or sections in `#if !APPSTORE`.
 - Never inherit the user's shell environment when spawning a runtime. Build `environment` explicitly in `ProcessSupervisor`.
 - Runtimes are always given explicit paths (`--models-dir`, `--model-dir`, `HF_HOME`). Never rely on a runtime's default folder.
 - Never call `rapid-mlx launch` or `rapid-mlx service …`; Quail runs `serve` and `pull` only.
@@ -19,7 +18,7 @@ Quail is a macOS menu bar app (SwiftUI, Swift 6, macOS 14+) that runs local LLM 
 Everything goes through [Task](https://taskfile.dev) (`brew install go-task`; ADR D-030) — the same commands locally and in CI. `task` lists them; `task doctor` checks your tools.
 
 ```
-task ci                    # exactly what CI runs: lint, vendor, build, verify, test (+ the App Store build)
+task ci                    # exactly what CI runs: lint, vendor, build, notices, verify, test
 task build                 # compile into ./DerivedData, unsigned like CI (never touches a running Quail; macOS won't open it — "damaged")
 task test                  # unit tests
 task lint / task format    # swiftformat
@@ -37,7 +36,7 @@ Smoke test after any change to Server/ or Runtimes/: place a small GGUF in the s
 
 ## Definition of done for a task
 
-- Builds with zero warnings in both schemes (`Quail`, `Quail-AppStore`).
+- Builds with zero warnings (warnings are errors).
 - Unit tests pass; new logic in `Models/`, `DeviceFit/`, `Server/` has tests using a fake `Runtime` where a process would otherwise be needed.
 - No absolute paths from the build machine end up in the bundle.
 - `docs/IMPLEMENTATION_PLAN.md` checkbox or phase status updated if the task completes a listed item.
