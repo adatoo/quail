@@ -10,6 +10,10 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Changed
+
+- Docs: the design for decoding several MLX requests together (D-056), for review before it's built. Also a record that draft-model speculation was tried and not shipped (D-055): a small draft model's guesses were kept only a third of the time, too rarely to pay.
+
 ## [0.43.1] - 2026-09-27
 
 ### Changed

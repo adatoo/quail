@@ -2,6 +2,55 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-056 · 2026-09-28 · Batched MLX decoding: design (Phase 3c step 8) — for review before code
+
+**Situation:** MLX serves one request at a time. `ModelContainer.perform` serialises them, and the router's lease lets one in. Four requests at once total about one request's speed: 51 against 52 tokens/s on Qwen3-8B, and 80 against 85 on Qwen3.6 35B-A3B (D-004 amendment of 2026-09-28). GGUF decodes up to four together (D-048). Agents make concurrent requests (Claude Code's permission check beside its turn, opencode's sub-agents), and so does the chat page next to an agent. Decode is bandwidth-bound, so a step over four sequences costs little more than a step over one. mlx-swift-lm's closed PR #263 measured 2.3× total at four on Gemma 4 26B-A4B.
+
+**What mlx-swift-lm 3.31.4 already has** (checked in its source):
+- Models take the attention mask and RoPE positions from the cache: `createAttentionMask(h:cache:)` delegates to `cache.makeMask`, and attention uses `cache.ropeOffset`, whose `RoPEOffset.batch(MLXArray)` case carries a position per sequence. Checked for Qwen3, Qwen3.5 (full-attention layers) and Gemma 4.
+- The recurrent (GatedDeltaNet) layers' `ArraysCache` has `leftPadding`, `lengths`, `filter(batchIndices:)` and `extend(other:)`.
+- The attention caches have no batched form: `KVCacheSimple` has one offset for the whole batch.
+
+**Proposed design:**
+1. **`BatchKVCache`** (in Quail, a `BaseKVCache` subclass) for attention layers.
+   - Keys and values are `[B, heads, T, dim]`, left-padded so every sequence's latest token is in the same column.
+   - It keeps a per-sequence left padding, and a `ropeOffset` of `.batch(offsets)`.
+   - `makeMask` returns causal plus left padding for prefill, and the padding mask for one-token steps.
+   - `filter(indices)` drops finished sequences. `extend(other)` adds a newly prefilled one, re-padding to the longer length.
+   - `slice(index)` hands one sequence back as a `KVCacheSimple` for the prompt caches.
+   - Sliding-window layers get the same treatment over `RotatingKVCache`'s ring, or batching stays off for them in the first cut.
+2. **`MLXBatchScheduler`,** shaped like `LlamaScheduler` (D-048), on the engine's own serial queue.
+   - A request prefills alone, with today's code: cache reuse, checkpoints, the disk tier, slices and cancellation.
+   - Then it joins the batch with `extend`.
+   - Each step decodes one token for every active sequence (`[B, 1]`). Each row is sampled with its own `SeededSampler`, and its penalty processors see its own tokens.
+   - A finished or cancelled sequence leaves with `filter`, and its cache goes back to `PromptCaches` through `slice`.
+   - With one sequence active it runs today's single-sequence loop unchanged, speculation included; speculation is off while two or more are batched.
+3. **Capability and gates.**
+   - `EngineCapabilities.concurrentRequests = true` for MLX. The router then lets several requests in, as it does for GGUF.
+   - Limit: `--parallel`, default 4, shared with GGUF.
+   - Vision turns and grammar-constrained requests stay single, and queue as today.
+   - Per-family enablement: on only for families verified to give batched output equal to single output (Qwen3, then Qwen3.5 and Gemma 4).
+4. **Memory.** Left padding wastes cells up to the length difference between sequences. A sequence much longer than the rest (over 2× and over 8,000 tokens) runs alone rather than padding the others.
+
+**How it will be checked:**
+- At temperature 0, each batched reply equals the same request run alone, apart from rounding, with differences counted and read.
+- The benchmark's four-at-once total at least 1.8× single on Qwen3-8B and Qwen3.6, and single-request speed unchanged within noise.
+- A hang-up of one sequence leaves the others' text unchanged.
+- A returning conversation still finds its cache after being batched.
+- A stress run of 200 mixed requests with random hang-ups leaves nothing held.
+
+**Size and order:** the largest item in Phase 3c, about 1,000–1,500 lines, in three PRs:
+1. `BatchKVCache`, with tests on a small model comparing batched and single forward passes.
+2. The scheduler and capability, behind a flag.
+3. Enabled by default per verified family.
+
+**Alternatives:**
+- Several engine instances, each loading the model: memory times N.
+- mlx-swift-lm's own batching: not in 3.31.4, and PR #263 was closed unmerged.
+- Waiting for upstream.
+
+**Revisit if:** a model family computes attention without `cache.makeMask` or `cache.ropeOffset` (it would need its own path), or upstream lands batched generation first (adopt it instead).
+
 ## D-055 · 2026-09-27 · MLX engine performance: catch up to mlx-swift-lm `main`, then per-conversation caching, before batching
 
 **Situation:** Reviewed oMLX and Rapid-MLX in depth (both deferred, D-027) to see what performance work they actually do on top of stock MLX. Neither forks MLX core or `mlx-lm`; both pin stock versions and build orchestration above them, plus a handful of model-family-specific Metal kernels reached through `mx.fast.metal_kernel`, not a patched MLX. Verified in their source: continuous batching on `mlx-lm`'s own `BatchGenerator`; a block-hashed prefix cache (despite the "paged" name, this is storage and hashing around `mlx-lm`'s ordinary contiguous `KVCache`, not GPU paged attention); an SSD tier for that cache (safetensors, survives restarts); MTP and prompt-lookup speculative decoding; a wired-memory and buffer-cache limit set at startup; and narrow wins — a fused sampler (Rapid-MLX claims ~4.3ms/token removed), fused MoE gate+up (+7%), and compiled decode for specific models. `MLXEngine` (D-044) today has none of the orchestration layer: it serves one request at a time (`concurrentRequests: false`), keeps exactly one prompt-prefix cache for the whole server (`ReusableCache` — a second conversation evicts the first's, so agent + chat-page use thrashes it), sets no wired-memory or MLX cache limit, and `SeededSampler` sorts the full vocabulary for top-p/min-p/top-k on every token even at request defaults (temperature 0.8, top-k 40, top-p 0.95, min-p 0.05 — all three run). `mlx-swift-lm` is pinned to 3.31.3 (`project.yml`); 3.31.4 and `main` already carry MTP speculative decoding, compiled decode for Qwen3.5/3.6, `TurboQuantKVCache`, and prompt-cache saves that include SSM/hybrid-model state.
@@ -65,6 +114,15 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
   - Prose is within 1–3%. The hybrid model's 2–3% comes from its occasional wrong guess costing a re-feed.
   - Greedy text with guessing matches the same loop without it. It differs from the library's iterator path from mid-reply on, because the prompt's tail is split differently (the rounding difference noted above).
   - A real `claude -p` task on Qwen3.6 took 99 s, against 129–218 s before this and the late-system-message fix.
+
+**Amended 2026-09-28 (draft-model speculation, tried and not shipped):** a small model of the same family drafting for a large one, named by a `model-draft` preset (llama-server's key).
+- It was built into the same decode loop, drafting only when prompt lookup found nothing. The draft model kept its own cache between requests and checked that its tokenizer matched the target's.
+- Measured with Qwen3-0.6B (MLX 4-bit) drafting for Qwen3-8B (MLX 4-bit), on the same prompts as step 6 and on a cooled machine:
+  - The draft model's guesses were kept only 34% of the time (21 of 61 on the summary, 40 of 124 on the story).
+  - Prose ran 30–33 tokens/s against 33–34 without it, and file rewriting was no faster, since lookup already covers it.
+  - Every guess costs a step of the small model plus a wider step of the large one, so at that rate it can't pay.
+- The code stays on the unmerged branch `perf/mlx-draft-model`. Revisit with a better-matched draft, such as a distilled drafter or Gemma 4's MTP heads (mlx-swift-lm 3.31.4 has MTP for Gemma 4), or with measured acceptance above about 60%.
+- The machine was also re-indexing Spotlight at the time, which slowed every run about a third alike; only the with/without comparison counts from this session.
 
 **Revisit if:** Phase 3c step 8's batching port needs more than the public `mlx-swift-lm` API exposes (paged attention on the GPU, specifically, needs a gather-SDPA kernel neither project's own comments claim to have solved cleanly), or a fresh cross-runtime benchmark (Phase 3 step 8/12) shows oMLX or Rapid-MLX still meaningfully ahead once steps 1–8 land — then D-027's deferral is reopened with real numbers instead of an assumption.
 
