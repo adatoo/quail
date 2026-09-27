@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.41.5] - 2026-09-27
+
+### Changed
+
+- **Gemma 4 26B-A4B (MLX) reuses its prompt cache**, as the other MLX models now do. On two interleaved conversations, a returning turn's prompt took 0.4 s instead of 4.1 s. This model always loads its vision half, and that path used to read the whole prompt every turn.
+
 ## [0.41.4] - 2026-09-27
 
 ### Fixed
