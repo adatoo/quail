@@ -73,7 +73,7 @@ struct MessagesRoutesTests {
         #expect(bad.status == 400)
     }
 
-    @Test("a system message after a reply stays in place, so the start of the prompt doesn't change between turns")
+    @Test("a system message after a reply stays in place, so the prompt's start doesn't change between turns")
     func lateSystemMessage() async {
         let harness = RouteHarness()
         let turn = """
@@ -98,7 +98,8 @@ struct MessagesRoutesTests {
                      {"role":"system","content":"<total_tokens>8 left</total_tokens>"}]}
         """)
         #expect(tools.status == 200)
-        #expect(harness.prompt.hasSuffix("<|im_start|>user\n<total_tokens>8 left</total_tokens><|im_end|>\n<|im_start|>assistant\n"))
+        let note = "<|im_start|>user\n<total_tokens>8 left</total_tokens><|im_end|>\n"
+        #expect(harness.prompt.hasSuffix(note + "<|im_start|>assistant\n"))
     }
 
     @Test("reasoning comes back as a thinking block before the text")
