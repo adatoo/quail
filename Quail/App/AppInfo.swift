@@ -1,9 +1,6 @@
 import Foundation
 
-/// Static app metadata: shown in Settings → General → About (`AboutSection`)
-/// and used to distinguish the Developer ID build from the Mac App Store
-/// build at runtime for anything that can't be resolved purely by
-/// `#if APPSTORE`.
+/// Static app metadata, shown in Settings → General → About (`AboutSection`).
 enum AppInfo {
     static var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
@@ -13,21 +10,15 @@ enum AppInfo {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
     }
 
-    static var isAppStoreBuild: Bool {
-        #if APPSTORE
-            true
-        #else
-            false
-        #endif
-    }
-
     /// "0.5.0 (8)" — the same shape `quail --version` prints.
     static var displayVersion: String {
         "\(version) (\(build))"
     }
 
+    /// How this copy was distributed: Developer ID, as a DMG or through Homebrew (the Mac App Store build is
+    /// gone, D-053).
     static var distribution: String {
-        isAppStoreBuild ? "Mac App Store" : "Direct download"
+        "Direct download"
     }
 
     /// The bundled llama.cpp release tag ("b11081"). `task embed:llama`

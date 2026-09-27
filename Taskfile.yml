@@ -1,7 +1,7 @@
 # Quail's commands — the same ones locally and in CI (ADR D-030).
 #
 #   task            list every task
-#   task ci         what CI runs: lint, vendor, build, notices, verify, test (+ the App Store build)
+#   task ci         what CI runs: lint, vendor, build, notices, verify, test
 #   task build      compile into ./DerivedData (unsigned: checks it builds, macOS won't open it)
 #   task test       run the unit tests
 #   task install    build Release, ad-hoc sign, install to ~/Apps — the app you can launch
@@ -48,7 +48,7 @@ vars:
   # the app Xcode last ran (which may be running).
   DERIVED_DATA: '{{.ROOT_DIR}}/DerivedData'
   BUILD_DIR: '{{.ROOT_DIR}}/build'
-  # Override on the command line: `task build SCHEME=Quail-AppStore CONFIGURATION=Debug-AppStore`.
+  # Override on the command line: `task build CONFIGURATION=Release`.
   SCHEME: Quail
   CONFIGURATION: Debug
   DESTINATION: platform=macOS
@@ -109,7 +109,7 @@ tasks:
         exit $missing
 
   ci:
-    desc: What CI runs, in order (plus the App Store scheme's build)
+    desc: What CI runs, in order
     cmds:
       - task: lint
       - task: vendor:llama
@@ -118,7 +118,6 @@ tasks:
       - task: notices:check
       - task: verify:bundle
       - task: test
-      - task: build:appstore
 
   lint:
     desc: swiftformat --lint
@@ -156,12 +155,6 @@ tasks:
         -destination '{{.DESTINATION}}'
         CODE_SIGNING_ALLOWED={{.CODE_SIGNING_ALLOWED}}
         | {{.PRETTY}}
-
-  build:appstore:
-    desc: Build the Mac App Store scheme (the definition of done wants zero warnings in both)
-    cmds:
-      - task: build
-        vars: {SCHEME: Quail-AppStore, CONFIGURATION: Debug-AppStore}
 
   test:
     desc: Run the unit tests

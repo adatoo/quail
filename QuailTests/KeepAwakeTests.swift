@@ -83,27 +83,25 @@ struct KeepAwakeTests {
         #expect(Config.load(from: scratch.appendingPathComponent("config.json")).keepAwake == false)
     }
 
-    #if !APPSTORE
-        @Test("the lid-closed loop: its paths and Quail's process, quoted so nothing escapes")
-        func lidLoopScript() {
-            let dir = URL(fileURLWithPath: "/Users/someone/Library/Application Support/Quail")
-            let script = LidSleepGuard.loopScript(
-                enabled: dir.appendingPathComponent("lid-awake.enabled"),
-                serving: dir.appendingPathComponent("lid-awake.serving"), processID: 4242
-            )
-            #expect(script.contains(#"E="/Users/someone/Library/Application Support/Quail/lid-awake.enabled""#))
-            #expect(script.contains("P=4242"))
-            #expect(script.contains("pmset -a disablesleep $want"))
-            #expect(script.hasSuffix(#"/bin/rm -f "$E" "$S""#))
-            #expect(script.contains("pmset -a disablesleep 0")) // restored on the way out
-            #expect(script.contains("AC Power")) // only while plugged in
+    @Test("the lid-closed loop: its paths and Quail's process, quoted so nothing escapes")
+    func lidLoopScript() {
+        let dir = URL(fileURLWithPath: "/Users/someone/Library/Application Support/Quail")
+        let script = LidSleepGuard.loopScript(
+            enabled: dir.appendingPathComponent("lid-awake.enabled"),
+            serving: dir.appendingPathComponent("lid-awake.serving"), processID: 4242
+        )
+        #expect(script.contains(#"E="/Users/someone/Library/Application Support/Quail/lid-awake.enabled""#))
+        #expect(script.contains("P=4242"))
+        #expect(script.contains("pmset -a disablesleep $want"))
+        #expect(script.hasSuffix(#"/bin/rm -f "$E" "$S""#))
+        #expect(script.contains("pmset -a disablesleep 0")) // restored on the way out
+        #expect(script.contains("AC Power")) // only while plugged in
 
-            #expect(LidSleepGuard.isSafePath(dir.path))
-            for bad in [#"/a"b"#, "/a$HOME", "/a`x`", #"/a\b"#] {
-                #expect(!LidSleepGuard.isSafePath(bad), "\(bad)")
-            }
-            #expect(LidSleepGuard.shellQuoted("it's") == #"'it'\''s'"#)
-            #expect(LidSleepGuard.appleScriptString(#"say "hi" \ now"#) == #""say \"hi\" \\ now""#)
+        #expect(LidSleepGuard.isSafePath(dir.path))
+        for bad in [#"/a"b"#, "/a$HOME", "/a`x`", #"/a\b"#] {
+            #expect(!LidSleepGuard.isSafePath(bad), "\(bad)")
         }
-    #endif
+        #expect(LidSleepGuard.shellQuoted("it's") == #"'it'\''s'"#)
+        #expect(LidSleepGuard.appleScriptString(#"say "hi" \ now"#) == #""say \"hi\" \\ now""#)
+    }
 }

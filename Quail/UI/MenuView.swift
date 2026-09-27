@@ -13,7 +13,7 @@ import SwiftUI
 /// rows).
 struct MenuView: View {
     let appState: AppState
-    /// `nil` in the App Store build, which has no in-app updater.
+    /// `nil` where no updater runs (previews and tests).
     var updateSettings: UpdateSettings?
 
     @Environment(\.openSettings) private var openSettings

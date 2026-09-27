@@ -33,7 +33,7 @@ Quail is free and open source, aimed at developers on Apple Silicon Macs. Homebr
 
 The app uses the hardened runtime without App Sandbox. Runtimes run as supervised child processes; the model store defaults to `~/Library/Application Support/Quail/Models` and can be relocated by the user. Updates use Sparkle 2 with an EdDSA-signed appcast (D-032); Homebrew's cask declares `auto_updates true`.
 
-Mac App Store publication is dropped (D-053, superseding D-006). The existing `APPSTORE` compile guards, configurations and CI checks are legacy machinery retained until a separate cleanup; they do not represent a planned distribution channel. Release validation focuses on fresh Homebrew/DMG installs, CLI availability and updates from an existing release.
+Mac App Store publication is dropped (D-053, superseding D-006), and its build machinery (the `Quail-AppStore` scheme and configurations, the sandbox entitlements, the `APPSTORE` compile guards and the CI build) was removed on 2026-09-28. Release validation focuses on fresh Homebrew/DMG installs, CLI availability and updates from an existing release.
 
 Notarization needs every Mach-O in the bundle signed with the hardened runtime, including llama.cpp's dylibs. Bundled Python runtimes are avoided precisely because notarizing thousands of `.so` files inside a venv is slow and brittle.
 

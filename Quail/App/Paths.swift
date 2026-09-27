@@ -51,9 +51,9 @@ enum Paths {
     /// as long as it's running, not for one bounded operation, so there's
     /// no natural point at which to call
     /// `stopAccessingSecurityScopedResource()` earlier than app exit
-    /// (which reclaims it anyway). This matters for the App Store build's
-    /// sandbox; the direct build already has full filesystem access and
-    /// this call is a harmless no-op there.
+    /// (which reclaims it anyway). Quail isn't sandboxed, so this is a
+    /// harmless no-op today; it keeps a relocated folder working if that
+    /// ever changes.
     static func resolveModelsDirectory(bookmark: Data?) -> URL? {
         guard let bookmark else { return nil }
         var isStale = false

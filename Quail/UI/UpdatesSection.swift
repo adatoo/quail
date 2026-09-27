@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Settings → General → Updates: how often Quail looks for a new version, whether it
 /// installs one without asking, and a button to look now. Shown in the direct build
-/// only (the App Store updates the App Store build), so `UpdateSettings` is `nil` there.
+/// (`UpdateSettings` is `nil` only where no updater runs, as in previews and tests).
 struct UpdatesSection: View {
     @Bindable var settings: UpdateSettings
 

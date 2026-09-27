@@ -275,6 +275,14 @@ Mac App Store publication is dropped. This supersedes D-006's two-channel distri
 
 **Revisit if:** demonstrated demand from users who require App Store distribution justifies maintaining and testing another product variant.
 
+**Amended 2026-09-28 (Phase 4 step 5a):** the legacy machinery is gone:
+- the `Quail-AppStore` scheme, and the `Debug-AppStore`/`Release-AppStore` configurations of every target;
+- `Quail/Quail-AppStore.entitlements`;
+- all 18 `APPSTORE` compile guards, each resolved to the direct build's branch;
+- `task build:appstore` and its CI step, and `embed:cli`'s App Store skip;
+- `AppInfo.isAppStoreBuild`.
+
+AGENTS.md's rule to keep runtime installs behind `#if !APPSTORE`, and its two-scheme definition of done, went with them. Unchanged: notarization's App Store Connect API key (that's Apple's name for the notary credential), the Developer ID signing, Sparkle and the Homebrew cask. The fallback to llama.cpp for a runtime that can't start remains, for the deferred oMLX and Rapid-MLX.
 ## D-054 · 2026-09-27 · Keeping the Mac awake while the server runs, and with a laptop's lid closed
 
 **Decision:** Settings → General → Power, plus a menu toggle, "Keep this Mac awake while the server runs". It's off by default.

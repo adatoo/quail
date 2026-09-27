@@ -162,28 +162,26 @@ struct ConnectPane: View {
                     }
                 }
 
-                #if !APPSTORE
-                    if let launch = integration.launch {
-                        let command = "quail launch \(launch.aliases?.first ?? integration.id) -m \(model)"
-                        Section {
-                            LabeledContent {
-                                CopyButton(text: command)
-                            } label: {
-                                Text(command)
-                                    .font(.system(.callout, design: .monospaced))
-                                    .textSelection(.enabled)
-                            }
-                        } header: {
-                            Text("Or let Quail start it")
-                        } footer: {
-                            Text(
-                                "Runs \(integration.name) pointed at Quail for that session only — your own config is untouched."
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                if let launch = integration.launch {
+                    let command = "quail launch \(launch.aliases?.first ?? integration.id) -m \(model)"
+                    Section {
+                        LabeledContent {
+                            CopyButton(text: command)
+                        } label: {
+                            Text(command)
+                                .font(.system(.callout, design: .monospaced))
+                                .textSelection(.enabled)
                         }
+                    } header: {
+                        Text("Or let Quail start it")
+                    } footer: {
+                        Text(
+                            "Runs \(integration.name) pointed at Quail for that session only — your own config is untouched."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
-                #endif
+                }
 
                 if let notes = integration.notes {
                     Section("Notes") {
