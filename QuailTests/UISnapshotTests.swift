@@ -86,6 +86,7 @@ struct UISnapshotTests {
     func modelsPane() async throws {
         let (appState, scratch) = try await makeAppState()
         defer { try? FileManager.default.removeItem(at: scratch) }
+        await appState.setKVCache(.q8, forModel: "Qwen3-8B-Q4_K_M")
         // The Settings window's width, and a narrow one to see the chips give way.
         for width in [700.0, 480.0] {
             try await render(

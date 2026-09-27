@@ -62,11 +62,13 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let disk: PromptDiskCache?
         /// Text requests decoded together at most: 1 unless the family batches (ADR D-056).
         let batchLimit: Int
+        /// Bits per element the KV cache is quantized to, if the preset asks (ADR D-057).
+        let kvBits: Int?
 
         init(
             container: ModelContainer, info: EngineInfo, chatTemplate: String?,
             tokenizer: any MLXLMCommon.Tokenizer, vision: VisionSetup?, weightBytes: Int, disk: PromptDiskCache?,
-            batchLimit: Int
+            batchLimit: Int, kvBits: Int?
         ) {
             self.container = container
             self.info = info
@@ -76,6 +78,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             self.weightBytes = weightBytes
             self.disk = disk
             self.batchLimit = batchLimit
+            self.kvBits = kvBits
         }
 
         /// Whether a text prompt can be fed in pieces, positions coming from the cache: any text load, and Gemma
@@ -198,6 +201,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
         }
     }
 
+    /// Elements sharing one scale and bias in a quantized KV cache (mlx-lm's default).
+    static let kvGroupSize = 64
+
     /// How far short of a prompt's end a hybrid model's cache is checkpointed: past any chat template's
     /// generation header, and as many tokens as the repetition penalty looks back over.
     static let checkpointMargin = 64
@@ -273,7 +279,8 @@ final class MLXEngine: Engine, @unchecked Sendable {
             case "1": canBatch
             default: canBatch && files.modelType.map(Self.batchedFamilies.contains) == true
             }
-            let batchLimit = batched && !vision ? parallel : 1
+            // A quantized cache doesn't batch (`BatchedLayers.canBatch`).
+            let batchLimit = batched && !vision && entry.mlxKVBits == nil ? parallel : 1
             let info = EngineInfo(
                 contextSize: contextSize,
                 bosToken: files.token("bos_token") ?? tokenizer.bosToken ?? "",
@@ -290,7 +297,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
                     weightBytes: weightBytes,
                     vision: vision
                 ),
-                batchLimit: batchLimit
+                batchLimit: batchLimit, kvBits: entry.mlxKVBits
             )
             lock.withLock { loaded = made }
         } catch let error as EngineError {
@@ -606,7 +613,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         }
         let prompt = request.promptTokens
         guard !prompt.isEmpty else { throw EngineError.generationFailed("the prompt has no tokens") }
-        let parameters = Self.parameters(for: request)
+        let parameters = Self.parameters(for: request, kvBits: loaded.kvBits)
         var layers: [any KVCache]
         var reused = 0
         if request.cachePrompt, let taken = loaded.caches.take(for: prompt, trimmableOnly: true) {
@@ -757,7 +764,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             text: .init(tokens: ids, mask: ones(like: ids).asType(.int8)),
             image: .init(pixels: concatenated(pixels), frames: frames)
         )
-        let parameters = Self.parameters(for: request)
+        let parameters = Self.parameters(for: request, kvBits: loaded.kvBits)
         var processorChain = parameters.processor()
         if request.ignoreEndOfSequence {
             processorChain = BanTokens(ids: Self.stopTokens(context), wrapping: processorChain)
@@ -794,10 +801,11 @@ final class MLXEngine: Engine, @unchecked Sendable {
         )))
     }
 
-    static func parameters(for request: GenerationRequest) -> GenerateParameters {
+    static func parameters(for request: GenerationRequest, kvBits: Int? = nil) -> GenerateParameters {
         let s = request.sampling
         return GenerateParameters(
-            maxTokens: request.maxTokens, temperature: Float(s.temperature), topP: Float(s.topP), topK: s.topK,
+            maxTokens: request.maxTokens, kvBits: kvBits, kvGroupSize: Self.kvGroupSize,
+            temperature: Float(s.temperature), topP: Float(s.topP), topK: s.topK,
             minP: Float(s.minP), repetitionPenalty: s.repeatPenalty != 1 ? Float(s.repeatPenalty) : nil,
             repetitionContextSize: 64, presencePenalty: s.presencePenalty != 0 ? Float(s.presencePenalty) : nil,
             frequencyPenalty: s.frequencyPenalty != 0 ? Float(s.frequencyPenalty) : nil

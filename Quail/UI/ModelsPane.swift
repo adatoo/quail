@@ -22,6 +22,7 @@ struct ModelsPane: View {
     @State private var rows: [InstalledModel] = []
     @State private var verdicts: [String: FitEstimate] = [:]
     @State private var contextChoices: [String: [ContextChoice]] = [:]
+    @State private var kvCacheChoices: [String: [KVCacheChoice]] = [:]
     @State private var loadedStates: [String: String] = [:]
     @State private var showAddSheet = false
     @State private var pendingDeletion: String?
@@ -221,10 +222,14 @@ struct ModelsPane: View {
                     servable: appState.canServe(entry.format),
                     isDefault: appState.config.defaultModelID == entry.id,
                     contextChoices: contextChoices[entry.id] ?? [],
+                    kvCacheChoices: kvCacheChoices[entry.id] ?? [],
                     measuredSpeed: measuredSpeeds[entry.id],
                     strengths: strengths(of: entry),
                     onSetContext: { tokens in
                         Task { await appState.setContextSize(tokens, forModel: entry.id) }
+                    },
+                    onSetKVCache: { setting in
+                        Task { await appState.setKVCache(setting, forModel: entry.id) }
                     },
                     onLoad: {
                         Task {
@@ -420,6 +425,7 @@ struct ModelsPane: View {
             let catalog = store.refreshedCatalog(device: device, ggufRuntime: runtime, bandwidthTable: bandwidth)
             var verdicts: [String: FitEstimate] = [:]
             var choices: [String: [ContextChoice]] = [:]
+            var kvChoices: [String: [KVCacheChoice]] = [:]
             for entry in catalog.entries {
                 verdicts[entry.id] = ModelPreview.installed(
                     entry: entry, store: store, device: device,
@@ -427,13 +433,17 @@ struct ModelsPane: View {
                 )
                 choices[entry.id] = ModelPreview.contextChoices(
                     entry: entry, store: store, device: device, ggufRuntime: runtime
-                ).map { ContextChoice(tokens: $0.tokens, verdict: $0.verdict) }
+                ).map { ContextChoice(tokens: $0.tokens, verdict: $0.verdict, fitsWith4BitKV: $0.fitsWith4BitKV) }
+                kvChoices[entry.id] = ModelPreview.kvCacheChoices(
+                    entry: entry, store: store, device: device, ggufRuntime: runtime
+                ).map { KVCacheChoice(setting: $0.setting, verdict: $0.verdict) }
             }
-            return (catalog.entries, verdicts, choices)
+            return (catalog.entries, verdicts, choices, kvChoices)
         }.value
         rows = result.0
         verdicts = result.1
         contextChoices = result.2
+        kvCacheChoices = result.3
         Self.logger.notice("refresh: done, rows \(result.0.map(\.id), privacy: .public)")
     }
 }
@@ -450,11 +460,13 @@ private struct ModelRow: View {
     /// `load-on-startup = true` in `presets.ini` (ADR D-017).
     let isDefault: Bool
     let contextChoices: [ContextChoice]
+    let kvCacheChoices: [KVCacheChoice]
     /// Generation speed from this model's latest Benchmark on this Mac.
     let measuredSpeed: Double?
     /// What its catalog family is good for; empty for a model from outside the catalog.
     let strengths: [ModelStrength]
     let onSetContext: (Int?) -> Void
+    let onSetKVCache: (KVCacheSetting) -> Void
     let onLoad: () -> Void
     let onToggleDefault: () -> Void
     let onDelete: () -> Void
@@ -584,16 +596,39 @@ private struct ModelRow: View {
                 }
                 .disabled(choice.verdict == .wontFit)
             }
+            if !kvCacheChoices.isEmpty {
+                Divider()
+                Section("KV cache") {
+                    ForEach(kvCacheChoices) { choice in
+                        Button {
+                            onSetKVCache(choice.setting)
+                        } label: {
+                            Label(
+                                "\(choice.setting.label) — \(ContextChoice.label(for: choice.verdict))",
+                                systemImage: entry.effectiveKVCache == choice.setting ? "checkmark" : ""
+                            )
+                        }
+                        .disabled(choice.verdict == .wontFit)
+                    }
+                }
+            }
         } label: {
-            Text("\(RemoteFitBadge.contextLabel(entry.effectiveContextSize)) ctx")
+            Text(contextLabel)
                 .font(.caption)
                 .monospacedDigit()
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
         .help(
-            "Context size — how much text the model can work with at once. Coding agents need 32K or more. Applies on the next Start."
+            "Context size — how much text the model can work with at once. Coding agents need 32K or more. "
+                + "An 8-bit or 4-bit KV cache holds a longer context in the same memory, a little less accurately "
+                + "(and, for MLX models, reading prompts more slowly). Applies on the next Start."
         )
+    }
+
+    private var contextLabel: String {
+        let size = "\(RemoteFitBadge.contextLabel(entry.effectiveContextSize)) ctx"
+        return entry.effectiveKVCache == .full ? size : "\(size) · \(entry.effectiveKVCache.label) KV"
     }
 }
 
@@ -637,17 +672,33 @@ extension ServerController.Phase {
 struct ContextChoice: Identifiable, Equatable {
     let tokens: Int
     let verdict: FitVerdict?
+    /// Doesn't fit at the model's KV cache setting, but would with a 4-bit one (ADR D-057).
+    var fitsWith4BitKV = false
 
     var id: Int {
         tokens
     }
 
     var verdictLabel: String {
+        fitsWith4BitKV ? "Won't fit (fits with a 4-bit KV cache)" : Self.label(for: verdict)
+    }
+
+    static func label(for verdict: FitVerdict?) -> String {
         switch verdict {
         case .comfortable: "Comfortable"
         case .tight: "Tight"
         case .wontFit: "Won't fit"
         case nil: "fit unknown"
         }
+    }
+}
+
+/// One option in a model's KV cache picker (ADR D-057).
+struct KVCacheChoice: Identifiable, Equatable {
+    let setting: KVCacheSetting
+    let verdict: FitVerdict?
+
+    var id: String {
+        setting.rawValue
     }
 }

@@ -867,6 +867,19 @@ final class AppState {
         await reconcileStore()
     }
 
+    /// The Models pane's per-model KV cache picker (ADR D-057). Like the
+    /// context picker, it takes effect at the next Start.
+    func setKVCache(_ setting: KVCacheSetting, forModel id: String) async {
+        var catalog = modelStore.loadCatalog()
+        let value: KVCacheSetting? = setting == .full ? nil : setting
+        guard let index = catalog.entries.firstIndex(where: { $0.id == id }),
+              catalog.entries[index].userKVCache != value
+        else { return }
+        catalog.entries[index].userKVCache = value
+        try? modelStore.saveCatalog(catalog)
+        await reconcileStore()
+    }
+
     /// Moves the whole store to a new folder and repoints at it — the
     /// point `Paths.makeModelsDirectoryBookmark` has existed for since
     /// PR 9 (docs/IMPLEMENTATION_PLAN.md step 7: "where it finally gets

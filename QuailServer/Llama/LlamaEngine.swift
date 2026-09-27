@@ -222,13 +222,27 @@ final class LlamaRuntime: @unchecked Sendable {
         contextParams.kv_unified = slotCount > 1
         // llama-server's default: one thread per performance core. The CPU still does the input embedding
         // lookup and the sampling with a model fully on the GPU, and libllama's own default is 4.
+        // A smaller KV cache type, if the preset asks (ADR D-057). A quantized V cache needs flash attention.
+        if let type = entry.cacheTypeK {
+            contextParams.type_k = Self.ggmlType(type)
+        }
+        if let type = entry.cacheTypeV {
+            contextParams.type_v = Self.ggmlType(type)
+        }
+        if let flash = entry.flashAttention {
+            contextParams.flash_attn_type = flash ? LLAMA_FLASH_ATTN_TYPE_ENABLED : LLAMA_FLASH_ATTN_TYPE_DISABLED
+        } else if entry.cacheTypeV != nil {
+            contextParams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_ENABLED
+        }
         let threads = Int32(Self.performanceCores)
         contextParams.n_threads = threads
         contextParams.n_threads_batch = threads
         guard let made = llama_init_from_model(loaded, contextParams) else {
             llama_model_free(loaded)
+            let cacheNote = entry.cacheTypeK != nil || entry.cacheTypeV != nil
+                ? " (with a quantized KV cache, which needs flash attention; try the full-precision cache)" : ""
             throw EngineError.loadFailed(
-                "llama.cpp couldn't create a \(wanted)-token context for \(entry.path.lastPathComponent); "
+                "llama.cpp couldn't create a \(wanted)-token context for \(entry.path.lastPathComponent)\(cacheNote); "
                     + "try a smaller context size or another model"
             )
         }
@@ -262,6 +276,14 @@ final class LlamaRuntime: @unchecked Sendable {
 
     /// A vision model's `mmproj` file. llama-server refuses to serve the model when this fails, and so do we: a
     /// model that's advertised as reading images and doesn't is worse than one that doesn't start.
+    private static func ggmlType(_ type: KVCacheType) -> ggml_type {
+        switch type {
+        case .f16: GGML_TYPE_F16
+        case .q8_0: GGML_TYPE_Q8_0
+        case .q4_0: GGML_TYPE_Q4_0
+        }
+    }
+
     func loadProjector(_ path: URL, model: OpaquePointer) throws {
         guard FileManager.default.fileExists(atPath: path.path) else {
             unload()

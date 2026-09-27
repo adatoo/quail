@@ -46,7 +46,9 @@ final class PromptDiskCache: @unchecked Sendable {
             .resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate?
                     .timeIntervalSince1970 ?? 0
         // The vision load's caches are its language model's, laid out differently: a folder of their own.
+        // A quantized cache (ADR D-057) is laid out differently too.
         let identity = "\(model.path)|\(weightBytes)|\(modified)|\(vision ? "vision" : "text")"
+            + (entry.mlxKVBits.map { "|kv\($0)" } ?? "")
         let digest = SHA256.hash(data: Data(identity.utf8)).prefix(6).map { String(format: "%02x", $0) }.joined()
         let safeID = entry.id.map { $0.isLetter || $0.isNumber || "-._".contains($0) ? $0 : "_" }
         directory = root.appendingPathComponent("\(String(safeID))-\(digest)", isDirectory: true)

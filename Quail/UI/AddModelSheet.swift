@@ -901,6 +901,10 @@ private struct FitCard: View {
             if estimate.verdict == .wontFit {
                 line += " Try a smaller quantization or a smaller model."
             }
+            if let context = estimate.contextWith4BitKV {
+                line += " With a 4-bit KV cache (set in the Models list once it's installed) it runs with "
+                    + "\(RemoteFitBadge.contextLabel(context)) of context."
+            }
             return line
         }
     }
