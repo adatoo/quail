@@ -2,7 +2,7 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
-## D-056 · 2026-09-28 · Batched MLX decoding: design (Phase 3c step 8) — for review before code
+## D-056 · 2026-09-28 · Batched MLX decoding (Phase 3c step 8)
 
 **Situation:** MLX serves one request at a time. `ModelContainer.perform` serialises them, and the router's lease lets one in. Four requests at once total about one request's speed: 51 against 52 tokens/s on Qwen3-8B, and 80 against 85 on Qwen3.6 35B-A3B (D-004 amendment of 2026-09-28). GGUF decodes up to four together (D-048). Agents make concurrent requests (Claude Code's permission check beside its turn, opencode's sub-agents), and so does the chat page next to an agent. Decode is bandwidth-bound, so a step over four sequences costs little more than a step over one. mlx-swift-lm's closed PR #263 measured 2.3× total at four on Gemma 4 26B-A4B.
 
@@ -50,6 +50,34 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 - Waiting for upstream.
 
 **Revisit if:** a model family computes attention without `cache.makeMask` or `cache.ropeOffset` (it would need its own path), or upstream lands batched generation first (adopt it instead).
+
+**Amended 2026-09-28 (built):** approved as designed and built, with these differences.
+- **Where it lives.** Requests queue for one serving task per engine (`MLXQueue`, `MLXEngine.serve`); text requests on a load that feeds prompts in slices go through `MLXEngine.serveText`, and each request's state is an `MLXSequence`. `BatchKVCache` is as designed; a hybrid model's recurrent layers use mlx-swift-lm's `MambaCache` batching (`extend`, `filter`) unchanged. `BatchedLayers` merges, extends, filters and slices a model's caches.
+- **Prompts are still fed alone, but between the others' steps:** one slice (512 tokens) of the newcomer's prompt, then one token for everyone already decoding, so a 4,400-token prompt arriving mid-reply slows the others instead of stopping them. One newcomer is fed at a time. With nothing else in progress a request runs exactly the old path: pipelined slices, then decoding alone with prompt-lookup speculation. It hands over to the batch when another request can join, and a sequence left alone goes back to it.
+- **Memory rule, by bytes instead of lengths:** a request waits if the padding it would add to the batch costs more than a quarter of the model's weights to read each step.
+- **Scope.** Sliding-window layers aren't batched, so Gemma 4 (loaded through its vision model) still serves one at a time. Batching is on for `model_type` qwen3, qwen3_5 and qwen3_5_moe. `QUAIL_MLX_BATCH=0` turns it off; `=1` turns it on for any model whose caches can batch. Images and whole-prompt vision loads queue as before.
+- **One decode loop.** Penalty processors run per row. mlx-swift-lm's `TokenIterator` is now used only for image turns and the text turns of vision loads other than Gemma 4's. `QUAIL_PROMPT_LOOKUP=0` now means the same loop without guessing, as `nodraft` did.
+
+**Measured** on the M4 Pro Mac mini, Release builds, cooled A-B-A-B, four and two greedy requests of 128 tokens each (tokens a second, total):
+
+| | Alone | Four at once, before | Four at once, now | Two at once, now |
+|---|---|---|---|---|
+| Qwen3-8B 4-bit | 54 | 52 | 95–99 (1.84–1.92×) | 85–90 |
+| Qwen3.6 35B-A3B 4-bit | 86 | 81 | 132 (1.63×) | 105 |
+| Qwen3.8 27B 4-bit | 15 | – | 27 | – |
+
+- **The 1.8× target** was met on Qwen3-8B but not on Qwen3.6. A step's time on Qwen3.6 is 11.7 ms alone and grows by 4.8 ms for each extra sequence (profiled: all of it waiting on the GPU, not graph building). Below about ten rows, MLX's quantized matmul (`qmv`) reads the weights once per row, and a mixture-of-experts model sends each row to different experts. Getting past that needs kernel work, which D-055 rules out.
+- **Single requests are unchanged:** same speed and byte-identical text, including speculation, against 0.43.2 (edit, summary and story tasks, greedy and sampled). A real Claude Code task on Qwen3.6 took 102 s, against 101 s.
+- **Output at temperature 0.** Each batched reply matched its solo run for a first stretch; then one to three of four replies took a different word, all still coherent. Batched steps use MLX's array-offset RoPE and masked attention, whose rounding differs slightly from the single-sequence paths, so a near-tie can flip, and expert routing makes that likelier. Rows of very different lengths (26 and 4,399 tokens) stayed correct side by side.
+- **Checked on Qwen3-8B and Qwen3.6:**
+  - staggered joins, including a long prompt fed between the others' steps;
+  - a returning conversation after batching reused 4,395 and 4,615 of its tokens;
+  - a hang-up left the others running to their full length;
+  - penalties and one-token replies inside a batch;
+  - 200 mixed requests, six at a time with a fifth hung up: no errors, and the server healthy afterwards;
+  - an image turn among text requests kept its place in the queue;
+  - Gemma 4 unchanged.
+- **Not done:** reading several short prompts in one pass, batching sliding-window layers (Gemma 4), and speculation while batched.
 
 ## D-055 · 2026-09-27 · MLX engine performance: catch up to mlx-swift-lm `main`, then per-conversation caching, before batching
 

@@ -16,7 +16,8 @@ public struct ModelEntry: Equatable, Sendable {
     public var gpuLayers: Int?
     /// A vision model's `mmproj` companion (GGUF only).
     public var projector: URL?
-    /// Requests decoded together by a GGUF model (llama-server's `parallel`); nil takes the server's setting.
+    /// Requests decoded together (llama-server's `parallel`; for MLX, only families that batch, ADR D-056); nil
+    /// takes the server's setting.
     public var parallel: Int?
     public var loadOnStartup = false
     /// Preset keys this server doesn't implement, so startup can say so once

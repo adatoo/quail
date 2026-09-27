@@ -9,8 +9,8 @@ import QuailServerCore
 import Tokenizers
 
 /// The MLX engine: `mlx-swift-lm` behind the `Engine` seam (ADR D-044). One instance holds one loaded
-/// model directory. Generation runs inside the `ModelContainer`, which serves one caller at a time,
-/// so a second request waits for the first, as the router's lease already arranges.
+/// model directory. Requests queue for one serving task (`serve`), which runs inside the `ModelContainer`
+/// and, for a model family that batches, decodes up to `parallel` text requests together (ADR D-056).
 final class MLXEngine: Engine, @unchecked Sendable {
     /// The context asked for when a model's config doesn't say (its KV cache grows as it is used,
     /// so this is only the length a request may not exceed).
@@ -23,16 +23,31 @@ final class MLXEngine: Engine, @unchecked Sendable {
     /// Set when only the vision half loads: mlx-swift-lm's text-only Gemma 4 lacks the mixture-of-experts
     /// layers of Gemma 4 26B-A4B, which its vision model has.
     private var visionOnly = false
+    /// Text requests decoded together, at most, by a model family that batches.
+    private let parallel: Int
+    private let queue = MLXQueue()
 
-    init() {}
-
-    /// Images, for a model whose vision half Quail can load (`MLXVision`).
-    var capabilities: EngineCapabilities {
-        EngineCapabilities(vision: lock.withLock { entry?.mlxVision } ?? false)
+    /// - Parameter parallel: how many text requests may be decoded together (ADR D-056); 1 serves one at a time.
+    init(parallel: Int = 1) {
+        self.parallel = max(1, parallel)
     }
 
+    /// Images, for a model whose vision half Quail can load (`MLXVision`); several requests at once, for a
+    /// model family that batches.
+    var capabilities: EngineCapabilities {
+        lock.withLock {
+            EngineCapabilities(vision: entry?.mlxVision ?? false, concurrentRequests: (loaded?.batchLimit ?? 1) > 1)
+        }
+    }
+
+    /// Batched decoding (ADR D-056): on for the model families checked to give the same text batched as alone,
+    /// off with `QUAIL_MLX_BATCH=0`, and on for any model whose caches can batch with `QUAIL_MLX_BATCH=1`.
+    static let batchSetting = ProcessInfo.processInfo.environment["QUAIL_MLX_BATCH"]
+    /// `model_type`s whose batched text was checked against the same requests run alone.
+    static let batchedFamilies: Set<String> = ["qwen3", "qwen3_5", "qwen3_5_moe"]
+
     /// Everything a request needs from the loaded model; replaced whole on load.
-    private final class Loaded: @unchecked Sendable {
+    final class Loaded: @unchecked Sendable {
         let container: ModelContainer
         let info: EngineInfo
         let chatTemplate: String?
@@ -45,10 +60,13 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let caches = PromptCaches()
         /// Where they go when they leave memory, if anywhere (`--prompt-cache-dir`).
         let disk: PromptDiskCache?
+        /// Text requests decoded together at most: 1 unless the family batches (ADR D-056).
+        let batchLimit: Int
 
         init(
             container: ModelContainer, info: EngineInfo, chatTemplate: String?,
-            tokenizer: any MLXLMCommon.Tokenizer, vision: VisionSetup?, weightBytes: Int, disk: PromptDiskCache?
+            tokenizer: any MLXLMCommon.Tokenizer, vision: VisionSetup?, weightBytes: Int, disk: PromptDiskCache?,
+            batchLimit: Int
         ) {
             self.container = container
             self.info = info
@@ -57,6 +75,15 @@ final class MLXEngine: Engine, @unchecked Sendable {
             self.vision = vision
             self.weightBytes = weightBytes
             self.disk = disk
+            self.batchLimit = batchLimit
+        }
+
+        /// Whether a text prompt can be fed in pieces, positions coming from the cache: any text load, and Gemma
+        /// 4's vision load (a model that only loads that way, Gemma 4 26B-A4B), whose vision model reads a text
+        /// prompt as its text model does. Other vision models (Qwen3.5's keeps position state that only the
+        /// iterator's `prepare` resets) are fed whole and reuse only a cache they can cut back (`runWhole`).
+        var sliceable: Bool {
+            vision.map { $0.family == .gemma4 } ?? true
         }
 
         /// Writes a cache leaving memory to disk. A hybrid model's is written as it was at its last checkpoint,
@@ -82,7 +109,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
     /// Prompt caches kept from earlier requests (ADR D-055): a few conversations' worth, least recently used
     /// out first, so two callers (an agent and the chat page, or an agent's sub-tasks) stop evicting each
     /// other's prefix. Which one a prompt reuses, and how much, is `PromptCachePlan`'s decision.
-    private final class PromptCaches: @unchecked Sendable {
+    final class PromptCaches: @unchecked Sendable {
         struct Entry {
             var layers: [any KVCache]
             /// What `layers` holds.
@@ -184,14 +211,14 @@ final class MLXEngine: Engine, @unchecked Sendable {
 
     /// Copies of the layers that can't be cut back. References, not data: the model replaces these arrays
     /// rather than writing into them.
-    private static func snapshot(_ layers: [any KVCache]) -> [Int: any KVCache] {
+    static func snapshot(_ layers: [any KVCache]) -> [Int: any KVCache] {
         Dictionary(uniqueKeysWithValues: layers.enumerated().compactMap { index, layer in
             !layer.isTrimmable || layer.maxSize != nil ? (index, layer.copy()) : nil
         })
     }
 
     /// How many tokens a cache has been fed: the largest layer offset (a recurrent layer keeps none).
-    private static func held(_ layers: [any KVCache]) -> Int {
+    static func held(_ layers: [any KVCache]) -> Int {
         layers.map(\.offset).max() ?? 0
     }
 
@@ -238,11 +265,21 @@ final class MLXEngine: Engine, @unchecked Sendable {
                 context.model.parameters().flattened().reduce(0) { $0 + $1.1.nbytes }
             }
             let contextSize = entry.contextSize ?? files.contextLength ?? Self.defaultContext
+            let canBatch = await container.perform { context in
+                BatchedLayers.canBatch(context.model.newCache(parameters: nil))
+            }
+            let batched = switch Self.batchSetting {
+            case "0": false
+            case "1": canBatch
+            default: canBatch && files.modelType.map(Self.batchedFamilies.contains) == true
+            }
+            let batchLimit = batched && !vision ? parallel : 1
             let info = EngineInfo(
                 contextSize: contextSize,
                 bosToken: files.token("bos_token") ?? tokenizer.bosToken ?? "",
                 eosToken: files.token("eos_token") ?? tokenizer.eosToken ?? "",
-                supportsImages: entry.mlxVision
+                supportsImages: entry.mlxVision,
+                slots: batchLimit
             )
             let made = Loaded(
                 container: container, info: info, chatTemplate: files.chatTemplate, tokenizer: tokenizer,
@@ -252,7 +289,8 @@ final class MLXEngine: Engine, @unchecked Sendable {
                     entry: entry,
                     weightBytes: weightBytes,
                     vision: vision
-                )
+                ),
+                batchLimit: batchLimit
             )
             lock.withLock { loaded = made }
         } catch let error as EngineError {
@@ -264,19 +302,23 @@ final class MLXEngine: Engine, @unchecked Sendable {
     }
 
     /// The load a request needs: the vision half for one with images, the faster text-only load otherwise.
-    /// Requests reach an MLX engine one at a time (the router's lease), so swapping here is safe.
+    /// Only the serving task calls this, between requests, so swapping here is safe.
     private func loadedFor(_ request: GenerationRequest) async throws -> Loaded {
         guard let current else { throw EngineError.notLoaded }
-        let wantsVision = !request.media.isEmpty
-        guard wantsVision != (current.vision != nil), !lock.withLock({ visionOnly }),
-              let entry = lock.withLock({ entry }), entry.mlxVision || !wantsVision
-        else { return current }
+        guard needsSwap(request, from: current), let entry = lock.withLock({ entry }) else { return current }
         await current.container.perform { _ in current.spillAll() }
         lock.withLock { loaded = nil }
         Memory.clearCache()
-        try await load(entry, vision: wantsVision)
+        try await load(entry, vision: !request.media.isEmpty)
         guard let swapped = self.current else { throw EngineError.notLoaded }
         return swapped
+    }
+
+    /// Whether `request` needs the other load than `loaded`.
+    private func needsSwap(_ request: GenerationRequest, from loaded: Loaded) -> Bool {
+        let wantsVision = !request.media.isEmpty
+        return wantsVision != (loaded.vision != nil) && !lock.withLock { visionOnly }
+            && (lock.withLock { entry?.mlxVision } == true || !wantsVision)
     }
 
     func unload() async {
@@ -318,180 +360,271 @@ final class MLXEngine: Engine, @unchecked Sendable {
 
     func generate(_ request: GenerationRequest) -> AsyncThrowingStream<GenerationEvent, any Error> {
         AsyncThrowingStream { continuation in
-            // The container runs its closure in a task of its own, so the request's cancellation has to
-            // travel by a flag of ours as well.
-            let cancelled = CancelFlag()
-            let task = Task {
-                do {
-                    let loaded = try await self.loadedFor(request)
-                    // Weights kept wired while the request runs, as mlx-lm does with `set_wired_limit`, so
-                    // macOS doesn't page a large model out between tokens under memory pressure (ADR D-055).
-                    // The limit returns to where it was when no request holds a ticket.
-                    let wired = WiredMemoryTicket(size: loaded.weightBytes, policy: MLXLMCommon.WiredSumPolicy())
-                    try await wired.withWiredLimit {
-                        try await loaded.container.perform { context in
-                            try await Self.run(
-                                request, context: context, loaded: loaded, cancelled: cancelled,
-                                emit: { continuation.yield($0) }
-                            )
-                        }
-                    }
-                    continuation.finish()
-                } catch {
+            let job = MLXJob(request: request, emit: { continuation.yield($0) }, finish: { error in
+                if let error {
                     continuation.finish(throwing: error)
+                } else {
+                    continuation.finish()
                 }
-            }
-            continuation.onTermination = { _ in
-                cancelled.set()
-                task.cancel()
+            })
+            // The serving task notices a client that left by this flag, between steps.
+            continuation.onTermination = { _ in job.cancelled.set() }
+            if queue.add(job) {
+                Task { await self.serve() }
             }
         }
     }
 
-    private static func run(
+    /// The one task that serves the queue, oldest request first, until it's empty: text requests through
+    /// `serveText` (together, for a family that batches), image turns and whole-prompt loads one at a time.
+    private func serve() async {
+        while let job = queue.nextOrStop() {
+            if job.cancelled.isSet {
+                queue.remove(job)
+                job.done()
+                continue
+            }
+            do {
+                let loaded = try await loadedFor(job.request)
+                // Weights kept wired while requests run, as mlx-lm does with `set_wired_limit`, so macOS doesn't
+                // page a large model out between tokens under memory pressure (ADR D-055). The limit returns to
+                // where it was when no request holds a ticket.
+                let wired = WiredMemoryTicket(size: loaded.weightBytes, policy: MLXLMCommon.WiredSumPolicy())
+                if job.request.media.isEmpty, loaded.sliceable {
+                    await wired.withWiredLimit {
+                        await loaded.container.perform { context in
+                            self.serveText(context: context, loaded: loaded)
+                        }
+                    }
+                } else {
+                    queue.remove(job)
+                    try await wired.withWiredLimit {
+                        try await loaded.container.perform { context in
+                            try await Self.runWhole(
+                                job.request, context: context, loaded: loaded, cancelled: job.cancelled, emit: job.emit
+                            )
+                        }
+                    }
+                    job.done()
+                }
+            } catch {
+                queue.remove(job)
+                job.done(error)
+            }
+        }
+    }
+
+    /// Serves text requests on a load that feeds prompts in slices, while the oldest waiting request is one of
+    /// them; returns when none is left in progress and the next (if any) needs something else.
+    ///
+    /// A request's prompt is fed alone, in slices; with nothing else in progress it then decodes alone, with
+    /// prompt-lookup speculation, as before batching. For a family that batches, a request that arrives meanwhile
+    /// is fed between the others' steps, one slice a step, and then joins them: each step feeds every sequence's
+    /// next token as one `[B, 1]` batch through `BatchedLayers`, and each row is drawn with its own sampler. A
+    /// sequence that ends leaves the batch with its cache, which goes back to the prompt caches; with one left, it
+    /// decodes alone again. Steps are pipelined: the next tokens are queued before the last ones are handed out.
+    private func serveText(context: ModelContext, loaded: Loaded) {
+        var active: [MLXSequence] = []
+        var batch: [any KVCache]?
+        // The active sequences' next tokens when the last step drew them (else each one's `pending`).
+        var current: MLXArray?
+        var joining: MLXSequence?
+        var bytesPerToken = 0
+
+        /// Whether a waiting request can start now.
+        func admissible(_ job: MLXJob) -> Bool {
+            guard job.request.media.isEmpty, self.current === loaded, !needsSwap(job.request, from: loaded)
+            else { return false }
+            if active.isEmpty, joining == nil {
+                return true
+            }
+            guard joining == nil, active.count < loaded.batchLimit else { return false }
+            // Rows are left-padded to the longest, and every step reads the padding too: a request much longer or
+            // shorter than the others waits rather than cost the batch more than a quarter of the weights' reading.
+            let lengths = active.map(\.history.count) + [job.request.promptTokens.count]
+            let width = lengths.max() ?? 0
+            let padding = lengths.reduce(0) { $0 + width - $1 }
+            return padding * bytesPerToken <= loaded.weightBytes / 4
+        }
+
+        /// Hands the finished sequences at `leaving` their caches back and closes their replies.
+        func leave(_ leaving: [Int]) {
+            let staying = active.indices.filter { !leaving.contains($0) }
+            for index in leaving {
+                let sequence = active[index]
+                if let batch {
+                    sequence.layers = BatchedLayers.slice(batch, row: index)
+                }
+                sequence.finish(in: loaded)
+                sequence.job.done()
+            }
+            if let rows = batch {
+                if staying.count >= 2 {
+                    BatchedLayers.filter(rows, keeping: staying)
+                    current = current?[MLXArray(staying.map { Int32($0) })]
+                } else if let only = staying.first {
+                    active[only].layers = BatchedLayers.slice(rows, row: only)
+                    current = current?[only ..< only + 1]
+                    batch = nil
+                } else {
+                    batch = nil
+                    current = nil
+                }
+            } else {
+                current = nil
+            }
+            active = staying.map { active[$0] }
+        }
+
+        /// One token for every active sequence.
+        func step() {
+            let layers = batch ?? active[0].layers
+            let tokens = current ?? MLXArray(active.map { Int32(truncatingIfNeeded: $0.pending ?? 0) })
+            let logits = context.model(
+                .init(tokens: tokens.reshaped(active.count, 1)), cache: layers, state: nil
+            ).logits
+            let drawn = active.enumerated().map { index, sequence in
+                let row = logits[index ..< index + 1, 0, 0...]
+                sequence.ban(row)
+                return sequence.draw(row[0])
+            }
+            let next = concatenated(drawn)
+            asyncEval(next)
+            let values = tokens.asArray(Int32.self)
+            var leaving: [Int] = []
+            for (index, sequence) in active.enumerated()
+                where sequence.cancelled || !sequence.take(Int(values[index]))
+            {
+                leaving.append(index)
+            }
+            current = next
+            if !leaving.isEmpty {
+                leave(leaving)
+            }
+        }
+
+        /// A sequence whose prompt is fed joins the active ones.
+        func join(_ sequence: MLXSequence) {
+            if let batch {
+                BatchedLayers.extend(batch, with: sequence.layers)
+            } else {
+                batch = BatchedLayers.merge([active[0].layers, sequence.layers])
+            }
+            let earlier = current ?? MLXArray(active.map { Int32(truncatingIfNeeded: $0.pending ?? 0) })
+            current = concatenated([earlier, MLXArray([Int32(truncatingIfNeeded: sequence.pending ?? 0)])])
+            active.append(sequence)
+            for sequence in active {
+                sequence.layers = []
+            }
+        }
+
+        func start(_ job: MLXJob) -> MLXSequence? {
+            queue.remove(job)
+            guard !job.cancelled.isSet else {
+                job.done()
+                return nil
+            }
+            do {
+                return try MLXSequence(job, context: context, loaded: loaded)
+            } catch {
+                job.done(error)
+                return nil
+            }
+        }
+
+        while true {
+            if joining == nil, let job = queue.first, admissible(job) {
+                joining = start(job)
+                continue
+            }
+            if let sequence = joining, active.isEmpty {
+                // Nothing else in progress: the whole prompt, pipelined.
+                joining = nil
+                while !sequence.prefilled, !sequence.cancelled {
+                    sequence.prefillSlice(context: context)
+                }
+                if sequence.cancelled {
+                    sequence.abandonPrefill(in: loaded)
+                    sequence.job.done()
+                    continue
+                }
+                sequence.startDecoding(context: context)
+                if bytesPerToken == 0 {
+                    bytesPerToken = BatchedLayers.bytesPerToken(sequence.layers)
+                }
+                active = [sequence]
+                continue
+            }
+            if joining == nil, batch == nil, active.count == 1 {
+                let sequence = active[0]
+                if let tokens = current {
+                    sequence.pending = tokens.item(Int.self)
+                    current = nil
+                }
+                let finished = sequence.decodeAlone(context: context) {
+                    queue.first.map(admissible) ?? false
+                }
+                if finished {
+                    sequence.finish(in: loaded)
+                    sequence.job.done()
+                    active = []
+                }
+                continue
+            }
+            if active.isEmpty, joining == nil {
+                return
+            }
+            if let sequence = joining {
+                if sequence.cancelled {
+                    joining = nil
+                    sequence.abandonPrefill(in: loaded)
+                    sequence.job.done()
+                } else if !sequence.prefilled {
+                    sequence.prefillSlice(context: context)
+                } else {
+                    joining = nil
+                    sequence.startDecoding(context: context)
+                    join(sequence)
+                }
+            }
+            if !active.isEmpty {
+                step()
+            }
+        }
+    }
+
+    /// A request on a load that reads its prompt whole (`Loaded.sliceable`), through mlx-swift-lm's own
+    /// iterator: an image turn, or a text turn on a vision load other than Gemma 4's, which goes in as a batch
+    /// of one ([1, n]), as the vision half's language model reads it, reusing only a cache it can cut back.
+    private static func runWhole(
         _ request: GenerationRequest, context: ModelContext, loaded: Loaded, cancelled: CancelFlag,
         emit: @escaping @Sendable (GenerationEvent) -> Void
     ) async throws {
-        let prompt = request.promptTokens
-        guard !prompt.isEmpty else { throw EngineError.generationFailed("the prompt has no tokens") }
-        let parameters = Self.parameters(for: request)
         if !request.media.isEmpty {
             try await runWithImages(request, context: context, loaded: loaded, cancelled: cancelled, emit: emit)
             return
         }
-        // A text turn on a vision load (a model that only loads that way, Gemma 4 26B-A4B) goes in as a
-        // batch of one ([1, n]), as the vision half's language model reads it. Gemma 4's vision model reads
-        // a text prompt as its text model does, positions from the cache, so its prompt can be fed in
-        // slices and its caches reused like a text load's. Other vision models (Qwen3.5's keeps position
-        // state that only the iterator's `prepare` resets) are fed whole and reuse only a cache they can
-        // cut back.
-        let isVision = loaded.vision != nil
-        let sliceable = loaded.vision.map { $0.family == .gemma4 } ?? true
-
-        // Start from the kept cache that holds the most of this prompt (always feeding at least one token,
-        // whose logits the first sample needs).
+        let prompt = request.promptTokens
+        guard !prompt.isEmpty else { throw EngineError.generationFailed("the prompt has no tokens") }
+        let parameters = Self.parameters(for: request)
         var layers: [any KVCache]
         var reused = 0
-        var checkpoints: [Int: [Int: any KVCache]] = [:]
-        // A cache on disk is loaded instead when it holds clearly more (loading costs about as much as
-        // reading `checkpointMargin` tokens).
-        let fromDisk = request.cachePrompt && sliceable && (loaded.disk?.bestReuse(for: prompt) ?? 0)
-            > loaded.caches.bestReuse(for: prompt, trimmableOnly: !sliceable) + Self.checkpointMargin
-        if fromDisk, let taken = loaded.disk?.take(for: prompt) {
-            (layers, reused) = taken
-        } else if request.cachePrompt, let taken = loaded.caches.take(for: prompt, trimmableOnly: !sliceable) {
-            (layers, reused, checkpoints) = (taken.layers, taken.tokens.count, taken.checkpoints)
+        if request.cachePrompt, let taken = loaded.caches.take(for: prompt, trimmableOnly: true) {
+            (layers, reused) = (taken.layers, taken.tokens.count)
         } else {
             layers = context.model.newCache(parameters: parameters)
         }
-
-        // Prefill in slices of the library's step size, so a client that leaves during a long prompt
-        // stops it at the next slice: `TokenIterator`'s initialiser would otherwise process the whole
-        // prompt before anything can be cancelled. The last one to two slices are left to the iterator,
-        // which also hands the penalty processors the tail of the prompt. Each slice is queued with
-        // `asyncEval` and the loop waits only for the one `slicesInFlight` back, so the GPU always has
-        // work queued while the CPU builds the next graph (mlx-swift-lm 3.31.4 pipelines its own prefill
-        // the same way; with one slice in flight Gemma 4's prompts ran 3–5% slower than the library's).
-        // A hang-up is still noticed within two or three slices.
-        //
-        // A hybrid model's recurrent layers (and sliding-window layers) can't be cut back afterwards, so
-        // the point the next turn of a conversation resumes from is captured on the way instead:
-        // `checkpointMargin` tokens short of the prompt's end, before the chat template's generation
-        // header, which the next turn's history renders differently (a reasoning block dropped, or an
-        // empty one added). Prefill stops there, copies those layers, and the iterator does the rest.
-        // Checkpoints are also taken every `checkpointInterval` tokens on the way. Stopping short costs a
-        // forward pass of its own (on a 512-token prompt, 15% of Gemma 4 26B-A4B's prompt time), so it's done
-        // only for a request that asks for its prompt to be cached.
-        let step = parameters.prefillStepSize
-        let started = ContinuousClock.now
-        let untrimmable = sliceable && request.cachePrompt
-            && layers.contains { !$0.isTrimmable || $0.maxSize != nil }
-        var feedTo = reused
-        if untrimmable {
-            feedTo = max(reused, prompt.count - Self.checkpointMargin)
-        } else if sliceable {
-            while prompt.count - feedTo > 2 * step {
-                feedTo += step
-            }
-        }
-        var fed = reused
-        var inFlight: [[MLXArray]] = []
-        while fed < feedTo {
-            if cancelled.isSet || Task.isCancelled {
-                // What the cache holds now is a prefix of this prompt; keep it for a retry.
-                eval(layers)
-                for evicted in loaded.caches.put(.init(
-                    layers: layers, tokens: Array(prompt.prefix(fed)), checkpoints: checkpoints
-                )) {
-                    loaded.spill(evicted)
-                }
-                return
-            }
-            let count = min(step, feedTo - fed)
-            let slice = MLXArray(prompt[fed ..< fed + count].map { Int32(truncatingIfNeeded: $0) })
-            _ = context.model(.init(tokens: slice.expandedDimensions(axis: 0)), cache: layers, state: nil)
-            let queued = layers.flatMap { $0.innerState() }
-            asyncEval(queued)
-            inFlight.append(queued)
-            if inFlight.count > Self.slicesInFlight {
-                eval(inFlight.removeFirst())
-            }
-            fed += count
-            if untrimmable, fed < feedTo, fed - (checkpoints.keys.max() ?? reused) >= Self.checkpointInterval {
-                checkpoints[fed] = Self.snapshot(layers)
-            }
-        }
-        if untrimmable {
-            checkpoints[fed] = Self.snapshot(layers)
-        }
-        let checkpointCount = fed
-        let sliced = started.duration(to: .now)
-
-        // Prompt-lookup speculation needs a load whose prompt can be fed in pieces, and no penalty processors
-        // (they'd have to see every guessed token in order).
-        if sliceable, parameters.processor() == nil, request.maxTokens > 1, Self.lookupEnabled,
-           request.speculativeMaxTokens != 0
-        {
-            var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
-            let outcome = Self.decodeWithLookup(
-                rest: Array(prompt[fed...]), prompt: prompt, layers: &layers, context: context, request: request,
-                cancelled: cancelled, emit: { id in
-                    detokenizer.append(token: id)
-                    emit(.token(id: id, text: detokenizer.next() ?? ""))
-                }
-            )
-            Self.keep(
-                layers, prompt: prompt, generated: outcome.generated, checkpoints: checkpoints,
-                checkpointCount: checkpointCount, in: loaded
-            )
-            guard !cancelled.isSet, !Task.isCancelled else { return }
-            var timings = GenerationTimings(
-                promptTokens: prompt.count - reused, promptSeconds: outcome.firstTokenSeconds + sliced.seconds,
-                generatedTokens: outcome.generated.count, generatedSeconds: outcome.generateSeconds,
-                cachedTokens: reused
-            )
-            if outcome.drafted > 0 {
-                timings.draftTokens = outcome.drafted
-                timings.draftAccepted = outcome.accepted
-            }
-            emit(.finished(outcome.stopped ? .stop : .length, timings))
-            return
-        }
-
-        let remaining = MLXArray(prompt[fed...].map { Int32(truncatingIfNeeded: $0) })
-        let input = isVision
-            ? LMInput(text: .init(tokens: remaining.expandedDimensions(axis: 0)))
-            : LMInput(text: .init(tokens: remaining))
+        let remaining = MLXArray(prompt[reused...].map { Int32(truncatingIfNeeded: $0) })
         var processor = parameters.processor()
         if request.ignoreEndOfSequence {
             processor = BanTokens(ids: Self.stopTokens(context), wrapping: processor)
         }
 
-        // The rest of the prompt is processed here, in the iterator's initialiser.
+        // The prompt is processed here, in the iterator's initialiser.
         let iterator = try TokenIterator(
-            input: input, model: context.model, cache: layers, processor: processor,
-            sampler: SeededSampler(request.sampling), prefillStepSize: parameters.prefillStepSize,
-            maxTokens: request.maxTokens
+            input: LMInput(text: .init(tokens: remaining.expandedDimensions(axis: 0))), model: context.model,
+            cache: layers, processor: processor, sampler: SeededSampler(request.sampling),
+            prefillStepSize: parameters.prefillStepSize, maxTokens: request.maxTokens
         )
         let (stream, task) = generateTokenTask(
             promptTokenCount: prompt.count - reused, modelConfiguration: context.configuration,
@@ -503,6 +636,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
         var generated: [Int] = []
         var finished: GenerateCompletionInfo?
         for await event in stream {
+            if cancelled.isSet {
+                break
+            }
             switch event {
             case let .token(id):
                 generated.append(id)
@@ -512,17 +648,16 @@ final class MLXEngine: Engine, @unchecked Sendable {
                 finished = info
             }
         }
+        task.cancel()
+        await task.value
 
-        Self.keep(
-            layers, prompt: prompt, generated: generated, checkpoints: checkpoints,
-            checkpointCount: checkpointCount, in: loaded
-        )
+        Self.keep(layers, prompt: prompt, generated: generated, checkpoints: [:], checkpointCount: 0, in: loaded)
 
         // The library reports a reply that hit the token limit as "cancelled" (it looks at a copy of the
         // iterator), so only a hang-up is taken as one here.
-        guard let info = finished, !cancelled.isSet, !Task.isCancelled else { return }
+        guard let info = finished, !cancelled.isSet else { return }
         emit(.finished(info.stopReason == .stop ? .stop : .length, GenerationTimings(
-            promptTokens: prompt.count - reused, promptSeconds: info.promptTime + sliced.seconds,
+            promptTokens: prompt.count - reused, promptSeconds: info.promptTime,
             generatedTokens: info.generationTokenCount, generatedSeconds: info.generateTime,
             cachedTokens: reused
         )))
@@ -531,7 +666,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
     /// Keeps the cache a request leaves for the next. It holds the prompt, then each token fed back in (a stop
     /// token too, or a guess past the end, which aren't in `generated`): what can be named is kept, and a cache
     /// that can't be cut back to that goes back to its checkpoint.
-    private static func keep(
+    static func keep(
         _ layers: [any KVCache], prompt: [Int], generated: [Int], checkpoints: [Int: [Int: any KVCache]],
         checkpointCount: Int, in loaded: Loaded
     ) {
@@ -550,201 +685,6 @@ final class MLXEngine: Engine, @unchecked Sendable {
         for evicted in loaded.caches.put(entry) {
             loaded.spill(evicted)
         }
-    }
-
-    // MARK: Prompt-lookup speculation
-
-    /// Off with `QUAIL_PROMPT_LOOKUP=0` in the server's environment, to compare; `nodraft` keeps this decode loop
-    /// but never guesses (to tell the loop's own effect from the guessing's).
-    static let lookupEnabled = ProcessInfo.processInfo.environment["QUAIL_PROMPT_LOOKUP"] != "0"
-    static let lookupDrafts = ProcessInfo.processInfo.environment["QUAIL_PROMPT_LOOKUP"] != "nodraft"
-    /// The most tokens guessed at once.
-    static let maxDraft = 16
-    /// Tokens run without looking after a wholly wrong guess; the pause doubles each time, up to `maxBackoff`.
-    static let lookEvery = 8
-    static let maxBackoff = 256
-
-    private struct LookupOutcome {
-        var generated: [Int] = []
-        var stopped = false
-        var firstTokenSeconds = 0.0
-        var generateSeconds = 0.0
-        var drafted = 0
-        var accepted = 0
-    }
-
-    /// The rest of the prompt, then generation with prompt-lookup speculation (ADR D-055, Phase 3c step 6).
-    ///
-    /// When the text so far ends with tokens seen before (`PromptLookup`), a step feeds the last token and the
-    /// tokens that followed them then, all in one forward pass. Greedy keeps the guesses the model agrees with;
-    /// sampling keeps each with the probability the model gives it and draws the first rejected one again from
-    /// what's left (standard speculative sampling, so the text follows the same distribution). What wasn't kept
-    /// is cut from the cache, or, for layers that can't be cut back, undone from a copy taken before the step
-    /// and the kept tokens fed again.
-    ///
-    /// Guessing costs a pass over several tokens and a wait for its answer, so between guesses the loop runs
-    /// plainly and pipelined, as mlx-swift-lm's own iterator does (the next token computing while the last is
-    /// handed out), looking up the text so far as it goes and stopping to guess only when something recurs.
-    /// After a guess that was wholly wrong it doesn't look for a while (`lookEvery` tokens, doubling each time
-    /// it happens again). The guess grows while guesses are kept and shrinks when they aren't.
-    private static func decodeWithLookup(
-        rest: [Int], prompt: [Int], layers: inout [any KVCache], context: ModelContext, request: GenerationRequest,
-        cancelled: CancelFlag, emit: (Int) -> Void
-    ) -> LookupOutcome {
-        var outcome = LookupOutcome()
-        let started = ContinuousClock.now
-        let sampler = SeededSampler(request.sampling)
-        let stops = Set(Self.stopTokens(context))
-        let banned = request.ignoreEndOfSequence ? Array(stops) : []
-        let untrimmable = layers.contains { !$0.isTrimmable || $0.maxSize != nil }
-        let negInf = MLXArray(-Float.infinity)
-
-        func forward(_ input: MLXArray) -> MLXArray {
-            let rows = context.model(.init(tokens: input.expandedDimensions(axis: 0)), cache: layers, state: nil)
-                .logits[0]
-            for id in banned {
-                rows[0..., id] = negInf
-            }
-            return rows
-        }
-        func forward(_ tokens: [Int]) -> MLXArray {
-            forward(MLXArray(tokens.map { Int32(truncatingIfNeeded: $0) }))
-        }
-        /// The next token after `row`'s logits, not yet computed.
-        func draw(_ row: MLXArray) -> MLXArray {
-            sampler.sample(logits: row.expandedDimensions(axis: 0))
-        }
-
-        // All but the last prompt token first, whose logits are never read (so never computed), then the last.
-        if rest.count > 1 {
-            _ = forward(Array(rest.dropLast()))
-        }
-        var pending = draw(forward([rest[rest.count - 1]])[0]).item(Int.self)
-        outcome.firstTokenSeconds = started.duration(to: .now).seconds
-        let generating = ContinuousClock.now
-        var history = prompt
-        var plain = true
-        var holdOff = 0
-        var backoff = Self.lookEvery
-        var guessLength = 4
-
-        /// Hands a token out; false once generation should end.
-        func take(_ token: Int) -> Bool {
-            if !request.ignoreEndOfSequence, stops.contains(token) {
-                outcome.stopped = true
-                return false
-            }
-            outcome.generated.append(token)
-            history.append(token)
-            emit(token)
-            return outcome.generated.count < request.maxTokens
-        }
-
-        var going = true
-        while going, !cancelled.isSet, !Task.isCancelled {
-            if plain {
-                // Plain and pipelined: each token's successor is queued before the token is handed out. Stops
-                // when the text so far ends with something seen before.
-                var current = MLXArray([Int32(truncatingIfNeeded: pending)])
-                while going, !cancelled.isSet, !Task.isCancelled {
-                    let next = draw(forward(current)[0])
-                    asyncEval(next)
-                    going = take(current.item(Int.self))
-                    current = next
-                    if holdOff > 0 {
-                        holdOff -= 1
-                    } else if Self.lookupDrafts,
-                              !PromptLookup.draft(history, maxNgram: 4, minNgram: 3, maxTokens: 1).isEmpty
-                    {
-                        break
-                    }
-                }
-                pending = current.item(Int.self)
-                plain = false
-                continue
-            }
-
-            guard take(pending) else { break }
-            let draft = PromptLookup.draft(
-                history, maxNgram: 4, minNgram: 3,
-                maxTokens: min(
-                    guessLength,
-                    request.speculativeMaxTokens ?? Self.maxDraft,
-                    request.maxTokens - outcome.generated.count
-                )
-            )
-            if draft.isEmpty {
-                // It stopped recurring: back to plain.
-                pending = draw(forward([pending])[0]).item(Int.self)
-                plain = true
-                continue
-            }
-            let input = [pending] + draft
-            let before = untrimmable ? Self.snapshot(layers) : [:]
-            let rows = forward(input)
-
-            // How many guesses to keep, and the token after them.
-            var kept = 0
-            let next: Int
-            if sampler.temperature <= 0 {
-                let best = argMax(rows, axis: -1).asArray(Int32.self).map(Int.init)
-                while kept < draft.count, best[kept] == draft[kept] {
-                    kept += 1
-                }
-                next = best[kept]
-            } else {
-                let probabilities = sampler.probabilities(rows)
-                let guessed = MLXArray(draft.map { Int32(truncatingIfNeeded: $0) }).expandedDimensions(axis: -1)
-                let chance = takeAlong(probabilities[..<draft.count], guessed, axis: -1).squeezed(axis: -1)
-                    .asArray(Float.self)
-                let roll = MLXRandom.uniform(0 ..< 1, [draft.count], key: sampler.state).asArray(Float.self)
-                while kept < draft.count, roll[kept] < chance[kept] {
-                    kept += 1
-                }
-                let remaining = probabilities[kept]
-                if kept < draft.count {
-                    // The rejected guess can't be the draw.
-                    remaining[draft[kept]] = MLXArray(Float(0))
-                }
-                next = categorical(log(remaining), key: sampler.state).item(Int.self)
-            }
-            outcome.drafted += draft.count
-            outcome.accepted += kept
-
-            // Undo what wasn't kept.
-            let unkept = draft.count - kept
-            if unkept > 0 {
-                if before.isEmpty {
-                    for layer in layers {
-                        layer.trim(unkept)
-                    }
-                } else {
-                    for layer in layers where layer.isTrimmable {
-                        layer.trim(input.count)
-                    }
-                    for (index, layer) in before {
-                        layers[index] = layer
-                    }
-                    _ = forward(Array(input[...kept]))
-                }
-            }
-            if kept == 0 {
-                plain = true
-                holdOff = backoff
-                backoff = min(backoff * 2, Self.maxBackoff)
-                guessLength = 2
-            } else {
-                backoff = Self.lookEvery
-                guessLength = unkept == 0 ? min(guessLength * 2, Self.maxDraft) : max(2, kept + 1)
-            }
-
-            for token in draft[..<kept] where going {
-                going = take(token)
-            }
-            pending = next
-        }
-        outcome.generateSeconds = generating.duration(to: .now).seconds
-        return outcome
     }
 
     /// An image turn (ADR D-047 amendment): the prompt text with each image's placeholder, the images
@@ -854,7 +794,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         )))
     }
 
-    private static func parameters(for request: GenerationRequest) -> GenerateParameters {
+    static func parameters(for request: GenerationRequest) -> GenerateParameters {
         let s = request.sampling
         return GenerateParameters(
             maxTokens: request.maxTokens, temperature: Float(s.temperature), topP: Float(s.topP), topK: s.topK,
@@ -864,7 +804,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         )
     }
 
-    private static func stopTokens(_ context: ModelContext) -> [Int] {
+    static func stopTokens(_ context: ModelContext) -> [Int] {
         var ids = Set(context.configuration.eosTokenIds.map(\.self))
         if let eos = context.tokenizer.eosTokenId {
             ids.insert(eos)
@@ -876,7 +816,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
 /// mlx-swift-lm's samplers each draw from a random state seeded at random, which leaves no way to
 /// honour a request's `seed`; this is the same top-p, min-p, top-k, temperature draw (mlx-lm's order and
 /// definitions) with a state of ours. Temperature 0 is greedy.
-private struct SeededSampler: LogitSampler {
+struct SeededSampler: LogitSampler {
     let temperature: Float
     let topP: Float
     let topK: Int
@@ -1002,7 +942,7 @@ private struct BanTokens: LogitProcessor {
     }
 }
 
-private // Set once from any thread, read by the prefill loop.
+/// Set once from any thread, read by the serving task.
 final class CancelFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var value = false
@@ -1064,6 +1004,11 @@ private struct ModelFiles {
                 seqLength: processor["image_seq_length"] as? Int ?? 280
             )
         }
+    }
+
+    /// The architecture's name, as `config.json` gives it.
+    var modelType: String? {
+        json("config.json")?["model_type"] as? String
     }
 
     /// `max_position_embeddings`, at the top level or inside `text_config` (multimodal models).

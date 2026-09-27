@@ -10,6 +10,10 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Changed
+
+- **MLX models answer several requests at once.** Quail server now decodes up to four text requests together on Qwen3, Qwen3.5 and Qwen3.6 MLX models, as it already did for GGUF, instead of making each wait for the one before. Four at once totalled 95–99 tokens a second on Qwen3-8B, against 52 before, and 132 against 81 on Qwen3.6 35B-A3B. A single request is exactly as fast as before, and repeated-text speed-ups still apply while it runs alone. A long prompt arriving mid-reply is read between the others' tokens rather than stopping them. Gemma 4, image turns and other model families still take one request at a time. `--parallel` (default 4) sets the limit; set `QUAIL_MLX_BATCH=0` in the server's environment to turn it off.
+
 ## [0.43.2] - 2026-09-27
 
 ### Changed
