@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.41.6] - 2026-09-27
+
 ### Changed
 
 - **Qwen3.5-family GGUF models (Qwen3.6, Qwen3.8) reuse their prompt cache on Quail server.** Before, every turn re-read the whole prompt, because llama.cpp can't rewind their recurrent layers. Quail now saves restore points as it reads a prompt, as llama-server does. Claude Code's turns on Qwen3.6 35B-A3B started replying in about 1 s instead of 27 s.
