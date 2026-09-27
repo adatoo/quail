@@ -45,6 +45,7 @@ struct UISnapshotTests {
             benchmarkStore: store,
             serverPreflight: nil
         )
+        appState.importHome = scratch // no other apps' models
         await appState.reconcileStore()
         return (appState, scratch)
     }
@@ -90,6 +91,33 @@ struct UISnapshotTests {
         try await render(
             AddModelSheet(appState: appState, defaultFilter: .mlx, preselect: pick),
             size: CGSize(width: 820, height: 580), name: "add-model-mlx"
+        )
+    }
+
+    @Test("Models from other apps: the offer and the sheet")
+    func importOffer() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let home = scratch.appendingPathComponent("home")
+        for path in [
+            ".lmstudio/models/lmstudio-community/Gemma-3-12B-GGUF/gemma-3-12b-it-Q4_K_M.gguf",
+            ".omlx/models/Qwen3-4B-4bit/config.json",
+            ".omlx/models/Qwen3-4B-4bit/model.safetensors",
+        ] {
+            let url = home.appendingPathComponent(path)
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try Data(repeating: 1, count: 4096).write(to: url)
+        }
+        appState.importHome = home
+        await appState.scanForImports()
+        try await render(ModelsPane(appState: appState), size: CGSize(width: 700, height: 600), name: "import-offer")
+        try await render(
+            ImportModelsSheet(appState: appState),
+            size: CGSize(width: 560, height: 420),
+            name: "import-sheet"
         )
     }
 

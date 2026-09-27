@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-09-27
+
+### Added
+
+- **Bring in models other apps already downloaded.** Quail looks in llama.cpp's download cache, LM Studio's models folder, the Hugging Face cache and oMLX's models folder. If it finds models it doesn't have, the Models list offers once to move them in. Review… lists each one (format, size and where it is) with a checkbox. Models are moved, not copied, so nothing takes up space twice, and a move that fails part-way leaves the model where it was. Unfinished downloads aren't offered. Settings → Models → Storage → ⋯ → Import Models from Other Apps… opens the list again at any time.
+
 ## [0.47.0] - 2026-09-27
 
 ### Added

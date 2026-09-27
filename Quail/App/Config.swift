@@ -51,6 +51,9 @@ struct Config: Sendable, Equatable, Codable {
     /// first Start from the menu with a host other than this Mac's own.
     var lanWarningShown: Bool = false
 
+    /// Whether the offer to move in models from other apps (Phase 4 step 2) has been answered, either way.
+    var importOffered: Bool = false
+
     init() {}
 
     private enum CodingKeys: String, CodingKey {
@@ -59,7 +62,8 @@ struct Config: Sendable, Equatable, Codable {
              keepAwake, keepAwakeLidClosed,
              modelsDirectoryBookmark,
              defaultModelID,
-             lanWarningShown
+             lanWarningShown,
+             importOffered
     }
 
     init(from decoder: Decoder) throws {
@@ -83,6 +87,7 @@ struct Config: Sendable, Equatable, Codable {
             ?? fallback.modelsDirectoryBookmark
         defaultModelID = try container.decodeIfPresent(String.self, forKey: .defaultModelID) ?? fallback.defaultModelID
         lanWarningShown = try container.decodeIfPresent(Bool.self, forKey: .lanWarningShown) ?? fallback.lanWarningShown
+        importOffered = try container.decodeIfPresent(Bool.self, forKey: .importOffered) ?? fallback.importOffered
     }
 }
 

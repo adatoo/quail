@@ -36,6 +36,7 @@ struct ModelsPane: View {
     /// unselected list.
     @State private var preselectFamily: Catalog.Family?
     @State private var showCleanUp = false
+    @State private var showImport = false
     /// This Mac's chip, for matching benchmark results (read in `refresh`,
     /// not per render — `DeviceInfo.current()` touches IOKit and Metal).
     @State private var chip: String?
@@ -56,6 +57,11 @@ struct ModelsPane: View {
             if !appState.canServe(.mlxSafetensors), !appState.modelStore.installedMLXDirectories().isEmpty {
                 Section {
                     MLXUnavailableBanner(appState: appState)
+                }
+            }
+            if appState.offersImport {
+                Section {
+                    ImportOfferBanner(appState: appState, review: { showImport = true })
                 }
             }
             Section {
@@ -102,6 +108,9 @@ struct ModelsPane: View {
         .sheet(isPresented: $showCleanUp) {
             CleanUpSheet(appState: appState)
         }
+        .sheet(isPresented: $showImport) {
+            ImportModelsSheet(appState: appState)
+        }
         .sheet(isPresented: $showAddSheet) {
             AddModelSheet(appState: appState, defaultFilter: formatFilter, preselect: preselectFamily)
         }
@@ -146,6 +155,7 @@ struct ModelsPane: View {
         // router's own web UI, auto-load on the first chat request, a
         // ping), and there is no push channel from llama-server to know
         // about it. 2 s, same cadence the Logs window tails at.
+        .task { await appState.scanForImports() }
         .task(id: appState.serverController.phase) {
             await refresh()
             await appState.pollLoadedStates { loadedStates = $0 }
@@ -277,6 +287,7 @@ struct ModelsPane: View {
                     .help("Open the GGUF models folder. Models added or deleted there show up here automatically.")
                     Menu {
                         Button("Clean Up…") { showCleanUp = true }
+                        Button("Import Models from Other Apps…") { showImport = true }
                         Button("Move Folder…") { relocate() }
                             .disabled(
                                 appState.installs.isDownloading
