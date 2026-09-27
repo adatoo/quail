@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.48.1] - 2026-09-27
+
 ### Removed
 
 - The leftover Mac App Store build: its scheme and configurations, sandbox entitlements, compile guards and CI build. The App Store plans were cancelled earlier (D-053). The app itself is unchanged.
