@@ -45,10 +45,13 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let caches = PromptCaches()
         /// Where they go when they leave memory, if anywhere (`--prompt-cache-dir`).
         let disk: PromptDiskCache?
+        /// A small model that drafts tokens for this one (preset `model-draft`), if one loaded.
+        let draft: DraftModel?
 
         init(
             container: ModelContainer, info: EngineInfo, chatTemplate: String?,
-            tokenizer: any MLXLMCommon.Tokenizer, vision: VisionSetup?, weightBytes: Int, disk: PromptDiskCache?
+            tokenizer: any MLXLMCommon.Tokenizer, vision: VisionSetup?, weightBytes: Int, disk: PromptDiskCache?,
+            draft: DraftModel?
         ) {
             self.container = container
             self.info = info
@@ -57,6 +60,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             self.vision = vision
             self.weightBytes = weightBytes
             self.disk = disk
+            self.draft = draft
         }
 
         /// Writes a cache leaving memory to disk. A hybrid model's is written as it was at its last checkpoint,
@@ -244,6 +248,11 @@ final class MLXEngine: Engine, @unchecked Sendable {
                 eosToken: files.token("eos_token") ?? tokenizer.eosToken ?? "",
                 supportsImages: entry.mlxVision
             )
+            let draft: DraftModel? = if !vision, let path = entry.draftModel {
+                await DraftModel.load(from: path, matching: tokenizer)
+            } else {
+                nil
+            }
             let made = Loaded(
                 container: container, info: info, chatTemplate: files.chatTemplate, tokenizer: tokenizer,
                 vision: vision ? files.visionSetup : nil, weightBytes: weightBytes,
@@ -252,7 +261,8 @@ final class MLXEngine: Engine, @unchecked Sendable {
                     entry: entry,
                     weightBytes: weightBytes,
                     vision: vision
-                )
+                ),
+                draft: draft
             )
             lock.withLock { loaded = made }
         } catch let error as EngineError {
@@ -455,7 +465,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
             let outcome = Self.decodeWithLookup(
                 rest: Array(prompt[fed...]), prompt: prompt, layers: &layers, context: context, request: request,
-                cancelled: cancelled, emit: { id in
+                draft: loaded.draft, cancelled: cancelled, emit: { id in
                     detokenizer.append(token: id)
                     emit(.token(id: id, text: detokenizer.next() ?? ""))
                 }
@@ -560,6 +570,8 @@ final class MLXEngine: Engine, @unchecked Sendable {
     static let lookupDrafts = ProcessInfo.processInfo.environment["QUAIL_PROMPT_LOOKUP"] != "nodraft"
     /// The most tokens guessed at once.
     static let maxDraft = 16
+    /// The most a draft model guesses at once: each of its tokens is a step of its own.
+    static let maxModelDraft = 6
     /// Tokens run without looking after a wholly wrong guess; the pause doubles each time, up to `maxBackoff`.
     static let lookEvery = 8
     static let maxBackoff = 256
@@ -589,7 +601,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
     /// it happens again). The guess grows while guesses are kept and shrinks when they aren't.
     private static func decodeWithLookup(
         rest: [Int], prompt: [Int], layers: inout [any KVCache], context: ModelContext, request: GenerationRequest,
-        cancelled: CancelFlag, emit: (Int) -> Void
+        draft drafter: DraftModel?, cancelled: CancelFlag, emit: (Int) -> Void
     ) -> LookupOutcome {
         var outcome = LookupOutcome()
         let started = ContinuousClock.now
@@ -653,8 +665,8 @@ final class MLXEngine: Engine, @unchecked Sendable {
                     current = next
                     if holdOff > 0 {
                         holdOff -= 1
-                    } else if Self.lookupDrafts,
-                              !PromptLookup.draft(history, maxNgram: 4, minNgram: 3, maxTokens: 1).isEmpty
+                    } else if Self.lookupDrafts, drafter != nil
+                        || !PromptLookup.draft(history, maxNgram: 4, minNgram: 3, maxTokens: 1).isEmpty
                     {
                         break
                     }
@@ -665,14 +677,14 @@ final class MLXEngine: Engine, @unchecked Sendable {
             }
 
             guard take(pending) else { break }
-            let draft = PromptLookup.draft(
-                history, maxNgram: 4, minNgram: 3,
-                maxTokens: min(
-                    guessLength,
-                    request.speculativeMaxTokens ?? Self.maxDraft,
-                    request.maxTokens - outcome.generated.count
-                )
+            let most = min(
+                guessLength, request.speculativeMaxTokens ?? Self.maxDraft, request.maxTokens - outcome.generated.count
             )
+            var draft = PromptLookup.draft(history, maxNgram: 4, minNgram: 3, maxTokens: most)
+            if draft.isEmpty, let drafter {
+                // Nothing to look up: the draft model guesses instead.
+                draft = drafter.propose(after: history, count: min(most, Self.maxModelDraft))
+            }
             if draft.isEmpty {
                 // It stopped recurring: back to plain.
                 pending = draw(forward([pending])[0]).item(Int.self)
@@ -1141,7 +1153,7 @@ private struct TokenizerBridge: MLXLMCommon.Tokenizer {
     }
 }
 
-private struct TokenizerBridgeLoader: TokenizerLoader {
+struct TokenizerBridgeLoader: TokenizerLoader {
     func load(from directory: URL) async throws -> any MLXLMCommon.Tokenizer {
         try await TokenizerBridge(inner: AutoTokenizer.from(modelFolder: directory))
     }

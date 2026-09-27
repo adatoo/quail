@@ -30,6 +30,9 @@ public struct ModelEntry: Equatable, Sendable {
     public var mlxVision = false
     /// Where this model's prompt caches may be kept on disk (the server's `--prompt-cache-dir`); nil for none.
     public var promptCacheDirectory: URL?
+    /// A small model of the same family that drafts tokens for this one to check (preset `model-draft`, as
+    /// llama-server names it: a path, or another model's id). MLX only.
+    public var draftModel: URL?
 
     /// Whether this model can read images in Quail: a GGUF with its projector, or a supported MLX one.
     public var supportsImages: Bool {
@@ -47,6 +50,7 @@ enum ModelDiscovery {
         "load-on-startup",
         "parallel",
         "np",
+        "model-draft",
     ]
 
     /// Scans the model folders, then lays the presets over the result. A preset
@@ -58,6 +62,7 @@ enum ModelDiscovery {
         presets: [ModelPreset]
     ) -> [ModelEntry] {
         var byID: [String: ModelEntry] = [:]
+        var drafts: [String: String] = [:]
         let fm = FileManager.default
 
         if let modelsDirectory,
@@ -128,8 +133,17 @@ enum ModelDiscovery {
             if let startup = preset.bool("load-on-startup") {
                 entry.loadOnStartup = startup
             }
+            if let draft = preset.string("model-draft") {
+                drafts[preset.id] = draft
+            }
             entry.ignoredPresetKeys = preset.values.keys.filter { !knownPresetKeys.contains($0) }.sorted()
             byID[preset.id] = entry
+        }
+
+        // A draft names another model's id, or a folder.
+        for (id, draft) in drafts {
+            let path = byID[draft]?.path ?? URL(fileURLWithPath: draft, isDirectory: true)
+            byID[id]?.draftModel = path
         }
 
         return byID.values

@@ -61,6 +61,7 @@
 		45065EFFD6CBA9E601D85A9D /* LlamaEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 780A3FA03B7D859B92701325 /* LlamaEngine.swift */; };
 		458E4FEE1410BD8E0191393E /* MessagesFixtureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119FB312FDFF3682386E1537 /* MessagesFixtureTests.swift */; };
 		45D2C7C5DDF6E10F03A6A694 /* QuailServerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95E0E264352A291B2B0573F5 /* QuailServerApp.swift */; };
+		46332D3BD5C402D18A56B4BA /* DraftModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F754DF9212D0D242F6BB0FCF /* DraftModel.swift */; };
 		4655E9F19BEECFC96D9A1355 /* JSONSchemaGrammar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7E4A12A17B7F66DA5BC8268 /* JSONSchemaGrammar.swift */; };
 		47DAABA1E882A6CD01680186 /* MLXMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF36C9C4B0032D9BDA798A6 /* MLXMetadata.swift */; };
 		4A67F045D85B57F300F618D5 /* MLXMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */; };
@@ -538,6 +539,7 @@
 		F1FF29416A6CAE787AB9209A /* StopMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopMatcher.swift; sourceTree = "<group>"; };
 		F3AE822102B29E1411CC45C2 /* InferenceRoutesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InferenceRoutesTests.swift; sourceTree = "<group>"; };
 		F6430CBAD1F05B2810D5D718 /* OfflineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineTests.swift; sourceTree = "<group>"; };
+		F754DF9212D0D242F6BB0FCF /* DraftModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftModel.swift; sourceTree = "<group>"; };
 		F78BA7C73CC4779E4C7DF5E5 /* WebUIMarkdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUIMarkdown.swift; sourceTree = "<group>"; };
 		F9235B293BB2D882972965C8 /* QuailServerRuntimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailServerRuntimeTests.swift; sourceTree = "<group>"; };
 		FC663973B4AF633BDBC0B64C /* FitBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitBadge.swift; sourceTree = "<group>"; };
@@ -984,6 +986,7 @@
 		EAA2FB1688B6871B1AD674E9 /* MLX */ = {
 			isa = PBXGroup;
 			children = (
+				F754DF9212D0D242F6BB0FCF /* DraftModel.swift */,
 				5387DA7B4353A32FCA3C9C3E /* MLXEngine.swift */,
 				3B84E2F4B1A7E81E152F00E3 /* PromptDiskCache.swift */,
 			);
@@ -1319,6 +1322,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46332D3BD5C402D18A56B4BA /* DraftModel.swift in Sources */,
 				3EFAF922BCFA71E54298A2CF /* MLXEngine.swift in Sources */,
 				2B7F298250EA270D19E64F0E /* PromptDiskCache.swift in Sources */,
 				BB4C3ECB171F045E1E108DE0 /* main.swift in Sources */,
