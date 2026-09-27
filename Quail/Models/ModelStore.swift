@@ -156,8 +156,9 @@ struct ModelStore: Sendable, Equatable {
             let id = file.deletingPathExtension().lastPathComponent
             let bytes = fileSize(of: file)
             let shape = (try? GGUFMetadata.read(from: file)).flatMap { ModelShape.from(gguf: $0, weightBytes: bytes) }
+            let kvCache = result.entries.first { $0.id == id }?.effectiveKVCache ?? .full
             let contextSize = shape.flatMap {
-                FitEstimator.automaticContextSize(model: $0, device: device, runtime: ggufRuntime)
+                FitEstimator.automaticContextSize(model: $0, device: device, runtime: ggufRuntime, kvCache: kvCache)
             }
             if let index = result.entries.firstIndex(where: { $0.id == id }) {
                 result.entries[index].bytes = bytes
@@ -177,9 +178,12 @@ struct ModelStore: Sendable, Equatable {
         for directory in installedMLXDirectories() {
             let id = directory.lastPathComponent
             let bytes = directorySize(of: directory)
+            let kvCache = result.entries.first { $0.id == id }?.effectiveKVCache ?? .full
             let contextSize = (try? MLXMetadata.read(from: directory.appendingPathComponent("config.json")))
                 .flatMap { ModelShape.from(mlx: $0, weightBytes: bytes) }
-                .flatMap { FitEstimator.automaticContextSize(model: $0, device: device, runtime: .omlx) }
+                .flatMap {
+                    FitEstimator.automaticContextSize(model: $0, device: device, runtime: .omlx, kvCache: kvCache)
+                }
             if let index = result.entries.firstIndex(where: { $0.id == id }) {
                 result.entries[index].bytes = bytes
                 result.entries[index].contextSize = contextSize
@@ -292,7 +296,8 @@ struct ModelStore: Sendable, Equatable {
         var ini = ""
         for file in installedGGUFFiles() {
             let alias = file.deletingPathExtension().lastPathComponent
-            let contextSize = catalog.entries.first { $0.id == alias }?.effectiveContextSize ?? defaultContextSize
+            let entry = catalog.entries.first { $0.id == alias }
+            let contextSize = entry?.effectiveContextSize ?? defaultContextSize
             ini += "[\(alias)]\n"
             ini += "model = \(file.path)\n"
             // llama-server's --models-preset parser keys presets by the
@@ -309,6 +314,7 @@ struct ModelStore: Sendable, Equatable {
             if FileManager.default.fileExists(atPath: projector.path) {
                 ini += "mmproj = \(projector.path)\n"
             }
+            ini += Self.kvCacheLines(entry?.effectiveKVCache ?? .full, flashAttention: true)
             if alias == defaultModelID {
                 ini += "load-on-startup = true\n"
             }
@@ -317,11 +323,13 @@ struct ModelStore: Sendable, Equatable {
         if includeMLX {
             for directory in installedMLXDirectories() {
                 let id = directory.lastPathComponent
+                let entry = catalog.entries.first { $0.id == id }
                 ini += "[\(id)]\n"
                 ini += "model = \(directory.path)\n"
-                if let contextSize = catalog.entries.first(where: { $0.id == id })?.effectiveContextSize {
+                if let contextSize = entry?.effectiveContextSize {
                     ini += "ctx-size = \(contextSize)\n"
                 }
+                ini += Self.kvCacheLines(entry?.effectiveKVCache ?? .full, flashAttention: false)
                 if id == defaultModelID {
                     ini += "load-on-startup = true\n"
                 }
@@ -329,5 +337,13 @@ struct ModelStore: Sendable, Equatable {
             }
         }
         try ini.write(to: presetsFile, atomically: true, encoding: .utf8)
+    }
+
+    /// A quantized KV cache's preset lines (ADR D-057): llama-server's own keys, which quail-server reads for both
+    /// formats. llama.cpp needs flash attention for a quantized V cache, so a GGUF section turns it on.
+    static func kvCacheLines(_ setting: KVCacheSetting, flashAttention: Bool) -> String {
+        guard setting != .full else { return "" }
+        return "cache-type-k = \(setting.rawValue)\ncache-type-v = \(setting.rawValue)\n"
+            + (flashAttention ? "flash-attn = on\n" : "")
     }
 }

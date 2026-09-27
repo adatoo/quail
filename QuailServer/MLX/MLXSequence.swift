@@ -87,6 +87,8 @@ final class MLXSequence {
     private let untrimmable: Bool
     private var inFlight: [[MLXArray]] = []
     private let step: Int
+    /// Bits the attention caches are quantized to once they hold anything (ADR D-057), or nil.
+    private let kvBits: Int?
 
     let sampler: SeededSampler
     private var processor: (any LogitProcessor)?
@@ -124,7 +126,8 @@ final class MLXSequence {
         let request = job.request
         prompt = request.promptTokens
         guard !prompt.isEmpty else { throw EngineError.generationFailed("the prompt has no tokens") }
-        let parameters = MLXEngine.parameters(for: request)
+        let parameters = MLXEngine.parameters(for: request, kvBits: loaded.kvBits)
+        kvBits = loaded.kvBits
 
         // A cache on disk is loaded instead when it holds clearly more (loading costs about as much as reading
         // `checkpointMargin` tokens).
@@ -195,6 +198,7 @@ final class MLXSequence {
             eval(inFlight.removeFirst())
         }
         fed += count
+        quantize()
         if untrimmable, fed < feedTo,
            fed - (checkpoints.keys.max() ?? reused) >= MLXEngine.checkpointInterval
         {
@@ -241,8 +245,17 @@ final class MLXSequence {
     func forward(_ input: MLXArray, context: ModelContext) -> MLXArray {
         let rows = context.model(.init(tokens: input.expandedDimensions(axis: 0)), cache: layers, state: nil)
             .logits[0]
+        quantize()
         ban(rows)
         return rows
+    }
+
+    /// Swaps the plain attention caches for quantized ones, once, when the model asks for a quantized cache:
+    /// what they hold so far is quantized then, and every later token as it's added. Recurrent and
+    /// sliding-window layers stay as they are (mlx-swift-lm's `maybeQuantizeKVCache`).
+    private func quantize() {
+        guard let kvBits else { return }
+        maybeQuantizeKVCache(cache: &layers, kvBits: kvBits, kvGroupSize: MLXEngine.kvGroupSize)
     }
 
     /// Makes the end-of-sequence tokens unsampleable for `ignore_eos`, in place.

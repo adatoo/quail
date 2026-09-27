@@ -36,6 +36,52 @@ struct FitEstimatorTests {
         headDim: 128
     )
 
+    // MARK: - KV cache quantization (ADR D-057)
+
+    @Test("an 8-bit or 4-bit KV cache shrinks the KV term by its bytes per element")
+    func quantizedKVCacheShrinksKVTerm() {
+        let full = FitEstimator.ramNeeded(model: Self.eightBQ4KM, contextSize: 8192, overheadBytes: 0)
+        let q8 = FitEstimator.ramNeeded(model: Self.eightBQ4KM, contextSize: 8192, kvCache: .q8, overheadBytes: 0)
+        let q4 = FitEstimator.ramNeeded(model: Self.eightBQ4KM, contextSize: 8192, kvCache: .q4, overheadBytes: 0)
+        let weights = Self.eightBQ4KM.weightBytes
+        #expect(full - weights == 1_073_741_824)
+        #expect(q8 - weights == 570_425_344) // × 1.0625 / 2
+        #expect(q4 - weights == 301_989_888) // × 0.5625 / 2
+    }
+
+    @Test("a tight verdict says how much context a 4-bit KV cache would fit")
+    func tightVerdictOffersFourBitContext() throws {
+        let full = try #require(FitEstimator.estimate(
+            model: Self.eightBQ4KM, device: Self.sixteenGB, runtime: .llamaCpp, requestedContextSize: 131_072
+        ))
+        guard case let .tight(reduced) = full.verdict else {
+            Issue.record("expected tight, got \(full.verdict)")
+            return
+        }
+        let offered = try #require(full.contextWith4BitKV)
+        #expect(offered > reduced)
+        let quantized = try #require(FitEstimator.estimate(
+            model: Self.eightBQ4KM, device: Self.sixteenGB, runtime: .llamaCpp, requestedContextSize: 131_072,
+            kvCache: .q4
+        ))
+        #expect(quantized.verdict == .tight(reducedContextSize: offered))
+        #expect(quantized.contextWith4BitKV == nil)
+    }
+
+    @Test("Automatic context grows with a smaller KV cache")
+    func automaticContextGrowsWithQuantizedCache() throws {
+        let big = ModelShape(weightBytes: 6_000_000_000, layerCount: 48, kvHeadCount: 8, headDim: 128)
+        let full = try #require(FitEstimator.automaticContextSize(
+            model: big,
+            device: Self.sixteenGB,
+            runtime: .llamaCpp
+        ))
+        let q4 = try #require(FitEstimator.automaticContextSize(
+            model: big, device: Self.sixteenGB, runtime: .llamaCpp, kvCache: .q4
+        ))
+        #expect(q4 > full)
+    }
+
     // MARK: - The plan's own two canonical scenarios
 
     @Test("8B Q4_K_M on 16 GB is Comfortable at the default 8K context")

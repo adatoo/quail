@@ -35,7 +35,13 @@ struct InstalledModel: Sendable, Equatable, Codable, Identifiable {
     /// The context the model was trained for, from its header — caps the
     /// picker's options.
     var trainedContext: Int? = nil
+    /// The user's KV cache choice (ADR D-057); `nil` means full precision.
+    var userKVCache: KVCacheSetting? = nil
     var addedAt: Date
+
+    var effectiveKVCache: KVCacheSetting {
+        userKVCache ?? .full
+    }
 
     /// What `presets.ini` gets as `ctx-size`.
     var effectiveContextSize: Int {

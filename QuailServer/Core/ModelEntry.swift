@@ -5,6 +5,23 @@ public enum ModelKind: String, Equatable, Sendable {
     case mlx
 }
 
+/// How a model's KV cache stores its elements: llama-server's `cache-type-k`/`cache-type-v` values, used by both
+/// engines (ADR D-057). Smaller types hold a longer context in the same memory, at a small cost in accuracy.
+public enum KVCacheType: String, Equatable, Sendable, CaseIterable {
+    case f16
+    case q8_0
+    case q4_0
+
+    /// Bits per element for MLX's affine quantization; nil for full precision.
+    public var bits: Int? {
+        switch self {
+        case .f16: nil
+        case .q8_0: 8
+        case .q4_0: 4
+        }
+    }
+}
+
 /// A model the server can load: what a folder scan and the presets file say
 /// about it. Nothing here touches the model itself.
 public struct ModelEntry: Equatable, Sendable {
@@ -31,6 +48,19 @@ public struct ModelEntry: Equatable, Sendable {
     public var mlxVision = false
     /// Where this model's prompt caches may be kept on disk (the server's `--prompt-cache-dir`); nil for none.
     public var promptCacheDirectory: URL?
+    /// The KV cache's key and value types (`cache-type-k`, `cache-type-v`); nil for the engine's full precision.
+    public var cacheTypeK: KVCacheType?
+    public var cacheTypeV: KVCacheType?
+    /// llama.cpp's flash attention (`flash-attn`: on, off or auto); nil leaves it to llama.cpp, which a quantized
+    /// V cache needs on.
+    public var flashAttention: Bool?
+
+    /// Bits per element for an MLX KV cache, which quantizes keys and values alike: set only when both are
+    /// quantized, to the larger of the two.
+    public var mlxKVBits: Int? {
+        guard let k = cacheTypeK?.bits, let v = cacheTypeV?.bits else { return nil }
+        return max(k, v)
+    }
 
     /// Whether this model can read images in Quail: a GGUF with its projector, or a supported MLX one.
     public var supportsImages: Bool {
@@ -48,6 +78,9 @@ enum ModelDiscovery {
         "load-on-startup",
         "parallel",
         "np",
+        "cache-type-k",
+        "cache-type-v",
+        "flash-attn",
     ]
 
     /// Scans the model folders, then lays the presets over the result. A preset
@@ -129,7 +162,21 @@ enum ModelDiscovery {
             if let startup = preset.bool("load-on-startup") {
                 entry.loadOnStartup = startup
             }
-            entry.ignoredPresetKeys = preset.values.keys.filter { !knownPresetKeys.contains($0) }.sorted()
+            var unknownValues: [String] = []
+            for (key, path) in [("cache-type-k", \ModelEntry.cacheTypeK), ("cache-type-v", \ModelEntry.cacheTypeV)] {
+                guard let text = preset.string(key) else { continue }
+                if let type = KVCacheType(rawValue: text.lowercased()) {
+                    entry[keyPath: path] = type == .f16 ? nil : type
+                } else {
+                    unknownValues.append("\(key)=\(text)")
+                }
+            }
+            if let flash = preset.string("flash-attn")?.lowercased() {
+                entry.flashAttention = ["on", "1", "true", "enabled"].contains(flash)
+                    ? true : ["off", "0", "false", "disabled"].contains(flash) ? false : nil
+            }
+            entry.ignoredPresetKeys = (preset.values.keys.filter { !knownPresetKeys.contains($0) } + unknownValues)
+                .sorted()
             byID[preset.id] = entry
         }
 

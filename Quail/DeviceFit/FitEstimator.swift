@@ -106,6 +106,33 @@ struct ModelShape: Sendable, Equatable, Codable {
     }
 }
 
+/// How a model's KV cache stores its elements, a per-model setting (ADR D-057): full precision, or quantized to
+/// 8 or 4 bits for a longer context in the same memory. Written to `presets.ini` as llama-server's
+/// `cache-type-k`/`cache-type-v`, which both runtimes read.
+enum KVCacheSetting: String, Sendable, Equatable, Codable, CaseIterable {
+    case full = "f16"
+    case q8 = "q8_0"
+    case q4 = "q4_0"
+
+    /// `b` in the fit formula. The quantized types carry a scale (and, for MLX, a bias) per group of 32–64
+    /// elements, which these round up to cover either engine.
+    var bytesPerElement: Double {
+        switch self {
+        case .full: 2
+        case .q8: 1.0625
+        case .q4: 0.5625
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .full: "Full precision"
+        case .q8: "8-bit"
+        case .q4: "4-bit"
+        }
+    }
+}
+
 /// docs/ARCHITECTURE.md §7's three fit verdicts.
 enum FitVerdict: Sendable, Equatable {
     /// RAM needed at the requested context is under 70% of the GPU
@@ -130,6 +157,9 @@ struct FitEstimate: Sendable, Equatable {
     /// unrecognized chip — ARCHITECTURE.md §7: "unknown chip → no speed
     /// estimate", deliberately not a guess.
     var estimatedTokensPerSecond: Double?
+    /// For a `.tight` verdict at full precision: the context a 4-bit KV cache would fit instead (ADR D-057),
+    /// when that's more.
+    var contextWith4BitKV: Int?
 }
 
 /// docs/ARCHITECTURE.md §7's fit and speed formulas, as pure functions
@@ -172,21 +202,23 @@ enum FitEstimator {
     /// nothing can be estimated. 8K alone — the old fixed default — was
     /// too small for coding agents (Claude Code's first request measured
     /// 15,114 tokens).
-    static func automaticContextSize(model: ModelShape, device: DeviceInfo, runtime: RuntimeID) -> Int? {
+    static func automaticContextSize(
+        model: ModelShape, device: DeviceInfo, runtime: RuntimeID, kvCache: KVCacheSetting = .full
+    ) -> Int? {
         let cap = model.trainedContext ?? Int.max
+        func verdict(at context: Int) -> FitVerdict? {
+            estimate(model: model, device: device, runtime: runtime, requestedContextSize: context, kvCache: kvCache)?
+                .verdict
+        }
         for candidate in [32768, 16384, 8192] where candidate <= cap {
-            if estimate(model: model, device: device, runtime: runtime, requestedContextSize: candidate)?
-                .verdict == .comfortable
-            {
+            if verdict(at: candidate) == .comfortable {
                 return candidate
             }
         }
-        if cap < 8192, estimate(model: model, device: device, runtime: runtime, requestedContextSize: cap)?
-            .verdict == .comfortable
-        {
+        if cap < 8192, verdict(at: cap) == .comfortable {
             return cap
         }
-        if case let .tight(reduced)? = estimate(model: model, device: device, runtime: runtime)?.verdict, reduced > 0 {
+        if case let .tight(reduced)? = verdict(at: defaultContextSize), reduced > 0 {
             return reduced
         }
         return nil
@@ -212,21 +244,21 @@ enum FitEstimator {
 
     /// RAM_needed = W + 2 · L · H_kv · d · b · C + O
     ///
-    /// `kvCacheBytesPerElement` is `b` — 2 for an f16 KV cache, 1 for q8.
-    /// Not read from model metadata: it's a cache-quantization setting,
-    /// not a model property. llama.cpp's own `--cache-type-k` default is
-    /// f16 (confirmed against the vendored binary's own `-ctk`/`-ctkd`
-    /// flag strings), and nothing in Quail sets it to anything else yet,
-    /// so 2 is the only value any real caller passes today.
+    /// `b` is `kvCache.bytesPerElement`: 2 for the engines' default f16 cache, about 1 or 0.56 when a model is set
+    /// to a quantized one (ADR D-057). Not read from model metadata: it's a setting, not a model property.
     static func ramNeeded(
         model: ModelShape,
         contextSize: Int,
-        kvCacheBytesPerElement: Int64 = 2,
+        kvCache: KVCacheSetting = .full,
         overheadBytes: Int64
     ) -> Int64 {
-        let kvCacheBytes = 2 * Int64(model.layerCount) * Int64(model.kvHeadCount)
-            * Int64(model.headDim) * kvCacheBytesPerElement * Int64(contextSize)
-        return model.weightBytes + kvCacheBytes + overheadBytes
+        model.weightBytes + kvBytesPerToken(model, kvCache) * Int64(contextSize) + overheadBytes
+    }
+
+    /// 2 · L · H_kv · d · b: one token's keys and values across the layers.
+    static func kvBytesPerToken(_ model: ModelShape, _ kvCache: KVCacheSetting) -> Int64 {
+        Int64(2 * Double(model.layerCount) * Double(model.kvHeadCount) * Double(model.headDim) * kvCache
+            .bytesPerElement)
     }
 
     /// The verdict, RAM figure, and (when the chip is recognized) speed
@@ -246,7 +278,7 @@ enum FitEstimator {
         device: DeviceInfo,
         runtime: RuntimeID,
         requestedContextSize: Int = FitEstimator.defaultContextSize,
-        kvCacheBytesPerElement: Int64 = 2,
+        kvCache: KVCacheSetting = .full,
         bandwidthTable: [String: Double] = [:]
     ) -> FitEstimate? {
         guard let ceiling = device.gpuWorkingSetCeilingBytes else { return nil }
@@ -268,8 +300,7 @@ enum FitEstimator {
             contextForRAMFigure = 0
         } else {
             let neededAtRequested = ramNeeded(
-                model: model, contextSize: requestedContextSize,
-                kvCacheBytesPerElement: kvCacheBytesPerElement, overheadBytes: overhead
+                model: model, contextSize: requestedContextSize, kvCache: kvCache, overheadBytes: overhead
             )
             let comfortableCeiling = Int64(Double(ceiling) * comfortableFraction)
 
@@ -280,8 +311,7 @@ enum FitEstimator {
                 // Solve for the largest context that fits under the full
                 // (not comfortable-fraction) ceiling:
                 // ceiling >= W + O + 2*L*Hkv*d*b*C
-                let perTokenBytes = 2 * Int64(model.layerCount) * Int64(model.kvHeadCount)
-                    * Int64(model.headDim) * kvCacheBytesPerElement
+                let perTokenBytes = kvBytesPerToken(model, kvCache)
                 let budget = ceiling - model.weightBytes - overhead
                 let fittingContext = perTokenBytes > 0 ? Int(budget / perTokenBytes) : requestedContextSize
                 let reduced = max(0, min(fittingContext, requestedContextSize))
@@ -291,15 +321,29 @@ enum FitEstimator {
         }
 
         let ramNeededBytes = ramNeeded(
-            model: model, contextSize: contextForRAMFigure,
-            kvCacheBytesPerElement: kvCacheBytesPerElement, overheadBytes: overhead
+            model: model, contextSize: contextForRAMFigure, kvCache: kvCache, overheadBytes: overhead
         )
 
         let tokPerSec = device.chipName
             .flatMap { bandwidthTable[$0] }
             .map { speedEstimate(model: model, bandwidthGBps: $0) }
 
-        return FitEstimate(verdict: verdict, ramNeededBytes: ramNeededBytes, estimatedTokensPerSecond: tokPerSec)
+        var result = FitEstimate(verdict: verdict, ramNeededBytes: ramNeededBytes, estimatedTokensPerSecond: tokPerSec)
+        if case let .tight(reduced) = verdict, kvCache == .full,
+           let quantized = estimate(
+               model: model, device: device, runtime: runtime, requestedContextSize: requestedContextSize, kvCache: .q4
+           )
+        {
+            let fitting = switch quantized.verdict {
+            case .comfortable: requestedContextSize
+            case let .tight(context): context
+            case .wontFit: 0
+            }
+            if fitting > reduced {
+                result.contextWith4BitKV = fitting
+            }
+        }
+        return result
     }
 
     /// tok/s ≈ 0.7 × bandwidth / active_bytes_per_token, per

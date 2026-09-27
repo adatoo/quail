@@ -151,6 +151,44 @@ struct ModelStoreTests {
         #expect(ini.contains("ctx-size = 32768"))
     }
 
+    @Test("regeneratePresets writes a quantized KV cache as llama-server's keys, with flash attention for GGUF")
+    func regeneratePresetsWritesKVCache() throws {
+        let store = scratchStore()
+        defer { try? FileManager.default.removeItem(at: store.rootURL) }
+        try store.ensureDirectoriesExist()
+        try Data().write(to: store.ggufDirectory.appendingPathComponent("Qwen3-8B.gguf"))
+        let mlx = store.mlxDirectory.appendingPathComponent("mlx-community--Qwen3-8B-4bit", isDirectory: true)
+        try FileManager.default.createDirectory(at: mlx, withIntermediateDirectories: true)
+        try Data("{}".utf8).write(to: mlx.appendingPathComponent("config.json"))
+        var gguf = InstalledModel(id: "Qwen3-8B", format: .gguf, bytes: 0, addedAt: Date())
+        gguf.userKVCache = .q8
+        var mlxEntry = InstalledModel(
+            id: "mlx-community--Qwen3-8B-4bit", format: .mlxSafetensors, bytes: 0, addedAt: Date()
+        )
+        mlxEntry.userKVCache = .q4
+
+        try store.regeneratePresets(catalog: StoreCatalog(entries: [gguf, mlxEntry]), includeMLX: true)
+
+        let ini = try String(contentsOf: store.presetsFile, encoding: .utf8)
+        let sections = ini.components(separatedBy: "\n\n")
+        let ggufSection = try #require(sections.first { $0.hasPrefix("[Qwen3-8B]") })
+        #expect(ggufSection.contains("cache-type-k = q8_0\ncache-type-v = q8_0\nflash-attn = on"))
+        let mlxSection = try #require(sections.first { $0.hasPrefix("[mlx-community--Qwen3-8B-4bit]") })
+        #expect(mlxSection.contains("cache-type-k = q4_0\ncache-type-v = q4_0"))
+        #expect(!mlxSection.contains("flash-attn"))
+    }
+
+    @Test("regeneratePresets writes nothing for a full-precision KV cache")
+    func regeneratePresetsOmitsFullKVCache() throws {
+        let store = scratchStore()
+        defer { try? FileManager.default.removeItem(at: store.rootURL) }
+        try store.ensureDirectoriesExist()
+        try Data().write(to: store.ggufDirectory.appendingPathComponent("Qwen3-8B.gguf"))
+        try store.regeneratePresets(catalog: StoreCatalog())
+        let ini = try String(contentsOf: store.presetsFile, encoding: .utf8)
+        #expect(!ini.contains("cache-type"))
+    }
+
     @Test("regeneratePresets excludes mmproj- companions from having their own section")
     func regeneratePresetsExcludesMmproj() throws {
         let store = scratchStore()

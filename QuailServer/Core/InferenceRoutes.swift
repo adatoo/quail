@@ -607,6 +607,9 @@ struct InferenceRoutes: Sendable {
                 "build_info": buildLabel,
                 "is_sleeping": false,
                 "cors_proxy_enabled": false,
+                // Quail's own: the KV cache types in use (ADR D-057).
+                "cache_type_k": (snapshot?.entry.cacheTypeK ?? .f16).rawValue,
+                "cache_type_v": (snapshot?.entry.cacheTypeV ?? .f16).rawValue,
             ]
             return Self.json(props)
         }

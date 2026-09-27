@@ -63,6 +63,41 @@ struct ModelDiscoveryTests {
         #expect(presets[1].string("mmproj") == "/store/gguf/mmproj-Gemma-4B.gguf")
     }
 
+    @Test("a KV cache type and flash attention from the preset (ADR D-057)")
+    func kvCachePresets() {
+        let presets = PresetsFile.parse("""
+        [a]
+        model = /m/a.gguf
+        cache-type-k = q8_0
+        cache-type-v = Q8_0
+        flash-attn = on
+
+        [b]
+        model = /m/b.gguf
+        cache-type-k = q4_0
+        cache-type-v = f16
+
+        [c]
+        model = /m/c.gguf
+        cache-type-k = iq4_nl
+        """)
+        let entries = Dictionary(uniqueKeysWithValues: ModelDiscovery.discover(
+            modelsDirectory: nil, mlxDirectory: nil, presets: presets
+        ).map { ($0.id, $0) })
+        #expect(entries["a"]?.cacheTypeK == .q8_0)
+        #expect(entries["a"]?.cacheTypeV == .q8_0)
+        #expect(entries["a"]?.flashAttention == true)
+        #expect(entries["a"]?.mlxKVBits == 8)
+        #expect(entries["a"]?.ignoredPresetKeys == [])
+        // MLX quantizes keys and values alike: only when both are quantized.
+        #expect(entries["b"]?.cacheTypeK == .q4_0)
+        #expect(entries["b"]?.cacheTypeV == nil)
+        #expect(entries["b"]?.mlxKVBits == nil)
+        // A type this server doesn't implement is said so, not silently dropped.
+        #expect(entries["c"]?.cacheTypeK == nil)
+        #expect(entries["c"]?.ignoredPresetKeys == ["cache-type-k=iq4_nl"])
+    }
+
     @Test("comments, blank lines and a [*] defaults section")
     func commentsAndDefaults() {
         let presets = PresetsFile.parse("""
@@ -156,13 +191,13 @@ struct ModelDiscoveryTests {
         let store = try Store()
         defer { store.remove() }
         try store.touch("A.gguf")
-        let presets = PresetsFile.parse("[A]\nctx-size = 4096\nflash-attn = on\nrope-scale = 2\n")
+        let presets = PresetsFile.parse("[A]\nctx-size = 4096\nmlock = on\nrope-scale = 2\n")
 
         let entry = try #require(ModelDiscovery.discover(
             modelsDirectory: store.gguf, mlxDirectory: nil, presets: presets
         ).first)
 
-        #expect(entry.ignoredPresetKeys == ["flash-attn", "rope-scale"])
+        #expect(entry.ignoredPresetKeys == ["mlock", "rope-scale"])
     }
 
     @Test("a missing folder is an empty list")

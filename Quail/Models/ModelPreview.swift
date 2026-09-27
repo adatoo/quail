@@ -229,9 +229,10 @@ enum ModelPreview {
             model: shape,
             device: device,
             runtime: entry.format == .gguf ? ggufRuntime : .omlx,
-            // At the context the model will actually run at (ADR D-020),
-            // not a fixed default.
+            // At the context and KV cache the model will actually run with
+            // (ADR D-020, D-057), not fixed defaults.
             requestedContextSize: entry.effectiveContextSize,
+            kvCache: entry.effectiveKVCache,
             bandwidthTable: bandwidthTable
         )
     }
@@ -252,29 +253,66 @@ enum ModelPreview {
     }
 
     /// The context picker's options for an installed model, each with its
-    /// verdict on this Mac.
+    /// verdict on this Mac at the model's KV cache setting, and whether a
+    /// 4-bit KV cache would make an option that doesn't fit fit (ADR D-057).
     static func contextChoices(
         entry: InstalledModel,
         store: ModelStore,
         device: DeviceInfo,
         ggufRuntime: RuntimeID
-    ) -> [(tokens: Int, verdict: FitVerdict?)] {
+    ) -> [(tokens: Int, verdict: FitVerdict?, fitsWith4BitKV: Bool)] {
         let shape = installedShape(entry: entry, store: store)
         return FitEstimator.contextOptions(trainedContext: entry.trainedContext ?? shape?.trainedContext)
             .map { tokens in
-                var verdict = shape.flatMap {
-                    FitEstimator.estimate(
-                        model: $0, device: device, runtime: entry.format == .gguf ? ggufRuntime : .omlx,
-                        requestedContextSize: tokens
-                    )?.verdict
+                let verdict = shape.flatMap {
+                    verdictAt(
+                        tokens,
+                        kvCache: entry.effectiveKVCache,
+                        shape: $0,
+                        entry: entry,
+                        device: device,
+                        ggufRuntime: ggufRuntime
+                    )
                 }
-                // `.tight(n)` means "fits under the full ceiling only up to n
-                // tokens" — an option above n doesn't fit at its own size.
-                if case let .tight(reduced)? = verdict, reduced < tokens {
-                    verdict = .wontFit
-                }
-                return (tokens, verdict)
+                let rescued = verdict == .wontFit && entry.effectiveKVCache != .q4 && shape.flatMap {
+                    verdictAt(tokens, kvCache: .q4, shape: $0, entry: entry, device: device, ggufRuntime: ggufRuntime)
+                }.map { $0 != .wontFit } == true
+                return (tokens, verdict, rescued)
             }
+    }
+
+    /// The KV cache picker's options for an installed model, each with its verdict at the model's context.
+    static func kvCacheChoices(
+        entry: InstalledModel,
+        store: ModelStore,
+        device: DeviceInfo,
+        ggufRuntime: RuntimeID
+    ) -> [(setting: KVCacheSetting, verdict: FitVerdict?)] {
+        let shape = installedShape(entry: entry, store: store)
+        return KVCacheSetting.allCases.map { setting in
+            (setting, shape.flatMap {
+                verdictAt(
+                    entry.effectiveContextSize, kvCache: setting, shape: $0, entry: entry, device: device,
+                    ggufRuntime: ggufRuntime
+                )
+            })
+        }
+    }
+
+    /// The verdict at exactly `tokens` of context: `.tight(n)` means "fits under the full ceiling only up to n
+    /// tokens", so a size above n doesn't fit at its own size.
+    private static func verdictAt(
+        _ tokens: Int, kvCache: KVCacheSetting, shape: ModelShape, entry: InstalledModel, device: DeviceInfo,
+        ggufRuntime: RuntimeID
+    ) -> FitVerdict? {
+        let verdict = FitEstimator.estimate(
+            model: shape, device: device, runtime: entry.format == .gguf ? ggufRuntime : .omlx,
+            requestedContextSize: tokens, kvCache: kvCache
+        )?.verdict
+        if case let .tight(reduced)? = verdict, reduced < tokens {
+            return .wontFit
+        }
+        return verdict
     }
 
     /// A pre-download verdict for one not-yet-installed model. `files`
