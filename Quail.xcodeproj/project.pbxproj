@@ -82,6 +82,7 @@
 		5322AB3BD1C7AFC48387FFDC /* MessagesRoutesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D905EB57D799D0C674BB8BF3 /* MessagesRoutesTests.swift */; };
 		53DD1884AA5E3AB83D2F4D95 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148D086199BA9229F896DFDA /* Updater.swift */; };
 		53F6814074A23EEBB6544D90 /* ModelAddPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BD7CE4C9F99A17BB539706 /* ModelAddPlan.swift */; };
+		54EB06C13CCDCF35C8E53D1F /* RapidMLXCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17811CEFC92F66515BE81A60 /* RapidMLXCatalog.swift */; };
 		54F1C29A1585CEEF948C1343 /* ReasoningSplitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CCB8B5E9D47EE7AD4195B83 /* ReasoningSplitter.swift */; };
 		550CB4131001A5083F516E27 /* ConnectionTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0172F426DB7DE0BD44BE2CFA /* ConnectionTester.swift */; };
 		574C76D38AC7A07389D8A5AB /* AppState+Benchmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9DB205518D333390748171 /* AppState+Benchmark.swift */; };
@@ -245,6 +246,7 @@
 		FB3EBCA2150FDBDD71E56A3A /* ChatStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76F6DC889B736AA2A68EF461 /* ChatStream.swift */; };
 		FB8504F0AAF172854C655320 /* PromptLookupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8FAB3B74C84276EA092A9EE /* PromptLookupTests.swift */; };
 		FE3F1D8FFB1AB2BA257B7DD5 /* QuailApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5340652668A6D7507752E82 /* QuailApp.swift */; };
+		FEBC070ECE2CC9B4897FC575 /* mlx-models.json in Resources */ = {isa = PBXBuildFile; fileRef = C6693F823B7D50DD4187334D /* mlx-models.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -340,6 +342,7 @@
 		14B9109BAA6AC2A10860B699 /* llama.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = llama.xcframework; path = Vendor/llama.xcframework; sourceTree = "<group>"; };
 		15C04916186FBBF06AE570AE /* HTTPMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPMessage.swift; sourceTree = "<group>"; };
 		174474DD711C1D0D6ACAE912 /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
+		17811CEFC92F66515BE81A60 /* RapidMLXCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RapidMLXCatalog.swift; sourceTree = "<group>"; };
 		18764044809053776EEB9AED /* ChatStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStream.swift; sourceTree = "<group>"; };
 		19B87DA34C1C3C10454DD9BC /* CatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTests.swift; sourceTree = "<group>"; };
 		202E2A8059B6ABFB4874ED71 /* PathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathsTests.swift; sourceTree = "<group>"; };
@@ -501,6 +504,7 @@
 		C1946EC80763A824682094C0 /* GGUFMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GGUFMetadataTests.swift; sourceTree = "<group>"; };
 		C562CFF8B604F358AA4E3243 /* Locked.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Locked.swift; sourceTree = "<group>"; };
 		C637DD09B26F0476ABA02F0D /* ServerRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerRoutes.swift; sourceTree = "<group>"; };
+		C6693F823B7D50DD4187334D /* mlx-models.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "mlx-models.json"; sourceTree = "<group>"; };
 		C673695383A5BA8C4EFEDAD7 /* LogStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStoreTests.swift; sourceTree = "<group>"; };
 		C6B06E1D47B2AD3068E008A0 /* ChatOutputParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatOutputParser.swift; sourceTree = "<group>"; };
 		C7BD7CE4C9F99A17BB539706 /* ModelAddPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAddPlan.swift; sourceTree = "<group>"; };
@@ -732,6 +736,7 @@
 				4AEAD8426C451AC44DB9D563 /* ModelShapeCache.swift */,
 				7E932070B21FCE331F0977B5 /* ModelStore.swift */,
 				69A25554D17D2BCD2BD4C3E5 /* ModelStrength.swift */,
+				17811CEFC92F66515BE81A60 /* RapidMLXCatalog.swift */,
 				291564F24C33308671BAC5F1 /* Recommender.swift */,
 				3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */,
 				85430F6EEA9F469BD0D000C7 /* StoreHousekeeping.swift */,
@@ -925,6 +930,7 @@
 				6F48BA28C404D2950FDE1212 /* Assets.xcassets */,
 				3A40ECAC39FAEEB12AC1A32E /* catalog.json */,
 				B5A026B66371B77BCE37A787 /* integrations.json */,
+				C6693F823B7D50DD4187334D /* mlx-models.json */,
 				4B7620C1F48401E649194658 /* THIRD_PARTY_NOTICES.md */,
 			);
 			path = Resources;
@@ -1223,6 +1229,7 @@
 				11FB586B5F0FC20874E4903F /* THIRD_PARTY_NOTICES.md in Resources */,
 				A1C4B1467D7A3630EEB647DA /* catalog.json in Resources */,
 				D995DD1CB2770D2386136D7C /* integrations.json in Resources */,
+				FEBC070ECE2CC9B4897FC575 /* mlx-models.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1420,6 +1427,7 @@
 				683F970E1F2945D6A3CD740F /* PullSpec.swift in Sources */,
 				FE3F1D8FFB1AB2BA257B7DD5 /* QuailApp.swift in Sources */,
 				AFD79E792A653D22CCFD0735 /* QuailServerRuntime.swift in Sources */,
+				54EB06C13CCDCF35C8E53D1F /* RapidMLXCatalog.swift in Sources */,
 				D2121BF380DDA22CCA8B83CE /* Recommender.swift in Sources */,
 				FAAC603389E9A8652CD31502 /* Runtime.swift in Sources */,
 				A97EF1AD2BF0945DC2C70167 /* SecretStore.swift in Sources */,
@@ -1694,7 +1702,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 81;
+				CURRENT_PROJECT_VERSION = 82;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1719,7 +1727,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.45.0;
+				MARKETING_VERSION = 0.46.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1858,7 +1866,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 81;
+				CURRENT_PROJECT_VERSION = 82;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1877,7 +1885,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.45.0;
+				MARKETING_VERSION = 0.46.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1948,7 +1956,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 81;
+				CURRENT_PROJECT_VERSION = 82;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1973,7 +1981,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.45.0;
+				MARKETING_VERSION = 0.46.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2160,7 +2168,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 81;
+				CURRENT_PROJECT_VERSION = 82;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2179,7 +2187,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.45.0;
+				MARKETING_VERSION = 0.46.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

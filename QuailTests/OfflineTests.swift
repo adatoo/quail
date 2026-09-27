@@ -94,7 +94,8 @@ struct OfflineTests {
                 )
         }
         for family in appState.catalog.families where family.id != cached.id {
-            #expect(appState.catalogFits[family.id] == .offline, "\(family.id)")
+            // Rapid-MLX's rows are looked up as they scroll into view, not here (ADR D-058).
+            #expect(appState.catalogFits[family.id] == (family.rapidMLX == nil ? .offline : nil), "\(family.id)")
         }
     }
 }

@@ -268,14 +268,30 @@ struct AddModelSheet: View {
                         ForEach(recommendedFamilies) { familyRow($0) }
                     }
                 }
-                let rest = visibleFamilies.filter { family in
-                    !(query.isEmpty && recommendedFamilies.contains { $0.id == family.id })
+                if !rapidPicks.isEmpty, query.isEmpty {
+                    Section("Rapid-MLX’s Picks for This Mac") {
+                        ForEach(rapidPicks, id: \.family.id) { pick in
+                            familyRow(pick.family, note: pick.role == "fast" ? "Fastest pick" : "Most capable pick")
+                        }
+                    }
                 }
+                let shownAbove = Set(recommendedFamilies.map(\.id) + rapidPicks.map(\.family.id))
+                let rest = visibleFamilies.filter { !(query.isEmpty && shownAbove.contains($0.id)) }
+                let listed = rest.filter { $0.rapidMLX == nil }
+                let more = rest.filter { $0.rapidMLX != nil }
                 Section(query.isEmpty ? "All Models" : "Matches") {
-                    ForEach(rest) { familyRow($0) }
+                    ForEach(listed) { familyRow($0) }
                     if rest.isEmpty {
                         Text("No catalog models match.")
                             .foregroundStyle(.secondary)
+                    }
+                }
+                if !more.isEmpty {
+                    Section("More MLX Models, from Rapid-MLX’s Catalog") {
+                        ForEach(more) { family in
+                            familyRow(family)
+                                .task { await appState.loadCatalogFit(for: family) }
+                        }
                     }
                 }
             }
@@ -283,16 +299,16 @@ struct AddModelSheet: View {
         }
     }
 
-    private func familyRow(_ family: Catalog.Family) -> some View {
+    private func familyRow(_ family: Catalog.Family, note: String? = nil) -> some View {
         HStack(alignment: .center, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     Text(family.name).lineLimit(1).help(family.name)
-                    if !family.isCurated {
+                    if family.isUserAdded {
                         Badge(text: "user-added", color: .secondary)
                     }
                 }
-                Text(subtitle(for: family))
+                Text([note, subtitle(for: family)].compactMap(\.self).joined(separator: " · "))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -341,6 +357,9 @@ struct AddModelSheet: View {
         }
         let formats = [family.gguf != nil ? "GGUF" : nil, family.mlx != nil ? "MLX" : nil].compactMap(\.self)
         parts.append(formats.joined(separator: ", "))
+        if let bytes = family.rapidMLX?.sizeBytes {
+            parts.append(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))
+        }
         return parts.joined(separator: " · ")
     }
 
@@ -388,17 +407,30 @@ struct AddModelSheet: View {
     /// already has selected.
     private var recommendedFamilies: [Catalog.Family] {
         let finalized = Recommender.finalize(
-            candidates: Recommender.candidates(catalog: appState.catalog, device: device),
+            candidates: Recommender.candidates(
+                catalog: appState.catalog, device: device, formats: appState.servableFormats
+            ),
             verdicts: appState.catalogVerdicts
         )
         let allowed = Set(filteredFamilies.map(\.id))
         return finalized.filter { allowed.contains($0.id) }
     }
 
+    /// Rapid-MLX's own picks for this Mac (ADR D-058), when MLX models can run and are being shown; those
+    /// already recommended above aren't repeated.
+    private var rapidPicks: [(role: String, family: Catalog.Family)] {
+        guard appState.canServe(.mlxSafetensors), filter != .gguf else { return [] }
+        let recommended = Set(recommendedFamilies.map(\.id))
+        let allowed = Set(filteredFamilies.map(\.id))
+        return Recommender.rapidMLXPicks(catalog: appState.catalog, device: device)
+            .filter { !recommended.contains($0.family.id) && allowed.contains($0.family.id) }
+    }
+
     /// The recommendation candidates before any verdict — what `recommendedFamilies` narrows.
     private var candidateFamilies: [Catalog.Family] {
         let allowed = Set(filteredFamilies.map(\.id))
-        return Recommender.candidates(catalog: appState.catalog, device: device).filter { allowed.contains($0.id) }
+        return Recommender.candidates(catalog: appState.catalog, device: device, formats: appState.servableFormats)
+            .filter { allowed.contains($0.id) }
     }
 
     private func lookupPasted() {

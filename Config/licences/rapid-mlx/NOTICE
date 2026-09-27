@@ -1,0 +1,158 @@
+Rapid-MLX
+Copyright 2025-2026 the Rapid-MLX contributors
+
+This product includes software developed by third parties. The notices below
+are provided under section 4 of the Apache License, Version 2.0, and under the
+terms of the other licenses named here.
+
+
+Origin of this codebase
+=======================
+
+Rapid-MLX began as vLLM-MLX (`vllm-mlx`), created by Wayner Barrios and
+published at:
+
+    https://github.com/waybarrios/vllm-mlx
+
+licensed under the Apache License, Version 2.0. The initial commit of this
+repository (2025-12-06) is that project, and development continued in this
+history until 2026-02-15. The project was renamed to Rapid-MLX on 2026-03-13.
+
+**The files in this repository have been changed.** Since the rename the
+codebase has been extensively modified, extended, and in large part rewritten
+by the Rapid-MLX contributors; the Python package now uses the `rapid_mlx`
+import name and retains `vllm_mlx` as a deprecated compatibility shim. Neither
+the original authors nor any upstream project endorses this distribution. The
+complete record of what
+changed, when, and by whom is preserved in the git history of this repository.
+
+Rapid-MLX is not affiliated with, and is not a distribution of, the vLLM
+project (https://github.com/vllm-project/vllm).
+
+
+Vendored third-party source
+===========================
+
+The Bonsai 2 Hadamard runtime in
+`rapid_mlx/models/prism_hadamard_qwen35.py` is adapted from Prism ML's
+https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-mlx-2bit
+at revision 3f926b415992eaa2ae9dd7b573706494d6bbf787. The runtime directory
+carries the MIT License — Copyright © 2023 Apple Inc. — reproduced in the
+adapted file. Created using Bonsai by Prism ML; the model's root NOTICE also
+credits Prism ML, Inc. (2026-present) and Alibaba Cloud under Apache-2.0.
+Model weights remain separate; Python from model snapshots is never executed
+by this loader.
+
+The Qwen4/Qwen3.8 stage-one QSA selector in
+`rapid_mlx/kernels/qsa_stage1.py` is adapted from
+https://github.com/pierre427/mlx-lm-unified at commit
+685dff6c1ee602f1bae2e51c758a3b07f593a0c2. Its radix-selection design is
+adapted from MTPLX PR #397. The file is licensed under the MIT License;
+see `rapid_mlx/kernels/LICENSE-QSA-STAGE1`.
+
+The following directories contain third-party source redistributed inside this
+repository. Each keeps its upstream license text alongside the code.
+
+* rapid_mlx/compiled_decode.py and rapid_mlx/compiled_precision.py
+  Shape-stable cache/replay and precision-routing design adapted under the
+  MIT License — Copyright © 2023 Apple Inc.
+  See rapid_mlx/COMPILED_DECODE_LICENSE.
+
+* videox_fun_mlx/
+  CogVideoX-Fun MLX runtime. Vendored from
+  https://github.com/dgrauet/VideoX-Fun-mlx at commit
+  26326e7d52e6762375227b320d77003dac764d14 (2026-07-21), which is a fork of
+  the original VideoX-Fun by the Alibaba PAI team:
+      https://github.com/aigc-apps/VideoX-Fun
+  Licensed under the Apache License, Version 2.0.
+  See videox_fun_mlx/LICENSE and videox_fun_mlx/NOTICE.
+
+* rapid_mlx/audio/sa3/
+  MLX Stable Audio 3. Vendored from
+  https://github.com/Stability-AI/stable-audio-3 at commit
+  124e8a799f57a1f665495ecb72e547d0a62867f1.
+  MIT License — Copyright (c) 2026 Stability AI.
+  See rapid_mlx/audio/sa3/LICENSE and rapid_mlx/audio/sa3/NOTICE.
+
+* rapid_mlx/image/hidream_runtime/
+  HiDream-O1-Image-Dev MLX text-to-image runtime adapted from
+  mlx-community/HiDream-O1-Image-Dev-mlx-bf16 at commit
+  33c7a00bce8e3410304f83ec408a15a1eb6782df.
+  MIT License — Copyright (c) 2026 mrbizarro and contributors.
+  See rapid_mlx/image/hidream_runtime/LICENSE and NOTICE.
+
+* rapid_mlx/image/sdxl_runtime/
+  Stable Diffusion XL MLX text-to-image runtime adapted from
+  https://github.com/amirhossein-razlighi/mlx_diffuser at commit
+  a26b42aee4e31999dbb4429226b66d896d49e1d8.
+  CC0 1.0 Universal — original work by Amirhossein Razlighi and contributors.
+  See rapid_mlx/image/sdxl_runtime/LICENSE and NOTICE.
+
+* rapid_mlx/image/sd35_runtime/
+  Stable Diffusion 3.5 Large MLX runtime adapted from DiffusionKit at commit
+  498e5dba5fb48b0f01cb6b5c2292a6dbea67a317.
+  MIT License — Copyright (c) 2024 Argmax, Inc.
+  See rapid_mlx/image/sd35_runtime/LICENSE and NOTICE.
+
+* apps/rapid-mac/Vendor/SwiftMath/
+  Vendored from https://github.com/mgriebling/SwiftMath at 1.7.3
+  (fa8244ed032f4a1ade4cb0571bf87d2f1a9fd2d7) with a resource-resolution patch.
+  MIT License — Copyright (c) 2023 Computer Inspirations.
+  The bundled math fonts carry their own LICENSE, OFL.txt, and
+  GUST-FONT-LICENSE.txt notices alongside the font files.
+  See apps/rapid-mac/Vendor/SwiftMath/LICENSE.
+
+* rapid_mlx/patches/glm5_next_processor.py
+  GLM-5 Next torch-free processor adapted from
+  https://github.com/jundot/omlx at commit
+  c520d7e6124cf6255868e589c6beb75cf4cee8f9.
+  Licensed under the Apache License, Version 2.0.
+
+* rapid_mlx/patches/glm5_next_runtime.py
+  GLM-5 Next text-runtime compatibility logic adapted from the mlx-vlm
+  correctness work at commits f9e2c507a154575956ea97449729a67de72c9c70 and
+  bffd4856a4504b76a242536f2dd356093c8e2e92.
+  Licensed under the MIT License.
+
+* rapid_mlx/speculative/native_mtp/transaction.py and glm5_compat.py
+  Cache-owned MTP transaction and stateless GLM drafter adapter adapted from
+  the mlx-vlm implementation in
+  https://github.com/Blaizzy/mlx-vlm/pull/2206.
+  Licensed under the MIT License.
+
+* rapid_mlx/models/deepseek_v41_native/
+  DeepSeek V4.1 native MLX runtime. The target runtime is adapted under the
+  Apache License 2.0; the DSpark draft algorithm follows the model publisher's
+  MIT-licensed reference implementation.
+  See rapid_mlx/models/deepseek_v41_native/LICENSE,
+  rapid_mlx/models/deepseek_v41_native/LICENSE-DSPARK, and NOTICE.
+
+
+Runtime dependencies
+====================
+
+Rapid-MLX is built on Apple's MLX and the MLX model runtimes. These are
+declared dependencies installed from their own distributions, not vendored
+here, and each is used under its own license:
+
+    MLX          https://github.com/ml-explore/mlx            MIT
+    mlx-lm       https://github.com/ml-explore/mlx-lm         MIT
+    mlx-vlm      https://github.com/Blaizzy/mlx-vlm           MIT
+    mlx-audio    https://github.com/Blaizzy/mlx-audio         MIT
+
+The macOS desktop application enumerates the components it ships in
+apps/rapid-mac/THIRD_PARTY.md, and reproduces their license texts inside the
+application bundle.
+
+Optional Python extras pull in additional dependencies under their own terms,
+including copyleft licenses. Those extras are not installed into the shipped
+desktop application. See apps/rapid-mac/THIRD_PARTY.md for the scope of what
+the binary contains.
+
+
+Model weights
+=============
+
+No model weights are distributed with this software. Weights are downloaded at
+runtime from their publishers and are covered by their own separate licenses,
+which are not granted by this NOTICE or by the accompanying LICENSE.

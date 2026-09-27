@@ -667,7 +667,14 @@ final class AppState {
     /// turn out rarer than a week in practice.
     func refreshCatalog() async {
         let refresher = CatalogRefresher(locations: catalogLocations, urlSession: .shared)
+        var updated = false
         if case .updated = await refresher.refreshIfNeeded() {
+            updated = true
+        }
+        if case .updated = await refresher.refreshRapidMLXIfNeeded() {
+            updated = true
+        }
+        if updated {
             catalog = Catalog.current(locations: catalogLocations)
         }
     }
@@ -689,16 +696,40 @@ final class AppState {
     /// sheet says so. Cleared by the next one that gets through.
     var hubOffline = false
 
-    /// `catalogFits`' successful estimates, keyed by GGUF repo id — the
+    /// `catalogFits`' successful estimates, keyed by family id — the
     /// shape `Recommender.finalize` takes.
     var catalogVerdicts: [String: FitEstimate] {
         var result: [String: FitEstimate] = [:]
         for family in catalog.families {
-            if case let .estimate(estimate)? = catalogFits[family.id], let repo = family.gguf?.repo {
-                result[repo] = estimate
+            if case let .estimate(estimate)? = catalogFits[family.id] {
+                result[family.id] = estimate
             }
         }
         return result
+    }
+
+    /// The formats the chosen runtime serves, for recommendations.
+    var servableFormats: Set<ModelFormat> {
+        Set(ModelFormat.allCases.filter(canServe))
+    }
+
+    /// One family's verdict, for a row of Rapid-MLX's catalog as it scrolls into view (ADR D-058): there are
+    /// too many of them to look up all at once, as `loadCatalogVerdicts` does for the curated ones.
+    func loadCatalogFit(for family: Catalog.Family) async {
+        switch catalogFits[family.id] {
+        case .estimate?, .checking?: return
+        case .unknown?, nil: break
+        }
+        catalogFits[family.id] = .checking
+        let fit = await ModelPreview.catalogFit(
+            family: family, downloader: installs.downloader, device: DeviceInfo.current(),
+            ggufRuntime: config.runtimeID, bandwidthTable: ChipBandwidthTable.loadFromBundle(), token: hfToken,
+            cache: shapeCache
+        )
+        catalogFits[family.id] = fit
+        if fit == .offline {
+            hubOffline = true
+        }
     }
 
     /// Looks up every family in the list — not just the in-tier
@@ -714,8 +745,12 @@ final class AppState {
         let downloader = installs.downloader
         let token = hfToken
         let cache = shapeCache
-        let candidateIDs = Set(Recommender.candidates(catalog: catalog, device: device).map(\.id))
+        let candidateIDs = Set(
+            Recommender.candidates(catalog: catalog, device: device, formats: servableFormats).map(\.id)
+        )
         let families = catalog.families
+            // Rapid-MLX's rows are looked up as they're shown (`loadCatalogFit`).
+            .filter { $0.rapidMLX == nil }
             .filter { family in
                 switch catalogFits[family.id] {
                 case .estimate?, .checking?: false

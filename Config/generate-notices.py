@@ -83,7 +83,8 @@ def build(checkouts: Path) -> str:
         if not licence.is_file():
             fail(f"{item['licenseFile']} is missing; run task vendor:llama")
         version = (ROOT / item["versionFile"]).read_text(encoding="utf-8").strip()
-        entries.append((item["name"], version, item["url"], item["license"], item["in"], read(licence), None))
+        notice = read(ROOT / item["noticeFile"]) if "noticeFile" in item else None
+        entries.append((item["name"], version, item["url"], item["license"], item["in"], read(licence), notice))
     entries.sort(key=lambda entry: entry[0].lower())
 
     # A licence text several components share (the Apache-2.0 files come in four slightly different

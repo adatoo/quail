@@ -114,4 +114,44 @@ struct CatalogRefresher: Sendable {
         }
         return .updated(revision: document.revision)
     }
+
+    /// The same weekly refresh for Rapid-MLX's catalog (ADR D-058), `mlx-models.json` beside `catalog.json` at
+    /// the same host, with the same guards: a week between fetches, a schema this build reads, and no older
+    /// revision than the one in hand.
+    @discardableResult
+    func refreshRapidMLXIfNeeded(now: Date = .init()) async -> Outcome {
+        guard let catalogURL = remoteURLOverride ?? Self.remoteURL(in: locations.bundle) else {
+            return .noRemoteURL
+        }
+        let remoteURL = catalogURL.deletingLastPathComponent().appendingPathComponent("mlx-models.json")
+        let cached = RapidMLXCatalog.loadRefreshCache(from: locations.rapidMLXRefreshFile)
+        if let fetchedAt = cached?.fetchedAt, now.timeIntervalSince(fetchedAt) < Self.refreshInterval {
+            return .notDue
+        }
+        let currentRevision = max(
+            RapidMLXCatalog.bundled(in: locations.bundle)?.revision ?? 0, cached?.catalog.revision ?? 0
+        )
+        let data: Data
+        let response: URLResponse
+        do {
+            var request = URLRequest(url: remoteURL)
+            request.timeoutInterval = Self.timeout
+            (data, response) = try await urlSession.data(for: request)
+        } catch {
+            return .failed(.transport(String(describing: error)))
+        }
+        guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
+            return .failed(.httpStatus((response as? HTTPURLResponse)?.statusCode ?? -1))
+        }
+        guard let catalog = RapidMLXCatalog.decode(data) else { return .failed(.undecodable) }
+        guard catalog.revision >= currentRevision else {
+            return .failed(.staleRevision(remote: catalog.revision, current: currentRevision))
+        }
+        do {
+            try RapidMLXCatalog.saveRefreshCache(catalog, fetchedAt: now, to: locations.rapidMLXRefreshFile)
+        } catch {
+            return .failed(.transport(String(describing: error)))
+        }
+        return .updated(revision: catalog.revision)
+    }
 }

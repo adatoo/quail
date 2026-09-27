@@ -1,0 +1,1385 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "asOf": "2026-09-27",
+  "source": {
+    "name": "Rapid-MLX",
+    "version": "0.14.3",
+    "license": "Apache-2.0",
+    "url": "https://github.com/raullenchai/Rapid-MLX"
+  },
+  "models": [
+    {
+      "alias": "bonsai-1.7b-2bit",
+      "repo": "prism-ml/Ternary-Bonsai-1.7B-mlx-2bit",
+      "modelType": "qwen3",
+      "sizeBytes": 495525300,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "bonsai-27b-2bit",
+      "repo": "prism-ml/Ternary-Bonsai-27B-mlx-2bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 8521052337,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "bonsai-8b-2bit",
+      "repo": "prism-ml/Ternary-Bonsai-8B-mlx-2bit",
+      "modelType": "qwen3",
+      "sizeBytes": 2315084354,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "deepseek-r1-32b-4bit",
+      "repo": "mlx-community/DeepSeek-R1-Distill-Qwen-32B-4bit",
+      "modelType": "qwen2",
+      "sizeBytes": 18443052369,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "deepseek-r1-8b-4bit",
+      "repo": "mlx-community/DeepSeek-R1-0528-Qwen3-8B-4bit",
+      "modelType": "qwen3",
+      "sizeBytes": 4619332904,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "devstral-24b-4bit",
+      "repo": "mlx-community/Devstral-Small-2507-4bit",
+      "modelType": "mistral",
+      "sizeBytes": 13277556692,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "devstral-v2-24b-4bit",
+      "repo": "mlx-community/Devstral-Small-2-24B-Instruct-2512-4bit",
+      "modelType": "mistral3",
+      "sizeBytes": 15136812048,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "gemma-4-12b-4bit",
+      "repo": "mlx-community/gemma-4-12B-it-4bit",
+      "modelType": "gemma4_unified",
+      "sizeBytes": 6773353728,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-12b-8bit",
+      "repo": "mlx-community/gemma-4-12B-it-8bit",
+      "modelType": "gemma4_unified",
+      "sizeBytes": 12748516931,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-12b-optiq-4bit",
+      "repo": "mlx-community/gemma-4-12B-it-OptiQ-4bit",
+      "modelType": "gemma4_unified",
+      "sizeBytes": 8997055989,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-12b-qat-4bit",
+      "repo": "mlx-community/gemma-4-12B-it-qat-4bit",
+      "modelType": "gemma4_unified",
+      "sizeBytes": 11020121143,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-12b-qat-8bit",
+      "repo": "mlx-community/gemma-4-12B-it-qat-8bit",
+      "modelType": "gemma4_unified",
+      "sizeBytes": 12748551402,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-26b-4bit",
+      "repo": "mlx-community/gemma-4-26b-a4b-it-4bit",
+      "modelType": "gemma4",
+      "sizeBytes": 15373568786,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-26b-8bit",
+      "repo": "mlx-community/gemma-4-26B-A4B-it-8bit",
+      "modelType": "gemma4",
+      "sizeBytes": 27986004439,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-26b-qat-4bit",
+      "repo": "mlx-community/gemma-4-26B-A4B-it-qat-4bit",
+      "modelType": "gemma4",
+      "sizeBytes": 15641222361,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-31b-4bit",
+      "repo": "mlx-community/gemma-4-31b-it-4bit",
+      "modelType": "gemma4",
+      "sizeBytes": 18444401982,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-31b-8bit",
+      "repo": "mlx-community/gemma-4-31b-it-8bit",
+      "modelType": "gemma4",
+      "sizeBytes": 33795505721,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-31b-qat-4bit",
+      "repo": "mlx-community/gemma-4-31B-it-qat-4bit",
+      "modelType": "gemma4",
+      "sizeBytes": 28848939898,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-31b-qat-8bit",
+      "repo": "mlx-community/gemma-4-31B-it-qat-8bit",
+      "modelType": "gemma4",
+      "sizeBytes": 33795548231,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-e2b-4bit",
+      "repo": "mlx-community/gemma-4-e2b-it-4bit",
+      "modelType": "gemma4",
+      "sizeBytes": 3583069162,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-e2b-6bit",
+      "repo": "mlx-community/gemma-4-e2b-it-6bit",
+      "modelType": "gemma4",
+      "sizeBytes": 4741024872,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-e2b-8bit",
+      "repo": "mlx-community/gemma-4-e2b-it-8bit",
+      "modelType": "gemma4",
+      "sizeBytes": 5899017431,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-e4b-4bit",
+      "repo": "mlx-community/gemma-4-e4b-it-4bit",
+      "modelType": "gemma4",
+      "sizeBytes": 5179222013,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-e4b-6bit",
+      "repo": "mlx-community/gemma-4-e4b-it-6bit",
+      "modelType": "gemma4",
+      "sizeBytes": 7046351812,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-e4b-8bit",
+      "repo": "mlx-community/gemma-4-e4b-it-8bit",
+      "modelType": "gemma4",
+      "sizeBytes": 8913439993,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma-4-e4b-optiq-4bit",
+      "repo": "mlx-community/gemma-4-e4b-it-OptiQ-4bit",
+      "modelType": "gemma4",
+      "sizeBytes": 7518882087,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "gemma3-12b-4bit",
+      "repo": "mlx-community/gemma-3-12b-it-qat-4bit",
+      "modelType": "gemma3",
+      "sizeBytes": 8068024886,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "gemma3-1b-4bit",
+      "repo": "mlx-community/gemma-3-1b-it-4bit",
+      "modelType": "gemma3_text",
+      "sizeBytes": 771860852,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "gemma3-1b-qat-4bit",
+      "repo": "mlx-community/gemma-3-1b-it-qat-4bit",
+      "modelType": "gemma3_text",
+      "sizeBytes": 771860249,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "gemma3-27b-4bit",
+      "repo": "mlx-community/gemma-3-27b-it-4bit",
+      "modelType": "gemma3",
+      "sizeBytes": 16873382186,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "gemma3-27b-qat-4bit",
+      "repo": "mlx-community/gemma-3-27b-it-qat-4bit",
+      "modelType": "gemma3",
+      "sizeBytes": 16873388222,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "gemma3-4b-qat-4bit",
+      "repo": "mlx-community/gemma-3-4b-it-qat-4bit",
+      "modelType": "gemma3",
+      "sizeBytes": 3034683375,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "glm4.5-air-4bit",
+      "repo": "mlx-community/GLM-4.5-Air-4bit",
+      "modelType": "glm4_moe",
+      "sizeBytes": 60160161534,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "glm4.7-9b-4bit",
+      "repo": "mlx-community/GLM-4.7-Flash-4bit",
+      "modelType": "glm4_moe_lite",
+      "sizeBytes": 16872844852,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gpt-oss-120b",
+      "repo": "mlx-community/gpt-oss-120b-MXFP4-Q8",
+      "modelType": "gpt_oss",
+      "sizeBytes": 63414972073,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gpt-oss-120b-4bit",
+      "repo": "mlx-community/gpt-oss-120b-4bit",
+      "modelType": "gpt_oss",
+      "sizeBytes": 65802490223,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gpt-oss-120b-mxfp4-q4",
+      "repo": "mlx-community/gpt-oss-120b-MXFP4-Q4",
+      "modelType": "gpt_oss",
+      "sizeBytes": 62358081156,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gpt-oss-20b",
+      "repo": "mlx-community/gpt-oss-20b-MXFP4-Q8",
+      "modelType": "gpt_oss",
+      "sizeBytes": 12104199097,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gpt-oss-20b-4bit",
+      "repo": "mlx-community/gpt-oss-20b-OptiQ-4bit",
+      "modelType": "gpt_oss",
+      "sizeBytes": 11651676763,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gpt-oss-20b-8bit",
+      "repo": "lmstudio-community/gpt-oss-20b-MLX-8bit",
+      "modelType": "gpt_oss",
+      "sizeBytes": 22256510809,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gpt-oss-20b-mxfp4-q4",
+      "repo": "mlx-community/gpt-oss-20b-MXFP4-Q4",
+      "modelType": "gpt_oss",
+      "sizeBytes": 11206560688,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "gpt-oss-safeguard-20b",
+      "repo": "lmstudio-community/gpt-oss-safeguard-20b-MLX-MXFP4",
+      "modelType": "gpt_oss",
+      "sizeBytes": 11150438234,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "granite-4.2-30b-4bit",
+      "repo": "ibm-granite/granite-4.2-30b-q4-mlx",
+      "modelType": "granite",
+      "sizeBytes": 16476267189,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "granite-4.2-30b-8bit",
+      "repo": "ibm-granite/granite-4.2-30b-q8-mlx",
+      "modelType": "granite",
+      "sizeBytes": 31114388716,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "granite-4.2-3b-4bit",
+      "repo": "ibm-granite/granite-4.2-3b-q4-mlx",
+      "modelType": "granite",
+      "sizeBytes": 2066160672,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "granite-4.2-3b-8bit",
+      "repo": "ibm-granite/granite-4.2-3b-q8-mlx",
+      "modelType": "granite",
+      "sizeBytes": 3895926290,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "granite-4.2-8b-4bit",
+      "repo": "ibm-granite/granite-4.2-8b-q4-mlx",
+      "modelType": "granite",
+      "sizeBytes": 4953009214,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "granite-4.2-8b-8bit",
+      "repo": "ibm-granite/granite-4.2-8b-q8-mlx",
+      "modelType": "granite",
+      "sizeBytes": 9348639954,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "granite4-h-micro-4bit",
+      "repo": "mlx-community/granite-4.0-h-micro-4bit",
+      "modelType": "granitemoehybrid",
+      "sizeBytes": 1806614365,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "granite4-tiny-4bit",
+      "repo": "mlx-community/granite-4.0-h-tiny-4bit",
+      "modelType": "granitemoehybrid",
+      "sizeBytes": 3916350591,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "hermes3-8b-4bit",
+      "repo": "mlx-community/Hermes-3-Llama-3.1-8B-4bit",
+      "modelType": "llama",
+      "sizeBytes": 4526678175,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "hermes4-70b-4bit",
+      "repo": "lmstudio-community/Hermes-4-70B-MLX-4bit",
+      "modelType": "llama",
+      "sizeBytes": 39705992803,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "holo3.1-35b-a3b",
+      "repo": "pipenetwork/Holo-3.1-35B-A3B-MLX-4bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 23490832707,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "holo3.1-35b-a3b-8bit",
+      "repo": "pipenetwork/Holo-3.1-35B-A3B-MLX-8bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 40810031931,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "lfm2-24b-a2b-4bit",
+      "repo": "lmstudio-community/LFM2-24B-A2B-MLX-4bit",
+      "modelType": "lfm2_moe",
+      "sizeBytes": 13420011411,
+      "moe": true,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "lfm2.5-1b-4bit",
+      "repo": "mlx-community/LFM2.5-1.2B-Instruct-4bit",
+      "modelType": "lfm2",
+      "sizeBytes": 663391416,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "lfm2.5-8b-a1b-4bit",
+      "repo": "mlx-community/LFM2.5-8B-A1B-MLX-4bit",
+      "modelType": "lfm2_moe",
+      "sizeBytes": 4782221057,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "llama-3.1-8b-4bit",
+      "repo": "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
+      "modelType": "llama",
+      "sizeBytes": 4526682492,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "llama-3.1-8b-8bit",
+      "repo": "mlx-community/Meta-Llama-3.1-8B-Instruct-8bit",
+      "modelType": "llama",
+      "sizeBytes": 8541691351,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "llama3-1b-4bit",
+      "repo": "mlx-community/Llama-3.2-1B-Instruct-4bit",
+      "modelType": "llama",
+      "sizeBytes": 712575975,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "llama3-3b-4bit",
+      "repo": "mlx-community/Llama-3.2-3B-Instruct-4bit",
+      "modelType": "llama",
+      "sizeBytes": 1824807894,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "minicpm5-1b-4bit",
+      "repo": "openbmb/MiniCPM5-1B-MLX",
+      "modelType": "llama",
+      "sizeBytes": 617961816,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "minicpm5-1b-optiq-4bit",
+      "repo": "mlx-community/MiniCPM5-1B-OptiQ-4bit",
+      "modelType": "llama",
+      "sizeBytes": 916858811,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "minicpm5-2b-4bit",
+      "repo": "openbmb/MiniCPM5-2B-MLX",
+      "modelType": "llama",
+      "sizeBytes": 1425999742,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "mistral-24b-4bit",
+      "repo": "mlx-community/Mistral-Small-3.1-24B-Instruct-2503-4bit",
+      "modelType": "mistral3",
+      "sizeBytes": 14119055427,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "mistral-small-4-119b",
+      "repo": "mlx-community/Mistral-Small-4-119B-2603-4bit",
+      "modelType": "mistral3",
+      "sizeBytes": 67790336757,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "mistral-small-4-119b-8bit",
+      "repo": "mlx-community/Mistral-Small-4-119B-2603-8bit",
+      "modelType": "mistral3",
+      "sizeBytes": 127279723730,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "nanbeige4.1-3b-4bit",
+      "repo": "mlx-community/Nanbeige4.1-3B-4bit",
+      "modelType": "llama",
+      "sizeBytes": 2231499570,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "nemotron-3.5-lightning-30b-4bit",
+      "repo": "mlx-community/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-4bit",
+      "modelType": "nemotron_h",
+      "sizeBytes": 17792571825,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "nemotron-30b-4bit",
+      "repo": "lmstudio-community/NVIDIA-Nemotron-3-Nano-30B-A3B-MLX-4bit",
+      "modelType": "nemotron_h",
+      "sizeBytes": 17792584863,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "ornith-1.5-35b-a3b-bf16",
+      "repo": "ornith-ai/Ornith-1.5-35B-A3B-MLX",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 69341391877,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "ornith-1.5-9b-bf16",
+      "repo": "ornith-ai/Ornith-1.5-9B-MLX",
+      "modelType": "qwen3_5",
+      "sizeBytes": 17927699601,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "phi-3.5-mini-4bit",
+      "repo": "mlx-community/Phi-3.5-mini-instruct-4bit",
+      "modelType": "phi3",
+      "sizeBytes": 2152081350,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "phi-4-14b-4bit",
+      "repo": "mlx-community/phi-4-4bit",
+      "modelType": "phi3",
+      "sizeBytes": 8256384748,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "phi-4-mini-4bit",
+      "repo": "mlx-community/phi-4-mini-instruct-4bit",
+      "modelType": "phi3",
+      "sizeBytes": 2179993199,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "phi-4-mini-reasoning-4bit",
+      "repo": "lmstudio-community/Phi-4-mini-reasoning-MLX-4bit",
+      "modelType": "phi3",
+      "sizeBytes": 2179993954,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen2.5-14b-4bit",
+      "repo": "mlx-community/Qwen2.5-14B-Instruct-4bit",
+      "modelType": "qwen2",
+      "sizeBytes": 8321091241,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "qwen3-0.6b",
+      "repo": "mlx-community/Qwen3-0.6B-4bit",
+      "modelType": "qwen3",
+      "sizeBytes": 351383618,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3-0.6b-8bit",
+      "repo": "mlx-community/Qwen3-0.6B-8bit",
+      "modelType": "qwen3",
+      "sizeBytes": 649376541,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3-1.7b",
+      "repo": "mlx-community/Qwen3-1.7B-4bit",
+      "modelType": "qwen3",
+      "sizeBytes": 984013244,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3-4b-8bit",
+      "repo": "mlx-community/Qwen3-4B-8bit",
+      "modelType": "qwen3",
+      "sizeBytes": 4290106214,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3-4b-instruct-2507-4bit",
+      "repo": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+      "modelType": "qwen3",
+      "sizeBytes": 2278965657,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "qwen3-4b-thinking-2507-4bit",
+      "repo": "mlx-community/Qwen3-4B-Thinking-2507-4bit",
+      "modelType": "qwen3",
+      "sizeBytes": 2278965622,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3-8b-4bit",
+      "repo": "mlx-community/Qwen3-8B-4bit",
+      "modelType": "qwen3",
+      "sizeBytes": 4623782544,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3-8b-8bit",
+      "repo": "mlx-community/Qwen3-8B-8bit",
+      "modelType": "qwen3",
+      "sizeBytes": 8719009971,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3-coder-30b-4bit",
+      "repo": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit",
+      "modelType": "qwen3_moe",
+      "sizeBytes": 17197080734,
+      "moe": true,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "qwen3-coder-4bit",
+      "repo": "lmstudio-community/Qwen3-Coder-Next-MLX-4bit",
+      "modelType": "qwen3_next",
+      "sizeBytes": 44855912113,
+      "moe": true,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "qwen3-coder-next-80b-4bit",
+      "repo": "mlx-community/Qwen3-Coder-Next-4bit",
+      "modelType": "qwen3_next",
+      "sizeBytes": 44855905712,
+      "moe": true,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "qwen3-coder-next-80b-8bit",
+      "repo": "lmstudio-community/Qwen3-Coder-Next-MLX-8bit",
+      "modelType": "qwen3_next",
+      "sizeBytes": 84667197908,
+      "moe": true,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "qwen3.5-122b-6bit",
+      "repo": "mlx-community/Qwen3.5-122B-A10B-6bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 100147970498,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-122b-8bit",
+      "repo": "mlx-community/Qwen3.5-122B-A10B-8bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 130675331392,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-122b-mxfp4",
+      "repo": "nightmedia/Qwen3.5-122B-A10B-Text-mxfp4-mlx",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 64915343903,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-27b-4bit",
+      "repo": "mlx-community/Qwen3.5-27B-4bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 16081484399,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-27b-6bit",
+      "repo": "mlx-community/Qwen3.5-27B-6bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 22804822567,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-27b-8bit",
+      "repo": "mlx-community/Qwen3.5-27B-8bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 29528161061,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-35b-4bit",
+      "repo": "mlx-community/Qwen3.5-35B-A3B-4bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 20418614563,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-35b-6bit",
+      "repo": "mlx-community/Qwen3.5-35B-A3B-6bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 29083476703,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-35b-8bit",
+      "repo": "mlx-community/Qwen3.5-35B-A3B-8bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 37748340016,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-4b-4bit",
+      "repo": "mlx-community/Qwen3.5-4B-MLX-4bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 3061121321,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-4b-6bit",
+      "repo": "mlx-community/Qwen3.5-4B-6bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 4112319069,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-4b-8bit",
+      "repo": "mlx-community/Qwen3.5-4B-8bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 5163516733,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-9b-4bit",
+      "repo": "mlx-community/Qwen3.5-9B-4bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 5977063311,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-9b-6bit",
+      "repo": "mlx-community/Qwen3.5-9B-6bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 8215248660,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.5-9b-8bit",
+      "repo": "mlx-community/Qwen3.5-9B-8bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 10453434663,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-27b",
+      "repo": "mlx-community/Qwen3.6-27B-4bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 16081480034,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-27b-6bit",
+      "repo": "lmstudio-community/Qwen3.6-27B-MLX-6bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 22804825917,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-27b-8bit",
+      "repo": "unsloth/Qwen3.6-27B-MLX-8bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 34733949671,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-27b-optiq-4bit",
+      "repo": "mlx-community/Qwen3.6-27B-OptiQ-4bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 20000236936,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-27b-ud",
+      "repo": "unsloth/Qwen3.6-27B-UD-MLX-4bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 26210992727,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-27b-ud-3bit",
+      "repo": "unsloth/Qwen3.6-27B-UD-MLX-3bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 24071897617,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-27b-ud-6bit",
+      "repo": "unsloth/Qwen3.6-27B-UD-MLX-6bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 30522606211,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-35b",
+      "repo": "mlx-community/Qwen3.6-35B-A3B-4bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 20429159205,
+      "moe": true,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-35b-6bit",
+      "repo": "mlx-community/Qwen3.6-35B-A3B-6bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 29088757983,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-35b-8bit",
+      "repo": "mlx-community/Qwen3.6-35B-A3B-8bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 37748357936,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-35b-dwq",
+      "repo": "mlx-community/Qwen3.6-35B-A3B-4bit-DWQ",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 20679525253,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-35b-mxfp4",
+      "repo": "mlx-community/Qwen3.6-35B-A3B-mxfp4",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 19346602441,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-35b-nvfp4",
+      "repo": "mlx-community/Qwen3.6-35B-A3B-nvfp4",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 20429052421,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-35b-optiq-4bit",
+      "repo": "mlx-community/Qwen3.6-35B-A3B-OptiQ-4bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 24693941582,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.6-35b-ud",
+      "repo": "unsloth/Qwen3.6-35B-A3B-UD-MLX-4bit",
+      "modelType": "qwen3_5_moe",
+      "sizeBytes": 21655301364,
+      "moe": true,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.8-27b-4bit",
+      "repo": "rapid-mlx/Qwen3.8-27B-4bit-MTP-MLX",
+      "modelType": "qwen3_5",
+      "sizeBytes": 16320413916,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.8-27b-4bit-fp16",
+      "repo": "rapid-mlx/Qwen3.8-27B-4bit-MTP-fp16-MLX",
+      "modelType": "qwen3_5",
+      "sizeBytes": 16313463520,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwen3.8-27b-mixed-3.5bpw",
+      "repo": "rapid-mlx/Qwen3.8-27B-mixed-3.5bpw-MLX",
+      "modelType": "qwen3_5",
+      "sizeBytes": 14788605437,
+      "moe": false,
+      "vision": true,
+      "reasoning": true
+    },
+    {
+      "alias": "qwopus-27b-4bit",
+      "repo": "Jackrong/MLX-Qwopus3.5-27B-v3-4bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 15153228040,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "qwopus-9b-4bit",
+      "repo": "Jackrong/MLX-Qwopus3.5-9B-v3-4bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 5058235850,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "smollm3-3b-4bit",
+      "repo": "mlx-community/SmolLM3-3B-4bit",
+      "modelType": "smollm3",
+      "sizeBytes": 1747372864,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "tmax-27b",
+      "repo": "mlx-community/Tmax-27B-MLX-4bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 15153227907,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "tmax-27b-6bit",
+      "repo": "mlx-community/Tmax-27B-MLX-6bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 21876566243,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "tmax-27b-8bit",
+      "repo": "mlx-community/Tmax-27B-MLX-8bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 28599904909,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "tmax-9b",
+      "repo": "mlx-community/Tmax-9B-MLX-4bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 5058235474,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "tmax-9b-6bit",
+      "repo": "mlx-community/Tmax-9B-MLX-6bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 7296434851,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "tmax-9b-8bit",
+      "repo": "mlx-community/Tmax-9B-MLX-8bit",
+      "modelType": "qwen3_5",
+      "sizeBytes": 9534620449,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "tmax-9b-bf16",
+      "repo": "mlx-community/Tmax-9B-MLX-bf16",
+      "modelType": "qwen3_5",
+      "sizeBytes": 17927699351,
+      "moe": false,
+      "vision": false,
+      "reasoning": false
+    },
+    {
+      "alias": "vibethinker-1.5b-4bit",
+      "repo": "mlx-community/VibeThinker-1.5B-mlx-4bit",
+      "modelType": "qwen2",
+      "sizeBytes": 884559821,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    },
+    {
+      "alias": "vibethinker-3b-8bit",
+      "repo": "mlx-community/VibeThinker-3B-8bit",
+      "modelType": "qwen2",
+      "sizeBytes": 3290632889,
+      "moe": false,
+      "vision": false,
+      "reasoning": true
+    }
+  ],
+  "recommendations": [
+    {
+      "minimumMemoryGB": 8,
+      "picks": [
+        {
+          "role": "fast",
+          "alias": "lfm2.5-1b-4bit",
+          "repo": "mlx-community/LFM2.5-1.2B-Instruct-4bit",
+          "footprintGB": 1.9,
+          "tokensPerSecond": 208.4,
+          "limitations": [
+            "basic_chat"
+          ]
+        }
+      ]
+    },
+    {
+      "minimumMemoryGB": 16,
+      "picks": [
+        {
+          "role": "smart",
+          "alias": "qwen3.5-4b-4bit",
+          "repo": "mlx-community/Qwen3.5-4B-MLX-4bit",
+          "footprintGB": 6.0,
+          "tokensPerSecond": 60.7,
+          "limitations": []
+        },
+        {
+          "role": "fast",
+          "alias": "lfm2.5-1b-4bit",
+          "repo": "mlx-community/LFM2.5-1.2B-Instruct-4bit",
+          "footprintGB": 1.9,
+          "tokensPerSecond": 208.4,
+          "limitations": [
+            "basic_chat"
+          ]
+        }
+      ]
+    },
+    {
+      "minimumMemoryGB": 18,
+      "picks": [
+        {
+          "role": "smart",
+          "alias": "qwen3.5-9b-4bit",
+          "repo": "mlx-community/Qwen3.5-9B-4bit",
+          "footprintGB": 8.7,
+          "tokensPerSecond": 35.7,
+          "limitations": []
+        },
+        {
+          "role": "fast",
+          "alias": "qwen3.5-4b-4bit",
+          "repo": "mlx-community/Qwen3.5-4B-MLX-4bit",
+          "footprintGB": 6.0,
+          "tokensPerSecond": 60.7,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "minimumMemoryGB": 24,
+      "picks": [
+        {
+          "role": "smart",
+          "alias": "bonsai-27b-2bit",
+          "repo": "prism-ml/Ternary-Bonsai-27B-mlx-2bit",
+          "footprintGB": 13.0,
+          "tokensPerSecond": 17.5,
+          "limitations": []
+        },
+        {
+          "role": "fast",
+          "alias": "qwen3.5-4b-4bit",
+          "repo": "mlx-community/Qwen3.5-4B-MLX-4bit",
+          "footprintGB": 6.0,
+          "tokensPerSecond": 60.7,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "minimumMemoryGB": 32,
+      "picks": [
+        {
+          "role": "smart",
+          "alias": "qwen3.8-27b-4bit",
+          "repo": "rapid-mlx/Qwen3.8-27B-4bit-MTP-MLX",
+          "footprintGB": 20.0,
+          "tokensPerSecond": 40.7,
+          "limitations": []
+        },
+        {
+          "role": "fast",
+          "alias": "qwen3.5-4b-4bit",
+          "repo": "mlx-community/Qwen3.5-4B-MLX-4bit",
+          "footprintGB": 6.0,
+          "tokensPerSecond": 60.7,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "minimumMemoryGB": 48,
+      "picks": [
+        {
+          "role": "smart",
+          "alias": "qwen3.8-27b-4bit",
+          "repo": "rapid-mlx/Qwen3.8-27B-4bit-MTP-MLX",
+          "footprintGB": 20.0,
+          "tokensPerSecond": 40.7,
+          "limitations": []
+        },
+        {
+          "role": "fast",
+          "alias": "qwen3.6-35b-4bit",
+          "repo": "mlx-community/Qwen3.6-35B-A3B-4bit",
+          "footprintGB": 20.0,
+          "tokensPerSecond": 60.0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "minimumMemoryGB": 64,
+      "picks": [
+        {
+          "role": "smart",
+          "alias": "qwen3.8-27b-4bit",
+          "repo": "rapid-mlx/Qwen3.8-27B-4bit-MTP-MLX",
+          "footprintGB": 20.0,
+          "tokensPerSecond": 40.7,
+          "limitations": []
+        },
+        {
+          "role": "fast",
+          "alias": "qwen3.6-35b-4bit",
+          "repo": "mlx-community/Qwen3.6-35B-A3B-4bit",
+          "footprintGB": 20.0,
+          "tokensPerSecond": 60.0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "minimumMemoryGB": 96,
+      "picks": [
+        {
+          "role": "smart",
+          "alias": "qwen3.8-27b-4bit",
+          "repo": "rapid-mlx/Qwen3.8-27B-4bit-MTP-MLX",
+          "footprintGB": 20.0,
+          "tokensPerSecond": 40.7,
+          "limitations": []
+        },
+        {
+          "role": "fast",
+          "alias": "qwen3.6-35b-4bit",
+          "repo": "mlx-community/Qwen3.6-35B-A3B-4bit",
+          "footprintGB": 20.0,
+          "tokensPerSecond": 60.0,
+          "limitations": []
+        }
+      ]
+    }
+  ]
+}
