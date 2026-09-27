@@ -10,6 +10,15 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Added
+
+- **Many more MLX models to choose from.** Add Model now also lists the MLX models from Rapid-MLX's catalog that Quail server can run: 134 models, from 0.4 GB to 60 GB, across Qwen, Gemma, Llama, Granite, LFM, Phi, Mistral, GLM, Nemotron and more. They appear below the hand-picked families, with each one's size, and their fit on your Mac is checked as they scroll into view. Rapid-MLX's own picks for your Mac's memory (the most capable, and the fastest) have their own section. The list refreshes weekly with the catalog.
+
+### Fixed
+
+- MLX models whose files don't list their end-of-turn token as an end-of-sequence token (Gemma 3 1B's conversion, for one) no longer write past the end of their reply.
+- Recommended for This Mac now includes MLX-only models when the runtime can serve them.
+
 ## [0.45.0] - 2026-09-27
 
 ### Added

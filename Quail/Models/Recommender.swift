@@ -26,15 +26,18 @@ enum Recommender {
     ///
     /// No longer limited to the Mac's RAM tier (user decision, after live
     /// testing): a 64 GB Mac's tier is "35B+", which hid Gemma 4 31B and
-    /// Qwen3.8 27B although both run comfortably. GGUF only: nothing can
-    /// serve MLX before Phase 3. Empty if the GPU ceiling isn't known.
-    static func candidates(catalog: Catalog, device: DeviceInfo) -> [Catalog.Family] {
+    /// Qwen3.8 27B although both run comfortably. Only families with a
+    /// variant in one of `formats` (what the chosen runtime serves).
+    /// Empty if the GPU ceiling isn't known.
+    static func candidates(
+        catalog: Catalog, device: DeviceInfo, formats: Set<ModelFormat> = [.gguf]
+    ) -> [Catalog.Family] {
         guard let ceiling = device.gpuWorkingSetCeilingBytes else { return [] }
         let maxParams = Double(FitEstimator.approxMaxParamsB(gpuCeilingBytes: ceiling, comfortable: false))
 
         return catalog.families
             .filter(\.isCurated)
-            .filter { $0.gguf != nil }
+            .filter { family in formats.contains { family.repo(for: $0) != nil } }
             .filter { !excludedRoles.contains($0.role ?? "") }
             .filter { family in
                 guard let params = family.paramsB else { return false }
@@ -52,19 +55,32 @@ enum Recommender {
     /// The first candidate expected to run *comfortably*, from catalog
     /// data alone — for the Models pane's empty state, which shows a
     /// suggestion before any per-model verdict has been fetched.
-    static func topPick(catalog: Catalog, device: DeviceInfo) -> Catalog.Family? {
+    static func topPick(
+        catalog: Catalog, device: DeviceInfo, formats: Set<ModelFormat> = [.gguf]
+    ) -> Catalog.Family? {
         guard let ceiling = device.gpuWorkingSetCeilingBytes else { return nil }
         let comfortable = Double(FitEstimator.approxMaxParamsB(gpuCeilingBytes: ceiling, comfortable: true))
-        return candidates(catalog: catalog, device: device).first { ($0.paramsB ?? .infinity) <= comfortable }
+        return candidates(catalog: catalog, device: device, formats: formats)
+            .first { ($0.paramsB ?? .infinity) <= comfortable }
+    }
+
+    /// Rapid-MLX's own picks for this Mac's memory (ADR D-058), "smart" then "fast", as rows of the catalog.
+    static func rapidMLXPicks(catalog: Catalog, device: DeviceInfo) -> [(role: String, family: Catalog.Family)] {
+        guard let rapid = catalog.rapidMLX else { return [] }
+        guard let memory = device.unifiedMemoryBytes else { return [] }
+        return rapid.picks(forMemoryBytes: memory).compactMap { pick in
+            let repo = pick.repo.lowercased()
+            return catalog.families.first { $0.mlx?.repo.lowercased() == repo }.map { (pick.role, $0) }
+        }
     }
 
     /// `candidates`, narrowed to `.comfortable` (§7: "filtered to
     /// Comfortable") — a family with no verdict yet (still loading, or
     /// the lookup failed) is dropped rather than shown as a false
-    /// positive. `verdicts` is keyed by the family's GGUF repo id, at
-    /// whatever quant `AppState.loadCatalogVerdicts` resolved (the
-    /// catalog's own recommended default) — one verdict per family is
-    /// what "is this worth recommending" needs, not every quant's.
+    /// positive. `verdicts` is keyed by family id, at whatever variant
+    /// `AppState.loadCatalogVerdicts` resolved (the GGUF default quant when
+    /// there is one) — one verdict per family is what "is this worth
+    /// recommending" needs, not every quant's.
     ///
     /// Ordered by `rank`, then by estimated speed on this Mac (faster
     /// first), then size — so among equally good models a fast MoE beats
@@ -72,7 +88,7 @@ enum Recommender {
     /// older Qwen3 32B above its successor Qwen3.8 27B.
     static func finalize(candidates: [Catalog.Family], verdicts: [String: FitEstimate]) -> [Catalog.Family] {
         let comfortable: [(family: Catalog.Family, speed: Double)] = candidates.compactMap { family in
-            guard let repo = family.gguf?.repo, let verdict = verdicts[repo], verdict.verdict == .comfortable else {
+            guard let verdict = verdicts[family.id], verdict.verdict == .comfortable else {
                 return nil
             }
             return (family, verdict.estimatedTokensPerSecond ?? -1)

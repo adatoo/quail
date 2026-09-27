@@ -681,7 +681,7 @@ struct AppStateTests {
         // Every family is looked up — not only in-tier recommendation
         // candidates, which once left most Add-model rows blank.
         #expect(listingRequestCount.value == 2)
-        let verdict = try #require(appState.catalogVerdicts["org/Tiny-GGUF"])
+        let verdict = try #require(appState.catalogVerdicts["tiny"])
         #expect(verdict.verdict == .comfortable)
         #expect(appState.catalogFits["embed"] == .unknown("Repo not found on Hugging Face"))
 

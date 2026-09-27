@@ -817,8 +817,22 @@ final class MLXEngine: Engine, @unchecked Sendable {
         if let eos = context.tokenizer.eosTokenId {
             ids.insert(eos)
         }
+        // A chat model's end-of-turn token, which some conversions leave out of their end-of-sequence ids (Gemma
+        // 3 1B's config lists only `<eos>`, and its repo has no generation_config.json, so it wrote past
+        // `<end_of_turn>`). llama.cpp treats these as end of generation from the vocabulary; so does this, for a
+        // token the tokenizer really has.
+        for token in endOfTurnTokens {
+            if let id = context.tokenizer.convertTokenToId(token), context.tokenizer.convertIdToToken(id) == token {
+                ids.insert(id)
+            }
+        }
         return Array(ids)
     }
+
+    /// End-of-turn tokens of common chat templates (from llama.cpp's end-of-generation list). Not `<|endoftext|>`,
+    /// which some models use inside a turn, nor `<|end|>`, which ends each Harmony message of gpt-oss's reply
+    /// (its reasoning comes first), and which Phi-3 lists as its end of sequence anyway.
+    static let endOfTurnTokens = ["<end_of_turn>", "<|im_end|>", "<|eot_id|>", "<|eom_id|>"]
 }
 
 /// mlx-swift-lm's samplers each draw from a random state seeded at random, which leaves no way to

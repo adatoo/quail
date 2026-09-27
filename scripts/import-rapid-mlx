@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+"""Regenerates Quail/Resources/mlx-models.json from Rapid-MLX's bundled model catalog (ADR D-058).
+
+Rapid-MLX (Apache-2.0, https://github.com/raullenchai/Rapid-MLX) ships three data files with its Python
+package: aliases.json (the models it knows, by alias), model_sizes.json (each repo's size) and
+model_recommendations.json (per-memory-tier "smart" and "fast" picks). This script reads those files, never
+Rapid-MLX's runtime, and keeps only what Quail server can run:
+
+- text models (or image-reading ones), not image/video generation, diffusion or embeddings;
+- not marked experimental;
+- whose config.json `model_type` (fetched from Hugging Face) is one mlx-swift-lm, as pinned in project.yml,
+  loads as a text model, or one Quail loads through its vision half (MLXVision). Rapid-MLX runs Python
+  mlx-lm, which knows more architectures than mlx-swift-lm does.
+
+It never touches catalog.json, the curated list. Run it after bumping Rapid-MLX or mlx-swift-lm, read the diff,
+and commit the result; the revision goes up by one each time the content changes.
+
+Usage: scripts/import-rapid-mlx [--rapid-mlx DIR] [--mlx-swift-lm DIR] [--out FILE] [--token HF_TOKEN]
+"""
+
+import argparse
+import concurrent.futures
+import datetime
+import glob
+import json
+import os
+import re
+import shutil
+import sys
+import urllib.error
+import urllib.request
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Architectures Quail loads through their vision half only (QuailServer/Core/MLXVision.swift).
+VISION_TYPES = {"qwen3_5", "qwen3_5_moe", "gemma4"}
+# Architectures mlx-swift-lm lists that Quail server can't serve: a diffusion model (it generates some other way
+# than the decode loop), and Gemma 3n, whose published MLX conversions don't load in mlx-swift-lm 3.31.4
+# ("Key language_model.norm.weight not found"; checked 2026-09-28 with mlx-community/gemma-3n-E2B-it-4bit).
+UNSERVED_TYPES = {"nemotron_labs_diffusion", "gemma3n"}
+
+
+def find_rapid_mlx():
+    found = sorted(glob.glob("/opt/homebrew/Cellar/rapid-mlx/*/libexec/lib/python3*/site-packages/rapid_mlx"))
+    return found[-1] if found else None
+
+
+def rapid_mlx_version(package):
+    for info in glob.glob(os.path.join(os.path.dirname(package), "rapid_mlx-*.dist-info")):
+        match = re.search(r"rapid_mlx-([^/]+)\.dist-info$", info)
+        if match:
+            return match.group(1)
+    return "unknown"
+
+
+def swift_registry_types(path):
+    """The `"model_type": create(...)` keys of an mlx-swift-lm model factory."""
+    with open(path, encoding="utf-8") as file:
+        return set(re.findall(r'^\s*"([A-Za-z0-9_.-]+)":\s*create\(', file.read(), re.MULTILINE))
+
+
+def fetch_model_type(repo, token):
+    request = urllib.request.Request(f"https://huggingface.co/{repo}/resolve/main/config.json")
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            config = json.load(response)
+    except (urllib.error.URLError, json.JSONDecodeError, TimeoutError) as error:
+        return repo, None, str(error)
+    return repo, config.get("model_type"), None
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--rapid-mlx", default=find_rapid_mlx(), help="the installed rapid_mlx package folder")
+    parser.add_argument(
+        "--mlx-swift-lm",
+        default=os.path.join(ROOT, "DerivedData/SourcePackages/checkouts/mlx-swift-lm"),
+        help="an mlx-swift-lm checkout at the version project.yml pins",
+    )
+    parser.add_argument("--out", default=os.path.join(ROOT, "Quail/Resources/mlx-models.json"))
+    parser.add_argument("--token", default=os.environ.get("HF_TOKEN"), help="a Hugging Face token, for gated repos")
+    args = parser.parse_args()
+    if not args.rapid_mlx or not os.path.isdir(args.rapid_mlx):
+        sys.exit("Rapid-MLX isn't installed where expected; pass --rapid-mlx (brew install rapid-mlx).")
+
+    def load(name):
+        with open(os.path.join(args.rapid_mlx, name), encoding="utf-8") as file:
+            return json.load(file)
+
+    aliases = load("aliases.json")
+    sizes = load("model_sizes.json").get("sizes", {})
+    recommendations = load("model_recommendations.json")
+    if recommendations.get("schema_version") != 1:
+        sys.exit(f"model_recommendations.json schema {recommendations.get('schema_version')} isn't the 1 this reads.")
+    text_types = swift_registry_types(os.path.join(args.mlx_swift_lm, "Libraries/MLXLLM/LLMModelFactory.swift"))
+    if not text_types:
+        sys.exit(f"No model types found in {args.mlx_swift_lm}; is it an mlx-swift-lm checkout?")
+
+    candidates = {
+        alias: entry
+        for alias, entry in aliases.items()
+        if entry.get("modality", "text") == "text" and not entry.get("experimental") and entry.get("hf_path")
+    }
+    repos = sorted({entry["hf_path"] for entry in candidates.values()})
+    types, failures = {}, []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        for repo, model_type, error in pool.map(lambda repo: fetch_model_type(repo, args.token), repos):
+            if model_type:
+                types[repo] = model_type
+            else:
+                failures.append(f"{repo}: {error or 'no model_type'}")
+
+    models, skipped, seen = [], [], set()
+    for alias, entry in sorted(candidates.items()):
+        repo = entry["hf_path"]
+        model_type = types.get(repo)
+        # Some repos have several aliases: one row each.
+        if model_type is None or repo.lower() in seen:
+            continue
+        if (model_type not in text_types and model_type not in VISION_TYPES) or model_type in UNSERVED_TYPES:
+            skipped.append(f"{alias} ({model_type})")
+            continue
+        seen.add(repo.lower())
+        model = {
+            "alias": alias,
+            "repo": repo,
+            "modelType": model_type,
+            "sizeBytes": sizes.get(repo),
+            "moe": bool(entry.get("is_moe")),
+            "vision": bool(entry.get("supports_image_input")) and model_type in VISION_TYPES,
+            "reasoning": bool(entry.get("reasoning_parser")),
+        }
+        if entry.get("min_memory_gb"):
+            model["minMemoryGB"] = entry["min_memory_gb"]
+        models.append(model)
+
+    by_repo = {model["repo"].lower(): model for model in models}
+    kept = {alias: by_repo[entry["hf_path"].lower()] for alias, entry in candidates.items()
+            if entry["hf_path"].lower() in by_repo}
+    tiers = []
+    for tier in recommendations.get("tiers", []):
+        picks = []
+        for pick in tier.get("picks", []):
+            model = kept.get(pick.get("alias"))
+            if model is None:
+                continue
+            picks.append({
+                "role": pick["role"],
+                "alias": pick["alias"],
+                "repo": model["repo"],
+                "footprintGB": round(pick.get("footprint_mib", 0) / 1024, 1),
+                "tokensPerSecond": round(pick.get("decode_tokens_per_second_x100", 0) / 100, 1),
+                "limitations": pick.get("limitation_ids", []),
+            })
+        if picks:
+            tiers.append({"minimumMemoryGB": tier["minimum_memory_mib"] // 1024, "picks": picks})
+
+    document = {
+        "schemaVersion": 1,
+        "revision": 1,
+        "asOf": datetime.date.today().isoformat(),
+        "source": {
+            "name": "Rapid-MLX",
+            "version": rapid_mlx_version(args.rapid_mlx),
+            "license": "Apache-2.0",
+            "url": "https://github.com/raullenchai/Rapid-MLX",
+        },
+        "models": models,
+        "recommendations": tiers,
+    }
+    previous = None
+    if os.path.exists(args.out):
+        with open(args.out, encoding="utf-8") as file:
+            previous = json.load(file)
+    if previous:
+        unchanged = all(previous.get(key) == document[key] for key in ("source", "models", "recommendations"))
+        document["revision"] = previous.get("revision", 0) + (0 if unchanged else 1)
+        if unchanged:
+            document["asOf"] = previous.get("asOf", document["asOf"])
+    with open(args.out, "w", encoding="utf-8") as file:
+        json.dump(document, file, indent=2, ensure_ascii=False)
+        file.write("\n")
+    # Its licence and notice, for THIRD_PARTY_NOTICES.md (Config/third-party.json, `task notices`).
+    licences = os.path.join(ROOT, "Config/licences/rapid-mlx")
+    os.makedirs(licences, exist_ok=True)
+    dist = glob.glob(os.path.join(os.path.dirname(args.rapid_mlx), "rapid_mlx-*.dist-info/licenses"))
+    for name in ("LICENSE", "NOTICE"):
+        source = os.path.join(dist[0], name) if dist else None
+        if source and os.path.exists(source):
+            shutil.copyfile(source, os.path.join(licences, name))
+    with open(os.path.join(licences, "VERSION"), "w", encoding="utf-8") as file:
+        file.write(document["source"]["version"] + "\n")
+
+    print(f"{len(models)} models, {sum(len(t['picks']) for t in tiers)} picks in {len(tiers)} tiers -> {args.out} "
+          f"(revision {document['revision']})")
+    if skipped:
+        print(f"skipped {len(skipped)} with architectures mlx-swift-lm doesn't load: " + ", ".join(skipped))
+    if failures:
+        print(f"couldn't read {len(failures)} configs: " + "; ".join(failures))
+
+
+if __name__ == "__main__":
+    main()

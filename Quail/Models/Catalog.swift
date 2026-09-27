@@ -14,6 +14,9 @@ import Foundation
 ///    Application Support, fetched by `CatalogRefresher` — only used if
 ///    its `revision` is at least the bundled one),
 /// 3. user-added repo URLs (`user-catalog.json`, uncurated entries).
+///
+/// Between the curated families and the user's own come the MLX models from Rapid-MLX's catalog
+/// (`RapidMLXCatalog`, ADR D-058), which aren't curated here but are checked to load in Quail server.
 struct Catalog: Sendable, Equatable {
     /// One family row in the picker (ARCHITECTURE.md §6: "The picker
     /// shows one row per family with format badges"). Curated families
@@ -41,6 +44,13 @@ struct Catalog: Sendable, Equatable {
         var mlx: MLXVariant?
         var isCurated: Bool
         var addedAt: Date?
+        /// Set for a model from Rapid-MLX's catalog (ADR D-058): its size and what the catalog says about it.
+        var rapidMLX: RapidMLXCatalog.Model?
+
+        /// A repo the user pasted, as opposed to one a catalog lists.
+        var isUserAdded: Bool {
+            !isCurated && rapidMLX == nil
+        }
 
         /// The repo id this family would download from for `format`,
         /// whichever variant exists — user-added entries resolve to
@@ -122,6 +132,8 @@ struct Catalog: Sendable, Equatable {
     /// table over the bundle-only one.
     var chipBandwidthGBps: [String: Double] = [:]
     var families: [Family] = []
+    /// Rapid-MLX's catalog, for its per-Mac picks; its models are already among `families`.
+    var rapidMLX: RapidMLXCatalog?
 
     /// The JSON-file shape of `Resources/catalog.json` (and of whatever
     /// the remote refresh URL serves — same schema). `revision` is the
@@ -215,11 +227,15 @@ struct Catalog: Sendable, Equatable {
         var bundle: Bundle
         var refreshCacheFile: URL
         var userEntriesFile: URL
+        /// The weekly refresh of Rapid-MLX's catalog (`mlx-models.json`).
+        var rapidMLXRefreshFile: URL
 
-        init(bundle: Bundle, refreshCacheFile: URL, userEntriesFile: URL) {
+        init(bundle: Bundle, refreshCacheFile: URL, userEntriesFile: URL, rapidMLXRefreshFile: URL? = nil) {
             self.bundle = bundle
             self.refreshCacheFile = refreshCacheFile
             self.userEntriesFile = userEntriesFile
+            self.rapidMLXRefreshFile = rapidMLXRefreshFile ?? refreshCacheFile.deletingLastPathComponent()
+                .appendingPathComponent("mlx-models-refresh.json", isDirectory: false)
         }
 
         init(bundle: Bundle, directory: URL) {
@@ -259,6 +275,12 @@ struct Catalog: Sendable, Equatable {
            cached.revision >= result.revision
         {
             result = cached
+        }
+        // Rapid-MLX's models after the curated families, leaving out those a curated family already offers.
+        if let rapid = RapidMLXCatalog.current(locations: locations) {
+            result.rapidMLX = rapid
+            let curatedRepos = Set(result.families.compactMap { $0.mlx?.repo.lowercased() })
+            result.families += rapid.families.filter { !curatedRepos.contains($0.id.lowercased()) }
         }
         let userEntries = loadUserEntries(from: locations.userEntriesFile)
         for entry in userEntries {

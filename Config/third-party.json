@@ -33,6 +33,15 @@
       "url": "https://github.com/ggml-org/llama.cpp",
       "versionFile": "Vendor/llama.version",
       "licenseFile": "Vendor/llama.cpp/LICENSE-llama.cpp"
+    },
+    {
+      "name": "Rapid-MLX model catalog",
+      "license": "Apache-2.0",
+      "in": "Quail (the MLX model list in Add Model, data only; scripts/import-rapid-mlx, ADR D-058)",
+      "url": "https://github.com/raullenchai/Rapid-MLX",
+      "versionFile": "Config/licences/rapid-mlx/VERSION",
+      "licenseFile": "Config/licences/rapid-mlx/LICENSE",
+      "noticeFile": "Config/licences/rapid-mlx/NOTICE"
     }
   ]
 }

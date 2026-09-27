@@ -209,6 +209,59 @@ struct CatalogTests {
         #expect(Catalog.loadUserEntries(from: url) == entries)
     }
 
+    // MARK: - Rapid-MLX's catalog (ADR D-058)
+
+    @Test("the real Resources/mlx-models.json decodes, and its models become MLX-only rows")
+    func realRapidMLXCatalogDecodes() throws {
+        let repoRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let data = try Data(contentsOf: repoRoot.appendingPathComponent("Quail/Resources/mlx-models.json"))
+        let rapid = try #require(RapidMLXCatalog.decode(data))
+        #expect(rapid.source.license == "Apache-2.0")
+        #expect(rapid.models.count > 50)
+        #expect(Set(rapid.models.map(\.repo)).count == rapid.models.count, "a repo is listed twice")
+        for tier in rapid.recommendations {
+            for pick in tier.picks {
+                #expect(rapid.models.contains { $0.repo == pick.repo }, "pick \(pick.alias) isn't a listed model")
+            }
+        }
+        let families = rapid.families
+        #expect(families.allSatisfy { $0.gguf == nil && $0.mlx != nil && !$0.isCurated && !$0.isUserAdded })
+    }
+
+    @Test("parameter counts come from Rapid-MLX aliases")
+    func rapidMLXParameters() {
+        #expect(RapidMLXCatalog.parameters(in: "qwen3.6-35b-a3b-4bit") == 35)
+        #expect(RapidMLXCatalog.activeParameters(in: "qwen3.6-35b-a3b-4bit") == 3)
+        #expect(RapidMLXCatalog.parameters(in: "gemma-4-e4b-4bit") == 4)
+        #expect(RapidMLXCatalog.parameters(in: "lfm2.5-1.2b-4bit") == 1.2)
+        #expect(RapidMLXCatalog.parameters(in: "qwen3-coder-next-4bit") == nil)
+    }
+
+    @Test("Catalog.current adds Rapid-MLX's models after the curated ones, without repeating a curated repo")
+    func currentAddsRapidMLX() throws {
+        let dir = Self.scratchDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let locations = Self.locations(seed: Self.seedJSON, directory: dir)
+        let rapid = """
+        {"schemaVersion": 1, "revision": 3, "source": {"name": "Rapid-MLX", "version": "0.14.3",
+         "license": "Apache-2.0", "url": "u"},
+         "models": [
+          {"alias": "alpha-8b-4bit", "repo": "mlx-community/Alpha-4bit", "modelType": "qwen3", "moe": false,
+           "vision": false, "reasoning": false},
+          {"alias": "gamma-4b-4bit", "repo": "mlx-community/Gamma-4bit", "modelType": "qwen3", "sizeBytes": 2000,
+           "moe": false, "vision": false, "reasoning": true}],
+         "recommendations": []}
+        """
+        try rapid.write(to: dir.appendingPathComponent("mlx-models.json"), atomically: true, encoding: .utf8)
+        let catalog = Catalog.current(locations: locations)
+        #expect(catalog.families.filter { $0.mlx?.repo == "mlx-community/Alpha-4bit" }.count == 1)
+        let gamma = try #require(catalog.families.last)
+        #expect(gamma.id == "mlx-community/Gamma-4bit")
+        #expect(gamma.rapidMLX?.sizeBytes == 2000)
+        #expect(gamma.paramsB == 4)
+        #expect(catalog.rapidMLX?.revision == 3)
+    }
+
     // MARK: - The real shipped seed
 
     @Test("the real Resources/catalog.json decodes and is self-consistent")

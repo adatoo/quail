@@ -82,6 +82,17 @@ struct UISnapshotTests {
         )
     }
 
+    @Test("Add Model, MLX: Rapid-MLX's picks and catalog")
+    func addModelSheetMLX() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let pick = Recommender.rapidMLXPicks(catalog: appState.catalog, device: DeviceInfo.current()).first?.family
+        try await render(
+            AddModelSheet(appState: appState, defaultFilter: .mlx, preselect: pick),
+            size: CGSize(width: 820, height: 580), name: "add-model-mlx"
+        )
+    }
+
     @Test("Models pane")
     func modelsPane() async throws {
         let (appState, scratch) = try await makeAppState()

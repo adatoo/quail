@@ -44,7 +44,9 @@ struct RecommenderTests {
         return info
     }
 
-    @Test("candidates: curated, GGUF-capable, non-excluded roles, any size that might fit; rank then larger first")
+    @Test(
+        "candidates: curated, in a servable format, non-excluded roles, any size that might fit; rank then larger first"
+    )
     func candidatesFiltersAndSorts() {
         let families = [
             Self.family(id: "SmokeTest", paramsB: 0.6, role: "smoke-test", rank: 1),
@@ -64,6 +66,55 @@ struct RecommenderTests {
 
         // Not tier-gated: a 64 GB Mac's "35B+" tier would have hidden all three.
         #expect(candidates.map(\.id) == ["Top", "Mid", "Small"])
+    }
+
+    @Test("candidates: an MLX-only family counts when the runtime serves MLX")
+    func candidatesIncludeMLXWhenServed() {
+        let families = [
+            Self.family(id: "GGUFOnly", paramsB: 8, rank: 2),
+            Self.family(id: "MLXOnly", paramsB: 8, rank: 1, gguf: false, mlx: true),
+        ]
+        let device = Self.device(ceiling: Self.ceiling64GB)
+        #expect(Recommender.candidates(catalog: Self.catalog(families), device: device).map(\.id) == ["GGUFOnly"])
+        #expect(Recommender.candidates(
+            catalog: Self.catalog(families), device: device, formats: [.gguf, .mlxSafetensors]
+        ).map(\.id) == ["MLXOnly", "GGUFOnly"])
+    }
+
+    @Test("Rapid-MLX picks: the tier this Mac's memory reaches, matched to catalog rows by repo")
+    func rapidMLXPicks() {
+        let model = RapidMLXCatalog.Model(
+            alias: "big-35b-a3b-4bit", repo: "mlx-community/Big-4bit", modelType: "qwen3_5_moe", sizeBytes: 19 << 30,
+            moe: true, vision: false, reasoning: true
+        )
+        let small = RapidMLXCatalog.Model(
+            alias: "small-4b-4bit", repo: "mlx-community/Small-4bit", modelType: "qwen3", sizeBytes: 2 << 30,
+            moe: false, vision: false, reasoning: false
+        )
+        func pick(_ role: String, _ model: RapidMLXCatalog.Model) -> RapidMLXCatalog.Pick {
+            .init(role: role, alias: model.alias, repo: model.repo, footprintGB: 1, tokensPerSecond: 1, limitations: [])
+        }
+        let rapid = RapidMLXCatalog(
+            schemaVersion: 1, revision: 1, asOf: nil,
+            source: .init(name: "Rapid-MLX", version: "0", license: "Apache-2.0", url: ""),
+            models: [model, small],
+            recommendations: [
+                .init(minimumMemoryGB: 16, picks: [pick("smart", small)]),
+                .init(minimumMemoryGB: 64, picks: [pick("smart", model), pick("fast", small)]),
+            ]
+        )
+        var catalog = Self.catalog(rapid.families)
+        catalog.rapidMLX = rapid
+        var device = Self.device(ceiling: Self.ceiling64GB)
+        device.unifiedMemoryBytes = 64 << 30
+        #expect(Recommender.rapidMLXPicks(catalog: catalog, device: device).map(\.role) == ["smart", "fast"])
+        #expect(Recommender.rapidMLXPicks(catalog: catalog, device: device).first?.family
+            .id == "mlx-community/Big-4bit")
+        device.unifiedMemoryBytes = 24 << 30
+        #expect(Recommender.rapidMLXPicks(catalog: catalog, device: device)
+            .map(\.family.id) == ["mlx-community/Small-4bit"])
+        device.unifiedMemoryBytes = 8 << 30
+        #expect(Recommender.rapidMLXPicks(catalog: catalog, device: device).isEmpty)
     }
 
     @Test("candidates: empty when the GPU ceiling is unknown")
@@ -87,7 +138,7 @@ struct RecommenderTests {
         let candidates = (1 ... 8).map { (i: Int) in Self.family(id: "M\(i)", paramsB: 8, rank: i) }
         var verdicts: [String: FitEstimate] = [:]
         for family in candidates {
-            verdicts["org/\(family.id)-GGUF"] = FitEstimate(
+            verdicts[family.id] = FitEstimate(
                 verdict: .comfortable,
                 ramNeededBytes: 1,
                 estimatedTokensPerSecond: nil
@@ -110,8 +161,8 @@ struct RecommenderTests {
             Self.family(id: "NoVerdictYet", paramsB: 6, rank: 3),
         ]
         let verdicts: [String: FitEstimate] = [
-            "org/SmallB-GGUF": FitEstimate(verdict: .comfortable, ramNeededBytes: 1, estimatedTokensPerSecond: nil),
-            "org/SmallA-GGUF": FitEstimate(verdict: .wontFit, ramNeededBytes: 1, estimatedTokensPerSecond: nil),
+            "SmallB": FitEstimate(verdict: .comfortable, ramNeededBytes: 1, estimatedTokensPerSecond: nil),
+            "SmallA": FitEstimate(verdict: .wontFit, ramNeededBytes: 1, estimatedTokensPerSecond: nil),
         ]
 
         let finalized = Recommender.finalize(candidates: candidates, verdicts: verdicts)
@@ -130,9 +181,9 @@ struct RecommenderTests {
             FitEstimate(verdict: .comfortable, ramNeededBytes: 1, estimatedTokensPerSecond: speed)
         }
         let verdicts = [
-            "org/Dense32B-GGUF": verdict(10),
-            "org/MoE26B-GGUF": verdict(180),
-            "org/Fast8B-GGUF": verdict(400),
+            "Dense32B": verdict(10),
+            "MoE26B": verdict(180),
+            "Fast8B": verdict(400),
         ]
         #expect(Recommender.finalize(candidates: candidates, verdicts: verdicts).map(\.id) == [
             "MoE26B",
