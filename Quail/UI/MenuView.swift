@@ -68,6 +68,9 @@ struct MenuView: View {
             }
         } else if appState.canStart {
             Button("Start") {
+                if appState.needsNetworkWarning, !confirmNetworkStart() {
+                    return
+                }
                 Task { await appState.start() }
             }
         } else {
@@ -165,6 +168,36 @@ struct MenuView: View {
     /// Space). After opening, each visible Quail window is allowed onto
     /// the current (possibly full-screen) Space and ordered front
     /// regardless of activation, and the newest is made key.
+    /// The one-time warning before the server first listens on the network (Phase 4 step 3). Returns whether to
+    /// go ahead: "Listen on This Mac Only" switches the host back to loopback and starts; Cancel doesn't start.
+    private func confirmNetworkStart() -> Bool {
+        NSApp.activate()
+        let alert = NSAlert()
+        alert.messageText = "Quail server will listen on your network"
+        let host = appState.config.host
+        alert.informativeText = appState.networkExposure == .open
+            ? "The host is \(host), so other devices on your network can reach the server, and with the API key off, "
+            + "anyone on it can use your models. Turn the key on in Settings → Endpoint, or keep the server to this Mac."
+            : "The host is \(host), so other devices on your network can reach the server. They need its API key "
+            + "(Settings → Endpoint) to use it."
+        alert.alertStyle = appState.networkExposure == .open ? .critical : .warning
+        alert.addButton(withTitle: "Start")
+        alert.addButton(withTitle: "Listen on This Mac Only")
+        alert.addButton(withTitle: "Cancel")
+        let response = alert.runModal()
+        switch response {
+        case .alertFirstButtonReturn:
+            appState.acknowledgeNetworkWarning()
+            return true
+        case .alertSecondButtonReturn:
+            appState.acknowledgeNetworkWarning()
+            appState.setHost("127.0.0.1")
+            return true
+        default:
+            return false
+        }
+    }
+
     private func bringToFront(_ open: () -> Void) {
         let before = Set(NSApp.windows.filter(\.isVisible).map(ObjectIdentifier.init))
         NSApp.activate()

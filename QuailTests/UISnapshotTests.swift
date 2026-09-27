@@ -124,6 +124,26 @@ struct UISnapshotTests {
         )
     }
 
+    @Test("Endpoint on the network: with the API key, and without")
+    func endpointOnNetwork() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        appState.settingsTab = .endpoint
+        appState.setHost("0.0.0.0")
+        appState.setAPIKeyEnabled(true)
+        try await render(
+            SettingsView(appState: appState),
+            size: CGSize(width: 900, height: 760),
+            name: "endpoint-lan-key"
+        )
+        appState.setAPIKeyEnabled(false)
+        try await render(
+            SettingsView(appState: appState),
+            size: CGSize(width: 900, height: 760),
+            name: "endpoint-lan-open"
+        )
+    }
+
     @Test("Benchmark pane, with an old result and one with the returning-turn and four-at-once columns")
     func benchmarkPane() async throws {
         var old = BenchmarkTests.sampleResult(model: "Qwen3-8B-Q4_K_M", chip: "Apple M4 Pro", speed: 46)

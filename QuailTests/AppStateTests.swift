@@ -326,6 +326,34 @@ struct AppStateTests {
         #expect(appState.statusLabel == "Stopped")
     }
 
+    @Test("listening beyond this Mac: said once at Start, and how open it is follows the API key")
+    func networkExposure() {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let appState = makeAppState(scratchDir: scratch)
+        #expect(appState.networkExposure == nil)
+        #expect(!appState.needsNetworkWarning)
+        for host in ["127.0.0.1", "127.0.0.2", "localhost", "::1", "[::1]"] {
+            #expect(EndpointAddress.isLoopback(host), "\(host)")
+        }
+        for host in ["0.0.0.0", "::", "192.168.1.20", "mac.local"] {
+            #expect(!EndpointAddress.isLoopback(host), "\(host)")
+        }
+        appState.setHost("localhost")
+        #expect(appState.networkExposure == nil)
+
+        appState.setHost("0.0.0.0")
+        appState.setAPIKeyEnabled(true)
+        #expect(appState.networkExposure == .keyed)
+        #expect(appState.needsNetworkWarning)
+        appState.setAPIKeyEnabled(false)
+        #expect(appState.networkExposure == .open)
+
+        appState.acknowledgeNetworkWarning()
+        #expect(!appState.needsNetworkWarning)
+        #expect(Config.load(from: scratch.appendingPathComponent("config.json")).lanWarningShown)
+    }
+
     @Test("setHost and setPort persist to config.json")
     func setHostAndPortPersist() {
         let scratch = scratchDirectory()

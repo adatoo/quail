@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-09-27
+
+### Added
+
+- **A warning before the server listens on your network.** When Settings → Endpoint's Host is anything but this Mac (0.0.0.0, a LAN address), a note under it says other devices can reach the server. With the API key off, the note is red and has a Require API Key button, since anyone on the network could then use your models. The first time you start the server that way from the menu, Quail asks once. You can start anyway or switch to listening on this Mac only.
+
 ## [0.46.1] - 2026-09-27
 
 ### Changed

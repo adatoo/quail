@@ -47,6 +47,9 @@ struct Config: Sendable, Equatable, Codable {
     /// `AppState.setDefaultModel`; cleared automatically if the model is
     /// deleted.
     var defaultModelID: String?
+    /// Whether the one-time warning about listening on the network has been shown (Phase 4 step 3): at the
+    /// first Start from the menu with a host other than this Mac's own.
+    var lanWarningShown: Bool = false
 
     init() {}
 
@@ -55,7 +58,8 @@ struct Config: Sendable, Equatable, Codable {
              autoStartServer,
              keepAwake, keepAwakeLidClosed,
              modelsDirectoryBookmark,
-             defaultModelID
+             defaultModelID,
+             lanWarningShown
     }
 
     init(from decoder: Decoder) throws {
@@ -78,6 +82,7 @@ struct Config: Sendable, Equatable, Codable {
         modelsDirectoryBookmark = try container.decodeIfPresent(Data.self, forKey: .modelsDirectoryBookmark)
             ?? fallback.modelsDirectoryBookmark
         defaultModelID = try container.decodeIfPresent(String.self, forKey: .defaultModelID) ?? fallback.defaultModelID
+        lanWarningShown = try container.decodeIfPresent(Bool.self, forKey: .lanWarningShown) ?? fallback.lanWarningShown
     }
 }
 

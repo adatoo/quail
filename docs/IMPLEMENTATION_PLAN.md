@@ -171,7 +171,7 @@ Mac App Store publication is cancelled (D-053). Completed steps in earlier phase
 1. [x] Sparkle 2 (SPM), EdDSA key, appcast on GitHub Releases, `generate_appcast` in CI, and Settings → General → Updates (ADR D-032). Tested end to end locally; the first real update from a shipped release is still to see.
 1a. [x] Homebrew: `brew install --cask adatoo/tap/quail-ai` (ADR D-033); the Release workflow updates the tap's cask each release.
 2. Import on first run from `~/.cache/llama.cpp`, `~/.omlx/models`, `~/.cache/huggingface/hub`, `~/.lmstudio/models` (move, not copy; never symlink).
-3. LAN binding one-time warning; API key strongly suggested when host is `0.0.0.0`.
+3. [x] LAN binding one-time warning; API key strongly suggested when host is `0.0.0.0`. *(Done 2026-09-28, D-039 amendment: Endpoint says who can reach the server under the Host field, in red with a Require API Key button when the key is off; the first Start from the menu with a non-loopback host asks once, offering Listen on This Mac Only.)*
 4. Measured-speed calibration: store TTFT and tok/s per (model, chip) — delivered by Phase 2b's benchmark, shown on installed models; still to do: feed measurements back into estimates for models not yet benchmarked (e.g. a per-chip correction factor).
 5. **Cancelled — App Store submission** (D-053): no Store-specific helper signing, Sparkle removal or submission pipeline is planned.
 5a. [ ] **Remove legacy Store build machinery.** In a separate cleanup, remove the App Store schemes/configurations, entitlements, compile guards and CI task; update AGENTS.md and contributor/build instructions together. Preserve the direct build's runtime behavior, signing, notarization and Sparkle updates. Until then, existing build checks remain in place.

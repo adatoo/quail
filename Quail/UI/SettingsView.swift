@@ -232,6 +232,30 @@ private struct EndpointSettingsView: View {
                         set: { appState.setHost($0) }
                     )
                 )
+                .help("127.0.0.1 keeps the server to this Mac; 0.0.0.0 lets other devices on your network reach it.")
+                switch appState.networkExposure {
+                case .keyed:
+                    Label(
+                        "Other devices on your network can reach this server. They need the API key to use it.",
+                        systemImage: "network"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                case .open:
+                    HStack(alignment: .firstTextBaseline) {
+                        Label(
+                            "Anyone on your network can use this server and your models: the API key is off.",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        Spacer(minLength: 8)
+                        Button("Require API Key") { appState.setAPIKeyEnabled(true) }
+                            .controlSize(.small)
+                    }
+                case nil:
+                    EmptyView()
+                }
 
                 TextField(
                     "Port",
