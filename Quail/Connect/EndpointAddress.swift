@@ -10,6 +10,12 @@ enum EndpointAddress {
         host == "0.0.0.0" || host == "::" || host == "[::]"
     }
 
+    /// Only this Mac can connect: a loopback address, or `localhost`.
+    static func isLoopback(_ host: String) -> Bool {
+        let host = host.trimmingCharacters(in: .whitespaces).lowercased()
+        return host == "localhost" || host == "::1" || host == "[::1]" || host.hasPrefix("127.")
+    }
+
     /// For a client on this Mac: loopback when bound to every interface.
     static func localBase(host: String, port: Int) -> URL? {
         url(host: isWildcard(host) ? "127.0.0.1" : host, port: port)

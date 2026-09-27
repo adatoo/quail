@@ -545,6 +545,31 @@ final class AppState {
         persist()
     }
 
+    /// Who besides this Mac can reach the server, as the host setting allows (Phase 4 step 3); nil when only
+    /// this Mac can.
+    enum NetworkExposure: Equatable {
+        /// Other devices can connect, and need the API key to use the server.
+        case keyed
+        /// Other devices can connect and use the server: the key is off.
+        case open
+    }
+
+    var networkExposure: NetworkExposure? {
+        guard !EndpointAddress.isLoopback(config.host) else { return nil }
+        return config.apiKeyEnabled ? .keyed : .open
+    }
+
+    /// Whether Start from the menu should first say, once, that the server will listen on the network.
+    var needsNetworkWarning: Bool {
+        networkExposure != nil && !config.lanWarningShown
+    }
+
+    func acknowledgeNetworkWarning() {
+        guard !config.lanWarningShown else { return }
+        config.lanWarningShown = true
+        persist()
+    }
+
     func setPort(_ port: Int) {
         guard port != config.port else { return }
         config.port = port
