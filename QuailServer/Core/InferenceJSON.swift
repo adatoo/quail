@@ -16,6 +16,8 @@ enum InferenceJSON {
         let predictedMs: Double
         let predictedPerTokenMs: Double
         let predictedPerSecond: Double
+        let draftN: Int?
+        let draftNAccepted: Int?
 
         enum CodingKeys: String, CodingKey {
             case cacheN = "cache_n"
@@ -27,6 +29,8 @@ enum InferenceJSON {
             case predictedMs = "predicted_ms"
             case predictedPerTokenMs = "predicted_per_token_ms"
             case predictedPerSecond = "predicted_per_second"
+            case draftN = "draft_n"
+            case draftNAccepted = "draft_n_accepted"
         }
 
         init(_ timings: GenerationTimings) {
@@ -39,6 +43,8 @@ enum InferenceJSON {
             predictedMs = timings.generatedSeconds * 1000
             predictedPerTokenMs = timings.generatedTokens > 0 ? predictedMs / Double(timings.generatedTokens) : 0
             predictedPerSecond = timings.generatedTokensPerSecond
+            draftN = timings.draftTokens
+            draftNAccepted = timings.draftAccepted
         }
     }
 

@@ -149,6 +149,10 @@ public struct GenerationTimings: Equatable, Sendable {
     public var generatedSeconds: Double
     /// Prompt tokens reused from the KV cache (`cache_n`).
     public var cachedTokens = 0
+    /// Speculative decoding: tokens guessed, and how many of them were kept (llama-server's `draft_n` and
+    /// `draft_n_accepted`); nil when nothing was guessed.
+    public var draftTokens: Int?
+    public var draftAccepted: Int?
 
     public init(
         promptTokens: Int, promptSeconds: Double, generatedTokens: Int, generatedSeconds: Double, cachedTokens: Int = 0

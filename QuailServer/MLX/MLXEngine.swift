@@ -441,6 +441,36 @@ final class MLXEngine: Engine, @unchecked Sendable {
         }
         let checkpointCount = fed
         let sliced = started.duration(to: .now)
+
+        // Prompt-lookup speculation needs a load whose prompt can be fed in pieces, and no penalty processors
+        // (they'd have to see every guessed token in order).
+        if sliceable, parameters.processor() == nil, request.maxTokens > 1, Self.lookupEnabled {
+            var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
+            let outcome = Self.decodeWithLookup(
+                rest: Array(prompt[fed...]), prompt: prompt, layers: &layers, context: context, request: request,
+                cancelled: cancelled, emit: { id in
+                    detokenizer.append(token: id)
+                    emit(.token(id: id, text: detokenizer.next() ?? ""))
+                }
+            )
+            Self.keep(
+                layers, prompt: prompt, generated: outcome.generated, checkpoints: checkpoints,
+                checkpointCount: checkpointCount, in: loaded
+            )
+            guard !cancelled.isSet, !Task.isCancelled else { return }
+            var timings = GenerationTimings(
+                promptTokens: prompt.count - reused, promptSeconds: outcome.firstTokenSeconds + sliced.seconds,
+                generatedTokens: outcome.generated.count, generatedSeconds: outcome.generateSeconds,
+                cachedTokens: reused
+            )
+            if outcome.drafted > 0 {
+                timings.draftTokens = outcome.drafted
+                timings.draftAccepted = outcome.accepted
+            }
+            emit(.finished(outcome.stopped ? .stop : .length, timings))
+            return
+        }
+
         let remaining = MLXArray(prompt[fed...].map { Int32(truncatingIfNeeded: $0) })
         let input = isVision
             ? LMInput(text: .init(tokens: remaining.expandedDimensions(axis: 0)))
@@ -476,9 +506,28 @@ final class MLXEngine: Engine, @unchecked Sendable {
             }
         }
 
-        // What the cache now holds: the prompt, then each token fed back in (a stop token too, which isn't in
-        // `generated`). Keep what we can name. A cache that can't be cut back to that goes back to its
-        // checkpoint.
+        Self.keep(
+            layers, prompt: prompt, generated: generated, checkpoints: checkpoints,
+            checkpointCount: checkpointCount, in: loaded
+        )
+
+        // The library reports a reply that hit the token limit as "cancelled" (it looks at a copy of the
+        // iterator), so only a hang-up is taken as one here.
+        guard let info = finished, !cancelled.isSet, !Task.isCancelled else { return }
+        emit(.finished(info.stopReason == .stop ? .stop : .length, GenerationTimings(
+            promptTokens: prompt.count - reused, promptSeconds: info.promptTime + sliced.seconds,
+            generatedTokens: info.generationTokenCount, generatedSeconds: info.generateTime,
+            cachedTokens: reused
+        )))
+    }
+
+    /// Keeps the cache a request leaves for the next. It holds the prompt, then each token fed back in (a stop
+    /// token too, or a guess past the end, which aren't in `generated`): what can be named is kept, and a cache
+    /// that can't be cut back to that goes back to its checkpoint.
+    private static func keep(
+        _ layers: [any KVCache], prompt: [Int], generated: [Int], checkpoints: [Int: [Int: any KVCache]],
+        checkpointCount: Int, in loaded: Loaded
+    ) {
         let known = prompt + generated
         let held = Self.held(layers)
         for layer in layers where layer.isTrimmable && layer.offset > known.count {
@@ -494,15 +543,157 @@ final class MLXEngine: Engine, @unchecked Sendable {
         for evicted in loaded.caches.put(entry) {
             loaded.spill(evicted)
         }
+    }
 
-        // The library reports a reply that hit the token limit as "cancelled" (it looks at a copy of the
-        // iterator), so only a hang-up is taken as one here.
-        guard let info = finished, !cancelled.isSet, !Task.isCancelled else { return }
-        emit(.finished(info.stopReason == .stop ? .stop : .length, GenerationTimings(
-            promptTokens: prompt.count - reused, promptSeconds: info.promptTime + sliced.seconds,
-            generatedTokens: info.generationTokenCount, generatedSeconds: info.generateTime,
-            cachedTokens: reused
-        )))
+    // MARK: Prompt-lookup speculation
+
+    /// Off with `QUAIL_PROMPT_LOOKUP=0` in the server's environment, to compare.
+    static let lookupEnabled = ProcessInfo.processInfo.environment["QUAIL_PROMPT_LOOKUP"] != "0"
+    /// The most tokens guessed at once.
+    static let maxDraft = 8
+
+    private struct LookupOutcome {
+        var generated: [Int] = []
+        var stopped = false
+        var firstTokenSeconds = 0.0
+        var generateSeconds = 0.0
+        var drafted = 0
+        var accepted = 0
+    }
+
+    /// The rest of the prompt, then generation with prompt-lookup speculation (ADR D-055, Phase 3c step 6).
+    /// Each step feeds the last token and, when the text so far ends with tokens seen before, the tokens that
+    /// followed them then (`PromptLookup`), all in one forward pass. Greedy keeps the guesses the model agrees
+    /// with; sampling keeps each with the probability the model gives it and draws the first rejected one again
+    /// from what's left (standard speculative sampling, so the text follows the same distribution). What
+    /// wasn't kept is cut from the cache, or, for layers that can't be cut back, undone from a copy taken
+    /// before the step and the kept tokens fed again. A step whose guess was wholly wrong holds off guessing for
+    /// a while, longer each time it happens again, so text that doesn't repeat costs little.
+    private static func decodeWithLookup(
+        rest: [Int], prompt: [Int], layers: inout [any KVCache], context: ModelContext, request: GenerationRequest,
+        cancelled: CancelFlag, emit: (Int) -> Void
+    ) -> LookupOutcome {
+        var outcome = LookupOutcome()
+        let started = ContinuousClock.now
+        let sampler = SeededSampler(request.sampling)
+        let stops = Set(Self.stopTokens(context))
+        let banned = request.ignoreEndOfSequence ? Array(stops) : []
+        let untrimmable = layers.contains { !$0.isTrimmable || $0.maxSize != nil }
+        let negInf = MLXArray(-Float.infinity)
+
+        func forward(_ tokens: [Int]) -> MLXArray {
+            let input = MLXArray(tokens.map { Int32(truncatingIfNeeded: $0) }).expandedDimensions(axis: 0)
+            var rows = context.model(.init(tokens: input), cache: layers, state: nil).logits[0]
+            for id in banned {
+                rows[0..., id] = negInf
+            }
+            return rows
+        }
+        func draw(_ row: MLXArray) -> Int {
+            sampler.sample(logits: row.expandedDimensions(axis: 0)).item(Int.self)
+        }
+
+        // All but the last prompt token first, whose logits are never read (so never computed), then the last.
+        if rest.count > 1 {
+            _ = forward(Array(rest.dropLast()))
+        }
+        var pending = draw(forward([rest[rest.count - 1]])[0])
+        outcome.firstTokenSeconds = started.duration(to: .now).seconds
+        let generating = ContinuousClock.now
+        defer { outcome.generateSeconds = generating.duration(to: .now).seconds }
+        var history = prompt
+        var holdOff = 0
+        var backoff = 1
+
+        /// Hands a token out; false once generation should end.
+        func take(_ token: Int) -> Bool {
+            if !request.ignoreEndOfSequence, stops.contains(token) {
+                outcome.stopped = true
+                return false
+            }
+            outcome.generated.append(token)
+            history.append(token)
+            emit(token)
+            return outcome.generated.count < request.maxTokens
+        }
+
+        while !cancelled.isSet, !Task.isCancelled, take(pending) {
+            var draft: [Int] = []
+            if holdOff > 0 {
+                holdOff -= 1
+            } else {
+                draft = PromptLookup.draft(
+                    history, maxTokens: min(Self.maxDraft, request.maxTokens - outcome.generated.count)
+                )
+            }
+            let input = [pending] + draft
+            let before = untrimmable && !draft.isEmpty ? Self.snapshot(layers) : [:]
+            let rows = forward(input)
+            if draft.isEmpty {
+                pending = draw(rows[0])
+                continue
+            }
+
+            // How many guesses to keep, and the token after them.
+            var kept = 0
+            let next: Int
+            if sampler.temperature <= 0 {
+                let best = argMax(rows, axis: -1).asArray(Int32.self).map(Int.init)
+                while kept < draft.count, best[kept] == draft[kept] {
+                    kept += 1
+                }
+                next = best[kept]
+            } else {
+                let probabilities = sampler.probabilities(rows)
+                let guessed = MLXArray(draft.map { Int32(truncatingIfNeeded: $0) }).expandedDimensions(axis: -1)
+                let chance = takeAlong(probabilities[..<draft.count], guessed, axis: -1).squeezed(axis: -1)
+                    .asArray(Float.self)
+                let roll = MLXRandom.uniform(0 ..< 1, [draft.count], key: sampler.state).asArray(Float.self)
+                while kept < draft.count, roll[kept] < chance[kept] {
+                    kept += 1
+                }
+                var remaining = probabilities[kept]
+                if kept < draft.count {
+                    // The rejected guess can't be the draw.
+                    remaining[draft[kept]] = MLXArray(Float(0))
+                }
+                next = categorical(log(remaining), key: sampler.state).item(Int.self)
+            }
+            outcome.drafted += draft.count
+            outcome.accepted += kept
+
+            // Undo what wasn't kept.
+            let unkept = draft.count - kept
+            if unkept > 0 {
+                if before.isEmpty {
+                    for layer in layers {
+                        layer.trim(unkept)
+                    }
+                } else {
+                    for layer in layers where layer.isTrimmable {
+                        layer.trim(input.count)
+                    }
+                    for (index, layer) in before {
+                        layers[index] = layer
+                    }
+                    _ = forward(Array(input[...kept]))
+                }
+            }
+            if kept == 0 {
+                holdOff = backoff
+                backoff = min(backoff * 2, 64)
+            } else {
+                backoff = 1
+            }
+
+            var going = true
+            for token in draft[..<kept] where going {
+                going = take(token)
+            }
+            guard going else { break }
+            pending = next
+        }
+        return outcome
     }
 
     /// An image turn (ADR D-047 amendment): the prompt text with each image's placeholder, the images
@@ -677,6 +868,31 @@ private struct SeededSampler: LogitSampler {
             }
             return categorical(logprobs * (1 / temperature))
         }
+    }
+
+    /// For each row of `logits`, the distribution `sample` draws from (the same filters and temperature), as
+    /// probabilities over the whole vocabulary: what a speculative guess is checked against. Temperature
+    /// above 0 only.
+    func probabilities(_ logits: MLXArray) -> MLXArray {
+        let negInf = MLXArray(-Float.infinity)
+        let logprobs = logSoftmax(logits.asType(.float32), axis: -1)
+        let vocabulary = logprobs.dim(-1)
+        let k = topK > 0 && topK < vocabulary ? topK : vocabulary
+        let candidates = argPartition(-logprobs, kth: k - 1, axis: -1)[0..., ..<k]
+        var kept = takeAlong(logprobs, candidates, axis: -1)
+        if topP > 0, topP < 1 {
+            let order = argSort(kept, axis: -1)
+            let sorted = takeAlong(kept, order, axis: -1)
+            let cumulative = cumsum(exp(sorted), axis: -1)
+            let total = cumulative.max(axis: -1, keepDims: true)
+            kept = putAlong(kept, order, values: MLX.where(cumulative .> (total - topP), sorted, negInf), axis: -1)
+        }
+        if minP > 0 {
+            let threshold = kept.max(axis: -1, keepDims: true) + log(MLXArray(minP))
+            kept = MLX.where(kept .>= threshold, kept, negInf)
+        }
+        let masked = putAlong(MLX.full(logprobs.shape, values: negInf), candidates, values: kept, axis: -1)
+        return softmax(masked * (1 / temperature), axis: -1)
     }
 
     /// The same draw with top-k on (llama-server's default, 40), done on the k most likely tokens instead
