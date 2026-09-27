@@ -84,6 +84,11 @@ final class ServerController {
         return true
     }
 
+    /// The server's process, for the Activity window's CPU and memory (its children are found from it).
+    func processIDs() async -> [Int32] {
+        await supervisor.currentProcessID.map { [$0] } ?? []
+    }
+
     /// The endpoint's base URL, once `start(config:)` has been called.
     var baseURL: URL? {
         guard let config else { return nil }

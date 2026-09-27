@@ -89,6 +89,16 @@ private struct GeneralSettingsView: View {
                         set: { appState.setAutoStartServer($0) }
                     )
                 )
+                Toggle(
+                    "Show activity in the menu bar",
+                    isOn: Binding(
+                        get: { appState.config.menuBarActivity },
+                        set: { appState.setMenuBarActivity($0) }
+                    )
+                )
+                .help(
+                    "While the server works: \"Loading…\", \"Reading 41%\", \"52 tok/s\" beside the icon. Activity… in the menu shows more."
+                )
             }
 
             PowerSection(appState: appState)

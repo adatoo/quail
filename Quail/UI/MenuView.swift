@@ -34,6 +34,11 @@ struct MenuView: View {
             Text(appState.modelStatusLine)
                 .disabled(true)
         }
+        // What it's doing, while it's doing something (ADR D-060).
+        if appState.serverController.phase == .ready, let busy = appState.activity.busyLabel {
+            Text(busy)
+                .disabled(true)
+        }
 
         // The router never rescans its models; a download, a delete, or a
         // change in Finder since Start only takes effect after a restart.
@@ -84,6 +89,10 @@ struct MenuView: View {
             bringToFront { openWindow(id: "ping") }
         }
         .disabled(appState.serverController.phase != .ready)
+
+        Button("Activity…") {
+            bringToFront { openWindow(id: "activity") }
+        }
 
         Button("Benchmark…") {
             appState.settingsTab = .benchmark
@@ -206,7 +215,8 @@ struct MenuView: View {
         // briefly for it rather than acting on the very next turn.
         Task { @MainActor in
             for _ in 0 ..< 20 {
-                let visible = NSApp.windows.filter { $0.isVisible && $0.canBecomeKey && $0.level == .normal }
+                let visible = NSApp.windows
+                    .filter { $0.isVisible && $0.canBecomeKey && ($0.level == .normal || $0.level == .floating) }
                 let opened = visible.filter { !before.contains(ObjectIdentifier($0)) }
                 if let target = opened.last ?? (visible.isEmpty ? nil : visible.last) {
                     for window in visible {

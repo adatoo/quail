@@ -15,6 +15,16 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 
 **Checked:** registry phase and rate tests; `/slots` during a scripted stream (generating, then gone after a hang-up) and while a prompt is read (half done, and the reply text unchanged); auth; and no model load. Against real models, a 13,570-token prompt on Qwen3-8B showed MLX advancing 512 tokens at a time at about 336 tokens a second, and GGUF showing loading for 15 s and then 2,048-token steps.
 
+**Amended 2026-09-28 (the app):**
+- **`ActivityMonitor`** polls `/slots` and samples the Mac: every second while something is happening, every two seconds otherwise, only while the server runs.
+- **`SystemMonitor`** takes its readings without special rights:
+  - CPU from Mach's per-core ticks;
+  - the server's CPU and memory from `proc_pid_rusage` on its process and any children (llama-server's per-model processes); on Apple silicon the footprint includes GPU buffers;
+  - GPU busy % from the `IOAccelerator` service's `PerformanceStatistics["Device Utilization %"]` (it read 99–100% while Qwen3-8B read a prompt);
+  - memory used as Activity Monitor counts it (internal pages less purgeable, plus wired and compressed).
+- **Menu bar:** the label is the bird plus the busiest thing happening: "Loading…", then "Reading n%" for the longest prompt being read, then the total tokens a second, with "+n" for other requests. Nothing when idle, and `Config.menuBarActivity` turns it off. The menu repeats the line.
+- **Activity… window:** a minute's GPU and CPU sparklines, memory, models, and a row per request. It floats above other windows unless "Keep on top" is unchecked.
+- **With llama.cpp** (no `/slots`), only loading and the Mac's figures are shown.
 ## D-059 · 2026-09-28 · Moving in models other apps downloaded (Phase 4 step 2)
 
 **Situation:** people arrive with models already downloaded by llama.cpp (`-hf`), LM Studio, the Hugging Face cache (mlx-lm and others) or oMLX. Re-downloading tens of gigabytes is slow, and keeping two copies wastes disk space. ARCHITECTURE §6 said to offer to move them on first run, never symlink.
