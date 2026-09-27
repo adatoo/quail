@@ -10,6 +10,10 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Claude Code's turns reuse the prompt cache on Quail server**, with GGUF and MLX models alike. Before, every turn re-read the whole prompt (about 15,000 tokens). Claude Code adds a system note after each tool result ("N tokens left") whose number changes every turn, and Quail moved it to the start of the prompt, so no two turns ever began the same way. It now stays where Claude Code put it. In a replayed session, turns started replying in 3.5 s instead of 49 s on Qwen3-8B (GGUF), and in 1.7 s instead of 26 s on Qwen3.6 35B-A3B (MLX).
+
 ## [0.41.3] - 2026-09-27
 
 ### Changed
