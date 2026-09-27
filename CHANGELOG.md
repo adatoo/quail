@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-09-27
+
 ### Added
 
 - **A per-model KV cache setting, for a longer context in the same memory.** In the Models list, a model's context menu now also offers an 8-bit or 4-bit KV cache (the memory a conversation takes). On Qwen3-8B with a 24,000-token prompt, the cache took 1.8 GB at 8 bits and 1.0 GB at 4 bits, against 3.4 GB at full precision. Fit verdicts and Automatic context follow the choice. Add Model says when a model that only fits a reduced context would fit more with a 4-bit cache. It's off by default and trades a little accuracy: at 4 bits one of three recall checks missed on MLX. On GGUF models it costs no speed. On MLX models, prompts are read 35–55% more slowly, and the repeated-text speed-up is roughly halved; replies to long prompts are generated 13–26% faster. Quail server and llama.cpp both read it, as llama-server's `cache-type-k`/`cache-type-v` preset keys.
