@@ -131,6 +131,9 @@ public struct GenerationRequest: Equatable, Sendable {
     public var ignoreEndOfSequence = false
     /// Reuse the KV cache for a prompt prefix already seen (`cache_prompt`).
     public var cachePrompt = true
+    /// The most tokens a speculative step may guess (`speculative.n_max`); 0 turns guessing off, nil leaves it
+    /// to the engine.
+    public var speculativeMaxTokens: Int?
     /// A GBNF grammar (start rule `root`) the reply must follow; only for engines with the capability.
     public var grammar: String?
     /// With `media`: the prompt as text, an image's place marked by `ImageInput.marker`. The engine
@@ -149,6 +152,10 @@ public struct GenerationTimings: Equatable, Sendable {
     public var generatedSeconds: Double
     /// Prompt tokens reused from the KV cache (`cache_n`).
     public var cachedTokens = 0
+    /// Speculative decoding: tokens guessed, and how many of them were kept (llama-server's `draft_n` and
+    /// `draft_n_accepted`); nil when nothing was guessed.
+    public var draftTokens: Int?
+    public var draftAccepted: Int?
 
     public init(
         promptTokens: Int, promptSeconds: Double, generatedTokens: Int, generatedSeconds: Double, cachedTokens: Int = 0

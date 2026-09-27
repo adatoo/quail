@@ -41,6 +41,15 @@ struct ServerArguments: Equatable, Sendable {
     /// so four cost no memory, and single-request speed measured the same (ADR D-048 amendment).
     static let defaultParallel = 4
     var logFile: URL?
+    /// Where MLX prompt caches go when they leave memory, to be picked up after a model swap or a restart
+    /// (ADR D-055 step 5); nil keeps them in memory only.
+    var promptCacheDirectory: URL? = ServerArguments.defaultPromptCacheDirectory
+    /// `~/Library/Caches/com.datoos.quail/PromptCache`: a cache macOS may clear, which costs only speed.
+    static var defaultPromptCacheDirectory: URL? {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("com.datoos.quail/PromptCache", isDirectory: true)
+    }
+
     /// Web origins allowed to call this server from a browser (ADR D-036); none by default.
     var allowedOrigins: [String] = []
     /// Serve the chat page at `/` (ADR D-042).
@@ -58,6 +67,8 @@ struct ServerArguments: Equatable, Sendable {
       --models-preset <ini>  per-model settings (llama-server preset format)
       --models-max <n>       models kept loaded at once (default 1)
       --parallel <n>         requests a GGUF model decodes together (default 4; llama-server's `-np`)
+      --prompt-cache-dir <d> where MLX prompt caches are kept on disk (default ~/Library/Caches/com.datoos.quail/PromptCache)
+      --no-prompt-cache-disk keep MLX prompt caches in memory only
       --allow-origin <o>     let a web page at this origin (http://localhost:3000) call the server; repeatable, `*` for any
       --no-webui             don't serve the chat page at /
       --log-file <path>      also append the log to this file
@@ -119,6 +130,13 @@ struct ServerArguments: Equatable, Sendable {
                     throw ServerArgumentsError(message: "--parallel must be from 1 to 64, not \"\(text)\"")
                 }
                 result.parallel = count
+            case "--prompt-cache-dir":
+                result.promptCacheDirectory = try URL(
+                    fileURLWithPath: value(for: flag, inline: inline),
+                    isDirectory: true
+                )
+            case "--no-prompt-cache-disk":
+                result.promptCacheDirectory = nil
             case "--allow-origin":
                 try result.allowedOrigins.append(value(for: flag, inline: inline))
             case "--no-webui":

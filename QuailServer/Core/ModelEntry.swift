@@ -28,6 +28,8 @@ public struct ModelEntry: Equatable, Sendable {
     public var sizeBytes: Int64?
     /// An MLX model whose vision half Quail can load (`MLXVision.supports`), found at discovery.
     public var mlxVision = false
+    /// Where this model's prompt caches may be kept on disk (the server's `--prompt-cache-dir`); nil for none.
+    public var promptCacheDirectory: URL?
 
     /// Whether this model can read images in Quail: a GGUF with its projector, or a supported MLX one.
     public var supportsImages: Bool {
