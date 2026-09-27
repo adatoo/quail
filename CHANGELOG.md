@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Changed
+
+- MLX models on Quail server now use mlx-swift-lm 3.31.4.
+  - **Gemma 4 26B-A4B** reads prompts 23–31% faster (774 against 630 tokens a second at 512 tokens, 718 against 547 at 4,096).
+  - **Qwen3.5-family models** (Qwen3.6, Qwen3.8) now keep their recurrent state at full precision, as Python's mlx-lm does. This costs about 4% of generation speed: 84–88 against 90–92 tokens a second on Qwen3.6 35B-A3B.
+  - **Qwen3-8B** is unchanged.
+
 ## [0.41.1] - 2026-09-27
 
 ### Changed
