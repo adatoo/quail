@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-09-27
+
 ### Added
 
 - **See what the server is doing.** While it works, a few words appear beside the menu bar bird: "Loading…" while a model loads, "Reading 41%" while a prompt is read, "52 tok/s" while writing. They disappear when it's idle, and Settings → General can turn them off. The menu shows the same line, and its new **Activity…** item opens a small window that can stay on top. It shows GPU and CPU with a minute of history, memory in use (and the server's share), each loaded model with its memory, and each request: waiting, queued, reading its prompt (with a progress bar and tokens a second), or writing (tokens a second and count). With llama.cpp as the runtime, the window shows the Mac's figures and model loading only.
