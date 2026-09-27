@@ -142,6 +142,8 @@ enum ModelDiscovery {
 
     /// A file's size, or the total of the regular files under a folder; nil if nothing's there.
     static func size(of url: URL) -> Int64? {
+        // A model kept elsewhere and linked into the store is measured where it is, not as a link.
+        let url = url.resolvingSymlinksInPath()
         let fm = FileManager.default
         var isDirectory: ObjCBool = false
         guard fm.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return nil }

@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Fixed
+
+- Quail server showed the size of a model linked into the store (kept elsewhere) as the link's few bytes. It now measures the model itself.
+
+### Changed
+
+- Internal: the parity gate between Quail server and llama.cpp passes on speed, all 15 Connect Tests, Claude Code's tool task and the chat page (D-027 amendment). Quail server doesn't become the default runtime yet; that waits for a decision.
+
 ## [0.41.6] - 2026-09-27
 
 ### Changed
