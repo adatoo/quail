@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.41.1] - 2026-09-27
+
+### Changed
+
+- Internal: the parity-gate benchmark (Phase 3 step 7) now waits for the Mac to cool back to nominal before each server's turn and alternates which server goes first. On a warm Mac mini, the same server measured up to 20% slower late in a round than early, which had read as a gap between the servers. It also runs every Connect Test on each server.
+- Docs: the keep-awake decision is renumbered D-054 (D-053 was already the distribution decision), and the MLX engine performance plan is added (D-055, Phase 3c).
+
 ## [0.41.0] - 2026-09-27
 
 ### Added
