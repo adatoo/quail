@@ -121,6 +121,75 @@ struct UISnapshotTests {
         )
     }
 
+    @Test("Activity window, busy")
+    func activityWindow() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let history = (0 ..< 60).map { i -> Double? in 40 + 35 * sin(Double(i) / 6) }
+        appState.activity.show(
+            system: SystemSample(
+                cpuPercent: 14, serverCPUPercent: 9, gpuPercent: 78, memoryUsedBytes: 33_500_000_000,
+                memoryTotalBytes: 68_719_476_736, serverMemoryBytes: 20_400_000_000
+            ),
+            server: ServerActivity(
+                models: [.init(
+                    id: "mlx-community--Qwen3.6-35B-A3B-4bit",
+                    state: "loaded",
+                    leases: 3,
+                    memoryBytes: 19_800_000_000
+                )],
+                requests: [
+                    .init(
+                        id: 1,
+                        model: "mlx-community--Qwen3.6-35B-A3B-4bit",
+                        phase: .readingPrompt,
+                        promptTotal: 30000,
+                        promptDone: 12400,
+                        cached: 0,
+                        generated: 0,
+                        promptPerSecond: 2100,
+                        predictedPerSecond: nil,
+                        seconds: 6
+                    ),
+                    .init(
+                        id: 2,
+                        model: "mlx-community--Qwen3.6-35B-A3B-4bit",
+                        phase: .generating,
+                        promptTotal: 800,
+                        promptDone: 800,
+                        cached: 0,
+                        generated: 312,
+                        promptPerSecond: 900,
+                        predictedPerSecond: 52,
+                        seconds: 9
+                    ),
+                    .init(
+                        id: 3,
+                        model: "mlx-community--Qwen3.6-35B-A3B-4bit",
+                        phase: .queued,
+                        promptTotal: 200,
+                        promptDone: 0,
+                        cached: 0,
+                        generated: 0,
+                        promptPerSecond: nil,
+                        predictedPerSecond: nil,
+                        seconds: 2
+                    ),
+                ]
+            ),
+            cpuHistory: history.map { $0.map { $0 / 4 } }, gpuHistory: history
+        )
+        try await render(
+            ActivityWindow(appState: appState),
+            size: CGSize(width: 340, height: 360),
+            name: "activity-window"
+        )
+        try await render(
+            MenuBarActivityPreview(label: appState.activity.busyLabel ?? ""), size: CGSize(width: 200, height: 30),
+            name: "menu-status"
+        )
+    }
+
     @Test("Models pane")
     func modelsPane() async throws {
         let (appState, scratch) = try await makeAppState()

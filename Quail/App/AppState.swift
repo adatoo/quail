@@ -295,6 +295,30 @@ final class AppState {
         }
     }
 
+    /// Live activity for the menu bar and the Activity window (ADR D-060).
+    let activity = ActivityMonitor()
+
+    private func startActivity() {
+        guard let base = serverController.baseURL else { return }
+        let controller = serverController
+        activity.start(
+            base: base, apiKey: serverController.apiKey,
+            processIDs: { await controller.processIDs() },
+            fallbackLoading: { [weak self] in self?.servedModels.contains { $0.status.value == "loading" } ?? false }
+        )
+    }
+
+    /// The menu bar's few words while the server is busy ("Reading 41%", "52 tok/s"), if that's shown.
+    var menuBarActivityLabel: String? {
+        config.menuBarActivity && serverController.phase == .ready ? activity.busyLabel : nil
+    }
+
+    func setMenuBarActivity(_ on: Bool) {
+        guard on != config.menuBarActivity else { return }
+        config.menuBarActivity = on
+        persist()
+    }
+
     /// Polls for as long as a start is in effect (cancelled by `stop()`),
     /// so the icon follows a model loading, finishing, being swapped by
     /// a client request, or failing — none of which Quail itself causes.
@@ -421,11 +445,13 @@ final class AppState {
         await serverController.start(config: endpointConfig())
         await refreshServedModels() // so the first menu look after Start is already accurate
         startModelPolling()
+        startActivity()
     }
 
     func stop() async {
         modelPollTask?.cancel()
         modelPollTask = nil
+        activity.stop()
         await serverController.stop()
         servedModels = []
         signatureAtStart = nil

@@ -51,6 +51,8 @@ struct Config: Sendable, Equatable, Codable {
     /// first Start from the menu with a host other than this Mac's own.
     var lanWarningShown: Bool = false
 
+    /// Show what the server is doing next to the menu bar icon while it's busy (ADR D-060).
+    var menuBarActivity: Bool = true
     /// Whether the offer to move in models from other apps (Phase 4 step 2) has been answered, either way.
     var importOffered: Bool = false
 
@@ -63,7 +65,8 @@ struct Config: Sendable, Equatable, Codable {
              modelsDirectoryBookmark,
              defaultModelID,
              lanWarningShown,
-             importOffered
+             importOffered,
+             menuBarActivity
     }
 
     init(from decoder: Decoder) throws {
@@ -88,6 +91,7 @@ struct Config: Sendable, Equatable, Codable {
         defaultModelID = try container.decodeIfPresent(String.self, forKey: .defaultModelID) ?? fallback.defaultModelID
         lanWarningShown = try container.decodeIfPresent(Bool.self, forKey: .lanWarningShown) ?? fallback.lanWarningShown
         importOffered = try container.decodeIfPresent(Bool.self, forKey: .importOffered) ?? fallback.importOffered
+        menuBarActivity = try container.decodeIfPresent(Bool.self, forKey: .menuBarActivity) ?? fallback.menuBarActivity
     }
 }
 

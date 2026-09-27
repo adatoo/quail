@@ -15,7 +15,8 @@ struct QuailApp: App {
             // ServerController.phase — see AppState.menuBarIcon's doc
             // comment for why this has to be a colour-baked NSImage
             // rather than a plain Image(systemName:) with .foregroundStyle.
-            Image(nsImage: appDelegate.appState.menuBarIcon)
+            // While the server is busy, a few words beside it (ADR D-060).
+            MenuBarLabel(appState: appDelegate.appState)
         }
         // The default `.menu` style renders a real NSMenu — standard
         // full-width items, native hover highlighting, real separators.
@@ -32,6 +33,12 @@ struct QuailApp: App {
             PingSheet(appState: appDelegate.appState).opensInFront()
         }
         .defaultSize(width: 360, height: 220)
+        .windowResizability(.contentSize)
+
+        Window("Activity", id: "activity") {
+            ActivityWindow(appState: appDelegate.appState).opensInFront()
+        }
+        .defaultSize(width: 340, height: 320)
         .windowResizability(.contentSize)
 
         Window("Logs", id: "logs") {
