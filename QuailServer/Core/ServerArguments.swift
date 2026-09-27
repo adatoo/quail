@@ -36,7 +36,10 @@ struct ServerArguments: Equatable, Sendable {
     var modelsMax = 1
     /// Requests a GGUF model decodes together (ADR D-048); a preset's `parallel` overrides it per model.
     var parallel = ServerArguments.defaultParallel
-    static let defaultParallel = 1
+    /// llama-server's default too. With one slot, a request with another prompt (Claude Code's permission
+    /// check, a chat beside an agent) took the conversation's slot and its cache; the slots share one context,
+    /// so four cost no memory, and single-request speed measured the same (ADR D-048 amendment).
+    static let defaultParallel = 4
     var logFile: URL?
     /// Web origins allowed to call this server from a browser (ADR D-036); none by default.
     var allowedOrigins: [String] = []
@@ -54,7 +57,7 @@ struct ServerArguments: Equatable, Sendable {
       --mlx-dir <dir>        folder of MLX model directories
       --models-preset <ini>  per-model settings (llama-server preset format)
       --models-max <n>       models kept loaded at once (default 1)
-      --parallel <n>         requests a GGUF model decodes together (default 1; llama-server's `-np`)
+      --parallel <n>         requests a GGUF model decodes together (default 4; llama-server's `-np`)
       --allow-origin <o>     let a web page at this origin (http://localhost:3000) call the server; repeatable, `*` for any
       --no-webui             don't serve the chat page at /
       --log-file <path>      also append the log to this file

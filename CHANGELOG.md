@@ -10,6 +10,11 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Changed
+
+- **Qwen3.5-family GGUF models (Qwen3.6, Qwen3.8) reuse their prompt cache on Quail server.** Before, every turn re-read the whole prompt, because llama.cpp can't rewind their recurrent layers. Quail now saves restore points as it reads a prompt, as llama-server does. Claude Code's turns on Qwen3.6 35B-A3B started replying in about 1 s instead of 27 s.
+- Quail server now decodes up to four GGUF requests at once by default (`--parallel 4`, llama-server's default). It used to be one. An agent's side requests, such as Claude Code's permission check, no longer take the conversation's slot and throw its cache away. The slots share one context, so this costs no extra memory, and single-request speed is unchanged.
+
 ## [0.41.5] - 2026-09-27
 
 ### Changed
