@@ -1,7 +1,7 @@
 import Foundation
 import IOKit.pwr_mgt
 
-/// Keeps the Mac from idle-sleeping while Quail's server runs (ADR D-053): one power assertion, the
+/// Keeps the Mac from idle-sleeping while Quail's server runs (ADR D-054): one power assertion, the
 /// same kind `caffeinate -i` takes. The display can still turn off, and closing a laptop's lid still
 /// sleeps it — that needs `LidSleepGuard`. No password, no install, and allowed in the App Store build.
 @MainActor

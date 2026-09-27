@@ -24,9 +24,9 @@ struct Config: Sendable, Equatable, Codable {
     var apiKeyDefaultApplied: Bool = true
     var openAtLogin: Bool = false
     var autoStartServer: Bool = false
-    /// Keep the Mac from idle-sleeping while the server runs (ADR D-053).
+    /// Keep the Mac from idle-sleeping while the server runs (ADR D-054).
     var keepAwake: Bool = false
-    /// With `keepAwake`, also with a laptop's lid closed while plugged in (direct build only, D-053).
+    /// With `keepAwake`, also with a laptop's lid closed while plugged in (direct build only, D-054).
     var keepAwakeLidClosed: Bool = false
     /// Set once the Models pane (Phase 2 step 7) lets someone relocate the
     /// store; `Paths.resolveModelsDirectory(bookmark:)` turns this back

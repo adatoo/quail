@@ -37,7 +37,7 @@ final class ServerController {
         }
     }
 
-    /// Told of every phase change — `AppState` keeps the Mac awake while the server runs (ADR D-053).
+    /// Told of every phase change — `AppState` keeps the Mac awake while the server runs (ADR D-054).
     @ObservationIgnored var onPhaseChange: ((Phase) -> Void)?
     private(set) var recentFailureLogs: [String] = []
 

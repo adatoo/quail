@@ -18,7 +18,7 @@ import SwiftUI
 final class AppState {
     private(set) var config: Config
     let serverController: ServerController
-    /// Holds off idle sleep while the server runs, when `Config.keepAwake` asks (ADR D-053).
+    /// Holds off idle sleep while the server runs, when `Config.keepAwake` asks (ADR D-054).
     let keepAwake: KeepAwake
     #if !APPSTORE
         /// Keeps a plugged-in laptop awake with its lid closed, when `Config.keepAwakeLidClosed` asks.
@@ -145,7 +145,7 @@ final class AppState {
         serverController.onPhaseChange = { [weak self] _ in self?.updatePower() }
     }
 
-    // MARK: - Keeping the Mac awake (ADR D-053)
+    // MARK: - Keeping the Mac awake (ADR D-054)
 
     private var serverRunning: Bool {
         serverController.phase == .starting || serverController.phase == .ready

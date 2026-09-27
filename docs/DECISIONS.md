@@ -2,6 +2,16 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-055 · 2026-09-27 · MLX engine performance: catch up to mlx-swift-lm `main`, then per-conversation caching, before batching
+
+**Situation:** Reviewed oMLX and Rapid-MLX in depth (both deferred, D-027) to see what performance work they actually do on top of stock MLX. Neither forks MLX core or `mlx-lm`; both pin stock versions and build orchestration above them, plus a handful of model-family-specific Metal kernels reached through `mx.fast.metal_kernel`, not a patched MLX. Verified in their source: continuous batching on `mlx-lm`'s own `BatchGenerator`; a block-hashed prefix cache (despite the "paged" name, this is storage and hashing around `mlx-lm`'s ordinary contiguous `KVCache`, not GPU paged attention); an SSD tier for that cache (safetensors, survives restarts); MTP and prompt-lookup speculative decoding; a wired-memory and buffer-cache limit set at startup; and narrow wins — a fused sampler (Rapid-MLX claims ~4.3ms/token removed), fused MoE gate+up (+7%), and compiled decode for specific models. `MLXEngine` (D-044) today has none of the orchestration layer: it serves one request at a time (`concurrentRequests: false`), keeps exactly one prompt-prefix cache for the whole server (`ReusableCache` — a second conversation evicts the first's, so agent + chat-page use thrashes it), sets no wired-memory or MLX cache limit, and `SeededSampler` sorts the full vocabulary for top-p/min-p/top-k on every token even at request defaults (temperature 0.8, top-k 40, top-p 0.95, min-p 0.05 — all three run). `mlx-swift-lm` is pinned to 3.31.3 (`project.yml`); 3.31.4 and `main` already carry MTP speculative decoding, compiled decode for Qwen3.5/3.6, `TurboQuantKVCache`, and prompt-cache saves that include SSM/hybrid-model state.
+
+**Decision:** Close the gap in Swift, on `mlx-swift-lm`'s public API only — no custom Metal, no MLX core fork — in the order in IMPLEMENTATION_PLAN.md's new Phase 3c: extend the benchmark first so every later step has a number to move, then the mlx-swift-lm pin bump, the sampler fast-path, a wired-memory policy, a small per-conversation cache LRU (replacing the single `ReusableCache`) with an optional disk tier, prompt-lookup speculation, opt-in `kvBits`, and continuous batching last, ported from `mlx-lm`'s `BatchGenerator` shape (or mlx-swift-lm's closed PR #263) to bring `concurrentRequests` to MLX the way D-048 already brought it to GGUF. oMLX and Rapid-MLX stay deferred (D-027): this is the work "a real speed gap" would be measured against before reconsidering a Python runtime, and it avoids a Python runtime's packaging and update cost (D-027) while the gap is still unmeasured.
+
+**Alternatives:** Install oMLX or Rapid-MLX now (Apache-2.0, but a Python/uv runtime to install, pin and update; rejected before our own ceiling is measured); wait for Apple to land batching in mlx-swift-lm itself (PR #263 measured 2.3× at four concurrent requests but was closed unmerged, no ETA); vendor one of oMLX's or Rapid-MLX's Metal kernels directly (each is tied to one model family — Qwen3.5/3.6 GatedDeltaNet, DeepSeek sparse attention — and one exact `mlx-lm`/`mlx-swift-lm` version, a maintenance cost both projects visibly carry themselves).
+
+**Revisit if:** Phase 3c step 8's batching port needs more than the public `mlx-swift-lm` API exposes (paged attention on the GPU, specifically, needs a gather-SDPA kernel neither project's own comments claim to have solved cleanly), or a fresh cross-runtime benchmark (Phase 3 step 8/12) shows oMLX or Rapid-MLX still meaningfully ahead once steps 1–8 land — then D-027's deferral is reopened with real numbers instead of an assumption.
+
 ## D-053 · 2026-09-26 · Developer distribution through Homebrew and a signed DMG
 
 **Decision:** Quail is a free, open-source tool for developers on Apple Silicon Macs. Homebrew (`brew install --cask adatoo/tap/quail-ai`) is the primary installation path; the same Developer ID-signed, notarized app remains available as a DMG on GitHub Releases. Sparkle continues to provide in-app updates (D-032), with the cask's existing update behavior (D-033).
@@ -16,7 +26,7 @@ Mac App Store publication is dropped. This supersedes D-006's two-channel distri
 
 **Revisit if:** demonstrated demand from users who require App Store distribution justifies maintaining and testing another product variant.
 
-## D-053 · 2026-09-27 · Keeping the Mac awake while the server runs, and with a laptop's lid closed
+## D-054 · 2026-09-27 · Keeping the Mac awake while the server runs, and with a laptop's lid closed
 
 **Decision:** Settings → General → Power, plus a menu toggle, "Keep this Mac awake while the server runs". It's off by default.
 - **The assertion:** while the server is starting or ready, Quail holds one `kIOPMAssertPreventUserIdleSystemSleep` power assertion (`KeepAwake`), the kind `caffeinate -i` takes, named "Quail is serving a local model…" in `pmset -g assertions`. It's released when the server stops, the setting goes off, or Quail quits. The display can still turn off. It needs no password or install, and it's allowed in the App Store build.
@@ -35,7 +45,7 @@ Mac App Store publication is dropped. This supersedes D-006's two-channel distri
 - Asking for the password at every server start and stop, which is tiresome.
 - Clamshell mode: it needs an external display and keyboard, so it isn't general.
 
-**Revisit if:** macOS offers a public lid-close assertion, or the App Store build needs the lid-closed option (it can't run `do shell script` as root from the sandbox).
+**Revisit if:** macOS offers a public lid-close assertion. (The legacy App Store configuration leaves the lid-closed option out, since the sandbox can't run `do shell script` as root; Store publication is cancelled by D-053.)
 
 ## D-052 · 2026-09-26 · What each model is good for: curated strengths, vision derived
 
