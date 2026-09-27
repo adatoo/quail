@@ -140,6 +140,8 @@ final class MLXEngine: Engine, @unchecked Sendable {
     /// 27,000 tokens of instructions and then a different transcript) resumes near where they part. Each
     /// checkpoint of Qwen3.6 35B-A3B's recurrent layers is about 60 MB.
     static let checkpointInterval = 4096
+    /// Prefill slices queued ahead of the one the loop waits for.
+    static let slicesInFlight = 2
 
     /// Copies of the layers that can't be cut back. References, not data: the model replaces these arrays
     /// rather than writing into them.
@@ -307,18 +309,21 @@ final class MLXEngine: Engine, @unchecked Sendable {
             try await runWithImages(request, context: context, loaded: loaded, cancelled: cancelled, emit: emit)
             return
         }
-        // A text turn on a vision load (a model that only loads that way, Gemma 4 26B-A4B): only the
-        // iterator's `prepare` resets the model's position state, so the prompt isn't fed in slices
-        // first, and it goes in as a batch of one ([1, n]), as the vision half's language model reads it.
+        // A text turn on a vision load (a model that only loads that way, Gemma 4 26B-A4B) goes in as a
+        // batch of one ([1, n]), as the vision half's language model reads it. Gemma 4's vision model reads
+        // a text prompt as its text model does, positions from the cache, so its prompt can be fed in
+        // slices and its caches reused like a text load's. Other vision models (Qwen3.5's keeps position
+        // state that only the iterator's `prepare` resets) are fed whole and reuse only a cache they can
+        // cut back.
         let isVision = loaded.vision != nil
+        let sliceable = loaded.vision.map { $0.family == .gemma4 } ?? true
 
         // Start from the kept cache that holds the most of this prompt (always feeding at least one token,
-        // whose logits the first sample needs). A vision load reuses only a cache it can cut back, as before:
-        // its position state is reset only by the iterator's `prepare`.
+        // whose logits the first sample needs).
         var layers: [any KVCache]
         var reused = 0
         var checkpoints: [Int: [Int: any KVCache]] = [:]
-        if request.cachePrompt, let taken = loaded.caches.take(for: prompt, trimmableOnly: isVision) {
+        if request.cachePrompt, let taken = loaded.caches.take(for: prompt, trimmableOnly: !sliceable) {
             (layers, reused, checkpoints) = (taken.layers, taken.tokens.count, taken.checkpoints)
         } else {
             layers = context.model.newCache(parameters: parameters)
@@ -328,30 +333,33 @@ final class MLXEngine: Engine, @unchecked Sendable {
         // stops it at the next slice: `TokenIterator`'s initialiser would otherwise process the whole
         // prompt before anything can be cancelled. The last one to two slices are left to the iterator,
         // which also hands the penalty processors the tail of the prompt. Each slice is queued with
-        // `asyncEval` and the loop waits only for the slice before it, so the GPU always has the next
-        // slice ready while the CPU builds the one after (mlx-swift-lm 3.31.4 pipelines its own prefill
-        // the same way); waiting on every slice left the GPU idle between them. One slice in flight
-        // keeps a hang-up noticed within a slice or two.
+        // `asyncEval` and the loop waits only for the one `slicesInFlight` back, so the GPU always has
+        // work queued while the CPU builds the next graph (mlx-swift-lm 3.31.4 pipelines its own prefill
+        // the same way; with one slice in flight Gemma 4's prompts ran 3–5% slower than the library's).
+        // A hang-up is still noticed within two or three slices.
         //
         // A hybrid model's recurrent layers (and sliding-window layers) can't be cut back afterwards, so
         // the point the next turn of a conversation resumes from is captured on the way instead:
         // `checkpointMargin` tokens short of the prompt's end, before the chat template's generation
         // header, which the next turn's history renders differently (a reasoning block dropped, or an
         // empty one added). Prefill stops there, copies those layers, and the iterator does the rest.
-        // Checkpoints are also taken every `checkpointInterval` tokens on the way.
+        // Checkpoints are also taken every `checkpointInterval` tokens on the way. Stopping short costs a
+        // forward pass of its own (on a 512-token prompt, 15% of Gemma 4 26B-A4B's prompt time), so it's done
+        // only for a request that asks for its prompt to be cached.
         let step = parameters.prefillStepSize
         let started = ContinuousClock.now
-        let untrimmable = !isVision && layers.contains { !$0.isTrimmable || $0.maxSize != nil }
+        let untrimmable = sliceable && request.cachePrompt
+            && layers.contains { !$0.isTrimmable || $0.maxSize != nil }
         var feedTo = reused
         if untrimmable {
             feedTo = max(reused, prompt.count - Self.checkpointMargin)
-        } else if !isVision {
+        } else if sliceable {
             while prompt.count - feedTo > 2 * step {
                 feedTo += step
             }
         }
         var fed = reused
-        var inFlight: [MLXArray] = []
+        var inFlight: [[MLXArray]] = []
         while fed < feedTo {
             if cancelled.isSet || Task.isCancelled {
                 // What the cache holds now is a prefix of this prompt; keep it for a retry.
@@ -364,8 +372,10 @@ final class MLXEngine: Engine, @unchecked Sendable {
             _ = context.model(.init(tokens: slice.expandedDimensions(axis: 0)), cache: layers, state: nil)
             let queued = layers.flatMap { $0.innerState() }
             asyncEval(queued)
-            eval(inFlight)
-            inFlight = queued
+            inFlight.append(queued)
+            if inFlight.count > Self.slicesInFlight {
+                eval(inFlight.removeFirst())
+            }
             fed += count
             if untrimmable, fed < feedTo, fed - (checkpoints.keys.max() ?? reused) >= Self.checkpointInterval {
                 checkpoints[fed] = Self.snapshot(layers)
