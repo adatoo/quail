@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings → General → Power (ADR D-053): keep the Mac awake while the server runs, and — in the direct
+/// Settings → General → Power (ADR D-054): keep the Mac awake while the server runs, and — in the direct
 /// build — with a laptop's lid closed while it's plugged in.
 struct PowerSection: View {
     let appState: AppState

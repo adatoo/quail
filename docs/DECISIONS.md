@@ -16,7 +16,7 @@ Mac App Store publication is dropped. This supersedes D-006's two-channel distri
 
 **Revisit if:** demonstrated demand from users who require App Store distribution justifies maintaining and testing another product variant.
 
-## D-053 · 2026-09-27 · Keeping the Mac awake while the server runs, and with a laptop's lid closed
+## D-054 · 2026-09-27 · Keeping the Mac awake while the server runs, and with a laptop's lid closed
 
 **Decision:** Settings → General → Power, plus a menu toggle, "Keep this Mac awake while the server runs". It's off by default.
 - **The assertion:** while the server is starting or ready, Quail holds one `kIOPMAssertPreventUserIdleSystemSleep` power assertion (`KeepAwake`), the kind `caffeinate -i` takes, named "Quail is serving a local model…" in `pmset -g assertions`. It's released when the server stops, the setting goes off, or Quail quits. The display can still turn off. It needs no password or install, and it's allowed in the App Store build.
@@ -35,7 +35,7 @@ Mac App Store publication is dropped. This supersedes D-006's two-channel distri
 - Asking for the password at every server start and stop, which is tiresome.
 - Clamshell mode: it needs an external display and keyboard, so it isn't general.
 
-**Revisit if:** macOS offers a public lid-close assertion, or the App Store build needs the lid-closed option (it can't run `do shell script` as root from the sandbox).
+**Revisit if:** macOS offers a public lid-close assertion. (The legacy App Store configuration leaves the lid-closed option out, since the sandbox can't run `do shell script` as root; Store publication is cancelled by D-053.)
 
 ## D-052 · 2026-09-26 · What each model is good for: curated strengths, vision derived
 
