@@ -73,6 +73,35 @@ struct MessagesRoutesTests {
         #expect(bad.status == 400)
     }
 
+    @Test("a system message after a reply stays in place, so the prompt's start doesn't change between turns")
+    func lateSystemMessage() async {
+        let harness = RouteHarness()
+        let turn = """
+        {"model":"Alpha","max_tokens":9,"system":"You are a helper.",
+         "messages":[{"role":"user","content":"Hi"},
+                     {"role":"system","content":"# Environment"},
+                     {"role":"assistant","content":"Hello."},
+                     {"role":"user","content":"Thanks"},
+                     {"role":"system","content":[{"type":"text","text":"<total_tokens>9 left</total_tokens>"}]}]}
+        """
+        let reply = await harness.json(path, turn)
+        #expect(reply.status == 200)
+        #expect(harness.prompt == "<|im_start|>system\nYou are a helper.\n\n# Environment<|im_end|>\n"
+            + "<|im_start|>user\nHi<|im_end|>\n<|im_start|>assistant\nHello.<|im_end|>\n"
+            + "<|im_start|>user\nThanks\n\n<total_tokens>9 left</total_tokens><|im_end|>\n<|im_start|>assistant\n")
+        // After a tool result (a `tool` message in chat form) it becomes a user message of its own.
+        let tools = await harness.json(path, """
+        {"model":"Alpha","max_tokens":9,
+         "messages":[{"role":"user","content":"Run it"},
+                     {"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"run","input":{}}]},
+                     {"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"done"}]},
+                     {"role":"system","content":"<total_tokens>8 left</total_tokens>"}]}
+        """)
+        #expect(tools.status == 200)
+        let note = "<|im_start|>user\n<total_tokens>8 left</total_tokens><|im_end|>\n"
+        #expect(harness.prompt.hasSuffix(note + "<|im_start|>assistant\n"))
+    }
+
     @Test("reasoning comes back as a thinking block before the text")
     func thinking() async {
         let harness = RouteHarness(pieces: ["<think>", "\nHmm.\n", "</think>", "\n\n", "Hi"])

@@ -105,19 +105,37 @@ enum AnthropicRequest {
         }
         guard let list = body["messages"]?.arrayValue else { throw RequestError.invalid("'messages' is required") }
         guard !list.isEmpty else { throw RequestError.invalid("'messages' must not be empty") }
+        var replied = false
         for message in list {
-            // Claude Code puts some of its instructions (the environment, for one) in a `system` message among
-            // the others. Chat templates mostly allow one system message, first, so its text joins the system
-            // prompt, in order.
+            // Claude Code puts some of its instructions in `system` messages among the others: the environment
+            // near the start, and a fresh `<total_tokens>` note after each tool result. Chat templates mostly
+            // allow one system message, first, so one that comes before any reply joins the system prompt, in
+            // order. One that comes later stays where it is, as user text: joined to the system prompt, the
+            // note that changes every turn would change the start of the prompt every turn, and no prompt
+            // cache could ever be reused.
             if message["role"]?.stringValue == "system" {
                 guard let content = message["content"], !content.isNull else {
                     throw RequestError.invalid("each message needs \"content\"")
                 }
                 let text = try text(of: content, what: "a system message")
-                if !text.isEmpty {
+                if text.isEmpty {
+                    continue
+                }
+                if !replied {
                     systemParts.append(text)
+                } else if let last = messages.last, last["role"]?.stringValue == "user",
+                          let earlier = last["content"]?.stringValue
+                {
+                    messages[messages.count - 1] = .record([
+                        ("role", .string("user")), ("content", .string(earlier + "\n\n" + text)),
+                    ])
+                } else {
+                    messages.append(.record([("role", .string("user")), ("content", .string(text))]))
                 }
                 continue
+            }
+            if message["role"]?.stringValue == "assistant" {
+                replied = true
             }
             try messages += convert(message)
         }
