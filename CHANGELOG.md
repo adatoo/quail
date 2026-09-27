@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.46.1] - 2026-09-27
+
+### Changed
+
+- Docs: the release loose ends are closed. CI now signs, notarizes and publishes each release's DMG and update feed, and Dependabot's release-action bump was merged. The remaining install check on a second Mac is written out step by step in the plan.
+
 ## [0.46.0] - 2026-09-27
 
 ### Added
