@@ -56,6 +56,7 @@ public enum QuailServerApp {
         ).map { entry -> ModelEntry in
             var entry = entry
             entry.parallel = entry.parallel ?? arguments.parallel
+            entry.promptCacheDirectory = arguments.promptCacheDirectory
             return entry
         }
         log.log(.info, "quail-server \(version): \(entries.count) model(s)")

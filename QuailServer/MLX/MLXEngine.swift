@@ -43,10 +43,12 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let weightBytes: Int
         /// Prompt caches kept from earlier requests, touched only inside the container's serial access.
         let caches = PromptCaches()
+        /// Where they go when they leave memory, if anywhere (`--prompt-cache-dir`).
+        let disk: PromptDiskCache?
 
         init(
             container: ModelContainer, info: EngineInfo, chatTemplate: String?,
-            tokenizer: any MLXLMCommon.Tokenizer, vision: VisionSetup?, weightBytes: Int
+            tokenizer: any MLXLMCommon.Tokenizer, vision: VisionSetup?, weightBytes: Int, disk: PromptDiskCache?
         ) {
             self.container = container
             self.info = info
@@ -54,6 +56,26 @@ final class MLXEngine: Engine, @unchecked Sendable {
             self.tokenizer = tokenizer
             self.vision = vision
             self.weightBytes = weightBytes
+            self.disk = disk
+        }
+
+        /// Writes a cache leaving memory to disk. A hybrid model's is written as it was at its last checkpoint,
+        /// where the next turn of its conversation picks up; what it holds beyond that is reused only by a
+        /// prompt that repeats it exactly.
+        func spill(_ entry: PromptCaches.Entry) {
+            guard let disk else { return }
+            var entry = entry
+            if !entry.trimmable, let last = entry.checkpoints.keys.max(), last < entry.tokens.count {
+                entry.restore(to: last)
+            }
+            disk.save(entry.layers, tokens: entry.tokens)
+        }
+
+        /// Every cache in memory to disk (the model is going away).
+        func spillAll() {
+            for entry in caches.removeAll() {
+                spill(entry)
+            }
         }
     }
 
@@ -98,18 +120,27 @@ final class MLXEngine: Engine, @unchecked Sendable {
         /// An eighth of the Mac's memory for caches beyond the newest one (which is kept whatever its size).
         static let maxBytes = Int(ProcessInfo.processInfo.physicalMemory / 8)
 
-        /// The cache that holds the most of `prompt`, cut back (or returned to a checkpoint) to what it
-        /// shares, with its checkpoints up to there, and taken out of the store while the request uses it;
-        /// nil if none holds any of it.
-        func take(for prompt: [Int], trimmableOnly: Bool) -> Entry? {
-            let candidates = entries.map { entry in
+        /// How many of `prompt`'s tokens the best cache here holds (0 for none), without taking it.
+        func bestReuse(for prompt: [Int], trimmableOnly: Bool) -> Int {
+            PromptCachePlan.choose(candidates(trimmableOnly: trimmableOnly), for: prompt)?.reuse ?? 0
+        }
+
+        private func candidates(trimmableOnly: Bool) -> [PromptCachePlan.Candidate] {
+            entries.map { entry in
                 trimmableOnly
                     ? PromptCachePlan.Candidate(tokens: entry.trimmable ? entry.tokens : [], trimmable: true)
                     : PromptCachePlan.Candidate(
                         tokens: entry.tokens, trimmable: entry.trimmable, checkpoints: Array(entry.checkpoints.keys)
                     )
             }
-            guard let choice = PromptCachePlan.choose(candidates, for: prompt) else { return nil }
+        }
+
+        /// The cache that holds the most of `prompt`, cut back (or returned to a checkpoint) to what it
+        /// shares, with its checkpoints up to there, and taken out of the store while the request uses it;
+        /// nil if none holds any of it.
+        func take(for prompt: [Int], trimmableOnly: Bool) -> Entry? {
+            guard let choice = PromptCachePlan.choose(candidates(trimmableOnly: trimmableOnly), for: prompt)
+            else { return nil }
             var entry = entries.remove(at: choice.index)
             if choice.fromCheckpoint {
                 entry.restore(to: choice.reuse)
@@ -122,13 +153,21 @@ final class MLXEngine: Engine, @unchecked Sendable {
             return entry
         }
 
-        func put(_ entry: Entry) {
-            guard !entry.tokens.isEmpty else { return }
+        /// Keeps a cache; returns the ones that had to go to make room, oldest first.
+        @discardableResult
+        func put(_ entry: Entry) -> [Entry] {
+            guard !entry.tokens.isEmpty else { return [] }
             entries.append(entry)
             let drop = PromptCachePlan.evictions(
                 sizes: entries.map(\.bytes), maxEntries: Self.maxEntries, maxBytes: Self.maxBytes
             )
-            entries.removeFirst(drop)
+            defer { entries.removeFirst(drop) }
+            return Array(entries.prefix(drop))
+        }
+
+        func removeAll() -> [Entry] {
+            defer { entries = [] }
+            return entries
         }
     }
 
@@ -207,7 +246,8 @@ final class MLXEngine: Engine, @unchecked Sendable {
             )
             let made = Loaded(
                 container: container, info: info, chatTemplate: files.chatTemplate, tokenizer: tokenizer,
-                vision: vision ? files.visionSetup : nil, weightBytes: weightBytes
+                vision: vision ? files.visionSetup : nil, weightBytes: weightBytes,
+                disk: PromptDiskCache(root: entry.promptCacheDirectory, entry: entry, weightBytes: weightBytes, vision: vision)
             )
             lock.withLock { loaded = made }
         } catch let error as EngineError {
@@ -226,6 +266,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         guard wantsVision != (current.vision != nil), !lock.withLock({ visionOnly }),
               let entry = lock.withLock({ entry }), entry.mlxVision || !wantsVision
         else { return current }
+        await current.container.perform { _ in current.spillAll() }
         lock.withLock { loaded = nil }
         Memory.clearCache()
         try await load(entry, vision: wantsVision)
@@ -234,6 +275,10 @@ final class MLXEngine: Engine, @unchecked Sendable {
     }
 
     func unload() async {
+        // The caches in memory go to disk first, so a swap back (or a restart) picks them up.
+        if let current {
+            await current.container.perform { _ in current.spillAll() }
+        }
         lock.withLock {
             loaded = nil
             entry = nil
@@ -323,7 +368,13 @@ final class MLXEngine: Engine, @unchecked Sendable {
         var layers: [any KVCache]
         var reused = 0
         var checkpoints: [Int: [Int: any KVCache]] = [:]
-        if request.cachePrompt, let taken = loaded.caches.take(for: prompt, trimmableOnly: !sliceable) {
+        // A cache on disk is loaded instead when it holds clearly more (loading costs about as much as
+        // reading `checkpointMargin` tokens).
+        let fromDisk = request.cachePrompt && sliceable && (loaded.disk?.bestReuse(for: prompt) ?? 0)
+            > loaded.caches.bestReuse(for: prompt, trimmableOnly: !sliceable) + Self.checkpointMargin
+        if fromDisk, let taken = loaded.disk?.take(for: prompt) {
+            (layers, reused) = taken
+        } else if request.cachePrompt, let taken = loaded.caches.take(for: prompt, trimmableOnly: !sliceable) {
             (layers, reused, checkpoints) = (taken.layers, taken.tokens.count, taken.checkpoints)
         } else {
             layers = context.model.newCache(parameters: parameters)
@@ -364,7 +415,11 @@ final class MLXEngine: Engine, @unchecked Sendable {
             if cancelled.isSet || Task.isCancelled {
                 // What the cache holds now is a prefix of this prompt; keep it for a retry.
                 eval(layers)
-                loaded.caches.put(.init(layers: layers, tokens: Array(prompt.prefix(fed)), checkpoints: checkpoints))
+                for evicted in loaded.caches.put(.init(
+                    layers: layers, tokens: Array(prompt.prefix(fed)), checkpoints: checkpoints
+                )) {
+                    loaded.spill(evicted)
+                }
                 return
             }
             let count = min(step, feedTo - fed)
@@ -436,7 +491,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
             entry.tokens = prompt
             entry.restore(to: checkpointCount)
         }
-        loaded.caches.put(entry)
+        for evicted in loaded.caches.put(entry) {
+            loaded.spill(evicted)
+        }
 
         // The library reports a reply that hit the token limit as "cancelled" (it looks at a copy of the
         // iterator), so only a hang-up is taken as one here.
