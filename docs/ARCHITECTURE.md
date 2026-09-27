@@ -159,7 +159,7 @@ One folder, two format subtrees, and Quail is the only thing that writes to it. 
 
 **Catalog.** Quail ships a curated `catalog.json` of model families, each with a GGUF variant and an MLX variant where both exist (e.g. `bartowski/...-GGUF` and `mlx-community/...-4bit`). A remote copy on the update host is fetched weekly so new models don't wait for an app release. Anything the user adds by repo URL becomes an uncurated entry. The picker shows one row per family with format badges; selecting a runtime that can't read the chosen format greys it and offers the sibling variant.
 
-**Import** on first run scans `~/.cache/llama.cpp`, `~/.omlx/models`, `~/.cache/huggingface/hub` and `~/.lmstudio/models`, and offers to move (not copy) recognised models into the store. Symlinks are avoided: llama-server's directory scan and MLX loaders both behave inconsistently across them.
+**Import** on first run scans `~/.cache/llama.cpp`, `~/.omlx/models`, `~/.cache/huggingface/hub` and `~/.lmstudio/models`, and offers to move (not copy) recognised models into the store: a one-time banner in the Models pane, and Storage → Import Models from Other Apps… later (D-059). Symlinks are avoided: llama-server's directory scan and MLX loaders both behave inconsistently across them.
 
 **Deletion** removes the files and the catalog row and, if the model is currently loaded, unloads it first via the runtime's API or a restart.
 

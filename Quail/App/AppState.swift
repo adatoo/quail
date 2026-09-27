@@ -940,6 +940,69 @@ final class AppState {
         await reconcileStore()
     }
 
+    // MARK: - Importing models from other apps (Phase 4 step 2, ADR D-059)
+
+    /// Models found in other apps' folders, not yet in the store.
+    private(set) var importCandidates: [ImportCandidate] = []
+    /// Bytes moved and to move, while an import runs.
+    private(set) var importProgress: (moved: Int64, total: Int64)?
+    /// What went wrong in the last import, one line per model.
+    private(set) var importErrors: [String] = []
+    /// Where to look: the user's home folder (tests pass a scratch one).
+    var importHome = FileManager.default.homeDirectoryForCurrentUser
+
+    /// Whether the Models pane offers the models found (until the offer is answered).
+    var offersImport: Bool {
+        !config.importOffered && !importCandidates.isEmpty
+    }
+
+    func scanForImports() async {
+        let home = importHome
+        let store = modelStore
+        importCandidates = await Task.detached(priority: .utility) {
+            ModelImporter.scan(home: home, store: store)
+        }.value
+    }
+
+    /// Moves the chosen models into the store, one at a time, then answers the offer and refreshes the store.
+    func importModels(_ ids: Set<String>) async {
+        let chosen = importCandidates.filter { ids.contains($0.id) }
+        guard !chosen.isEmpty, importProgress == nil else { return }
+        let store = modelStore
+        let total = chosen.reduce(0) { $0 + $1.bytes }
+        importProgress = (0, total)
+        importErrors = []
+        var done: Int64 = 0
+        for candidate in chosen {
+            let before = done
+            let result: String? = await Task.detached(priority: .userInitiated) { [weak self] in
+                do {
+                    try ModelImporter.move(candidate, into: store) { moved in
+                        Task { @MainActor in self?.importProgress = (before + moved, total) }
+                    }
+                    return nil
+                } catch {
+                    return String(describing: error)
+                }
+            }.value
+            if let result {
+                importErrors.append(result)
+            }
+            done += candidate.bytes
+            importProgress = (done, total)
+        }
+        importProgress = nil
+        config.importOffered = true
+        persist()
+        await scanForImports()
+        await reconcileStore()
+    }
+
+    func declineImport() {
+        config.importOffered = true
+        persist()
+    }
+
     /// Moves the whole store to a new folder and repoints at it — the
     /// point `Paths.makeModelsDirectoryBookmark` has existed for since
     /// PR 9 (docs/IMPLEMENTATION_PLAN.md step 7: "where it finally gets
