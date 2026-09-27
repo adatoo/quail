@@ -12,6 +12,14 @@ protocol BenchmarkClient: Sendable {
     func load(model: String) async throws
     func unload(model: String) async throws
     func complete(model: String, prompt: [Int], maxTokens: Int) async throws -> CompletionTiming
+    /// The same, with the server's prompt cache on or off (the suite's own requests keep it off).
+    func complete(model: String, prompt: [Int], maxTokens: Int, cachePrompt: Bool) async throws -> CompletionTiming
+}
+
+extension BenchmarkClient {
+    func complete(model: String, prompt: [Int], maxTokens: Int, cachePrompt _: Bool) async throws -> CompletionTiming {
+        try await complete(model: model, prompt: prompt, maxTokens: maxTokens)
+    }
 }
 
 struct ServerProperties: Sendable, Equatable {
@@ -119,7 +127,12 @@ struct LlamaCppBenchmarkClient: BenchmarkClient {
     }
 
     func complete(model: String, prompt: [Int], maxTokens: Int) async throws -> CompletionTiming {
+        try await complete(model: model, prompt: prompt, maxTokens: maxTokens, cachePrompt: false)
+    }
+
+    func complete(model: String, prompt: [Int], maxTokens: Int, cachePrompt: Bool) async throws -> CompletionTiming {
         var body = BenchmarkSuite.requestSettings
+        body["cache_prompt"] = cachePrompt
         body["model"] = model
         body["prompt"] = prompt
         body["max_tokens"] = maxTokens

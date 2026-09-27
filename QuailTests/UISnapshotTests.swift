@@ -12,7 +12,9 @@ struct UISnapshotTests {
     private static let outputDirectory = ProcessInfo.processInfo.environment["QUAIL_SNAPSHOT_DIR"]
         .map { URL(fileURLWithPath: $0, isDirectory: true) }
 
-    private func makeAppState(runtime id: RuntimeID = .quail) async throws -> (AppState, URL) {
+    private func makeAppState(
+        runtime id: RuntimeID = .quail, results: [BenchmarkResult] = []
+    ) async throws -> (AppState, URL) {
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("quail-snapshots-\(UUID().uuidString)", isDirectory: true)
         let models = scratch.appendingPathComponent("Models", isDirectory: true)
@@ -26,6 +28,8 @@ struct UISnapshotTests {
         let mlx = models.appendingPathComponent("mlx/mlx-community--Qwen3-8B-4bit", isDirectory: true)
         try FileManager.default.createDirectory(at: mlx, withIntermediateDirectories: true)
         try Data(#"{"model_type":"qwen3"}"#.utf8).write(to: mlx.appendingPathComponent("config.json"))
+        let store = BenchmarkStore(fileURL: scratch.appendingPathComponent("benchmarks.json"))
+        try store.save(results)
         let appState = try AppState(
             config: { var config = Config(); config.runtimeID = id; return config }(),
             configURL: scratch.appendingPathComponent("config.json"),
@@ -38,6 +42,7 @@ struct UISnapshotTests {
             catalogLocations: .init(bundle: .main, directory: scratch),
             shapeCache: ModelShapeCache(url: nil),
             downloader: HFDownloader(hubBaseURL: #require(URL(string: "http://127.0.0.1:9"))),
+            benchmarkStore: store,
             serverPreflight: nil
         )
         await appState.reconcileStore()
@@ -105,6 +110,21 @@ struct UISnapshotTests {
             AddModelSheet(appState: appState, defaultFilter: .mlx, preselect: family),
             size: CGSize(width: 820, height: 580), name: "llama-add-model"
         )
+    }
+
+    @Test("Benchmark pane, with an old result and one with the returning-turn and four-at-once columns")
+    func benchmarkPane() async throws {
+        var old = BenchmarkTests.sampleResult(model: "Qwen3-8B-Q4_K_M", chip: "Apple M4 Pro", speed: 46)
+        old.date = Date(timeIntervalSince1970: 1_780_000_000)
+        var new = BenchmarkTests.sampleResult(model: "mlx-community--Qwen3-8B-4bit", chip: "Apple M4 Pro", speed: 54)
+        new.model.format = "mlx"
+        new.engine.runtime = "Quail server"
+        new.measurements.returningTurnMs = .of([180, 201, 230])
+        new.measurements.concurrent4 = .of([55, 56])
+        let (appState, scratch) = try await makeAppState(results: [new, old])
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        appState.settingsTab = .benchmark
+        try await render(SettingsView(appState: appState), size: CGSize(width: 900, height: 600), name: "benchmark")
     }
 
     @Test("Settings → General")
