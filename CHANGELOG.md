@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Added
+
+- The benchmark also measures a returning conversation's next turn (first token after a cached 2,048-token prompt) and four requests at once (their total speed). They show in Settings → Benchmark, `quail bench` and the Markdown summary. Earlier results stay comparable and show a dash.
+
+### Changed
+
+- With Quail server as the runtime, Add Model picks a family's MLX variant by default. Measured on the same models, MLX generates 18–54% faster, while GGUF reads short prompts 8–15% faster and can serve several requests at once. You can still choose GGUF.
+
 ## [0.42.0] - 2026-09-27
 
 ### Changed

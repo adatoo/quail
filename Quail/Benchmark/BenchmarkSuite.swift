@@ -17,6 +17,15 @@ enum BenchmarkSuite {
     /// Discarded runs first, so cold kernels and caches don't count.
     static let warmupRuns = 1
     static let measuredRuns = 3
+    /// A returning conversation (added later, as optional results, so earlier results stay comparable): a
+    /// prompt of this many tokens, cached, then the same prompt with `returningTurnNewTokens` more. Its time
+    /// to first token is what a chat or agent's next turn waits (ADR D-055, Phase 3c step 1).
+    static let returningTurnPromptTokens = 2048
+    static let returningTurnNewTokens = 64
+    /// Requests sent at once, each generating `concurrentTokens`: their total speed shows what several callers
+    /// (an agent's side requests, a chat beside it) get from the server.
+    static let concurrentRequests = 4
+    static let concurrentTokens = 128
 
     /// Every request: deterministic sampling, and no prompt cache —
     /// otherwise a repeated prompt is "processed" in no time.
@@ -50,6 +59,13 @@ enum BenchmarkSuite {
             tokens.append(contentsOf: passageTokens.prefix(count - tokens.count))
         }
         return tokens
+    }
+
+    /// The passage started `offset` tokens in (wrapping), so runs that must not share a cached prefix don't.
+    static func rotated(_ tokens: [Int], by offset: Int) -> [Int] {
+        guard !tokens.isEmpty else { return [] }
+        let start = offset % tokens.count
+        return Array(tokens[start...]) + Array(tokens[..<start])
     }
 
     /// Whether a prompt of `size` fits a context of `contextSize`

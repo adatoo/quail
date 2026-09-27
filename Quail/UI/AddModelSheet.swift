@@ -76,6 +76,9 @@ struct AddModelSheet: View {
         .frame(width: 820, height: 580)
         .onAppear {
             filter = defaultFilter
+            // MLX first where the runtime can run it: it generates faster on Quail server (D-004 amendment of
+            // 2026-09-28); a family without an MLX variant falls back to GGUF when its listing loads.
+            format = defaultFilter == .gguf || !appState.canServe(.mlxSafetensors) ? .gguf : .mlxSafetensors
             appState.installs.acknowledgeFinished()
             if let preselect {
                 selection = .curated(preselect)
@@ -598,6 +601,9 @@ struct AddModelSheet: View {
             }
             .pickerStyle(.segmented)
             .frame(maxWidth: 280)
+            .help(appState.canServe(.mlxSafetensors)
+                ? "MLX usually generates faster on Quail server; GGUF can serve several requests at once."
+                : "llama.cpp runs GGUF only.")
         } else if let only = formats.first {
             LabeledContent("Format", value: only == .gguf ? "GGUF" : "MLX")
                 .onAppear { format = only }

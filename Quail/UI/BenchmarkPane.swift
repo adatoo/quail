@@ -122,7 +122,7 @@ struct BenchmarkPane: View {
                     .font(.callout)
             } else {
                 Text(
-                    "Runs \(BenchmarkSuite.id): prompt processing at 512 and 4096 tokens, generation of 256 tokens, time to first token and load time — \(BenchmarkSuite.measuredRuns) runs each after a warm-up. What's loaded now is loaded again afterwards."
+                    "Runs \(BenchmarkSuite.id): prompt processing at 512 and 4096 tokens, generation of 256 tokens, time to first token, a returning conversation's next turn, four requests at once, and load time — \(BenchmarkSuite.measuredRuns) runs each after a warm-up. What's loaded now is loaded again afterwards."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -177,7 +177,7 @@ struct BenchmarkPane: View {
                         }
                     }
                 }
-                .width(min: 170, ideal: 175)
+                .width(min: 105, ideal: 110, max: 115)
                 TableColumn("Model") { result in
                     HStack(spacing: 4) {
                         Text(result.model.id).lineLimit(1).truncationMode(.middle)
@@ -199,27 +199,41 @@ struct BenchmarkPane: View {
                         }
                     }
                 }
-                .width(min: 215, ideal: 220)
+                .width(min: 150, ideal: 165, max: 175)
                 TableColumn("Prompt 512") { Text(Self.speed($0.measurements.prompt512)).monospacedDigit() }
-                    .width(min: 85, ideal: 90)
-                TableColumn("Prompt 4096") { Text(Self.speed($0.measurements.prompt4096)).monospacedDigit() }
-                    .width(min: 85, ideal: 90)
+                    .width(min: 70, ideal: 75, max: 80)
+                TableColumn("Prompt 4K") { Text(Self.speed($0.measurements.prompt4096)).monospacedDigit() }
+                    .width(min: 70, ideal: 75, max: 80)
                 TableColumn("Generate") { result in
                     Text(Self.speed(result.measurements.generation256))
                         .monospacedDigit()
                         .help(result.estimatedTokensPerSecond.map { String(format: "Estimated: %.0f tok/s", $0) } ?? "")
                 }
-                .width(min: 80, ideal: 85)
-                TableColumn("First token") { result in
+                .width(min: 70, ideal: 75, max: 80)
+                TableColumn("1st token") { result in
                     Text(result.measurements.timeToFirstTokenMs.map { String(format: "%.0f ms", $0.median) } ?? "—")
                         .monospacedDigit()
                 }
-                .width(min: 65, ideal: 70)
+                .width(min: 55, ideal: 60, max: 65)
+                TableColumn("Next turn") { result in
+                    Text(result.measurements.returningTurnMs.map { String(format: "%.0f ms", $0.median) } ?? "—")
+                        .monospacedDigit()
+                        .help(
+                            "First token of a returning conversation's next turn (a cached 2,048-token prompt plus 64 new tokens)"
+                        )
+                }
+                .width(min: 55, ideal: 60, max: 65)
+                TableColumn("4 at once") { result in
+                    Text(Self.speed(result.measurements.concurrent4))
+                        .monospacedDigit()
+                        .help("Total generation speed of four requests at once")
+                }
+                .width(min: 65, ideal: 75, max: 80)
                 TableColumn("Load") { result in
                     Text(result.measurements.loadSeconds.map { String(format: "%.1f s", $0.median) } ?? "—")
                         .monospacedDigit()
                 }
-                .width(min: 45, ideal: 50)
+                .width(min: 40, ideal: 45, max: 50)
             }
             .contextMenu(forSelectionType: BenchmarkResult.ID.self) { ids in
                 // Right-clicking inside a selection hands over the whole
@@ -264,7 +278,7 @@ struct BenchmarkPane: View {
     }
 
     static func speed(_ stat: BenchmarkResult.Stat?) -> String {
-        stat.map { String(format: "%.1f tok/s", $0.median) } ?? "—"
+        stat.map { String(format: $0.median >= 100 ? "%.0f tok/s" : "%.1f tok/s", $0.median) } ?? "—"
     }
 
     // MARK: - Copy / export

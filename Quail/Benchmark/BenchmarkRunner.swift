@@ -65,7 +65,7 @@ struct BenchmarkRunner: Sendable {
         }
 
         let sizes = BenchmarkSuite.promptSizes
-        let steps = Double(sizes.count + 1) * Double(BenchmarkSuite.measuredRuns)
+        let steps = Double(sizes.count + 3) * Double(BenchmarkSuite.measuredRuns)
         var done = 0.0
         func fraction() -> Double {
             0.25 + 0.7 * done / steps
@@ -115,6 +115,64 @@ struct BenchmarkRunner: Sendable {
             done += 1
         }
         measurements.generation256 = .of(speeds)
+
+        // A returning conversation: a cached prompt, then the same with a few new tokens. Each run starts its
+        // prompt at another point of the passage, so no run finds the one before in the cache.
+        let returning = BenchmarkSuite.returningTurnPromptTokens + BenchmarkSuite.returningTurnNewTokens
+        if BenchmarkSuite.fits(returning, contextSize: properties.contextSize) {
+            var firstTokens: [Double] = []
+            for run in 0 ..< BenchmarkSuite.measuredRuns {
+                await progress("Returning turn (\(run + 1)/\(BenchmarkSuite.measuredRuns))…", fraction())
+                let turn = BenchmarkSuite.promptTokens(
+                    from: BenchmarkSuite.rotated(passage, by: run + 1),
+                    count: returning
+                )
+                _ = try await client.complete(
+                    model: model, prompt: Array(turn.prefix(BenchmarkSuite.returningTurnPromptTokens)), maxTokens: 1,
+                    cachePrompt: true
+                )
+                let next = try await client.complete(model: model, prompt: turn, maxTokens: 1, cachePrompt: true)
+                firstTokens.append(next.timeToFirstTokenMs)
+                done += 1
+            }
+            measurements.returningTurnMs = .of(firstTokens)
+        } else {
+            measurements.skipped.append(
+                "returning turn: the model's context (\(properties.contextSize ?? 0)) is too small"
+            )
+            done += Double(BenchmarkSuite.measuredRuns)
+        }
+
+        // Several requests at once: their total speed (a server that serves one at a time shows about its
+        // single-request speed here).
+        var totals: [Double] = []
+        for run in 0 ..< BenchmarkSuite.measuredRuns {
+            await progress(
+                "\(BenchmarkSuite.concurrentRequests) requests at once (\(run + 1)/\(BenchmarkSuite.measuredRuns))…",
+                fraction()
+            )
+            let started = ContinuousClock.now
+            let generated = try await withThrowingTaskGroup(of: Int.self) { group in
+                for index in 0 ..< BenchmarkSuite.concurrentRequests {
+                    let prompt = BenchmarkSuite.promptTokens(
+                        from: BenchmarkSuite.rotated(passage, by: index * 5 + run),
+                        count: BenchmarkSuite.generationPromptTokens
+                    )
+                    group.addTask {
+                        try await client.complete(
+                            model: model, prompt: prompt, maxTokens: BenchmarkSuite.concurrentTokens
+                        ).generatedTokens
+                    }
+                }
+                return try await group.reduce(0, +)
+            }
+            let seconds = Self.seconds(ContinuousClock.now - started)
+            if seconds > 0 {
+                totals.append(Double(generated) / seconds)
+            }
+            done += 1
+        }
+        measurements.concurrent4 = .of(totals)
 
         return Output(measurements: measurements, properties: properties, otherModelsLoaded: others)
     }

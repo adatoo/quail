@@ -93,6 +93,8 @@ struct Bench: AsyncParsableCommand {
             line("Prompt, 4096 tokens", measured.prompt4096, "tok/s"),
             line("Generate, 256 tokens", measured.generation256, "tok/s"),
             line("Time to first token", measured.timeToFirstTokenMs, "ms", 0),
+            line("Returning turn", measured.returningTurnMs, "ms", 0),
+            line("Four at once, total", measured.concurrent4, "tok/s"),
             line("Load", measured.loadSeconds, "s", 2),
         ]
         if let estimate = result.estimatedTokensPerSecond, let measuredSpeed = measured.generation256?.median {

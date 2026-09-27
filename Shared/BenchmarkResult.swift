@@ -119,6 +119,11 @@ struct BenchmarkResult: Codable, Sendable, Equatable, Identifiable {
         var generation256: Stat?
         /// Time to first token for the 512-token prompt, milliseconds.
         var timeToFirstTokenMs: Stat?
+        /// Time to first token for a returning conversation's next turn (a cached 2048-token prompt plus 64
+        /// new tokens), milliseconds. Absent from results made before it was measured.
+        var returningTurnMs: Stat?
+        /// Total generation speed of four requests at once, tokens/s. Absent from older results.
+        var concurrent4: Stat?
         /// Steps not run, and why.
         var skipped: [String] = []
     }
@@ -164,6 +169,8 @@ extension BenchmarkResult {
             "| Prompt 4096 | \(stat(measurements.prompt4096, "tok/s")) |",
             "| Generate 256 | \(stat(measurements.generation256, "tok/s")) |",
             "| Time to first token | \(stat(measurements.timeToFirstTokenMs, "ms", digits: 0)) |",
+            "| Returning turn, first token | \(stat(measurements.returningTurnMs, "ms", digits: 0)) |",
+            "| Four at once, total | \(stat(measurements.concurrent4, "tok/s")) |",
             "| Load | \(stat(measurements.loadSeconds, "s", digits: 2)) |",
         ]
         let notes = conditions.warnings + measurements.skipped

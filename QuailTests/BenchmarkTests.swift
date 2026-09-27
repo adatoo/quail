@@ -51,8 +51,12 @@ struct BenchmarkTests {
         #expect(output.otherModelsLoaded.isEmpty)
 
         let prompts = await client.promptLengths
-        // 1 warm-up + 3×512 + 3×4096 + 3 generation runs, in that order.
-        #expect(prompts.count == 10)
+        // 1 warm-up + 3×512 + 3×4096 + 3 generation runs, then 3 returning turns (two requests each) and
+        // 3 rounds of four requests at once.
+        #expect(prompts.count == 10 + 6 + 12)
+        #expect(measured.returningTurnMs?.samples == BenchmarkSuite.measuredRuns)
+        #expect(measured.concurrent4?.samples == BenchmarkSuite.measuredRuns)
+        #expect(prompts.filter { $0 == 2048 + 64 }.count == 3)
         #expect(prompts.filter { $0 == 512 }.count == 3)
         #expect(prompts.filter { $0 == 4096 }.count == 3)
         #expect(await client.states["Target"] == "unloaded")
@@ -65,7 +69,8 @@ struct BenchmarkTests {
             .run(model: "Target") { _, _ in }
 
         #expect(output.measurements.prompt4096 == nil)
-        #expect(output.measurements.skipped.count == 1)
+        #expect(output.measurements.returningTurnMs == nil)
+        #expect(output.measurements.skipped.count == 2)
         #expect(output.otherModelsLoaded == ["Other"])
         #expect(await client.states["Other"] == "loaded")
         #expect(await client.states["Target"] == "unloaded")
