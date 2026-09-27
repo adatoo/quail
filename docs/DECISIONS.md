@@ -434,6 +434,8 @@ Every ratio is inside the tolerances (5% for speed, 10% for time to first token)
 
 **Not yet done, by decision:** making `quail` the default runtime and taking `llama-server` out of the bundle. That changes what every user runs, so it waits for the user's go-ahead.
 
+**Amended 2026-09-28 (the default):** Quail server is the default runtime (`Config.runtimeID`, and first in the picker). A config written before this names llama.cpp only because it was the default, so it moves to Quail server once. A one-off flag (`quailDefaultApplied`) does it, the way D-039 switched the key on; it can't tell a deliberate llama.cpp choice from the old default, so the CHANGELOG says how to switch back. By the owner's decision, `llama-server` stays in the bundle and in the picker ("llama.cpp (GGUF only)") as a fallback, instead of leaving as step 7 planned; the Settings picker, the Models list and Add Model say that it can't run MLX models. The API key stays on by default (D-039), since llama-server is still selectable.
+
 **Revisit if:** the parity gate fails by more than the plan's tolerances, or upstream `llama-server` gains something (speculative decoding, batching) that users need and `quail-server` can't match soon.
 
 ## D-026 · 2026-09-24 · The Ollama registry is not a download source; ModelFit only feeds catalog discovery
@@ -626,6 +628,8 @@ Every ratio is inside the tolerances (5% for speed, 10% for time to first token)
 ## D-004 · 2026-09-21 · llama.cpp is bundled and is the default runtime
 
 > **Amended by D-027 (2026-09-24).** llama.cpp stays bundled, but as `libllama` inside `quail-server`; the vendored `llama-server` remains the default until `quail-server` passes its parity gate, then goes.
+>
+> **Amended 2026-09-28.** The gate passed and `quail-server` is the default. By the owner's decision `llama-server` stays bundled and selectable (GGUF only) as a fallback, rather than leaving; it remains the only runtime in the legacy App Store build.
 
 **Decision:** Vendor a pinned `llama-server` release into the bundle. It is the only runtime in the App Store build and the default everywhere.
 **Why:** Zero dependencies, router-mode hot swap (`/models/load`), `/health`, `--log-file`, widest model catalogue. Postgres.app-faithful.

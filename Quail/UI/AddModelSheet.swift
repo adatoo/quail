@@ -138,6 +138,14 @@ struct AddModelSheet: View {
                     .font(.callout)
                     .foregroundStyle(.orange)
                 }
+                // Browsing MLX models while the runtime can't run them.
+                if filter == .mlx, !appState.canServe(.mlxSafetensors) {
+                    MLXUnavailableBanner(
+                        appState: appState,
+                        message: "\(appState.runtime.id.displayName) can't run MLX models: they'll download, "
+                            + "but won't load until you switch to Quail server."
+                    )
+                }
             }
             Spacer()
             Picker("Good for", selection: $strengthFilter) {
@@ -505,12 +513,11 @@ struct AddModelSheet: View {
                     }
                     .formStyle(.columns)
                     if format == .mlxSafetensors, !appState.canServe(.mlxSafetensors) {
-                        Label(
-                            "MLX models run on the Quail server runtime (Settings → Endpoint). With llama.cpp chosen, choose GGUF to use it now.",
-                            systemImage: "info.circle"
+                        MLXUnavailableBanner(
+                            appState: appState,
+                            message: "\(appState.runtime.id.displayName) can't run MLX models: this one will download, "
+                                + "but it won't load until you switch to Quail server. Or choose GGUF to use it now."
                         )
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
                     }
                     if let entry = installedPick {
                         Label(
@@ -586,13 +593,13 @@ struct AddModelSheet: View {
         if formats.count > 1 {
             Picker("Format", selection: $format) {
                 ForEach(formats, id: \.self) { f in
-                    Text(f == .gguf ? "GGUF (llama.cpp)" : "MLX").tag(f)
+                    Text(f == .gguf ? "GGUF" : "MLX").tag(f)
                 }
             }
             .pickerStyle(.segmented)
             .frame(maxWidth: 280)
         } else if let only = formats.first {
-            LabeledContent("Format", value: only == .gguf ? "GGUF (llama.cpp)" : "MLX")
+            LabeledContent("Format", value: only == .gguf ? "GGUF" : "MLX")
                 .onAppear { format = only }
         }
     }

@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-09-27
+
+### Changed
+
+- **Quail server is now the default runtime**, for new installs and existing ones. It passed the comparison with llama.cpp on speed, every Connect Test, Claude Code and the chat page, and it runs MLX models as well as GGUF. If you'd rather keep llama.cpp, stop the server and choose it in Settings → Endpoint → Runtime. It stays bundled as a fallback for GGUF models, and Quail remembers the choice.
+- With llama.cpp chosen, Quail now says that MLX models won't run on it: in Settings → Endpoint, above the Models list when you have MLX models, and in Add Model when you browse or pick an MLX model. Each place has a button to switch to Quail server.
+
 ## [0.41.7] - 2026-09-27
 
 ### Fixed

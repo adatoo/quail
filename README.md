@@ -2,7 +2,7 @@
 
 **Quick AI, local.** A Postgres.app-style menu bar app for running local LLM servers on Apple Silicon.
 
-Quail starts a runtime, exposes an OpenAI-compatible endpoint, and gets out of the way. It manages three runtimes behind one interface — **llama.cpp** (bundled), **oMLX** and **Rapid-MLX** (installed on demand) — with one shared model folder and one honest opinion about what fits on your machine.
+Quail starts a runtime, exposes an OpenAI-compatible endpoint, and gets out of the way. It runs **Quail server**, its own server for both GGUF and MLX models, with **llama.cpp**'s `llama-server` bundled as a fallback for GGUF, from one shared model folder and one honest opinion about what fits on your machine.
 
 ## Install
 
