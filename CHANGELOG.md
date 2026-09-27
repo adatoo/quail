@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.43.1] - 2026-09-27
+
 ### Changed
 
 - **MLX models write repeated text up to three times as fast.** When a model repeats text it has already seen (rewriting a file, quoting a document, echoing a tool's output), Quail server now guesses the next tokens from that earlier text and checks them all in one step. Rewriting a file ran at 149 instead of 49 tokens a second on Qwen3-8B, and at 237 instead of 84 on Qwen3.6 35B-A3B. Ordinary prose is unchanged, within 1–3%. A request can limit or turn this off with llama-server's `speculative.n_max`, and the benchmark turns it off.
