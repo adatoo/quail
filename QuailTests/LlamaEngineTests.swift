@@ -14,6 +14,10 @@ struct LlamaEngineTests {
     private static let visionModel = ProcessInfo.processInfo.environment["QUAIL_TEST_VISION_MODEL"]
         .map { URL(fileURLWithPath: $0) }
     private static let visionExists = visionModel.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+    /// A model whose memory can't drop a tail (a hybrid like Qwen3.6 35B-A3B): its path in `QUAIL_TEST_HYBRID_MODEL`.
+    private static let hybridModel = ProcessInfo.processInfo.environment["QUAIL_TEST_HYBRID_MODEL"]
+        .map { URL(fileURLWithPath: $0) }
+    private static let hybridExists = hybridModel.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
     private static let blocks = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         .appendingPathComponent("TestFixtures/Images/blocks.png")
 
@@ -450,6 +454,40 @@ struct LlamaEngineTests {
         #expect(texts[0] == alone[0] && texts[2] == alone[2])
         await eventuallyIdle(engine)
         #expect(try await collect(engine, requests[1]).text == alone[1]) // the freed slot serves the next
+        await engine.unload()
+    }
+
+    @Test(
+        "a hybrid model resumes from its checkpoints: the next turn, and a prompt that parts midway",
+        .enabled(if: hybridExists), .timeLimit(.minutes(10))
+    )
+    func hybridCheckpoints() async throws {
+        let engine = LlamaEngine()
+        try await engine.load(entry(#require(Self.hybridModel)))
+        let log = (0 ..< 600).map { "Record \($0): the light was steady and the tide was high." }
+            .joined(separator: "\n")
+        let first = try await chat(engine, log + "\nWhat was the light like?", tokens: 8, cache: true)
+        _ = try await collect(engine, first)
+        // The next turn: the first prompt, its reply re-rendered, a new question. Resumes near the first's end.
+        var next = first
+        next.promptTokens += try await engine.tokenize(
+            "It was steady.<|im_end|>\n<|im_start|>user\nAnd the tide?<|im_end|>\n<|im_start|>assistant\n",
+            addSpecial: false, parseSpecial: true
+        )
+        let resumed = try await collect(engine, next)
+        let cached = resumed.finished?.1.cachedTokens ?? 0
+        #expect(cached >= first.promptTokens.count - LlamaRuntime.checkpointMargin - 1, "cached \(cached)")
+        // A prompt that parts from it after the first 5,000 tokens resumes from the checkpoint at 4,096.
+        var parted = Array(next.promptTokens.prefix(5000))
+        parted += try await engine.tokenize(
+            "<|im_end|>\n<|im_start|>assistant\n",
+            addSpecial: false,
+            parseSpecial: true
+        )
+        var partedRequest = GenerationRequest(promptTokens: parted, maxTokens: 4)
+        partedRequest.cachePrompt = true
+        let partway = try await collect(engine, partedRequest)
+        #expect(partway.finished?.1.cachedTokens == LlamaRuntime.checkpointInterval)
         await engine.unload()
     }
 

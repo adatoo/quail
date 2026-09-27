@@ -25,6 +25,9 @@ final class Slot {
     /// Which use of the slot was last, so the least recently used one is taken (and evicted) first.
     var lastUsed: UInt64 = 0
     var job: Job?
+    /// For a model whose memory can't drop a tail: the sequence's recurrent and sliding-window state after
+    /// its first `count` cached tokens, oldest first, to resume a later prompt from.
+    var checkpoints: [(count: Int, state: [UInt8])] = []
 
     init(id: llama_seq_id) {
         self.id = id
@@ -60,6 +63,8 @@ final class Job {
     var row: Int32 = -1
     /// How many prompt tokens this step's batch carries.
     var chunk = 0
+    /// Prompt positions to checkpoint the slot at, soonest first (models whose memory can't drop a tail).
+    var checkpointAt: [Int] = []
 
     var hasImages: Bool {
         !pending.request.media.isEmpty
@@ -90,6 +95,13 @@ final class Job {
 extension LlamaRuntime {
     /// Fewer shared tokens than this aren't worth a copy.
     static let minimumSharedPrefix = 32
+    /// Checkpoints for a model whose memory can't drop a tail, as llama-server's `--ctx-checkpoints` keeps:
+    /// every `checkpointInterval` prompt tokens, and `checkpointMargin` short of a prompt's end (before the
+    /// chat template's generation header, which the next turn renders differently), at most
+    /// `maxCheckpoints` per slot.
+    static let checkpointInterval = 4096
+    static let checkpointMargin = 64
+    static let maxCheckpoints = 8
     /// How long one block of the runtime's queue keeps stepping before letting other work run.
     static let stepSliceMilliseconds = 50
 
@@ -303,10 +315,17 @@ extension LlamaRuntime {
                 reused = shared
             }
         } else {
-            // One slot, or a model whose memory can't share a start: the free slot with the most of the prompt.
-            slot = free.max { a, b in
+            // One slot, or a model whose memory can't share a start: the free slot with the most of the prompt,
+            // but only one whose cache this prompt follows for at least half its length (llama-server's
+            // `--slot-prompt-similarity` is 0.5). Otherwise a request that merely starts the same way (Claude
+            // Code's permission check opens like its main prompt) would take the conversation's slot and throw
+            // its cache away for a few shared tokens. Failing that, an empty slot, then the least recently used.
+            let following = free.filter { prefix(of: $0) > 0 && prefix(of: $0) * 2 >= $0.cached.count }
+            slot = following.max { a, b in
                 let (pa, pb) = (prefix(of: a), prefix(of: b))
                 return pa != pb ? pa < pb : a.lastUsed > b.lastUsed
+            } ?? free.min { a, b in
+                a.cached.isEmpty != b.cached.isEmpty ? a.cached.isEmpty : a.lastUsed < b.lastUsed
             }!
             reused = keepPrefix(of: slot, upTo: request.cachePrompt ? prefix(of: slot) : 0)
         }
@@ -314,6 +333,13 @@ extension LlamaRuntime {
             pending: pending, sampler: sampler, grammar: grammar, prompt: prompt, fed: reused,
             promptCount: prompt.count, maxTokens: request.maxTokens, started: started
         )
+        // Checkpoints that no longer describe this sequence (past what it keeps) go; new ones are planned.
+        slot.checkpoints.removeAll { $0.count > reused }
+        if partialMemory, request.cachePrompt {
+            var at = Set(stride(from: Self.checkpointInterval, to: prompt.count, by: Self.checkpointInterval))
+            at.insert(prompt.count - Self.checkpointMargin)
+            job.checkpointAt = at.filter { $0 > reused && $0 < prompt.count }.sorted()
+        }
         slot.job = job
     }
 
@@ -321,14 +347,46 @@ extension LlamaRuntime {
     private func keepPrefix(of slot: Slot, upTo count: Int) -> Int {
         guard let context else { return 0 }
         if count < slot.cached.count {
-            // A model whose memory can't drop a tail (recurrent, sliding-window) refuses; start over.
-            if count == 0 || !llama_memory_seq_rm(llama_get_memory(context), slot.id, llama_pos(count), -1) {
+            let memory = llama_get_memory(context)
+            if count > 0, llama_memory_seq_rm(memory, slot.id, llama_pos(count), -1) {
+                slot.cached = Array(slot.cached[..<count])
+            } else if let checkpoint = slot.checkpoints.last(where: { $0.count > 0 && $0.count <= count }),
+                      checkpoint.state.withUnsafeBufferPointer({ buffer in
+                          llama_state_seq_set_data_ext(
+                              context, buffer.baseAddress, buffer.count, slot.id,
+                              llama_state_seq_flags(LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY)
+                          ) == buffer.count
+                      }),
+                      llama_memory_seq_rm(memory, slot.id, llama_pos(checkpoint.count), -1)
+            {
+                // A model whose memory can't drop a tail (recurrent, sliding-window): back to the last
+                // checkpoint before the prompts part, its state restored and the attention cache cut to match.
+                slot.cached = Array(slot.cached[..<checkpoint.count])
+                return checkpoint.count
+            } else {
                 reset(slot)
                 return 0
             }
-            slot.cached = Array(slot.cached[..<count])
         }
         return count
+    }
+
+    /// Saves a slot's recurrent and sliding-window state now, after its `slot.cached.count` tokens.
+    private func checkpoint(_ slot: Slot) {
+        guard let context else { return }
+        let flags = llama_state_seq_flags(LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY)
+        let size = llama_state_seq_get_size_ext(context, slot.id, flags)
+        guard size > 0 else { return }
+        var state = [UInt8](repeating: 0, count: size)
+        let written = state.withUnsafeMutableBufferPointer { buffer in
+            llama_state_seq_get_data_ext(context, buffer.baseAddress, size, slot.id, flags)
+        }
+        guard written == size else { return }
+        slot.checkpoints.removeAll { $0.count >= slot.cached.count }
+        slot.checkpoints.append((slot.cached.count, state))
+        if slot.checkpoints.count > Self.maxCheckpoints {
+            slot.checkpoints.removeFirst()
+        }
     }
 
     /// Empties one sequence.
@@ -336,6 +394,7 @@ extension LlamaRuntime {
         guard let context else { return }
         _ = llama_memory_seq_rm(llama_get_memory(context), slot.id, -1, -1)
         slot.cached = []
+        slot.checkpoints = []
     }
 
     /// The end of a request: its samplers go, and its slot is free for the next one. A prompt with images
@@ -386,11 +445,15 @@ extension LlamaRuntime {
                     let slot = reading[(rotor + offset) % reading.count]
                     guard let job = slot.job else { continue }
                     let space = batchSize - Int(count)
-                    let take = min(
+                    var take = min(
                         job.prompt.count - job.fed,
                         space,
                         offset == 0 ? max(share, space - share * (reading.count - 1)) : share
                     )
+                    // Stop at a planned checkpoint, which is saved once this batch is decoded.
+                    if let next = job.checkpointAt.first {
+                        take = min(take, next - job.fed)
+                    }
                     job.chunk = max(0, take)
                     guard take > 0 else { continue }
                     for i in 0 ..< take {
@@ -458,6 +521,10 @@ extension LlamaRuntime {
                 slot.cached += job.prompt[job.fed ..< job.fed + job.chunk]
                 job.fed += job.chunk
                 job.chunk = 0
+                if job.checkpointAt.first == job.fed {
+                    job.checkpointAt.removeFirst()
+                    checkpoint(slot)
+                }
                 guard job.fed == job.prompt.count else { continue }
                 job.phase = .generating
                 // The samplers that look back (penalties, DRY) see the prompt too, as llama-server's do.

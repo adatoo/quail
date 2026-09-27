@@ -146,6 +146,9 @@ final class LlamaRuntime: @unchecked Sendable {
     var waiting: [PendingRequest] = []
     var tick: UInt64 = 0
     var rotor = 0
+    /// Set for a model whose memory can't drop a sequence's tail (recurrent or hybrid layers, a sliding
+    /// window), whose slots therefore keep checkpoints to resume from (ADR D-055 amendment).
+    var partialMemory = false
 
     init(slotCount: Int) {
         self.slotCount = slotCount
@@ -243,6 +246,8 @@ final class LlamaRuntime: @unchecked Sendable {
         batchSize = max(1, Int(llama_n_batch(made)))
         batch = llama_batch_init(Int32(batchSize), 0, 1)
         slots = (0 ..< slotCount).map { Slot(id: llama_seq_id($0)) }
+        partialMemory = llama_model_is_recurrent(loaded) || llama_model_is_hybrid(loaded) || llama_model_n_swa(loaded) >
+            0
         info = EngineInfo(
             contextSize: Int(llama_n_ctx(made)),
             bosToken: text(of: llama_vocab_bos(vocab)),
