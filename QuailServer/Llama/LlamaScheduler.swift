@@ -341,6 +341,7 @@ extension LlamaRuntime {
             job.checkpointAt = at.filter { $0 > reused && $0 < prompt.count }.sorted()
         }
         slot.job = job
+        pending.emit(.promptProgress(done: reused, total: prompt.count, cached: reused))
     }
 
     /// Makes a slot's sequence hold the first `count` of its cached tokens and no more; returns how many it does.
@@ -521,6 +522,7 @@ extension LlamaRuntime {
                 slot.cached += job.prompt[job.fed ..< job.fed + job.chunk]
                 job.fed += job.chunk
                 job.chunk = 0
+                job.pending.emit(.promptProgress(done: job.fed, total: job.prompt.count, cached: job.reused))
                 if job.checkpointAt.first == job.fed {
                     job.checkpointAt.removeFirst()
                     checkpoint(slot)

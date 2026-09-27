@@ -342,6 +342,11 @@ final class MLXEngine: Engine, @unchecked Sendable {
         Memory.clearCache()
     }
 
+    /// What MLX's allocator holds in live arrays: weights, caches and work in progress (`GET /slots`).
+    func memoryBytes() async -> Int? {
+        Memory.activeMemory
+    }
+
     func info() async -> EngineInfo {
         current?.info ?? EngineInfo(contextSize: 0, bosToken: "", eosToken: "")
     }

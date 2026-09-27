@@ -29,7 +29,9 @@ struct RouteHarness {
         endless: Bool = false,
         webUI: Bool = true,
         grammar: Bool = false,
-        vision: Bool = false
+        vision: Bool = false,
+        promptProgress: Bool = false,
+        firstTokenDelay: Duration = .zero
     ) {
         let world = world
         let log = ServerLog(toStandardError: false)
@@ -45,6 +47,8 @@ struct RouteHarness {
                 engine.endless = endless
                 engine.capabilities = .init(grammar: grammar, vision: vision)
                 engine.supportsImages = vision
+                engine.reportsPromptProgress = promptProgress
+                engine.firstTokenDelay = firstTokenDelay
                 return engine
             },
             log: log

@@ -178,6 +178,7 @@ final class MLXSequence {
         banned = request.ignoreEndOfSequence ? Array(stops) : []
         detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
         history = prompt
+        job.emit(.promptProgress(done: reused, total: prompt.count, cached: reused))
     }
 
     // MARK: Prompt
@@ -198,6 +199,7 @@ final class MLXSequence {
             eval(inFlight.removeFirst())
         }
         fed += count
+        job.emit(.promptProgress(done: fed, total: prompt.count, cached: reused))
         quantize()
         if untrimmable, fed < feedTo,
            fed - (checkpoints.keys.max() ?? reused) >= MLXEngine.checkpointInterval

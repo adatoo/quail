@@ -54,6 +54,7 @@ struct LlamaEngineTests {
             switch event {
             case let .token(_, piece): text += piece
             case let .finished(reason, timings): finished = (reason, timings)
+            case .promptProgress: break
             }
         }
         return (text, finished)

@@ -74,6 +74,8 @@ struct ServerRoutes: Sendable {
             return request.method == "POST" ? .json(200, ["ticket": tickets.issue()]) : methodNotAllowed()
         case "/models", "/v1/models":
             return request.method == "GET" ? await listModels() : methodNotAllowed()
+        case "/slots":
+            return request.method == "GET" ? await activity() : methodNotAllowed()
         case "/models/load":
             return request.method == "POST" ? await loadModel(request) : methodNotAllowed()
         case "/models/unload":
@@ -140,6 +142,32 @@ struct ServerRoutes: Sendable {
     private func listModels() async -> HTTPResponse {
         let models = await router.snapshots().map(ModelJSON.init)
         return .json(200, ModelListJSON(data: models))
+    }
+
+    /// What's happening now (ADR D-060): each model loading or loaded, and each request in progress, with how far its
+    /// prompt has been read and how fast it's writing. llama-server's route name, Quail's own shape: its per-slot
+    /// objects don't describe batched MLX requests or ones waiting in a queue. Never loads a model.
+    private func activity() async -> HTTPResponse {
+        let now = Date()
+        var models: [ActivityJSON.Model] = []
+        for model in await router.activeModels() {
+            let memory = model.state == .loaded ? await model.engine?.memoryBytes() : nil
+            models.append(.init(
+                id: model.id, state: model.state == .loaded ? "loaded" : "loading",
+                loadingSeconds: model.loadStartedAt.map { now.timeIntervalSince($0) }, leases: model.leases,
+                memoryBytes: memory
+            ))
+        }
+        let requests = router.activity.snapshot().map { request in
+            ActivityJSON.Request(
+                id: request.id, model: request.model, phase: request.phase.rawValue,
+                promptTotal: request.promptTotal, promptDone: request.promptDone, cached: request.cached,
+                generated: request.generated, promptPerSecond: request.promptPerSecond(now: now),
+                predictedPerSecond: request.predictedPerSecond(now: now),
+                seconds: now.timeIntervalSince(request.started)
+            )
+        }
+        return .json(200, ActivityJSON(models: models, requests: requests))
     }
 
     private func loadModel(_ request: HTTPRequest) async -> HTTPResponse {
@@ -263,4 +291,45 @@ private struct ModelJSON: Encodable {
         case .failed: status = Status(value: "unloaded", failed: true, exitCode: 1)
         }
     }
+}
+
+/// `GET /slots` (ADR D-060).
+struct ActivityJSON: Encodable {
+    struct Model: Encodable {
+        let id: String
+        let state: String
+        let loadingSeconds: Double?
+        let leases: Int
+        let memoryBytes: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case id, state, leases
+            case loadingSeconds = "loading_seconds"
+            case memoryBytes = "memory_bytes"
+        }
+    }
+
+    struct Request: Encodable {
+        let id: Int
+        let model: String
+        let phase: String
+        let promptTotal: Int
+        let promptDone: Int
+        let cached: Int
+        let generated: Int
+        let promptPerSecond: Double?
+        let predictedPerSecond: Double?
+        let seconds: Double
+
+        enum CodingKeys: String, CodingKey {
+            case id, model, phase, cached, generated, seconds
+            case promptTotal = "prompt_total"
+            case promptDone = "prompt_done"
+            case promptPerSecond = "prompt_per_second"
+            case predictedPerSecond = "predicted_per_second"
+        }
+    }
+
+    let models: [Model]
+    let requests: [Request]
 }

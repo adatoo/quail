@@ -28,6 +28,9 @@ public protocol Engine: Sendable {
     /// Streams tokens. Ending the stream's consumption (cancellation, or the
     /// HTTP client going away) must stop generation.
     func generate(_ request: GenerationRequest) -> AsyncThrowingStream<GenerationEvent, any Error>
+
+    /// Memory the engine's own allocator holds, if it can say (`GET /slots`); nil leaves it to the process's size.
+    func memoryBytes() async -> Int?
 }
 
 /// What an engine supports beyond plain text generation (ADR D-043, D-044). A request that needs
@@ -57,6 +60,10 @@ public struct EngineCapabilities: Equatable, Sendable {
 public extension Engine {
     var capabilities: EngineCapabilities {
         EngineCapabilities()
+    }
+
+    func memoryBytes() async -> Int? {
+        nil
     }
 }
 
@@ -187,6 +194,9 @@ public enum FinishReason: String, Equatable, Sendable {
 public enum GenerationEvent: Equatable, Sendable {
     case token(id: Int, text: String)
     case finished(FinishReason, GenerationTimings)
+    /// How far the prompt has been read: tokens in the cache so far (`cached` of them reused), of `total`. Optional,
+    /// for `GET /slots` (ADR D-060); never sent to a client.
+    case promptProgress(done: Int, total: Int, cached: Int)
 }
 
 public enum EngineError: Error, Equatable, LocalizedError, Sendable {

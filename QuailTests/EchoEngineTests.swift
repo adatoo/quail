@@ -40,6 +40,7 @@ struct EchoEngineTests {
             switch event {
             case let .token(_, piece): text += piece
             case let .finished(reason, timings): finished = (reason, timings)
+            case .promptProgress: break
             }
         }
         #expect(text == "abc")
@@ -58,6 +59,7 @@ struct EchoEngineTests {
             switch event {
             case .token: pieces += 1
             case let .finished(finish, _): reason = finish
+            case .promptProgress: break
             }
         }
         #expect(pieces == 2)

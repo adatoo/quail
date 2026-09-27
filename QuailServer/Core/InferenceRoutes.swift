@@ -170,7 +170,14 @@ struct InferenceRoutes: Sendable {
         let body = try jsonBody(request)
         let settings = try GenerationSettings(body)
         let id = try await modelID(body: body, request: request)
-        let lease = try await router.acquire(id)
+        let activity = router.activity.begin(model: id)
+        let lease: ModelLease
+        do {
+            lease = try await router.acquire(id)
+        } catch {
+            activity.end()
+            throw error
+        }
 
         let responseID = InferenceJSON.newID()
         let created = Int(Date().timeIntervalSince1970)
@@ -179,7 +186,9 @@ struct InferenceRoutes: Sendable {
             let info = await lease.engine.info()
             let tokens = try await promptTokens(body["prompt"], engine: lease.engine)
             let generation = try generationRequest(tokens: tokens, settings: settings, info: info)
-            let pump = EventPump(TextGenerator.stream(engine: lease.engine, request: generation, stop: settings.stop))
+            let pump = EventPump(TextGenerator.stream(
+                engine: lease.engine, request: generation, stop: settings.stop, activity: activity
+            ))
 
             @Sendable func envelope(
                 text: String,
@@ -223,6 +232,7 @@ struct InferenceRoutes: Sendable {
                 }
             }
         } catch {
+            activity.end()
             await router.release(lease)
             throw error
         }
@@ -359,7 +369,14 @@ struct InferenceRoutes: Sendable {
 
     /// Loads the model if need be, renders and tokenizes the prompt, and starts generating.
     func startChat(_ chat: ChatRequest, settings: GenerationSettings, model id: String) async throws -> ChatRun {
-        let lease = try await router.acquire(id)
+        let activity = router.activity.begin(model: id)
+        let lease: ModelLease
+        do {
+            lease = try await router.acquire(id)
+        } catch {
+            activity.end()
+            throw error
+        }
         do {
             try applyCapabilities(settings, forcesToolCall: chat.toolChoice.forcesCall, engine: lease.engine)
             let info = await lease.engine.info()
@@ -402,7 +419,9 @@ struct InferenceRoutes: Sendable {
                 forcedCall: forcedCall,
                 images: tokens.media.isEmpty ? nil : (tokens.text, tokens.media)
             )
-            let text = TextGenerator.stream(engine: lease.engine, request: generation, stop: settings.stop)
+            let text = TextGenerator.stream(
+                engine: lease.engine, request: generation, stop: settings.stop, activity: activity
+            )
             let parser = ChatOutputParser(
                 format: tokens.toolFormat,
                 tools: chat.toolsEnabled ? chat.tools ?? [] : [],
@@ -414,6 +433,7 @@ struct InferenceRoutes: Sendable {
                 promptTokens: tokens.ids.count
             )
         } catch {
+            activity.end()
             await router.release(lease)
             throw error
         }
@@ -596,7 +616,7 @@ struct InferenceRoutes: Sendable {
                     "video": false,
                     "audio": false,
                 ] as [String: Any],
-                "endpoint_slots": false,
+                "endpoint_slots": true,
                 "endpoint_props": false,
                 "endpoint_metrics": false,
                 "ui": webUI,

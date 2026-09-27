@@ -10,6 +10,10 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Added
+
+- Quail server answers `GET /slots` with what it's doing right now: each model loading (and for how long) or loaded (with its memory on MLX), and each request in progress. For a request it gives the phase (waiting for its model, queued, reading its prompt, generating), how much of the prompt has been read, and tokens a second. The app's live activity display is built on it.
+
 ## [0.48.1] - 2026-09-27
 
 ### Removed

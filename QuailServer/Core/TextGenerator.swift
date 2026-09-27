@@ -9,13 +9,18 @@ enum TextEvent: Equatable, Sendable {
 enum TextGenerator {
     /// Streams an engine's output as text. Ending consumption — the client went away, or a stop
     /// string matched — stops the engine.
+    ///
+    /// `activity`, if given, follows the request from here to its end (`GET /slots`) and is ended with the stream.
     static func stream(
         engine: any Engine,
         request: GenerationRequest,
-        stop: [String]
+        stop: [String],
+        activity: ActivityTicket? = nil
     ) -> AsyncThrowingStream<TextEvent, any Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
+                defer { activity?.end() }
+                activity?.accepted(promptTokens: request.promptTokens.count)
                 var matcher = StopMatcher(stop)
                 let started = ContinuousClock.now
                 var firstToken: Duration?
@@ -23,7 +28,10 @@ enum TextGenerator {
                 do {
                     for try await event in engine.generate(request) {
                         switch event {
+                        case let .promptProgress(done, total, cached):
+                            activity?.promptProgress(done: done, total: total, cached: cached)
                         case let .token(_, piece):
+                            activity?.token()
                             if firstToken == nil {
                                 firstToken = started.duration(to: .now)
                             }
@@ -70,7 +78,10 @@ enum TextGenerator {
                     continuation.finish(throwing: error)
                 }
             }
-            continuation.onTermination = { _ in task.cancel() }
+            continuation.onTermination = { _ in
+                task.cancel()
+                activity?.end()
+            }
         }
     }
 }
