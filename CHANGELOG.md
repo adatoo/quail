@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-09-27
+
 ### Added
 
 - The benchmark also measures a returning conversation's next turn (first token after a cached 2,048-token prompt) and four requests at once (their total speed). They show in Settings → Benchmark, `quail bench` and the Markdown summary. Earlier results stay comparable and show a dash.
