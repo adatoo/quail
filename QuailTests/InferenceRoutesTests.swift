@@ -174,9 +174,10 @@ struct InferenceRoutesTests {
         #expect(defaults.speculativeMaxTokens == nil)
 
         // llama-server's `speculative.n_max`: 0 turns speculative guessing off (the benchmark does).
-        _ = await harness.post("/v1/completions", #"{"model":"Alpha","prompt":"x","speculative.n_max":0}"#)
-        #expect(harness.world.requests.last?.speculativeMaxTokens == 0)
-        let bad = await harness.post("/v1/completions", #"{"model":"Alpha","prompt":"x","speculative.n_max":-1}"#)
+        let speculation = Harness()
+        _ = await speculation.post("/v1/completions", #"{"model":"Alpha","prompt":"x","speculative.n_max":0}"#)
+        #expect(speculation.world.requests.last?.speculativeMaxTokens == 0)
+        let bad = await speculation.post("/v1/completions", #"{"model":"Alpha","prompt":"x","speculative.n_max":-1}"#)
         #expect(bad.status == 400)
 
         // The sampler options only some engines have (ADR D-043): parsed for every engine.
