@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.41.3] - 2026-09-27
+
 ### Changed
 
 - **Returning to a conversation no longer re-reads the whole prompt on MLX models.** Quail server now keeps up to four conversations' prompt caches, within an eighth of the Mac's memory. An agent and the chat page, or an agent's sub-tasks, stop evicting each other's. On two interleaved conversations of about 2,800 tokens, a returning turn's prompt took 0.2 s instead of 7.1 s on Qwen3-8B.
