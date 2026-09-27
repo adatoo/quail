@@ -51,6 +51,12 @@ struct ModelsPane: View {
 
     var body: some View {
         Form {
+            // Only when there are MLX models that won't load; Settings → Endpoint says it either way.
+            if !appState.canServe(.mlxSafetensors), !appState.modelStore.installedMLXDirectories().isEmpty {
+                Section {
+                    MLXUnavailableBanner(appState: appState)
+                }
+            }
             Section {
                 installedList
             } header: {

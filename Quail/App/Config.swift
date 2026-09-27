@@ -11,7 +11,9 @@ import Foundation
 /// outright. Every property must have a matching case in `init(from:)` and
 /// `encode(to:)` be added below when a new one is introduced.
 struct Config: Sendable, Equatable, Codable {
-    var runtimeID: RuntimeID = .llamaCpp
+    /// Quail server by default since it passed the parity gate (ADR D-027 amendment); llama.cpp stays
+    /// selectable, for GGUF models only.
+    var runtimeID: RuntimeID = .quail
     var host: String = "127.0.0.1"
     var port: Int = 8080
     var modelsMax: Int = 1
@@ -22,6 +24,10 @@ struct Config: Sendable, Equatable, Codable {
     /// before D-039 has `apiKeyEnabled: false` because that was the default, not a choice, so it's
     /// switched on once; after that the setting is the user's.
     var apiKeyDefaultApplied: Bool = true
+    /// Whether the Quail-server-by-default rule has been applied. A `config.json` written before it names
+    /// llama.cpp because that was the default, not a choice, so it's switched to Quail server once; after
+    /// that the setting is the user's.
+    var quailDefaultApplied: Bool = true
     var openAtLogin: Bool = false
     var autoStartServer: Bool = false
     /// Keep the Mac from idle-sleeping while the server runs (ADR D-054).
@@ -45,7 +51,8 @@ struct Config: Sendable, Equatable, Codable {
     init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case runtimeID, host, port, modelsMax, apiKeyEnabled, apiKeyDefaultApplied, openAtLogin, autoStartServer,
+        case runtimeID, host, port, modelsMax, apiKeyEnabled, apiKeyDefaultApplied, quailDefaultApplied, openAtLogin,
+             autoStartServer,
              keepAwake, keepAwakeLidClosed,
              modelsDirectoryBookmark,
              defaultModelID
@@ -61,6 +68,8 @@ struct Config: Sendable, Equatable, Codable {
         apiKeyEnabled = try container.decodeIfPresent(Bool.self, forKey: .apiKeyEnabled) ?? fallback.apiKeyEnabled
         // Absent means the file predates the on-by-default rule.
         apiKeyDefaultApplied = try container.decodeIfPresent(Bool.self, forKey: .apiKeyDefaultApplied) ?? false
+        // Absent means the file predates Quail server becoming the default.
+        quailDefaultApplied = try container.decodeIfPresent(Bool.self, forKey: .quailDefaultApplied) ?? false
         openAtLogin = try container.decodeIfPresent(Bool.self, forKey: .openAtLogin) ?? fallback.openAtLogin
         autoStartServer = try container.decodeIfPresent(Bool.self, forKey: .autoStartServer) ?? fallback.autoStartServer
         keepAwake = try container.decodeIfPresent(Bool.self, forKey: .keepAwake) ?? fallback.keepAwake

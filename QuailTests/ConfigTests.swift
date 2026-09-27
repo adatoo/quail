@@ -63,6 +63,8 @@ struct ConfigTests {
         // The file predates the on-by-default rule, so AppState will apply it once.
         #expect(loaded.apiKeyDefaultApplied == false)
         #expect(loaded.apiKeyEnabled == false)
+        // It also predates Quail server as the default: AppState switches it once.
+        #expect(loaded.runtimeID == .llamaCpp && loaded.quailDefaultApplied == false)
 
         // A new Config starts with the key on and nothing left to apply.
         #expect(Config().apiKeyEnabled)

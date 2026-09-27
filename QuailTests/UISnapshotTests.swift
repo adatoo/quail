@@ -12,7 +12,7 @@ struct UISnapshotTests {
     private static let outputDirectory = ProcessInfo.processInfo.environment["QUAIL_SNAPSHOT_DIR"]
         .map { URL(fileURLWithPath: $0, isDirectory: true) }
 
-    private func makeAppState() async throws -> (AppState, URL) {
+    private func makeAppState(runtime id: RuntimeID = .quail) async throws -> (AppState, URL) {
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("quail-snapshots-\(UUID().uuidString)", isDirectory: true)
         let models = scratch.appendingPathComponent("Models", isDirectory: true)
@@ -27,13 +27,13 @@ struct UISnapshotTests {
         try FileManager.default.createDirectory(at: mlx, withIntermediateDirectories: true)
         try Data(#"{"model_type":"qwen3"}"#.utf8).write(to: mlx.appendingPathComponent("config.json"))
         let appState = try AppState(
-            config: Config(),
+            config: { var config = Config(); config.runtimeID = id; return config }(),
             configURL: scratch.appendingPathComponent("config.json"),
             secretStore: FakeSecretStore(),
             runtime: FakeRuntime(launchSpec: LaunchSpec(
                 executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["30"], environment: [:],
                 currentDirectoryURL: nil
-            )),
+            ), id: id, formats: id == .quail ? [.gguf, .mlxSafetensors] : [.gguf]),
             modelsRootURL: models,
             catalogLocations: .init(bundle: .main, directory: scratch),
             shapeCache: ModelShapeCache(url: nil),
@@ -87,6 +87,24 @@ struct UISnapshotTests {
                 ModelsPane(appState: appState), size: CGSize(width: width, height: 600), name: "models-\(Int(width))"
             )
         }
+    }
+
+    @Test("llama.cpp chosen: MLX models are said to be unavailable")
+    func llamaCppWarnings() async throws {
+        let (appState, scratch) = try await makeAppState(runtime: .llamaCpp)
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        appState.settingsTab = .endpoint
+        try await render(
+            SettingsView(appState: appState),
+            size: CGSize(width: 900, height: 760),
+            name: "llama-endpoint"
+        )
+        try await render(ModelsPane(appState: appState), size: CGSize(width: 700, height: 600), name: "llama-models")
+        let family = appState.catalog.families.first { $0.id == "qwen3.6-35b-a3b" }
+        try await render(
+            AddModelSheet(appState: appState, defaultFilter: .mlx, preselect: family),
+            size: CGSize(width: 820, height: 580), name: "llama-add-model"
+        )
     }
 
     @Test("Settings → General")

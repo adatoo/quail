@@ -493,6 +493,52 @@ struct AppStateTests {
         #expect(relaunched.apiKey == nil)
     }
 
+    @Test("a config from before Quail server was the default is switched to it once; a later choice is kept")
+    func legacyConfigMovesToQuailServer() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let legacy = Data(
+            #"{"runtimeID":"llamaCpp","host":"127.0.0.1","port":8080,"modelsMax":1,"apiKeyEnabled":true,"apiKeyDefaultApplied":true}"#
+                .utf8
+        )
+        let configURL = scratch.appendingPathComponent("config.json")
+        try legacy.write(to: configURL)
+
+        let appState = makeAppState(config: Config.load(from: configURL), scratchDir: scratch)
+        #expect(appState.config.runtimeID == .quail)
+        let saved = Config.load(from: configURL)
+        #expect(saved.runtimeID == .quail)
+        #expect(saved.quailDefaultApplied)
+
+        // Choosing llama.cpp afterwards is the user's choice, and a relaunch keeps it.
+        var chosen = saved
+        chosen.runtimeID = .llamaCpp
+        try chosen.save(to: configURL)
+        let relaunched = makeAppState(config: Config.load(from: configURL), scratchDir: scratch)
+        #expect(relaunched.config.runtimeID == .llamaCpp)
+        #expect(Config().runtimeID == .quail && Config().quailDefaultApplied)
+    }
+
+    @Test("with llama.cpp chosen, a note says MLX models won't load, counting them; Quail server needs none")
+    func mlxUnavailableNote() throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let llama = makeAppState(scratchDir: scratch)
+        #expect(llama
+            .mlxUnavailableNote == "llama.cpp runs GGUF models only. Choose Quail server to run MLX models too.")
+        for name in ["owner--one", "owner--two"] {
+            let folder = scratch.appendingPathComponent("Models/mlx/\(name)", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try Data(#"{"model_type":"qwen3"}"#.utf8).write(to: folder.appendingPathComponent("config.json"))
+        }
+        #expect(llama.mlxUnavailableNote?.contains("your 2 MLX models won't load") == true)
+        let quail = makeAppState(
+            scratchDir: scratch,
+            runtime: FakeRuntime(launchSpec: Self.sleeper, id: .quail, formats: [.gguf, .mlxSafetensors])
+        )
+        #expect(quail.mlxUnavailableNote == nil)
+    }
+
     @Test("a config with the key on but no stored key gets a new one instead of running open")
     func missingKeyIsRegenerated() throws {
         var config = Config()

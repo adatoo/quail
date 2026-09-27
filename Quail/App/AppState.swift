@@ -99,8 +99,17 @@ final class AppState {
             config.apiKeyEnabled = true
             config.apiKeyDefaultApplied = true
         }
-        // The runtime the config names, unless a test hands one in; one that can't be started today (oMLX,
-        // Rapid-MLX) falls back to llama.cpp, and the config says so.
+        // Quail server became the default once it passed the parity gate (ADR D-027 amendment). A config from
+        // before then names llama.cpp only because that was the default, so it's switched once.
+        let appliesQuailDefault = !config.quailDefaultApplied
+        if appliesQuailDefault {
+            if config.runtimeID == .llamaCpp {
+                config.runtimeID = .quail
+            }
+            config.quailDefaultApplied = true
+        }
+        // The runtime the config names, unless a test hands one in; one that can't be started here (oMLX,
+        // Rapid-MLX, or Quail server in the App Store build) falls back to llama.cpp, and the config says so.
         if runtime == nil, !RuntimeID.available.contains(config.runtimeID) {
             config.runtimeID = .llamaCpp
         }
@@ -139,7 +148,7 @@ final class AppState {
         }
         apiKey = key
         hfToken = try? secretStore.get(account: Self.hfTokenAccount)
-        if appliesKeyDefault {
+        if appliesKeyDefault || appliesQuailDefault {
             persist()
         }
         serverController.onPhaseChange = { [weak self] _ in self?.updatePower() }
@@ -335,6 +344,26 @@ final class AppState {
     var hasServableModel: Bool {
         !modelStore.installedGGUFFiles().isEmpty
             || (canServe(.mlxSafetensors) && !modelStore.installedMLXDirectories().isEmpty)
+    }
+
+    /// What to tell someone whose chosen runtime can't run MLX models (llama.cpp), shown in Settings → Endpoint,
+    /// above the Models list and in Add Model; nil when it can. Counts the MLX models on disk that won't load.
+    var mlxUnavailableNote: String? {
+        guard !canServe(.mlxSafetensors) else { return nil }
+        let count = modelStore.installedMLXDirectories().count
+        let name = runtime.id.displayName
+        // The legacy App Store build has no Quail server to switch to.
+        let canSwitch = RuntimeID.available.contains(.quail)
+        switch count {
+        case 0:
+            return "\(name) runs GGUF models only." + (canSwitch ? " Choose Quail server to run MLX models too." : "")
+        case 1:
+            return "\(name) can't run MLX models, so your MLX model won't load."
+                + (canSwitch ? " Choose Quail server to use it." : "")
+        default:
+            return "\(name) can't run MLX models, so your \(count) MLX models won't load."
+                + (canSwitch ? " Choose Quail server to use them." : "")
+        }
     }
 
     /// Switches runtime (Settings → Endpoint). Only while stopped: false otherwise, or for a runtime the app

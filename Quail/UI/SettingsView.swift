@@ -212,13 +212,18 @@ private struct EndpointSettingsView: View {
                     selection: Binding(get: { appState.runtime.id }, set: { appState.setRuntime($0) })
                 ) {
                     ForEach(RuntimeID.available, id: \.self) { id in
-                        Text(id == .quail ? "Quail server (GGUF and MLX, preview)" : "\(id.displayName) (GGUF)").tag(id)
+                        Text(id == .quail ? "Quail server (GGUF and MLX)" : "\(id.displayName) (GGUF only)").tag(id)
                     }
                 }
                 .disabled(!appState.canChangeRuntime || RuntimeID.available.count < 2)
                 .help(appState.canChangeRuntime
-                    ? "Which server Quail starts. llama.cpp is the default; Quail server also runs MLX models."
+                    ? "Which server Quail starts. Quail server is the default; llama.cpp stays available as a fallback and runs GGUF models only."
                     : "Stop the server to change the runtime.")
+                if let note = appState.mlxUnavailableNote {
+                    Label(note, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
 
                 TextField(
                     "Host",

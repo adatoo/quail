@@ -9,13 +9,13 @@ enum RuntimeID: String, Sendable, CaseIterable, Codable {
     case omlx
     case rapidMLX
 
-    /// The runtimes the app can start today; oMLX and Rapid-MLX are deferred (ADR D-027).
+    /// The runtimes the app can start today, the default first; oMLX and Rapid-MLX are deferred (ADR D-027).
     static var available: [RuntimeID] {
         #if APPSTORE
             // The sandbox work for quail-server is Phase 4; the App Store build stays on llama.cpp until then.
             [.llamaCpp]
         #else
-            [.llamaCpp, .quail]
+            [.quail, .llamaCpp]
         #endif
     }
 }
