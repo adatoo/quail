@@ -2,6 +2,19 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-060 · 2026-09-28 · Live activity: `GET /slots`, the menu bar and an Activity window
+
+**Situation:** a 30,000-token prompt takes a minute and a half on Qwen3-8B, and a model load takes seconds. The whole time, Quail's menu says "Running" and the client waits in silence. The app knew the server's phase and each model's load state, from a 2 s `GET /models` poll, and nothing else: no request state, no progress, no memory, CPU or GPU figures.
+
+**Decision (server):** `ActivityRegistry` keeps a record per request in progress. `GET /slots` (behind the API key, never loading a model) returns them with the active models.
+- **Request lifecycle:** a request is recorded as it asks for its model, which is the `waiting_for_model` phase. It becomes `queued` once the engine has it. `TextGenerator.stream` then moves it to `reading_prompt` at the engine's first prompt progress and to `generating` at the first token. It's removed however it ends, including when the client leaves (the record's `end()` is idempotent).
+- **A new optional event,** `GenerationEvent.promptProgress(done:total:cached:)`. MLX emits it after each 512-token slice, GGUF after each chunk (2,048 tokens). `TextGenerator` consumes it, so no client ever sees it.
+- **Rates:** prompt tokens a second are counted from the first progress event and exclude reused tokens. Generation tokens a second are counted from the first token.
+- **Models** carry their state, `loading_seconds`, leases and `memory_bytes`. The memory comes from MLX's allocator (`Memory.activeMemory`); GGUF reports nil, and the app measures the process instead.
+- **The name:** `/slots` is llama-server's route name, but the shape is Quail's own, because per-slot objects don't describe batched MLX requests or queued ones. `/props` now says `endpoint_slots: true`.
+
+**Checked:** registry phase and rate tests; `/slots` during a scripted stream (generating, then gone after a hang-up) and while a prompt is read (half done, and the reply text unchanged); auth; and no model load. Against real models, a 13,570-token prompt on Qwen3-8B showed MLX advancing 512 tokens at a time at about 336 tokens a second, and GGUF showing loading for 15 s and then 2,048-token steps.
+
 ## D-059 · 2026-09-28 · Moving in models other apps downloaded (Phase 4 step 2)
 
 **Situation:** people arrive with models already downloaded by llama.cpp (`-hf`), LM Studio, the Hugging Face cache (mlx-lm and others) or oMLX. Re-downloading tens of gigabytes is slow, and keeping two copies wastes disk space. ARCHITECTURE §6 said to offer to move them on first run, never symlink.

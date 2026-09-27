@@ -51,6 +51,8 @@ struct ScriptedEngine: Engine {
     var firstTokenDelay: Duration = .zero
     var capabilities = EngineCapabilities()
     var supportsImages = false
+    /// Report reading the prompt in two halves before the first token (`GenerationEvent.promptProgress`).
+    var reportsPromptProgress = false
 
     func load(_: ModelEntry) async throws {}
     func unload() async {}
@@ -80,6 +82,11 @@ struct ScriptedEngine: Engine {
                 if let message = script.failFirstToken {
                     continuation.finish(throwing: EngineError.loadFailed(message))
                     return
+                }
+                let total = request.promptTokens.count
+                if script.reportsPromptProgress {
+                    continuation.yield(.promptProgress(done: 0, total: total, cached: 0))
+                    continuation.yield(.promptProgress(done: total / 2, total: total, cached: 0))
                 }
                 if script.firstTokenDelay > .zero {
                     try? await Task.sleep(for: script.firstTokenDelay)

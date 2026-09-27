@@ -49,6 +49,8 @@ actor ModelRouter {
         var lastUsed: UInt64 = 0
         /// An unload asked for while the model was busy or still loading.
         var unloadWhenIdle = false
+        /// When its engine started loading, while it does (`GET /slots`).
+        var loadStartedAt: Date?
     }
 
     private var slots: [String: Slot]
@@ -84,6 +86,18 @@ actor ModelRouter {
 
     func leaseCount(_ id: String) -> Int {
         slots[id]?.leases ?? 0
+    }
+
+    /// The requests in progress, for `GET /slots` (ADR D-060). Not isolated: requests record themselves as they go.
+    nonisolated let activity = ActivityRegistry()
+
+    /// Each model that's loading or loaded, for `GET /slots`: its state, when its load started, its leases and its
+    /// engine (to ask for its memory).
+    func activeModels() -> [(id: String, state: ModelState, loadStartedAt: Date?, leases: Int, engine: (any Engine)?)] {
+        order.compactMap { id in
+            guard let slot = slots[id], slot.state == .loading || slot.state == .loaded else { return nil }
+            return (id, slot.state, slot.loadStartedAt, slot.leases, slot.engine)
+        }
     }
 
     // MARK: Loading
@@ -239,6 +253,8 @@ actor ModelRouter {
 
         let entry = slots[id]!.entry
         log.log(.info, "loading \(id)")
+        slots[id]?.loadStartedAt = Date()
+        defer { slots[id]?.loadStartedAt = nil }
         let engine: any Engine
         do {
             engine = try makeEngine(entry)
