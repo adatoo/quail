@@ -170,4 +170,23 @@ struct ModelDiscoveryTests {
         let nowhere = URL(fileURLWithPath: "/nonexistent/quail")
         #expect(ModelDiscovery.discover(modelsDirectory: nowhere, mlxDirectory: nowhere, presets: []).isEmpty)
     }
+
+    @Test("a model linked into the store is measured where it is, not as the link")
+    func linkedModelSize() throws {
+        let store = try Store()
+        defer { try? FileManager.default.removeItem(at: store.root) }
+        let elsewhere = store.root.appendingPathComponent("Elsewhere-Q4.gguf")
+        try Data(count: 4096).write(to: elsewhere)
+        try FileManager.default.createSymbolicLink(
+            at: store.gguf.appendingPathComponent("Elsewhere-Q4.gguf"), withDestinationURL: elsewhere
+        )
+        let folder = store.root.appendingPathComponent("elsewhere-mlx")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data(count: 1000).write(to: folder.appendingPathComponent("model.safetensors"))
+        try FileManager.default.createSymbolicLink(
+            at: store.mlx.appendingPathComponent("owner--linked"), withDestinationURL: folder
+        )
+        #expect(ModelDiscovery.size(of: store.gguf.appendingPathComponent("Elsewhere-Q4.gguf")) == 4096)
+        #expect(ModelDiscovery.size(of: store.mlx.appendingPathComponent("owner--linked")) == 1000)
+    }
 }

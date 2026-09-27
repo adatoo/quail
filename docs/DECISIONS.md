@@ -416,6 +416,24 @@ The hidden `<select>` stays the source of truth, so nothing else in the script c
 **Not verified yet:** Release-build performance (either engine), MLX decode speed, `libmtmd` vision, several concurrent requests (`llama-server` batches four slots; v1 of `quail-server` serves one request at a time), template families beyond Qwen3, and linking `mlx-swift` in the App Store build.
 **Alternatives:** Keep two server codebases with one API shape (D-014 as written) — the least work, but two implementations of everything above to keep in step. Build MLX first behind an `Engine` seam and add `libllama` later — the same end state in two stages, and the option if the spike had gone the other way.
 **Amended 2026-09-25 (step 6, the app side):** the app can now run `quail-server`: Settings → Endpoint → Runtime offers **llama.cpp (GGUF)**, still the default, and **Quail server (GGUF and MLX, preview)**, changeable only while the server is stopped and remembered in `Config.runtimeID` (a config naming oMLX or Rapid-MLX, still deferred, falls back to llama.cpp). This is what makes MLX models usable from the app: under llama.cpp they stay listed but say they need the Quail server runtime. The orphan reaper and log rotation cover both servers. Found while testing it end to end: an MLX model folder that is a symlink loaded no weights ("Key lm_head.weight not found"); `MLXEngine` now loads the resolved folder. Not in this step: the key hand-over to the chat page (next), MLX benchmarking in the app (the benchmark reads GGUF headers), and a GGUF and an MLX model sharing an id (the MLX one wins in `quail-server`; the store's naming, `owner--repo` for MLX, makes it unlikely).
+**Amended 2026-09-27 (the parity gate, run):** `quail-server` passes on GGUF, measured against the vendored llama-server b11081 on a Mac mini (M4 Pro, 64 GB), both Release. The benchmark suite ran four rounds per model, the server order alternating, each turn waiting for the Mac to cool back to nominal, with macOS's media, photo and Spotlight analysis paused. Medians, as quail ÷ llama:
+
+| Model | prompt 512 | prompt 4,096 | generation | time to first token |
+|---|---|---|---|---|
+| Qwen3-0.6B Q8_0 | 1.004 | 0.998 | 1.019 | 0.971 |
+| Qwen3-8B Q4_K_M | 0.987 | 0.999 | 1.003 | 1.009 |
+| Qwen3.6 35B-A3B Q4_K_M | 1.044 | 0.982 | 1.006 | 0.954 |
+
+Every ratio is inside the tolerances (5% for speed, 10% for time to first token).
+- **The first run's "22% gap"** on Qwen3-8B's 512-token prompt was the harness. llama-server always went first, on a cooler machine; the Mac mini was at "heavy" thermal pressure, and the same server measured up to 20% slower late in a round. `ParityGateBench` now waits for nominal and alternates the order.
+- **Every Connect Test** (15 tools: Anthropic, Responses and chat-completions shapes) passes on both servers.
+- **Claude Code** completes the tool-using task (write fizz.py, run it, report the last lines) through `/v1/messages` on Qwen3.6 35B-A3B: 116 s against llama-server's 110 s. That took two fixes the gate found:
+  - Claude Code's late system messages had rewritten the prompt's start every turn (D-041 amendment).
+  - Hybrid models had no prompt reuse, and one slot lost the conversation to Claude Code's permission check (D-048 amendment).
+- **The chat page chats** on a GGUF model.
+
+**Not yet done, by decision:** making `quail` the default runtime and taking `llama-server` out of the bundle. That changes what every user runs, so it waits for the user's go-ahead.
+
 **Revisit if:** the parity gate fails by more than the plan's tolerances, or upstream `llama-server` gains something (speculative decoding, batching) that users need and `quail-server` can't match soon.
 
 ## D-026 · 2026-09-24 · The Ollama registry is not a download source; ModelFit only feeds catalog discovery
