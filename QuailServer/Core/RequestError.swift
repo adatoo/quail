@@ -27,6 +27,8 @@ struct GenerationSettings: Equatable, Sendable {
     var sampling = SamplingParameters()
     var ignoreEndOfSequence = false
     var cachePrompt = true
+    /// llama-server's `speculative.n_max`: the most tokens a speculative step may guess; 0 turns guessing off.
+    var speculativeMaxTokens: Int?
     var stop: [String] = []
     var stream = false
     var includeUsage = false
@@ -142,6 +144,12 @@ struct GenerationSettings: Equatable, Sendable {
         if let value = body["cache_prompt"], !value.isNull {
             guard let flag = value.boolValue else { throw RequestError.invalid("'cache_prompt' must be a boolean") }
             cachePrompt = flag
+        }
+        if let value = body["speculative.n_max"], !value.isNull {
+            guard let count = value.intValue, count >= 0 else {
+                throw RequestError.invalid("'speculative.n_max' must be a whole number, 0 or more")
+            }
+            speculativeMaxTokens = count
         }
         if let value = body["stream"], !value.isNull {
             guard let flag = value.boolValue else { throw RequestError.invalid("'stream' must be a boolean") }

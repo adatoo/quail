@@ -38,8 +38,10 @@ struct ServerArgumentsTests {
 
     @Test("MLX prompt caches go to the user's Caches folder unless moved or turned off")
     func promptCacheDirectory() throws {
-        #expect(try run(["--models-dir", "/m"]).promptCacheDirectory?.path.hasSuffix("com.datoos.quail/PromptCache") == true)
-        #expect(try run(["--models-dir", "/m", "--prompt-cache-dir", "/tmp/pc"]).promptCacheDirectory?.path == "/tmp/pc")
+        #expect(try run(["--models-dir", "/m"]).promptCacheDirectory?.path
+            .hasSuffix("com.datoos.quail/PromptCache") == true)
+        #expect(try run(["--models-dir", "/m", "--prompt-cache-dir", "/tmp/pc"]).promptCacheDirectory?
+            .path == "/tmp/pc")
         #expect(try run(["--models-dir", "/m", "--no-prompt-cache-disk"]).promptCacheDirectory == nil)
     }
 

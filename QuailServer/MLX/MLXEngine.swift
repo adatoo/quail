@@ -247,7 +247,12 @@ final class MLXEngine: Engine, @unchecked Sendable {
             let made = Loaded(
                 container: container, info: info, chatTemplate: files.chatTemplate, tokenizer: tokenizer,
                 vision: vision ? files.visionSetup : nil, weightBytes: weightBytes,
-                disk: PromptDiskCache(root: entry.promptCacheDirectory, entry: entry, weightBytes: weightBytes, vision: vision)
+                disk: PromptDiskCache(
+                    root: entry.promptCacheDirectory,
+                    entry: entry,
+                    weightBytes: weightBytes,
+                    vision: vision
+                )
             )
             lock.withLock { loaded = made }
         } catch let error as EngineError {
@@ -444,7 +449,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
 
         // Prompt-lookup speculation needs a load whose prompt can be fed in pieces, and no penalty processors
         // (they'd have to see every guessed token in order).
-        if sliceable, parameters.processor() == nil, request.maxTokens > 1, Self.lookupEnabled {
+        if sliceable, parameters.processor() == nil, request.maxTokens > 1, Self.lookupEnabled,
+           request.speculativeMaxTokens != 0
+        {
             var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
             let outcome = Self.decodeWithLookup(
                 rest: Array(prompt[fed...]), prompt: prompt, layers: &layers, context: context, request: request,
@@ -547,10 +554,15 @@ final class MLXEngine: Engine, @unchecked Sendable {
 
     // MARK: Prompt-lookup speculation
 
-    /// Off with `QUAIL_PROMPT_LOOKUP=0` in the server's environment, to compare.
+    /// Off with `QUAIL_PROMPT_LOOKUP=0` in the server's environment, to compare; `nodraft` keeps this decode loop
+    /// but never guesses (to tell the loop's own effect from the guessing's).
     static let lookupEnabled = ProcessInfo.processInfo.environment["QUAIL_PROMPT_LOOKUP"] != "0"
+    static let lookupDrafts = ProcessInfo.processInfo.environment["QUAIL_PROMPT_LOOKUP"] != "nodraft"
     /// The most tokens guessed at once.
-    static let maxDraft = 8
+    static let maxDraft = 16
+    /// Tokens run without looking after a wholly wrong guess; the pause doubles each time, up to `maxBackoff`.
+    static let lookEvery = 8
+    static let maxBackoff = 256
 
     private struct LookupOutcome {
         var generated: [Int] = []
@@ -562,13 +574,19 @@ final class MLXEngine: Engine, @unchecked Sendable {
     }
 
     /// The rest of the prompt, then generation with prompt-lookup speculation (ADR D-055, Phase 3c step 6).
-    /// Each step feeds the last token and, when the text so far ends with tokens seen before, the tokens that
-    /// followed them then (`PromptLookup`), all in one forward pass. Greedy keeps the guesses the model agrees
-    /// with; sampling keeps each with the probability the model gives it and draws the first rejected one again
-    /// from what's left (standard speculative sampling, so the text follows the same distribution). What
-    /// wasn't kept is cut from the cache, or, for layers that can't be cut back, undone from a copy taken
-    /// before the step and the kept tokens fed again. A step whose guess was wholly wrong holds off guessing for
-    /// a while, longer each time it happens again, so text that doesn't repeat costs little.
+    ///
+    /// When the text so far ends with tokens seen before (`PromptLookup`), a step feeds the last token and the
+    /// tokens that followed them then, all in one forward pass. Greedy keeps the guesses the model agrees with;
+    /// sampling keeps each with the probability the model gives it and draws the first rejected one again from
+    /// what's left (standard speculative sampling, so the text follows the same distribution). What wasn't kept
+    /// is cut from the cache, or, for layers that can't be cut back, undone from a copy taken before the step
+    /// and the kept tokens fed again.
+    ///
+    /// Guessing costs a pass over several tokens and a wait for its answer, so between guesses the loop runs
+    /// plainly and pipelined, as mlx-swift-lm's own iterator does (the next token computing while the last is
+    /// handed out), looking up the text so far as it goes and stopping to guess only when something recurs.
+    /// After a guess that was wholly wrong it doesn't look for a while (`lookEvery` tokens, doubling each time
+    /// it happens again). The guess grows while guesses are kept and shrinks when they aren't.
     private static func decodeWithLookup(
         rest: [Int], prompt: [Int], layers: inout [any KVCache], context: ModelContext, request: GenerationRequest,
         cancelled: CancelFlag, emit: (Int) -> Void
@@ -581,29 +599,34 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let untrimmable = layers.contains { !$0.isTrimmable || $0.maxSize != nil }
         let negInf = MLXArray(-Float.infinity)
 
-        func forward(_ tokens: [Int]) -> MLXArray {
-            let input = MLXArray(tokens.map { Int32(truncatingIfNeeded: $0) }).expandedDimensions(axis: 0)
-            var rows = context.model(.init(tokens: input), cache: layers, state: nil).logits[0]
+        func forward(_ input: MLXArray) -> MLXArray {
+            let rows = context.model(.init(tokens: input.expandedDimensions(axis: 0)), cache: layers, state: nil)
+                .logits[0]
             for id in banned {
                 rows[0..., id] = negInf
             }
             return rows
         }
-        func draw(_ row: MLXArray) -> Int {
-            sampler.sample(logits: row.expandedDimensions(axis: 0)).item(Int.self)
+        func forward(_ tokens: [Int]) -> MLXArray {
+            forward(MLXArray(tokens.map { Int32(truncatingIfNeeded: $0) }))
+        }
+        /// The next token after `row`'s logits, not yet computed.
+        func draw(_ row: MLXArray) -> MLXArray {
+            sampler.sample(logits: row.expandedDimensions(axis: 0))
         }
 
         // All but the last prompt token first, whose logits are never read (so never computed), then the last.
         if rest.count > 1 {
             _ = forward(Array(rest.dropLast()))
         }
-        var pending = draw(forward([rest[rest.count - 1]])[0])
+        var pending = draw(forward([rest[rest.count - 1]])[0]).item(Int.self)
         outcome.firstTokenSeconds = started.duration(to: .now).seconds
         let generating = ContinuousClock.now
-        defer { outcome.generateSeconds = generating.duration(to: .now).seconds }
         var history = prompt
+        var plain = true
         var holdOff = 0
-        var backoff = 1
+        var backoff = Self.lookEvery
+        var guessLength = 4
 
         /// Hands a token out; false once generation should end.
         func take(_ token: Int) -> Bool {
@@ -617,22 +640,48 @@ final class MLXEngine: Engine, @unchecked Sendable {
             return outcome.generated.count < request.maxTokens
         }
 
-        while !cancelled.isSet, !Task.isCancelled, take(pending) {
-            var draft: [Int] = []
-            if holdOff > 0 {
-                holdOff -= 1
-            } else {
-                draft = PromptLookup.draft(
-                    history, maxTokens: min(Self.maxDraft, request.maxTokens - outcome.generated.count)
-                )
-            }
-            let input = [pending] + draft
-            let before = untrimmable && !draft.isEmpty ? Self.snapshot(layers) : [:]
-            let rows = forward(input)
-            if draft.isEmpty {
-                pending = draw(rows[0])
+        var going = true
+        while going, !cancelled.isSet, !Task.isCancelled {
+            if plain {
+                // Plain and pipelined: each token's successor is queued before the token is handed out. Stops
+                // when the text so far ends with something seen before.
+                var current = MLXArray([Int32(truncatingIfNeeded: pending)])
+                while going, !cancelled.isSet, !Task.isCancelled {
+                    let next = draw(forward(current)[0])
+                    asyncEval(next)
+                    going = take(current.item(Int.self))
+                    current = next
+                    if holdOff > 0 {
+                        holdOff -= 1
+                    } else if Self.lookupDrafts,
+                              !PromptLookup.draft(history, maxNgram: 4, minNgram: 3, maxTokens: 1).isEmpty
+                    {
+                        break
+                    }
+                }
+                pending = current.item(Int.self)
+                plain = false
                 continue
             }
+
+            guard take(pending) else { break }
+            let draft = PromptLookup.draft(
+                history, maxNgram: 4, minNgram: 3,
+                maxTokens: min(
+                    guessLength,
+                    request.speculativeMaxTokens ?? Self.maxDraft,
+                    request.maxTokens - outcome.generated.count
+                )
+            )
+            if draft.isEmpty {
+                // It stopped recurring: back to plain.
+                pending = draw(forward([pending])[0]).item(Int.self)
+                plain = true
+                continue
+            }
+            let input = [pending] + draft
+            let before = untrimmable ? Self.snapshot(layers) : [:]
+            let rows = forward(input)
 
             // How many guesses to keep, and the token after them.
             var kept = 0
@@ -652,7 +701,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
                 while kept < draft.count, roll[kept] < chance[kept] {
                     kept += 1
                 }
-                var remaining = probabilities[kept]
+                let remaining = probabilities[kept]
                 if kept < draft.count {
                     // The rejected guess can't be the draw.
                     remaining[draft[kept]] = MLXArray(Float(0))
@@ -680,19 +729,21 @@ final class MLXEngine: Engine, @unchecked Sendable {
                 }
             }
             if kept == 0 {
+                plain = true
                 holdOff = backoff
-                backoff = min(backoff * 2, 64)
+                backoff = min(backoff * 2, Self.maxBackoff)
+                guessLength = 2
             } else {
-                backoff = 1
+                backoff = Self.lookEvery
+                guessLength = unkept == 0 ? min(guessLength * 2, Self.maxDraft) : max(2, kept + 1)
             }
 
-            var going = true
             for token in draft[..<kept] where going {
                 going = take(token)
             }
-            guard going else { break }
             pending = next
         }
+        outcome.generateSeconds = generating.duration(to: .now).seconds
         return outcome
     }
 

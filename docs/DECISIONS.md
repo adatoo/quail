@@ -40,6 +40,32 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 - **Stopping short of the prompt's end costs a forward pass.** On a 512-token prompt that is 15% of Gemma 4's prompt time, so the checkpoint split happens only for a request that asks for caching (`cache_prompt`, on by default for chat). The benchmark (`cache_prompt: false`) is unaffected; Qwen3.6's 512-token prompt was within noise either way.
 - **Two prefill slices in flight** instead of one. With one, Gemma 4's 4,096-token prompt ran 3–5% behind the library's own fully pipelined prefill; with two it's within noise (719–747 against 717–767 tokens/s; Qwen3-8B 410–418 against 402–415). A hang-up during a 20,000-token prompt still frees the model at once: the next request took 0.23–0.29 s on Qwen3.6 and Gemma 4.
 
+**Amended 2026-09-28 (step 5's disk tier, and step 6):**
+- **Prompt caches on disk.**
+  - When a cache leaves memory (evicted from the four, or all of them when the model unloads: a swap under `--models-max 1`, or the server stopping), `quail-server` writes it with mlx-swift-lm's `savePromptCache` (recurrent state included), with a JSON file of its tokens beside it.
+  - A later prompt loads one back when it holds clearly more than anything in memory (by at least `checkpointMargin` tokens). A hybrid model's cache is written as it was at its last checkpoint, where the next turn picks up.
+  - Location: `~/Library/Caches/com.datoos.quail/PromptCache`, one folder per model and load kind, keyed by its path, weight size and `config.json` date, so a changed model starts afresh. The folder is macOS's to clear, which costs only speed. `--prompt-cache-dir` moves it and `--no-prompt-cache-disk` turns it off.
+  - Oldest out first, within 20 GB and a tenth of the free space.
+  - **Measured:** a 14,000-token conversation, the server restarted between turns. The next turn took **1.0 s instead of 39 s** on Qwen3-8B, **3.0 s instead of 21.6 s** on Qwen3.6 35B-A3B and **3.2 s instead of 24.4 s** on Gemma 4 26B-A4B (model load included), and the code word planted mid-log came back right. A cache file is 0.36 GB (Qwen3.6), 0.59 GB (Gemma 4) or 2.0 GB (Qwen3-8B, all-attention) for 14,000 tokens.
+- **Prompt-lookup speculative decoding (step 6).**
+  - Our own decode loop, used when the load can be fed in pieces and no penalty processor is on (they'd have to see each guess in order). When the text so far ends with 3–4 tokens seen before (`PromptLookup`, in `QuailServerCore`, unit-tested), a step feeds the last token and what followed them then, up to 16 tokens, in one forward pass.
+  - Greedy keeps the guesses the model agrees with. Sampling keeps each with the model's probability for it and redraws the first rejected one from what's left (standard speculative sampling, with our seeded state).
+  - Unkept tokens are cut from the cache. Layers that can't be cut back are restored from a reference copy taken before the step, and the kept tokens are fed again.
+  - Between guesses the loop runs pipelined, as mlx-swift-lm's iterator does, looking up as it goes and stopping to guess only when something recurs. A wholly wrong guess pauses looking for 8 tokens, doubling to 256. The guess length grows while guesses are kept and shrinks when they aren't.
+  - The first cut regressed prose by 19–26% (a synchronous step per token, and 2-token matches that were mostly wrong); the pipelined, 3-token version is within noise.
+  - Timings report llama-server's `draft_n` and `draft_n_accepted`. A request can cap or turn off guessing with llama-server's `speculative.n_max`, and the benchmark sends 0, because its repetitive text would otherwise measure the guessing instead of the model: 112 against 53 tokens/s on Qwen3-8B. `QUAIL_PROMPT_LOOKUP=0` turns it off server-wide, for comparison.
+  - **Measured** (700-token replies, cooled, A-B-A-B, on against off):
+
+    | Task | Qwen3-8B | Qwen3.6 35B-A3B | Gemma 4 26B-A4B |
+    |---|---|---|---|
+    | Rewrite a file with a rename | **149 against 49 (3.0×)** | **237 against 84 (2.8×)** | **126 against 71 (1.8×)** |
+    | Summary | 48.7–48.9 against 49.9 | 83 against 84–85 | 70.5 against 70.2 |
+    | Story | 52.1–52.3 against 52.2–52.5 | 83 against 85–86 | 75.6 against 75.0 |
+
+  - Prose is within 1–3%. The hybrid model's 2–3% comes from its occasional wrong guess costing a re-feed.
+  - Greedy text with guessing matches the same loop without it. It differs from the library's iterator path from mid-reply on, because the prompt's tail is split differently (the rounding difference noted above).
+  - A real `claude -p` task on Qwen3.6 took 99 s, against 129–218 s before this and the late-system-message fix.
+
 **Revisit if:** Phase 3c step 8's batching port needs more than the public `mlx-swift-lm` API exposes (paged attention on the GPU, specifically, needs a gather-SDPA kernel neither project's own comments claim to have solved cleanly), or a fresh cross-runtime benchmark (Phase 3 step 8/12) shows oMLX or Rapid-MLX still meaningfully ahead once steps 1–8 land — then D-027's deferral is reopened with real numbers instead of an assumption.
 
 ## D-053 · 2026-09-26 · Developer distribution through Homebrew and a signed DMG

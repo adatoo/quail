@@ -44,7 +44,7 @@ final class PromptDiskCache: @unchecked Sendable {
         let model = entry.path.resolvingSymlinksInPath()
         let modified = (try? model.appendingPathComponent("config.json")
             .resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate?
-            .timeIntervalSince1970 ?? 0
+                    .timeIntervalSince1970 ?? 0
         // The vision load's caches are its language model's, laid out differently: a folder of their own.
         let identity = "\(model.path)|\(weightBytes)|\(modified)|\(vision ? "vision" : "text")"
         let digest = SHA256.hash(data: Data(identity.utf8)).prefix(6).map { String(format: "%02x", $0) }.joined()

@@ -150,7 +150,7 @@ struct InferenceRoutes: Sendable {
                     + "\(info.contextSize) in the context), try increasing it"
             )
         }
-        return GenerationRequest(
+        var request = GenerationRequest(
             promptTokens: tokens,
             maxTokens: min(settings.maxTokens ?? Int.max, info.contextSize - tokens.count),
             sampling: settings.sampling,
@@ -160,6 +160,8 @@ struct InferenceRoutes: Sendable {
             promptText: images?.text,
             media: images?.media ?? []
         )
+        request.speculativeMaxTokens = settings.speculativeMaxTokens
+        return request
     }
 
     // MARK: /v1/completions

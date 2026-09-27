@@ -10,6 +10,11 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Changed
+
+- **MLX models write repeated text up to three times as fast.** When a model repeats text it has already seen (rewriting a file, quoting a document, echoing a tool's output), Quail server now guesses the next tokens from that earlier text and checks them all in one step. Rewriting a file ran at 149 instead of 49 tokens a second on Qwen3-8B, and at 237 instead of 84 on Qwen3.6 35B-A3B. Ordinary prose is unchanged, within 1–3%. A request can limit or turn this off with llama-server's `speculative.n_max`, and the benchmark turns it off.
+- **Conversations survive a model swap or a restart on MLX models.** Prompt caches leaving memory are saved in `~/Library/Caches/com.datoos.quail/PromptCache` and loaded back when the conversation returns: a 14,000-token conversation's next turn after a restart took 1 s instead of 39 s on Qwen3-8B. The cache folder is capped at 20 GB and a tenth of free disk space, and macOS may clear it. Use `--no-prompt-cache-disk` to turn it off.
+
 ## [0.43.0] - 2026-09-27
 
 ### Added

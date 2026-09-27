@@ -131,6 +131,9 @@ public struct GenerationRequest: Equatable, Sendable {
     public var ignoreEndOfSequence = false
     /// Reuse the KV cache for a prompt prefix already seen (`cache_prompt`).
     public var cachePrompt = true
+    /// The most tokens a speculative step may guess (`speculative.n_max`); 0 turns guessing off, nil leaves it
+    /// to the engine.
+    public var speculativeMaxTokens: Int?
     /// A GBNF grammar (start rule `root`) the reply must follow; only for engines with the capability.
     public var grammar: String?
     /// With `media`: the prompt as text, an image's place marked by `ImageInput.marker`. The engine

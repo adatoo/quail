@@ -27,10 +27,12 @@ enum BenchmarkSuite {
     static let concurrentRequests = 4
     static let concurrentTokens = 128
 
-    /// Every request: deterministic sampling, and no prompt cache —
-    /// otherwise a repeated prompt is "processed" in no time.
+    /// Every request: deterministic sampling, no prompt cache — otherwise a
+    /// repeated prompt is "processed" in no time — and no speculative
+    /// guessing, which the suite's repetitive text would turn into a
+    /// measure of the guessing instead of the model's speed (ADR D-055).
     static var requestSettings: [String: Any] {
-        ["temperature": 0, "seed": 42, "cache_prompt": false]
+        ["temperature": 0, "seed": 42, "cache_prompt": false, "speculative.n_max": 0]
     }
 
     /// The source text for prompts. Tokenized per model (token ids are

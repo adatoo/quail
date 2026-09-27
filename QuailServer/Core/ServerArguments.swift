@@ -131,7 +131,10 @@ struct ServerArguments: Equatable, Sendable {
                 }
                 result.parallel = count
             case "--prompt-cache-dir":
-                result.promptCacheDirectory = try URL(fileURLWithPath: value(for: flag, inline: inline), isDirectory: true)
+                result.promptCacheDirectory = try URL(
+                    fileURLWithPath: value(for: flag, inline: inline),
+                    isDirectory: true
+                )
             case "--no-prompt-cache-disk":
                 result.promptCacheDirectory = nil
             case "--allow-origin":
