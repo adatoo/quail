@@ -59,6 +59,13 @@ struct QuailServerIntegrationSmokeTest {
             let reply = try await complete(base: base, model: id)
             #expect(!reply.isEmpty, "\(id) answered nothing")
         }
+        // Several at once (decoded together by a family that batches, ADR D-056; queued otherwise): all answer.
+        #expect(try await runtime.select(model: ModelRef(id: mlxID), base: base, apiKey: "it-key") == .hotSwapped)
+        async let first = complete(base: base, model: mlxID)
+        async let second = complete(base: base, model: mlxID)
+        async let third = complete(base: base, model: mlxID)
+        let replies = try await [first, second, third]
+        #expect(replies.count == 3 && replies.allSatisfy { !$0.isEmpty }, "concurrent MLX replies: \(replies)")
         await controller.stop()
         #expect(controller.phase == .stopped)
     }

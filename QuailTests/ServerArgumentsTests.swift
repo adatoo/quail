@@ -45,7 +45,7 @@ struct ServerArgumentsTests {
         #expect(try run(["--models-dir", "/m", "--no-prompt-cache-disk"]).promptCacheDirectory == nil)
     }
 
-    @Test("--parallel sets how many requests a GGUF model decodes together, -np too")
+    @Test("--parallel sets how many requests a model decodes together, -np too")
     func parallelFlag() throws {
         #expect(try run(["--models-dir", "/m"]).parallel == ServerArguments.defaultParallel)
         #expect(try run(["--models-dir", "/m", "--parallel", "4"]).parallel == 4)

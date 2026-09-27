@@ -4,9 +4,10 @@ import Foundation
 /// model runtime: `libllama` for GGUF (Phase 3 step 5), `mlx-swift-lm` for MLX
 /// (step 4). Everything above this line is written once and serves both.
 ///
-/// One engine instance holds one loaded model. It serves one request at a time
-/// in v1 — the router holds a lease for the length of a request, but the
-/// engine itself is not asked to interleave.
+/// One engine instance holds one loaded model. The router holds a lease for the
+/// length of a request; leases are counted, not exclusive, so an engine either
+/// decodes requests together (`EngineCapabilities.concurrentRequests`) or queues
+/// them itself.
 public protocol Engine: Sendable {
     /// What this engine can do beyond plain generation, so the shared layer can say so precisely.
     var capabilities: EngineCapabilities { get }

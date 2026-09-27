@@ -34,7 +34,8 @@ struct ServerArguments: Equatable, Sendable {
     var mlxDirectory: URL?
     var presetsFile: URL?
     var modelsMax = 1
-    /// Requests a GGUF model decodes together (ADR D-048); a preset's `parallel` overrides it per model.
+    /// Requests a model decodes together (ADR D-048 for GGUF, D-056 for MLX families that batch); a preset's
+    /// `parallel` overrides it per model.
     var parallel = ServerArguments.defaultParallel
     /// llama-server's default too. With one slot, a request with another prompt (Claude Code's permission
     /// check, a chat beside an agent) took the conversation's slot and its cache; the slots share one context,
@@ -66,7 +67,7 @@ struct ServerArguments: Equatable, Sendable {
       --mlx-dir <dir>        folder of MLX model directories
       --models-preset <ini>  per-model settings (llama-server preset format)
       --models-max <n>       models kept loaded at once (default 1)
-      --parallel <n>         requests a GGUF model decodes together (default 4; llama-server's `-np`)
+      --parallel <n>         requests a model decodes together (default 4; llama-server's `-np`)
       --prompt-cache-dir <d> where MLX prompt caches are kept on disk (default ~/Library/Caches/com.datoos.quail/PromptCache)
       --no-prompt-cache-disk keep MLX prompt caches in memory only
       --allow-origin <o>     let a web page at this origin (http://localhost:3000) call the server; repeatable, `*` for any
