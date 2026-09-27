@@ -19,7 +19,10 @@ struct ParityGateBench {
 
     private static let enabled = !servers.isEmpty && environment["QUAIL_GATE_MODEL"] != nil
 
-    @Test("run the suite on each server, alternating", .enabled(if: enabled && environment["QUAIL_GATE_CONNECT"] == nil))
+    @Test(
+        "run the suite on each server, alternating",
+        .enabled(if: enabled && environment["QUAIL_GATE_CONNECT"] == nil)
+    )
     func run() async throws {
         let model = try #require(Self.environment["QUAIL_GATE_MODEL"])
         let key = Self.environment["QUAIL_GATE_KEY"]
