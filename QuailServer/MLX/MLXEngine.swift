@@ -241,19 +241,28 @@ final class MLXEngine: Engine, @unchecked Sendable {
         // Prefill in slices of the library's step size, so a client that leaves during a long prompt
         // stops it at the next slice: `TokenIterator`'s initialiser would otherwise process the whole
         // prompt before anything can be cancelled. The last one to two slices are left to the iterator,
-        // which also hands the penalty processors the tail of the prompt.
+        // which also hands the penalty processors the tail of the prompt. Each slice is queued with
+        // `asyncEval` and the loop waits only for the slice before it, so the GPU always has the next
+        // slice ready while the CPU builds the one after (mlx-swift-lm 3.31.4 pipelines its own prefill
+        // the same way); waiting on every slice left the GPU idle between them. One slice in flight
+        // keeps a hang-up noticed within a slice or two.
         let step = parameters.prefillStepSize
         let started = ContinuousClock.now
         var remaining = LMInput.Text(tokens: MLXArray(prompt[reused...].map { Int32(truncatingIfNeeded: $0) }))
         var fed = reused
+        var inFlight: [MLXArray] = []
         while !isVision, remaining.tokens.size > 2 * step {
             if cancelled.isSet || Task.isCancelled {
                 // What the cache holds now is a prefix of this prompt; keep it for a retry.
+                eval(layers)
                 loaded.reusable = ReusableCache(layers: layers, tokens: Array(prompt.prefix(fed)))
                 return
             }
             _ = context.model(remaining[.newAxis, ..<step], cache: layers, state: nil)
-            eval(layers)
+            let queued = layers.flatMap { $0.innerState() }
+            asyncEval(queued)
+            eval(inFlight)
+            inFlight = queued
             remaining = remaining[step...]
             fed += step
         }

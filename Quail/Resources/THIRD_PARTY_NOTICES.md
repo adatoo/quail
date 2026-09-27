@@ -11,7 +11,7 @@ Quail includes the software below. Each project's licence text, and any notice i
 | mlx (inside mlx-swift) | 0.31.6 | MIT | quail-server (through mlx-swift-lm) |
 | mlx-c (inside mlx-swift) | 0.31.6 | MIT | quail-server (through mlx-swift-lm) |
 | mlx-swift | 0.31.6 | MIT | quail-server (through mlx-swift-lm) |
-| mlx-swift-lm | 3.31.3 | MIT | quail-server |
+| mlx-swift-lm | 3.31.4 | MIT | quail-server |
 | nlohmann/json (inside mlx-swift) | 0.31.6 | MIT | quail-server (through mlx-swift-lm) |
 | Sparkle | 2.10.0 | MIT and the licences of its bundled components (text below) | Quail (the direct-download build only) |
 | swift-argument-parser | 1.8.2 | Apache-2.0 | the quail command-line tool |
@@ -368,7 +368,7 @@ Licence: MIT
 
 Licence text: number 4 at the end of this file.
 
-## mlx-swift-lm 3.31.3
+## mlx-swift-lm 3.31.4
 
 https://github.com/ml-explore/mlx-swift-lm  
 Licence: MIT
