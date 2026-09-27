@@ -39,30 +39,119 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let tokenizer: any MLXLMCommon.Tokenizer
         /// Set when the vision half is loaded: how this architecture writes an image into the prompt.
         let vision: VisionSetup?
-        /// The prompt-prefix cache, touched only inside the container's serial access.
-        var reusable: ReusableCache?
+        /// The weights' size, which a request asks macOS to keep wired (resident) while it runs.
+        let weightBytes: Int
+        /// Prompt caches kept from earlier requests, touched only inside the container's serial access.
+        let caches = PromptCaches()
 
         init(
             container: ModelContainer, info: EngineInfo, chatTemplate: String?,
-            tokenizer: any MLXLMCommon.Tokenizer, vision: VisionSetup?
+            tokenizer: any MLXLMCommon.Tokenizer, vision: VisionSetup?, weightBytes: Int
         ) {
             self.container = container
             self.info = info
             self.chatTemplate = chatTemplate
             self.tokenizer = tokenizer
             self.vision = vision
+            self.weightBytes = weightBytes
         }
     }
 
-    /// Keys and values for `tokens`, left in memory by the last request.
-    private final class ReusableCache: @unchecked Sendable {
-        let layers: [any KVCache]
-        var tokens: [Int]
+    /// Prompt caches kept from earlier requests (ADR D-055): a few conversations' worth, least recently used
+    /// out first, so two callers (an agent and the chat page, or an agent's sub-tasks) stop evicting each
+    /// other's prefix. Which one a prompt reuses, and how much, is `PromptCachePlan`'s decision.
+    private final class PromptCaches: @unchecked Sendable {
+        struct Entry {
+            var layers: [any KVCache]
+            /// What `layers` holds.
+            var tokens: [Int]
+            /// Copies of the layers that can't be cut back (a hybrid model's recurrent layers, sliding-window
+            /// layers), by layer index, taken on the way through the last prompt, keyed by how many tokens in.
+            var checkpoints: [Int: [Int: any KVCache]] = [:]
 
-        init(layers: [any KVCache], tokens: [Int]) {
-            self.layers = layers
-            self.tokens = tokens
+            var trimmable: Bool {
+                layers.allSatisfy(\.isTrimmable)
+            }
+
+            var bytes: Int {
+                (layers + checkpoints.values.flatMap(\.values)).flatMap { $0.innerState() }
+                    .reduce(0) { $0 + $1.nbytes }
+            }
+
+            /// Back to the checkpoint `count` tokens in: its copies in place of the untrimmable layers, the
+            /// others cut back to match.
+            mutating func restore(to count: Int) {
+                for (index, layer) in checkpoints[count] ?? [:] {
+                    layers[index] = layer
+                }
+                for layer in layers where layer.isTrimmable && layer.offset > count {
+                    layer.trim(layer.offset - count)
+                }
+                tokens = Array(tokens.prefix(count))
+                checkpoints = checkpoints.filter { $0.key <= count }
+            }
         }
+
+        /// Oldest first.
+        private var entries: [Entry] = []
+        static let maxEntries = 4
+        /// An eighth of the Mac's memory for caches beyond the newest one (which is kept whatever its size).
+        static let maxBytes = Int(ProcessInfo.processInfo.physicalMemory / 8)
+
+        /// The cache that holds the most of `prompt`, cut back (or returned to a checkpoint) to what it
+        /// shares, with its checkpoints up to there, and taken out of the store while the request uses it;
+        /// nil if none holds any of it.
+        func take(for prompt: [Int], trimmableOnly: Bool) -> Entry? {
+            let candidates = entries.map { entry in
+                trimmableOnly
+                    ? PromptCachePlan.Candidate(tokens: entry.trimmable ? entry.tokens : [], trimmable: true)
+                    : PromptCachePlan.Candidate(
+                        tokens: entry.tokens, trimmable: entry.trimmable, checkpoints: Array(entry.checkpoints.keys)
+                    )
+            }
+            guard let choice = PromptCachePlan.choose(candidates, for: prompt) else { return nil }
+            var entry = entries.remove(at: choice.index)
+            if choice.fromCheckpoint {
+                entry.restore(to: choice.reuse)
+            }
+            for layer in entry.layers where layer.isTrimmable && layer.offset > choice.reuse {
+                layer.trim(layer.offset - choice.reuse)
+            }
+            entry.tokens = Array(prompt.prefix(choice.reuse))
+            entry.checkpoints = entry.checkpoints.filter { $0.key <= choice.reuse }
+            return entry
+        }
+
+        func put(_ entry: Entry) {
+            guard !entry.tokens.isEmpty else { return }
+            entries.append(entry)
+            let drop = PromptCachePlan.evictions(
+                sizes: entries.map(\.bytes), maxEntries: Self.maxEntries, maxBytes: Self.maxBytes
+            )
+            entries.removeFirst(drop)
+        }
+    }
+
+    /// How far short of a prompt's end a hybrid model's cache is checkpointed: past any chat template's
+    /// generation header, and as many tokens as the repetition penalty looks back over.
+    static let checkpointMargin = 64
+    /// How often a hybrid model's cache is checkpointed on the way through a long prompt, so a prompt that
+    /// shares a long opening and then differs (Claude Code's permission check, asked about each command, is
+    /// 27,000 tokens of instructions and then a different transcript) resumes near where they part. Each
+    /// checkpoint of Qwen3.6 35B-A3B's recurrent layers is about 60 MB.
+    static let checkpointInterval = 4096
+
+    /// Copies of the layers that can't be cut back. References, not data: the model replaces these arrays
+    /// rather than writing into them.
+    private static func snapshot(_ layers: [any KVCache]) -> [Int: any KVCache] {
+        Dictionary(uniqueKeysWithValues: layers.enumerated().compactMap { index, layer in
+            !layer.isTrimmable || layer.maxSize != nil ? (index, layer.copy()) : nil
+        })
+    }
+
+    /// How many tokens a cache has been fed: the largest layer offset (a recurrent layer keeps none).
+    private static func held(_ layers: [any KVCache]) -> Int {
+        layers.map(\.offset).max() ?? 0
     }
 
     private var current: Loaded? {
@@ -104,6 +193,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
                 try await LLMModelFactory.shared.loadContainer(from: directory, using: TokenizerBridgeLoader())
             }
             let tokenizer = await container.tokenizer
+            let weightBytes = await container.perform { context in
+                context.model.parameters().flattened().reduce(0) { $0 + $1.1.nbytes }
+            }
             let contextSize = entry.contextSize ?? files.contextLength ?? Self.defaultContext
             let info = EngineInfo(
                 contextSize: contextSize,
@@ -113,7 +205,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             )
             let made = Loaded(
                 container: container, info: info, chatTemplate: files.chatTemplate, tokenizer: tokenizer,
-                vision: vision ? files.visionSetup : nil
+                vision: vision ? files.visionSetup : nil, weightBytes: weightBytes
             )
             lock.withLock { loaded = made }
         } catch let error as EngineError {
@@ -180,11 +272,17 @@ final class MLXEngine: Engine, @unchecked Sendable {
             let task = Task {
                 do {
                     let loaded = try await self.loadedFor(request)
-                    try await loaded.container.perform { context in
-                        try await Self.run(
-                            request, context: context, loaded: loaded, cancelled: cancelled,
-                            emit: { continuation.yield($0) }
-                        )
+                    // Weights kept wired while the request runs, as mlx-lm does with `set_wired_limit`, so
+                    // macOS doesn't page a large model out between tokens under memory pressure (ADR D-055).
+                    // The limit returns to where it was when no request holds a ticket.
+                    let wired = WiredMemoryTicket(size: loaded.weightBytes, policy: MLXLMCommon.WiredSumPolicy())
+                    try await wired.withWiredLimit {
+                        try await loaded.container.perform { context in
+                            try await Self.run(
+                                request, context: context, loaded: loaded, cancelled: cancelled,
+                                emit: { continuation.yield($0) }
+                            )
+                        }
                     }
                     continuation.finish()
                 } catch {
@@ -214,27 +312,15 @@ final class MLXEngine: Engine, @unchecked Sendable {
         // first, and it goes in as a batch of one ([1, n]), as the vision half's language model reads it.
         let isVision = loaded.vision != nil
 
-        // Keep the longest prefix of the last prompt that this one shares (and always feed at least
-        // one token, whose logits the first sample needs).
-        var layers: [any KVCache] = []
+        // Start from the kept cache that holds the most of this prompt (always feeding at least one token,
+        // whose logits the first sample needs). A vision load reuses only a cache it can cut back, as before:
+        // its position state is reset only by the iterator's `prepare`.
+        var layers: [any KVCache]
         var reused = 0
-        if request.cachePrompt, let cache = loaded.reusable, cache.layers.allSatisfy(\.isTrimmable) {
-            let limit = min(cache.tokens.count, prompt.count - 1)
-            while reused < limit, cache.tokens[reused] == prompt[reused] {
-                reused += 1
-            }
-            let held = cache.layers.first?.offset ?? 0
-            reused = min(reused, held)
-            if reused > 0 {
-                for layer in cache.layers where layer.offset > reused {
-                    layer.trim(layer.offset - reused)
-                }
-                layers = cache.layers
-            }
-        }
-        loaded.reusable = nil
-        if layers.isEmpty {
-            reused = 0
+        var checkpoints: [Int: [Int: any KVCache]] = [:]
+        if request.cachePrompt, let taken = loaded.caches.take(for: prompt, trimmableOnly: isVision) {
+            (layers, reused, checkpoints) = (taken.layers, taken.tokens.count, taken.checkpoints)
+        } else {
             layers = context.model.newCache(parameters: parameters)
         }
 
@@ -246,36 +332,60 @@ final class MLXEngine: Engine, @unchecked Sendable {
         // slice ready while the CPU builds the one after (mlx-swift-lm 3.31.4 pipelines its own prefill
         // the same way); waiting on every slice left the GPU idle between them. One slice in flight
         // keeps a hang-up noticed within a slice or two.
+        //
+        // A hybrid model's recurrent layers (and sliding-window layers) can't be cut back afterwards, so
+        // the point the next turn of a conversation resumes from is captured on the way instead:
+        // `checkpointMargin` tokens short of the prompt's end, before the chat template's generation
+        // header, which the next turn's history renders differently (a reasoning block dropped, or an
+        // empty one added). Prefill stops there, copies those layers, and the iterator does the rest.
+        // Checkpoints are also taken every `checkpointInterval` tokens on the way.
         let step = parameters.prefillStepSize
         let started = ContinuousClock.now
-        var remaining = LMInput.Text(tokens: MLXArray(prompt[reused...].map { Int32(truncatingIfNeeded: $0) }))
+        let untrimmable = !isVision && layers.contains { !$0.isTrimmable || $0.maxSize != nil }
+        var feedTo = reused
+        if untrimmable {
+            feedTo = max(reused, prompt.count - Self.checkpointMargin)
+        } else if !isVision {
+            while prompt.count - feedTo > 2 * step {
+                feedTo += step
+            }
+        }
         var fed = reused
         var inFlight: [MLXArray] = []
-        while !isVision, remaining.tokens.size > 2 * step {
+        while fed < feedTo {
             if cancelled.isSet || Task.isCancelled {
                 // What the cache holds now is a prefix of this prompt; keep it for a retry.
                 eval(layers)
-                loaded.reusable = ReusableCache(layers: layers, tokens: Array(prompt.prefix(fed)))
+                loaded.caches.put(.init(layers: layers, tokens: Array(prompt.prefix(fed)), checkpoints: checkpoints))
                 return
             }
-            _ = context.model(remaining[.newAxis, ..<step], cache: layers, state: nil)
+            let count = min(step, feedTo - fed)
+            let slice = MLXArray(prompt[fed ..< fed + count].map { Int32(truncatingIfNeeded: $0) })
+            _ = context.model(.init(tokens: slice.expandedDimensions(axis: 0)), cache: layers, state: nil)
             let queued = layers.flatMap { $0.innerState() }
             asyncEval(queued)
             eval(inFlight)
             inFlight = queued
-            remaining = remaining[step...]
-            fed += step
+            fed += count
+            if untrimmable, fed < feedTo, fed - (checkpoints.keys.max() ?? reused) >= Self.checkpointInterval {
+                checkpoints[fed] = Self.snapshot(layers)
+            }
         }
+        if untrimmable {
+            checkpoints[fed] = Self.snapshot(layers)
+        }
+        let checkpointCount = fed
         let sliced = started.duration(to: .now)
+        let remaining = MLXArray(prompt[fed...].map { Int32(truncatingIfNeeded: $0) })
         let input = isVision
-            ? LMInput(text: .init(tokens: remaining.tokens.expandedDimensions(axis: 0)))
-            : LMInput(text: remaining)
+            ? LMInput(text: .init(tokens: remaining.expandedDimensions(axis: 0)))
+            : LMInput(text: .init(tokens: remaining))
         var processor = parameters.processor()
         if request.ignoreEndOfSequence {
             processor = BanTokens(ids: Self.stopTokens(context), wrapping: processor)
         }
 
-        // The prompt is processed here, in the iterator's initialiser.
+        // The rest of the prompt is processed here, in the iterator's initialiser.
         let iterator = try TokenIterator(
             input: input, model: context.model, cache: layers, processor: processor,
             sampler: SeededSampler(request.sampling), prefillStepSize: parameters.prefillStepSize,
@@ -301,16 +411,22 @@ final class MLXEngine: Engine, @unchecked Sendable {
             }
         }
 
-        // What the cache now holds: the prompt, then each token fed back in. Keep what we can name.
+        // What the cache now holds: the prompt, then each token fed back in (a stop token too, which isn't in
+        // `generated`). Keep what we can name. A cache that can't be cut back to that goes back to its
+        // checkpoint.
         let known = prompt + generated
-        let held = layers.first?.offset ?? 0
-        if held > known.count {
-            for layer in layers {
-                layer.trim(held - known.count)
-            }
+        let held = Self.held(layers)
+        for layer in layers where layer.isTrimmable && layer.offset > known.count {
+            layer.trim(layer.offset - known.count)
         }
-        let kept = min(held, known.count)
-        loaded.reusable = ReusableCache(layers: layers, tokens: Array(known.prefix(kept)))
+        var entry = PromptCaches.Entry(
+            layers: layers, tokens: Array(known.prefix(min(held, known.count))), checkpoints: checkpoints
+        )
+        if !checkpoints.isEmpty, held != known.count {
+            entry.tokens = prompt
+            entry.restore(to: checkpointCount)
+        }
+        loaded.caches.put(entry)
 
         // The library reports a reply that hit the token limit as "cancelled" (it looks at a copy of the
         // iterator), so only a hang-up is taken as one here.
@@ -330,7 +446,6 @@ final class MLXEngine: Engine, @unchecked Sendable {
         _ request: GenerationRequest, context: ModelContext, loaded: Loaded, cancelled: CancelFlag,
         emit: @escaping @Sendable (GenerationEvent) -> Void
     ) async throws {
-        loaded.reusable = nil
         guard let vision = loaded.vision, let text = request.promptText else {
             throw EngineError.invalidRequest(ImageInput.unsupportedMessage)
         }
@@ -478,6 +593,9 @@ private struct SeededSampler: LogitSampler {
         return withRandomState(state) {
             var logprobs = logSoftmax(logits)
             let negInf = MLXArray(-Float.infinity)
+            if topK > 0, topK < logprobs.dim(-1) {
+                return sampleTopK(logprobs)
+            }
             if topP > 0, topP < 1 {
                 // Keep the smallest set of tokens whose probability adds up past topP.
                 let order = argSort(logprobs, axis: -1)
@@ -490,12 +608,36 @@ private struct SeededSampler: LogitSampler {
                 let threshold = logprobs.max(axis: -1, keepDims: true) + log(MLXArray(minP))
                 logprobs = MLX.where(logprobs .>= threshold, logprobs, negInf)
             }
-            if topK > 0, topK < logprobs.dim(-1) {
-                let drop = argPartition(-logprobs, kth: topK - 1, axis: -1)[0..., topK...]
-                logprobs = putAlong(logprobs, drop, values: negInf, axis: -1)
-            }
             return categorical(logprobs * (1 / temperature))
         }
+    }
+
+    /// The same draw with top-k on (llama-server's default, 40), done on the k most likely tokens instead
+    /// of the whole vocabulary: no sort of 150,000 entries per token (ADR D-055). All three filters keep a
+    /// run of the most likely tokens, and top-p's cut for a token depends only on the tokens more likely
+    /// than it, so filtering the top k gives the same set as filtering everything. Only the random draw
+    /// differs (it's over k values now): a seed still always gives the same text, though not the text it
+    /// gave before this change.
+    private func sampleTopK(_ logprobs: MLXArray) -> MLXArray {
+        let negInf = MLXArray(-Float.infinity)
+        let candidates = argPartition(-logprobs, kth: topK - 1, axis: -1)[0..., ..<topK]
+        var kept = takeAlong(logprobs, candidates, axis: -1)
+        if topP > 0, topP < 1 {
+            // A token stays if the tokens more likely than it add up to less than topP: over the whole
+            // vocabulary that's `cumulative > 1 - topP`; over the top k, `cumulative > total - topP`.
+            let order = argSort(kept, axis: -1)
+            let sorted = takeAlong(kept, order, axis: -1)
+            let cumulative = cumsum(exp(sorted), axis: -1)
+            let total = cumulative.max(axis: -1, keepDims: true)
+            let filtered = MLX.where(cumulative .> (total - topP), sorted, negInf)
+            kept = putAlong(kept, order, values: filtered, axis: -1)
+        }
+        if minP > 0 {
+            let threshold = kept.max(axis: -1, keepDims: true) + log(MLXArray(minP))
+            kept = MLX.where(kept .>= threshold, kept, negInf)
+        }
+        let choice = categorical(kept * (1 / temperature))
+        return takeAlong(candidates, choice.expandedDimensions(axis: -1), axis: -1).squeezed(axis: -1)
     }
 }
 

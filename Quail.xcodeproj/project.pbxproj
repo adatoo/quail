@@ -70,6 +70,7 @@
 		4D92C31AB0FBCED76664BA8E /* PresetsFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CC38C064EB747431E011EB1 /* PresetsFile.swift */; };
 		4D96CDD9A1EB6F60EBC6EA44 /* ModelPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E759DC17C4FF2B390C8C830 /* ModelPreview.swift */; };
 		4E1B1E162EF15798C7BEEDBB /* StoreHousekeeping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85430F6EEA9F469BD0D000C7 /* StoreHousekeeping.swift */; };
+		4EB1A0A5D124FF3994BA481C /* PromptCachePlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A6314E89ECBDE283B024E7 /* PromptCachePlanTests.swift */; };
 		4EDC761EEF322255190EFD79 /* ChatCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37973E14516D1CEF142BAA1B /* ChatCommand.swift */; };
 		51DE092DE572FE7DB9622468 /* llama.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 14B9109BAA6AC2A10860B699 /* llama.xcframework */; };
 		520D2F2EE9A8B11A917DC0C1 /* CleanUpSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99472B808EA90F05B1CC57CF /* CleanUpSheet.swift */; };
@@ -176,6 +177,7 @@
 		C191CA4486560A3A507AD157 /* JSONSchemaGrammarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABCEAF3390F50EB45A904AB /* JSONSchemaGrammarTests.swift */; };
 		C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */; };
 		C4162E70E5A122C9694F0D28 /* Bench.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E9745F0766927BFB45E416 /* Bench.swift */; };
+		C5ABD73023E726F17E8BCE8A /* PromptCachePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D000FBCEBA8D37938C4F39E /* PromptCachePlan.swift */; };
 		C682411485855C1BACB0423B /* CatalogFitSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBBFBBA9586B95FE9249C699 /* CatalogFitSmokeTest.swift */; };
 		C6A099095782653AF6736596 /* ServerCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD7516DF38F6223899343F81 /* ServerCompatibilityTests.swift */; };
 		C6EF40DBA037399CA71834C6 /* FitBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC663973B4AF633BDBC0B64C /* FitBadge.swift */; };
@@ -364,6 +366,7 @@
 		422A288B2B073D9B346E5BC3 /* FakeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeEngine.swift; sourceTree = "<group>"; };
 		425E81D2DAC331A359585A0F /* HFRepo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HFRepo.swift; sourceTree = "<group>"; };
 		4279E9EF2E774CD49728C388 /* ControlProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlProtocol.swift; sourceTree = "<group>"; };
+		42A6314E89ECBDE283B024E7 /* PromptCachePlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptCachePlanTests.swift; sourceTree = "<group>"; };
 		44BD939F5108C50DFEA61E7D /* RecommenderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommenderTests.swift; sourceTree = "<group>"; };
 		4504EAC9EEBEF525FF5F9DA6 /* Integration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Integration.swift; sourceTree = "<group>"; };
 		45FCBEFC456A21AACAE41972 /* KeepAwake.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepAwake.swift; sourceTree = "<group>"; };
@@ -406,6 +409,7 @@
 		6B03427DF23641EF1208ED53 /* ThirdPartyNoticesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThirdPartyNoticesTests.swift; sourceTree = "<group>"; };
 		6B1B4797906DD53A1A200207 /* Output.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Output.swift; sourceTree = "<group>"; };
 		6CF5343FFDFED49C8EFF6B3C /* Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalog.swift; sourceTree = "<group>"; };
+		6D000FBCEBA8D37938C4F39E /* PromptCachePlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptCachePlan.swift; sourceTree = "<group>"; };
 		6D200533D0B964D28B902476 /* ServerArguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerArguments.swift; sourceTree = "<group>"; };
 		6EABED4CD61813C8D19A53F6 /* CatalogRefresher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogRefresher.swift; sourceTree = "<group>"; };
 		6F0C996EF5A53A9043C055BE /* ToolChoiceGrammar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolChoiceGrammar.swift; sourceTree = "<group>"; };
@@ -664,6 +668,7 @@
 				202E2A8059B6ABFB4874ED71 /* PathsTests.swift */,
 				5907867E917EAA9CB82DDAAF /* PingTests.swift */,
 				921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */,
+				42A6314E89ECBDE283B024E7 /* PromptCachePlanTests.swift */,
 				64F47A4E31A90A247A189404 /* QuailServerIntegrationSmokeTest.swift */,
 				F9235B293BB2D882972965C8 /* QuailServerRuntimeTests.swift */,
 				92FD92094FA2B19444B43B08 /* RawHTTPClient.swift */,
@@ -782,6 +787,7 @@
 				EFEBD8D0A3C37BB5E843993D /* OnceFlag.swift */,
 				5841043F06995332D2619E0F /* OrderedJSON.swift */,
 				3CC38C064EB747431E011EB1 /* PresetsFile.swift */,
+				6D000FBCEBA8D37938C4F39E /* PromptCachePlan.swift */,
 				95E0E264352A291B2B0573F5 /* QuailServerApp.swift */,
 				5CCB8B5E9D47EE7AD4195B83 /* ReasoningSplitter.swift */,
 				70C223159AE534E73720C300 /* RequestError.swift */,
@@ -1477,6 +1483,7 @@
 				78A0C100BA7CBC5B2B1F3FA8 /* PathsTests.swift in Sources */,
 				AF8F824B4E7AD00629E4BEC8 /* PingTests.swift in Sources */,
 				C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */,
+				4EB1A0A5D124FF3994BA481C /* PromptCachePlanTests.swift in Sources */,
 				A036EC10DBAAF150DDC91CE0 /* QuailServerIntegrationSmokeTest.swift in Sources */,
 				5999D1A93EE219EB816928FB /* QuailServerRuntimeTests.swift in Sources */,
 				2D55B66D0BBA0E32B62AC4DA /* RawHTTPClient.swift in Sources */,
@@ -1528,6 +1535,7 @@
 				DD4636F17C7A1A122976047C /* OnceFlag.swift in Sources */,
 				9D7E310BC0A851564856F006 /* OrderedJSON.swift in Sources */,
 				4D92C31AB0FBCED76664BA8E /* PresetsFile.swift in Sources */,
+				C5ABD73023E726F17E8BCE8A /* PromptCachePlan.swift in Sources */,
 				45D2C7C5DDF6E10F03A6A694 /* QuailServerApp.swift in Sources */,
 				54F1C29A1585CEEF948C1343 /* ReasoningSplitter.swift in Sources */,
 				CF113B9BC5ACD3DC0A554238 /* RequestError.swift in Sources */,
