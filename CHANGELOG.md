@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Changed
+
+- **Returning to a conversation no longer re-reads the whole prompt on MLX models.** Quail server now keeps up to four conversations' prompt caches, within an eighth of the Mac's memory. An agent and the chat page, or an agent's sub-tasks, stop evicting each other's. On two interleaved conversations of about 2,800 tokens, a returning turn's prompt took 0.2 s instead of 7.1 s on Qwen3-8B.
+- **Qwen3.5-family MLX models (Qwen3.6, Qwen3.8) reuse their prompt cache.** Before, every turn re-read the whole prompt, because their recurrent layers can't be rewound. Quail now keeps restore points as it reads. A returning turn took 0.3 s instead of 3.7 s on Qwen3.6 35B-A3B.
+- Sampling at the usual settings (top-k on) is 2–3% faster on MLX models. A given seed now gives different text than in earlier versions, though still the same text every time.
+- MLX weights stay wired in memory while a request runs, as mlx-lm does, so a large model isn't paged out between tokens under memory pressure.
+
 ## [0.41.2] - 2026-09-27
 
 ### Changed

@@ -16,6 +16,25 @@ Short ADRs. Newest first. Each states the decision, the alternatives, and what w
 - Qwen3-8B: unchanged (54 tokens/s generation, 404–412 prompt).
 - The prefill pipelining showed no measurable difference on these models, because MLX already overlaps most of the work. It is kept because it matches upstream and costs nothing.
 
+**Amended 2026-09-27 (steps 3, 4 and 5):**
+- **Prompt caches per conversation (step 5, in memory; the disk tier is still to do).** `MLXEngine` keeps up to four prompt caches, within an eighth of the Mac's memory beyond the newest, least recently used out first, instead of the one `ReusableCache`. Which one a prompt reuses, and how much, is `PromptCachePlan` (in `QuailServerCore`, unit-tested, since the engine itself has no test target). A cache is passed over if the prompt would use less than half of it, as llama-server's `--slot-prompt-similarity 0.5` does, so a second conversation that shares a system prompt's first few tokens doesn't destroy the first's cache.
+- **Hybrid models reuse their cache (new; the plan hadn't seen that they couldn't).** Qwen3.5-family models (Qwen3.6, Qwen3.8) have recurrent layers that can't be cut back, so before this every turn re-read the whole prompt. Two further bugs hid it: the old code read the prefix length from the first layer, which on these models is a recurrent one with no offset; and it required every layer to be trimmable.
+  - Prefill now copies those layers every 4,096 tokens and 64 tokens short of the prompt's end. The copies are references, since the model replaces the arrays rather than writing into them; about 60 MB each on Qwen3.6 35B-A3B.
+  - The end copy is placed before the chat template's generation header, which the next turn's history renders differently, and far enough back to cover the repetition penalty's window.
+  - A later prompt resumes from the last copy before the point where it diverges.
+  - Sliding-window layers are treated the same way. A vision-only load (Gemma 4 26B-A4B) reuses only a cache it can trim, as before.
+- **Sampling (step 3).** With top-k on (the default), all three filters run on the top k instead of sorting the whole vocabulary. The kept set is provably the same; only the random draw's shape changes, so a seed gives different text than before (still repeatable). No `MLX.compile`.
+- **Wired weights (step 4).** Each request holds a `WiredMemoryTicket` for the weights' size (`WiredSumPolicy`), as mlx-lm's `set_wired_limit` does. There's no effect to measure on an idle 64 GB Mac; it matters under memory pressure. The cache limit is left alone.
+
+**Measured** (same machine and method as step 2):
+- **Two interleaved conversations** of about 2,800 tokens, three turns each (a scratch script, not step 1's in-app benchmark, which is still to do). A returning turn's prompt took **201 ms instead of 7,081** on Qwen3-8B, and **294 ms instead of 3,750** on Qwen3.6 35B-A3B.
+- **Claude Code's own requests,** replayed (15,300-token turns on Qwen3.6): **1.6–1.7 s per turn instead of 25.7**, once its late system messages stop rewriting the start of the prompt (D-041 amendment of the same day). Its 28,000-token permission check reused 24,576 tokens of the previous one's.
+- **Sampled generation** (top-k 40, top-p 0.95, min-p 0.05): 86.0 against 83.3 tokens/s on Qwen3.6, 51.5 against 50.6 on Qwen3-8B. Greedy is unchanged.
+- **Correctness:**
+  - A code word planted at three depths of a 12,500-token log was recalled correctly on every cached turn, on Qwen3.6 and Qwen3.8.
+  - Cached and uncached replies at temperature 0 were identical on Qwen3-8B (6 of 6 turns).
+  - On Qwen3.6 they were identical for 3 of 6 turns and then diverged mid-reply into equally sensible text. The recurrent layers' chunked scan rounds differently when the prompt is split at other points, the same kind of difference D-043 records for llama.cpp's cached and uncached runs.
+
 **Revisit if:** Phase 3c step 8's batching port needs more than the public `mlx-swift-lm` API exposes (paged attention on the GPU, specifically, needs a gather-SDPA kernel neither project's own comments claim to have solved cleanly), or a fresh cross-runtime benchmark (Phase 3 step 8/12) shows oMLX or Rapid-MLX still meaningfully ahead once steps 1–8 land — then D-027's deferral is reopened with real numbers instead of an assumption.
 
 ## D-053 · 2026-09-26 · Developer distribution through Homebrew and a signed DMG
