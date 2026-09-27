@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.41.2] - 2026-09-27
+
 ### Changed
 
 - MLX models on Quail server now use mlx-swift-lm 3.31.4.
