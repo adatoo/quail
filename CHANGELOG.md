@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.41.7] - 2026-09-27
+
 ### Fixed
 
 - Quail server showed the size of a model linked into the store (kept elsewhere) as the link's few bytes. It now measures the model itself.
