@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The Benchmark tab of Settings (Phase 2b step 4): run the fixed suite on
+/// The Quail window's Benchmark page (Phase 2b step 4): run the fixed suite on
 /// an installed model, and browse, compare, copy and export saved results.
 struct BenchmarkPane: View {
     let appState: AppState
@@ -38,9 +38,6 @@ struct BenchmarkPane: View {
                 .padding(.horizontal)
                 .padding(.vertical, 10)
         }
-        // Settings sizes to its tab (`fixedSize`), and a Table scrolls, so
-        // its ideal height is tiny — same reason as `ModelsPane`.
-        .frame(minHeight: 520)
         .onAppear(perform: pickModel)
         .onChange(of: benchmarks.requestedModel) { _, _ in pickModel() }
     }
@@ -66,10 +63,10 @@ struct BenchmarkPane: View {
             HStack(spacing: 12) {
                 if appState.benchmarkableModels.isEmpty {
                     Text(appState.canServe(.mlxSafetensors)
-                        ? "No models installed — add one in Settings → Models."
-                        :
-                        "No GGUF models installed — add one in Settings → Models, or choose the Quail server runtime for MLX.")
+                        ? "No models installed."
+                        : "No GGUF models installed. For MLX, choose the Quail server runtime on the Server page.")
                         .foregroundStyle(.secondary)
+                    Button("Go to Models") { appState.mainPage = .models }
                 } else {
                     Picker("Model", selection: $model) {
                         ForEach(appState.benchmarkableModels, id: \.self) { id in

@@ -18,7 +18,7 @@ Five phases. Each ends with something usable every day. Phase 1 is deliberately 
 quail/
   Quail.xcodeproj
   Quail/
-    QuailApp.swift                 @main, MenuBarExtra + Settings scenes
+    QuailApp.swift                 @main, MenuBarExtra + the Quail window
     App/
       AppState.swift               observable root: config, server state, model store
       Config.swift                 Codable config.json + Keychain for API key/HF token
@@ -45,7 +45,7 @@ quail/
       FitEstimator.swift           RAM/context/speed verdicts
     UI/
       MenuView.swift
-      SettingsView.swift           tabs: General, Endpoint, Models, Runtimes, Logs, About
+      MainWindow.swift             the Quail window: Server, Models, Connect, Benchmark, General, About (D-061)
       ModelsPane.swift, RuntimesPane.swift, LogsPane.swift, PingSheet.swift
     Resources/
       catalog.json                 curated models + chip bandwidth table
@@ -89,7 +89,7 @@ Goal: a menu bar app that runs the bundled `llama-server` against a folder and t
 - [x] 6. **Catalog.** `Catalog.swift` decodes the seed's full schema (families with GGUF/MLX variants, RAM tiers, chip bandwidth) — the download list, a different type from the store's own installed-models `StoreCatalog`. **All 11 seed families were verified against the live Hub API before shipping**: every repo id resolves, every quant label matches a real filename case-insensitively (which is why matching must be case-insensitive: `gpt-oss-20b-GGUF`'s "mxfp4" is `gpt-oss-20b-MXFP4.gguf`, and unsloth prefixes files with the repo name), and the Gemma vision families' `mmproj-F16.gguf` exists. A `CatalogTests` case re-checks that shipped file's self-consistency (default quant ∈ quants, ≥1 variant per family) on every test run. Weekly remote refresh: `CatalogRefresher` fetches the `QuailCatalogURL` `Info.plist` key (deliberately unset — no update host until Phase 4; the mechanism is built and stub-tested now so that's one plist key later), accepting a document only at revision ≥ max(bundled, cached), never letting a bad fetch degrade `Catalog.current()` below the bundled seed, and not updating `fetchedAt` on failure so the next launch retries. User-added repos: `user-catalog.json` via `AppState.addUserCatalogRepo`/`removeUserCatalogRepo`, merged as uncurated families (no params/rank/role — unknown), de-duplicated against curated variants, format optionally resolved by step 7's add-sheet. Refresh is checked at app launch (long-running menu-bar agents refresh at their restart cadence) — revisit with a timer only if that proves too rare.
 - [x] 7. **Models pane + "Add model…" sheet.** Split into two PRs: the plumbing first (`ModelInstallController` + disk-driven `ModelStore.refreshedCatalog`, PR 17), then the UI — a Models tab in Settings with installed rows (format badge, size, live-computed fit verdict, loaded-state badges from the running router's `/models`), the All/GGUF/MLX filter the user asked for, delete with confirm (file + companions + row + preset section, in one action), `Relocate…` → `NSOpenPanel` → move + bookmark + persist (where `Paths.makeModelsDirectoryBookmark` finally gets called; `.partial` deliberately stays behind at the old root), the HF-token field `setHFToken`/`clearHFToken` have existed for since PR 15, and an "Add model…" sheet: curated families (or a pasted repo), format switch, quant picker (labels matched case-insensitively against real filenames with a separator boundary — `IQ8_0` must not answer to "Q8_0", confirmed against a real listing; `mxfp4`→`MXFP4` must), sharded quants resolving to all their parts, and a pre-download fit verdict via `ModelPreview.remote` — one ranged header fetch plus the listing's size, per ARCHITECTURE §7. `ModelAddPlan` keeps every filename decision in pure, unit-tested code; the views only sequence it. NOTE: interactive GUI pass pending (display was locked at build time; logic is unit-covered, app launch + Settings scene verified not to crash).
 - [x] 8. **Hot swap.** `AppState.selectModel(id:)`: guards on server-running, installed, and GGUF-format (MLX rows say "needs MLX runtime (Phase 3)" rather than offering a button that must fail), then calls the `Runtime.select` path already verified against a real b11081 router in PR 7; the Models pane puts a small Load button on not-yet-loaded GGUF rows while the server is up and polls the router's own status for ~20s so the badge flips loading→loaded on its own. "Max loaded models" is a 1–8 stepper in the Endpoint pane (`setModelsMax`, persisted; applies next Start — it's a launch flag) with the honest subtext that every loaded model keeps its weights in RAM; default stays 1 per D-011.
-- [x] 9. **Recommendations + This Mac.** `Recommender` + `AppState.loadCatalogVerdicts()` (every catalog family gets a live pre-download verdict, or a stated reason — `RemoteFit`); the Add-model sheet shows "Recommended for this Mac" — the top 5 families that run *Comfortable* here, any size, ordered by catalog rank then estimated speed (ADR D-019; originally gated by RAM tier, which hid comfortable 27–31B models on a 64 GB Mac). `AppState.canStart`/`hasServableModel` refuse Start with no installed GGUF. A "This Mac" Settings tab shows the device facts `FitEstimator` reads, GPU core count (IOKit `IOAccelerator` matching), and a model-size estimate from the measured GPU ceiling (`FitEstimator.approxMaxParamsB`).
+- [x] 9. **Recommendations + This Mac.** `Recommender` + `AppState.loadCatalogVerdicts()` (every catalog family gets a live pre-download verdict, or a stated reason — `RemoteFit`); the Add-model sheet shows "Recommended for this Mac" — the top 5 families that run *Comfortable* here, any size, ordered by catalog rank then estimated speed (ADR D-019; originally gated by RAM tier, which hid comfortable 27–31B models on a 64 GB Mac). `AppState.canStart`/`hasServableModel` refuse Start with no installed GGUF. A "This Mac" Settings tab (since D-061, a part of the About page) shows the device facts `FitEstimator` reads, GPU core count (IOKit `IOAccelerator` matching), and a model-size estimate from the measured GPU ceiling (`FitEstimator.approxMaxParamsB`).
 - [x] 10. **Default model.** A star toggle on each installed GGUF row in the Models pane sets `Config.defaultModelID`; `ModelStore.regeneratePresets` writes `load-on-startup = true` into that one preset section (ADR D-017 — verified live against the real vendored binary, not just from its `--help`/strings). Usable while the server is stopped, unlike Load; cleared automatically if that model is deleted. Also fixed along the way (found via live testing, not part of this step's own scope but landed in the same pass): `project.yml`'s resources wiring, which meant `catalog.json` (and the app icon) never actually shipped in any build; the Add-model sheet had no Cancel button outside the downloading/installed states; and `ServerController` used to keep claiming `.ready` through a supervisor auto-restart instead of re-verifying `/health`, which is what made a Ping's "server up" step fail while the menu still said "Running".
 
 **Done when:** a fresh user picks a recommended model, downloads it, and passes the ping test without touching a terminal.
@@ -102,7 +102,7 @@ Making the running endpoint easy to *use*, not just run. Everything talks to the
 2. **Try (browser)** ✅. "Open Chat in Browser" in the menu opens the runtime's built-in web UI (`Runtime.webUIURL`) — D-001's own "link to them". A runtime with no web UI (`webUIURL` is `nil`) gets "Copy Terminal Chat Command" in the same slot — `quail chat -m <model>` onto the clipboard (`ChatEntry`) — rather than an item that does nothing.
 3. ~~**Try (native)**~~ — dropped: `quail chat` (D-021) and the runtime's own web UI (step 2) cover "get a feel for a model"; revisit only if users ask for an in-app chat.
 4. **Benchmark** ✅ (ADR D-023). A fixed, versioned suite (`quail-bench-1`, `Benchmark/BenchmarkSuite.swift`): load time (timed after an untimed load, so from the page cache), prompt processing at 512/4096 tokens (4096 skipped when the context is smaller), generation over 256 tokens (`ignore_eos`, temperature 0, seed 42, `cache_prompt: false`), TTFT on the 512 prompt; 1 warm-up + 3 runs, median/min/max. Prompts are sent as token ids built from `/tokenize`, so lengths are exact; speeds are the server's own `timings`. Each `BenchmarkResult` (`Shared/`, schema v1 — the future sharing format) records hardware, model (id, repo, quant, size, sha256, params, architecture), engine (llama.cpp build, ctx, slots, Quail version), conditions (thermal state, Low Power Mode, battery, other loaded models) and the estimate it's compared with. Whatever was loaded before is loaded again afterwards. Stored in `benchmarks.json`; a Benchmark tab in Settings (menu, or a Models row's context menu; it was its own window until 2026-09-24, when it moved next to every other page) with compare against a baseline, Copy as Markdown and Export JSON; `quail bench [model] [--json] [--history]`. The Models tab shows the measured generation speed per model (Phase 4 step 4, for installed models; the Add Model sheet still estimates).
-5. **`quail` CLI** (ADRs D-021, D-022) — "like ollama": a thin client of the running app over a Unix control socket (`Shared/ControlProtocol.swift`, mode 0600), shipped at `Quail.app/Contents/Helpers/quail` (direct build only) and linked into `~/.local/bin` from Settings → General. v1: `start`/`stop`/`restart`/`status`, `list`/`ps`, `chat [model] [prompt]` (terminal chat — D-021, D-025; `run` until 2026-09-24), `launch <tool>` (Claude Code, Codex, opencode, Qwen Code, aider, Goose started pointed at Quail from `integrations.json`'s launch recipes — env vars, args and temp files, never the tool's own config; sized to the model's context, D-050), `logs [-f]`, `service enable|disable` (open at login + start the server automatically — wires the long-dormant `autoStartServer`). `bench` ✅ with step 4. v2 ✅: `pull <name|owner/repo>[:quant]` (catalog names like ollama's, any HF GGUF repo, progress bar, Ctrl-C cancels and a re-run resumes; `--list` shows the catalog with recommendations and what's installed), `rm`, `default [model|--clear]`, `ctx <model> [size|auto]` (with each size's fit), `config` (endpoint, key masked unless `--show-key`, store, logs, settings), `--version`.
+5. **`quail` CLI** (ADRs D-021, D-022) — "like ollama": a thin client of the running app over a Unix control socket (`Shared/ControlProtocol.swift`, mode 0600), shipped at `Quail.app/Contents/Helpers/quail` (direct build only) and linked into `~/.local/bin` from Settings → General (now the Quail window's General page). v1: `start`/`stop`/`restart`/`status`, `list`/`ps`, `chat [model] [prompt]` (terminal chat — D-021, D-025; `run` until 2026-09-24), `launch <tool>` (Claude Code, Codex, opencode, Qwen Code, aider, Goose started pointed at Quail from `integrations.json`'s launch recipes — env vars, args and temp files, never the tool's own config; sized to the model's context, D-050), `logs [-f]`, `service enable|disable` (open at login + start the server automatically — wires the long-dormant `autoStartServer`). `bench` ✅ with step 4. v2 ✅: `pull <name|owner/repo>[:quant]` (catalog names like ollama's, any HF GGUF repo, progress bar, Ctrl-C cancels and a re-run resumes; `--list` shows the catalog with recommendations and what's installed), `rm`, `default [model|--clear]`, `ctx <model> [size|auto]` (with each size's fit), `config` (endpoint, key masked unless `--show-key`, store, logs, settings), `--version`.
 6. **Benchmark sharing** — a separate project with its own backend (and ADR); the app only ships the result schema and export until then.
 7. **Catalog sources (GGUF)** — the hand-curated `catalog.json` (15 families) is the bottleneck for the Add-model list. Candidates checked 2026-09-24: the **ModelFit** open dataset (`https://modelfit.io/api/dataset/`, CC BY 4.0, 143 rows, ~105 with an Ollama tag, last updated 2026-09-18; no HF repo ids, and its RAM figures are a 0.6 GB/B-param heuristic, so `FitEstimator` stays authoritative) and the **Ollama registry** (`https://registry.ollama.ai/v2/library/<name>/manifests/<tag>` — anonymous, lists a GGUF `model` layer, an optional `projector` layer for vision models, and sha256 digests). **Spike ✅ 2026-09-24 → ADR D-026: the Ollama registry is not a download source; ModelFit is a discovery feed only.** Method: fetched each tag's `model` layer (plus `projector` layer where present) from the registry, checked the sha256 against the manifest, and loaded it in the pinned llama.cpp b11081 `llama-server` (fetched separately with `scripts/vendor-llama.sh`'s checksum, not through the app) with a text chat and, for the projector, an image chat. Only 2 of 5 loaded:
 
@@ -180,7 +180,7 @@ Mac App Store publication is cancelled (D-053). Completed steps in earlier phase
     2. Uninstall (`brew uninstall --cask quail-ai`), then install from the latest release's DMG: opening the downloaded DMG and dragging the app to Applications gives no warning beyond macOS's "downloaded from the internet" prompt, and `spctl -a -vv /Applications/Quail.app` says "Notarized Developer ID".
     3. Start the server, add Qwen3 0.6B from Add Model, and run Ping in Connect: it passes.
     4. Turn off Wi-Fi, quit and reopen Quail: the server starts, Ping passes, Add Model says it's offline.
-    5. With a release older than the newest installed, Settings → General → Check for Updates finds, installs and relaunches the newer one.
+    5. With a release older than the newest installed, Quail → General → Check for Updates finds, installs and relaunches the newer one.
     6. The same with a GGUF and an MLX model on Quail server, and one Connect snippet (Claude Code or opencode).
 6. ~~About pane~~ — done as a section of Settings → General, not a pane (D-029): app version, distribution, llama.cpp tag, catalog revision, macOS, Copy Details and the open-source licences. Still to add there as they exist: the `quail-server` version, runtime pins, the update check.
 
@@ -227,10 +227,35 @@ Found while reviewing the project on 2026-09-24; not part of any phase.
 | Model RAM estimate wrong | Verdicts use a 70% ceiling and reduce context before refusing; measured runs overwrite estimates |
 | HF rate limits / gated repos | Token support; downloads are one file at a time with resume |
 
-## First session with Claude Code (suggested order)
+## Road to 1.0
 
-1. Create the Xcode project and the folder layout above; commit.
-2. `task vendor:llama` against the current llama.cpp release; confirm `otool -L`.
-3. `Runtime.swift`, `LlamaCppRuntime.swift`, `ProcessSupervisor.swift`, `ServerController.swift` with a fake-runtime unit test for the state machine.
-4. Minimal `MenuView` with Start/Stop and a status dot; run it against a hand-placed GGUF.
-5. Ping sheet. Stop there and review.
+Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. What stands between v0.51 and a 1.0.0 tag, in order:
+
+1. [x] **One Quail window** (D-061): a sidebar of Server · Models · Connect · Benchmark | General · About replaces the six Settings tabs; This Mac folds into About.
+2. [ ] **The Server page:**
+   - status, Start/Stop/Restart and Test
+   - usable addresses (this Mac, the network) instead of `0.0.0.0`
+   - Reach: This Mac only / Local network / Custom, instead of a free-text host
+   - a masked API key
+   - a "restart to apply" banner (`endpointChangedSinceStart`)
+3. [ ] **Model settings in plain sight:**
+   - a per-model settings popover (context, KV cache, default) instead of the small "ctx" menu
+   - a "This Mac can run…" line on Models
+   - the menu's Add model… opens the sheet
+4. [ ] **Website** (D-062): a landing page and short docs in `website/`, hand-written HTML, deployed to GitHub Pages. The domain is new, not bought yet, so ship on the Pages URL first.
+5. [ ] **Links from the app:**
+   - `QuailWebsiteURL` in Info.plist
+   - "Learn more" links replacing long captions
+   - Quail Help in the menu
+   - About's Release Notes / Report an Issue / Source and the `quail-server` version (Phase 4 step 6)
+   - the cask's `homepage`
+6. [ ] **README and repo:** drop "Pre-alpha" and the stale uv/oMLX/Rapid-MLX lines; set the GitHub description and homepage.
+7. [ ] **Phase 4 step 5b** on a Mac that has never had Quail.
+8. [ ] **1.0.0:** `PR_TITLE="chore: release 1.0.0" TARGET=1.0.0 task version:bump`, with a CHANGELOG section summarising the product.
+
+**After 1.0:**
+- Phase 4 step 4, measured-speed calibration
+- Phase 2b step 6, benchmark sharing
+- Phase 2b step 7, `scripts/catalog-candidates`
+- Phase 5, multiple endpoints
+- the deferred Python runtimes (D-027)

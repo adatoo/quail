@@ -1,6 +1,6 @@
 import ServiceManagement
 
-/// Thin wrapper over `SMAppService.mainApp` for Settings → General's "Open
+/// Thin wrapper over `SMAppService.mainApp` for the General page's "Open
 /// at login" toggle — see docs/ARCHITECTURE.md's login-item row and
 /// https://nilcoalescing.com/blog/LaunchAtLoginSetting/ (docs/IMPLEMENTATION_PLAN.md's
 /// reading list) for the API's quirks.

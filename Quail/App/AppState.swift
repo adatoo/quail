@@ -6,7 +6,7 @@ import SwiftUI
 
 /// Observable root of the app's UI state. Owns the persisted `Config`, the
 /// `ServerController` state machine, and translates between the two — the
-/// menu and Settings only ever talk to this, never to `ServerController`
+/// menu and the Quail window only ever talk to this, never to `ServerController`
 /// or `Keychain` directly.
 ///
 /// Every dependency is injected with a real default, so tests can swap in
@@ -22,11 +22,11 @@ final class AppState {
     let keepAwake: KeepAwake
     /// Keeps a plugged-in laptop awake with its lid closed, when `Config.keepAwakeLidClosed` asks.
     @ObservationIgnored let lidGuard = LidSleepGuard()
-    /// For Settings: whether the lid-closed option is running, or why it isn't.
+    /// For the Server page: whether the lid-closed option is running, or why it isn't.
     private(set) var lidGuardStatus: String?
 
     /// The runtime `ServerController` is driving, exposed because the Ping sheet and Logs window talk to it
-    /// too. Chosen in Settings → Endpoint (`setRuntime`), only while the server is stopped.
+    /// too. Chosen on the Server page (`setRuntime`), only while the server is stopped.
     var runtime: any Runtime {
         serverController.runtime
     }
@@ -374,7 +374,7 @@ final class AppState {
             || (canServe(.mlxSafetensors) && !modelStore.installedMLXDirectories().isEmpty)
     }
 
-    /// What to tell someone whose chosen runtime can't run MLX models (llama.cpp), shown in Settings → Endpoint,
+    /// What to tell someone whose chosen runtime can't run MLX models (llama.cpp), shown on the Server page,
     /// above the Models list and in Add Model; nil when it can. Counts the MLX models on disk that won't load.
     var mlxUnavailableNote: String? {
         guard !canServe(.mlxSafetensors) else { return nil }
@@ -393,7 +393,7 @@ final class AppState {
         }
     }
 
-    /// Switches runtime (Settings → Endpoint). Only while stopped: false otherwise, or for a runtime the app
+    /// Switches runtime (the Server page). Only while stopped: false otherwise, or for a runtime the app
     /// can't start. Regenerates the presets, since which models they list depends on it.
     @discardableResult
     func setRuntime(_ id: RuntimeID) -> Bool {
@@ -422,13 +422,12 @@ final class AppState {
         serverController.phase == .ready || serverController.phase == .starting
     }
 
-    /// Which `SettingsView` tab is showing. Plain UI state, not
-    /// persisted — it lives here rather than as `SettingsView`'s own
-    /// `@State` only because the menu (`MenuView`'s "Add model…" item,
-    /// shown when `hasServableModel` is false) needs to steer the
-    /// Settings window to the Models tab before `openSettings()` opens
-    /// it; SwiftUI's `openSettings` action takes no arguments.
-    var settingsTab: SettingsTab = .general
+    /// Which page of the Quail window (`MainWindow`) is showing. Plain UI
+    /// state, not persisted, so the window reopens where it was until Quail
+    /// quits. It lives here rather than as the window's own `@State` because
+    /// the menu (Add model…, Benchmark…, Connect a Tool…) steers the window to
+    /// a page before `openWindow` opens it, and that action takes no page.
+    var mainPage: MainPage = .server
 
     var baseURL: URL? {
         serverController.baseURL
@@ -632,7 +631,7 @@ final class AppState {
     /// `secretStore` — `@Observable` only tracks stored-property access,
     /// so a computed pass-through here meant `regenerateAPIKey()` updated
     /// the Keychain correctly but SwiftUI had no signal that anything had
-    /// changed, and `SettingsView` kept showing the old value. Found via
+    /// changed, and Settings kept showing the old value. Found via
     /// manual testing: clicking "Regenerate" visibly did nothing.
     private(set) var apiKey: String?
 
@@ -892,7 +891,7 @@ final class AppState {
     /// `POST /models/load`, already verified against a real b11081
     /// server in PR 7's integration testing; the runtime can also be
     /// asked to evict per `modelsMax`, and that budget is set at launch
-    /// — changing it needs a restart, which is Settings' job, not
+    /// — changing it needs a restart, which is the Server page's job, not
     /// here). An MLX model under a runtime that can't serve it (llama.cpp) throws `needsMLXRuntime`.
     func selectModel(id: String) async throws {
         guard let base = baseURL, serverController.phase == .ready else {
@@ -917,7 +916,7 @@ final class AppState {
             switch self {
             case .serverNotRunning: "start the server first"
             case .notInstalled: "that model isn't installed"
-            case .needsMLXRuntime: "MLX models need the Quail server runtime (Settings → Endpoint)"
+            case .needsMLXRuntime: "MLX models need the Quail server runtime (Quail → Server)"
             }
         }
     }
@@ -1151,7 +1150,7 @@ final class AppState {
     // MARK: - Open at login
 
     /// Start the server when Quail launches (`quail service enable`, and
-    /// Settings → General). Stored for a long time but never acted on until
+    /// the Server page). Stored for a long time but never acted on until
     /// the CLI's "always on" needed it — see `AppDelegate`.
     func setAutoStartServer(_ enabled: Bool) {
         guard enabled != config.autoStartServer else { return }

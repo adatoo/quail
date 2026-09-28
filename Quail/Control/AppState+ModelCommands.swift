@@ -2,7 +2,7 @@ import Foundation
 
 /// CLI v2's model commands (docs/IMPLEMENTATION_PLAN.md Phase 2b step 5):
 /// `pull`, `rm`, `default`, `ctx` and `config` — each the same action the
-/// Settings UI takes, so the two can't disagree.
+/// Quail window takes, so the two can't disagree.
 extension AppState {
     // MARK: - Resolving names
 
@@ -30,7 +30,7 @@ extension AppState {
     func pullModel(_ raw: String) async -> ControlResponse {
         guard !installs.isDownloading else {
             return .failure(
-                "A download is already running — see `quail pull` progress, or cancel it in Settings → Models."
+                "A download is already running — see `quail pull` progress, or cancel it in Quail → Models."
             )
         }
         let spec: PullSpec
@@ -166,7 +166,7 @@ extension AppState {
         case let .success(entry):
             guard canServe(entry.format) else {
                 return .failure(
-                    "\(entry.id) is an MLX model, which the llama.cpp runtime can't serve — choose Quail server in Settings → Endpoint."
+                    "\(entry.id) is an MLX model, which the llama.cpp runtime can't serve — choose Quail server in Quail → Server."
                 )
             }
             setDefaultModel(entry.id)

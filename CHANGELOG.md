@@ -10,6 +10,18 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-09-28
+
+### Changed
+
+- **Settings is now the Quail window**, with a sidebar instead of six tabs. Its pages are Server, Models, Connect and Benchmark, then General and About.
+  - **Server** holds everything about the server that used to be split between General and Endpoint: runtime, host, port, API key, how many models stay loaded, starting with Quail, and keeping the Mac awake.
+  - **General** is Quail itself: open at login, the menu bar, the `quail` command and updates.
+  - **About** has the versions and licences, and the This Mac facts that had a tab of their own. One Copy Details copies both, for a bug report.
+  - The window can be resized, and each page scrolls within it.
+  - The menu's **Open Quail** (⌘,) opens it where you left it. Add model…, Benchmark… and Connect a Tool… open it at their page.
+- Messages that pointed at "Settings → Endpoint" or "Settings → Models" now say "Quail → Server" or "Quail → Models". The `quail` command suggests `quail pull` and `quail ctx` first.
+
 ## [0.51.0] - 2026-09-28
 
 ### Added

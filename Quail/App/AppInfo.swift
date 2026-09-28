@@ -1,6 +1,6 @@
 import Foundation
 
-/// Static app metadata, shown in Settings → General → About (`AboutSection`).
+/// Static app metadata, shown on the About page (`AboutPage`).
 enum AppInfo {
     static var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
@@ -49,7 +49,7 @@ enum AppInfo {
     }
 }
 
-/// What Settings → General → About shows, gathered once so the rows and the
+/// What the About page shows, gathered once so the rows and the
 /// "copy for a bug report" text can't disagree.
 struct AboutFacts: Equatable {
     var version: String

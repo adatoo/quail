@@ -18,7 +18,7 @@ struct Config: Sendable, Equatable, Codable {
     var port: Int = 8080
     var modelsMax: Int = 1
     /// On by default (ADR D-039): with no key, any web page you open could drive the runtime
-    /// (llama-server answers every origin). Turn it off in Settings → Endpoint.
+    /// (llama-server answers every origin). Turn it off on the Server page.
     var apiKeyEnabled: Bool = true
     /// Whether the on-by-default rule has been applied to this config. A `config.json` written
     /// before D-039 has `apiKeyEnabled: false` because that was the default, not a choice, so it's

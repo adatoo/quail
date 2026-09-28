@@ -12,7 +12,7 @@ Quail is free and open source, built for developers on Apple Silicon Macs. Homeb
 brew install --cask adatoo/tap/quail-ai
 ```
 
-or download the DMG from the [latest release](https://github.com/adatoo/quail/releases/latest). The build is signed and notarized. Quail then updates itself (Settings → General → Updates); Homebrew leaves that to Quail unless you run `brew upgrade --greedy`. The `brew` install also puts the `quail` command on your PATH.
+or download the DMG from the [latest release](https://github.com/adatoo/quail/releases/latest). The build is signed and notarized. Quail then updates itself (Quail → General → Updates); Homebrew leaves that to Quail unless you run `brew upgrade --greedy`. The `brew` install also puts the `quail` command on your PATH.
 
 ## What it does
 

@@ -33,7 +33,7 @@ final class KeepAwake {
     private var held: IOPMAssertionID?
 
     /// What `pmset -g assertions` shows against Quail.
-    static let reason = "Quail is serving a local model (Settings > General > Power)"
+    static let reason = "Quail is serving a local model (Quail > Server > Power)"
 
     init(assertions: any Assertions = System()) {
         self.assertions = assertions

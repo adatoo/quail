@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings → General → Updates: how often Quail looks for a new version, whether it
+/// The General page's Updates section: how often Quail looks for a new version, whether it
 /// installs one without asking, and a button to look now. Shown in the direct build
 /// (`UpdateSettings` is `nil` only where no updater runs, as in previews and tests).
 struct UpdatesSection: View {
