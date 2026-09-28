@@ -16,23 +16,22 @@ or download the DMG from the [latest release](https://github.com/adatoo/quail/re
 
 ## What it does
 
-- Start, stop and supervise one runtime at a time; status in the menu bar
-- Endpoint settings: runtime, host, port, API key
-- Browse, download, select and delete models in a single store (GGUF and MLX)
-- Fit and speed estimates per model, per runtime, for *this* Mac
-- Ping test: server up, model loaded, time to first token — no chat window
-- Live logs
-- Open at login, auto-start last runtime and model
-- Keep the Mac awake while the server runs (and, plugged in, with a laptop's lid closed)
-- Works offline once models are downloaded: serving, chat, benchmarks and `quail launch` need no internet; only browsing and downloading models do (`task check:offline` proves it)
+- **Runs a model server from the menu bar.** Start and stop it, see what it's doing, and keep the Mac awake while it works, even with a laptop's lid closed when plugged in.
+- **One server for GGUF and MLX.** Quail server runs llama.cpp for GGUF and Apple's MLX for MLX models, from one model folder. llama.cpp's `llama-server` stays bundled as a fallback for GGUF.
+- **Knows what fits.** Every model gets a verdict for this Mac before you download it, with an estimated speed. Each model's context size and KV cache are labelled with how they fit.
+- **Finds models:** a curated catalog, recommendations for your memory, over a hundred MLX models, any Hugging Face GGUF repo, and the models other apps already downloaded.
+- **Connects your tools.** Copy-ready setup for Claude Code, Codex, opencode, Continue, Cline, Zed, Open WebUI and more, each with a Test. It speaks OpenAI Chat Completions and Responses, and Anthropic Messages.
+- **Includes a `quail` command,** like ollama: `quail pull`, `chat`, `launch claude`, `bench`, `ps`, `logs` and more.
+- **Benchmarks** a model on your own Mac, the same way every time, and compares runs.
+- **Keeps your data on your Mac.** It listens only to this Mac by default, requires an API key from the start, and works offline once models are downloaded (`task check:offline` proves it).
 
 ## What it deliberately doesn't do
 
-Chat, agents, image/audio generation, multi-runtime concurrency, remote hosting. The runtimes' own web UIs are one click away for anything beyond serving.
+It has no chat window of its own: the server's chat page opens in your browser, and `quail chat` works in the terminal. There are no agents, no image or audio generation, and nothing in the cloud: no account and no telemetry.
 
 ## Status
 
-Pre-alpha. See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for where things are.
+Beta, heading for 1.0: see the Road to 1.0 at the end of [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Every merge to `main` is a signed, notarized release that installed copies update to.
 
 ## Documents
 
@@ -51,4 +50,4 @@ Pre-alpha. See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for wh
 
 ## Licence
 
-[MIT](LICENSE). Bundled llama.cpp is MIT; uv is MIT/Apache-2.0; oMLX and Rapid-MLX are Apache-2.0 and are installed, not redistributed.
+[MIT](LICENSE). The open-source components Quail ships, and their licences, are listed in [THIRD_PARTY_NOTICES.md](Quail/Resources/THIRD_PARTY_NOTICES.md) and in the app (About → Third-party licences).

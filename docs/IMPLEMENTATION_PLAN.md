@@ -249,7 +249,7 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
    - Quail Help in the menu
    - About's Release Notes / Report an Issue / Source and the `quail-server` version (Phase 4 step 6)
    - the cask's `homepage`
-6. [ ] **README and repo:** drop "Pre-alpha" and the stale uv/oMLX/Rapid-MLX lines; set the GitHub description and homepage.
+6. [x] **README and repo:** *(README done 2026-09-28; the repository's description and homepage wait for the website)* drop "Pre-alpha" and the stale uv/oMLX/Rapid-MLX lines; set the GitHub description and homepage.
 7. [ ] **Phase 4 step 5b** on a Mac that has never had Quail.
 8. [ ] **1.0.0:** `PR_TITLE="chore: release 1.0.0" TARGET=1.0.0 task version:bump`, with a CHANGELOG section summarising the product.
 

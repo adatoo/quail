@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.55.1] - 2026-09-28
+
+### Changed
+
+- The README describes Quail as it is now, calls it a beta heading for 1.0, and points at the notices file for licences.
+
 ## [0.55.0] - 2026-09-28
 
 ### Added
