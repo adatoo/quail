@@ -130,7 +130,7 @@ struct AddModelSheet: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Add Model").font(.title3.bold())
-                Text(deviceLine)
+                Text(device.summaryLine)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 if appState.hubOffline {
@@ -170,25 +170,6 @@ struct AddModelSheet: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
-    }
-
-    /// "Apple M4 Pro · 64 GB · comfortable up to ~55B" — from the
-    /// measured GPU ceiling (see `FitEstimator.approxMaxParamsB`), never
-    /// the catalog tier's open-ended upper bound, which once rendered as
-    /// "showing 35–999B models".
-    private var deviceLine: String {
-        var parts: [String] = []
-        if let chip = device.chipName {
-            parts.append(chip)
-        }
-        if let bytes = device.unifiedMemoryBytes {
-            parts.append("\(Int(Double(bytes) / 1_073_741_824)) GB")
-        }
-        if let ceiling = device.gpuWorkingSetCeilingBytes {
-            let maxParams = FitEstimator.approxMaxParamsB(gpuCeilingBytes: ceiling, comfortable: true)
-            parts.append("comfortable up to ~\(maxParams)B")
-        }
-        return parts.joined(separator: " · ")
     }
 
     private var footer: some View {

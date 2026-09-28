@@ -103,7 +103,10 @@ struct ConnectPane: View {
                     LabeledContent("Model") {
                         HStack {
                             Text("No models installed.").foregroundStyle(.secondary)
-                            Button("Go to Models") { appState.mainPage = .models }
+                            Button("Add Model…") {
+                                appState.addModelRequested = true
+                                appState.mainPage = .models
+                            }
                         }
                     }
                 } else {

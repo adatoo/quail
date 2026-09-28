@@ -66,7 +66,10 @@ struct BenchmarkPane: View {
                         ? "No models installed."
                         : "No GGUF models installed. For MLX, choose the Quail server runtime on the Server page.")
                         .foregroundStyle(.secondary)
-                    Button("Go to Models") { appState.mainPage = .models }
+                    Button("Add Model…") {
+                        appState.addModelRequested = true
+                        appState.mainPage = .models
+                    }
                 } else {
                     Picker("Model", selection: $model) {
                         ForEach(appState.benchmarkableModels, id: \.self) { id in

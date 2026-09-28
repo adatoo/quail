@@ -67,6 +67,7 @@ struct MenuView: View {
             Button("Start") {}
                 .disabled(true)
             Button("Add model…") {
+                appState.addModelRequested = true
                 openMain(.models)
             }
         } else if appState.canStart {

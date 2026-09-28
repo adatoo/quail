@@ -383,3 +383,23 @@ enum ChipBandwidthTable {
         return raw.chipBandwidthGBps
     }
 }
+
+extension DeviceInfo {
+    /// "Apple M4 Pro · 64 GB · comfortable up to ~55B" — from the measured GPU ceiling (see
+    /// `FitEstimator.approxMaxParamsB`), never the catalog tier's open-ended upper bound, which once rendered as
+    /// "showing 35–999B models". The Add Model sheet's header and the Models page's first line.
+    var summaryLine: String {
+        var parts: [String] = []
+        if let chipName {
+            parts.append(chipName)
+        }
+        if let unifiedMemoryBytes {
+            parts.append("\(Int(Double(unifiedMemoryBytes) / 1_073_741_824)) GB")
+        }
+        if let gpuWorkingSetCeilingBytes {
+            let maxParams = FitEstimator.approxMaxParamsB(gpuCeilingBytes: gpuWorkingSetCeilingBytes, comfortable: true)
+            parts.append("comfortable up to ~\(maxParams)B")
+        }
+        return parts.joined(separator: " · ")
+    }
+}
