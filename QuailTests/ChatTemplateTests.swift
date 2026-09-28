@@ -32,7 +32,11 @@ struct ChatTemplateTests {
         }
     }
 
-    private static let families = ["qwen3", "gemma3", "llama3", "gptoss"]
+    private static let families = ["qwen3", "gemma3", "llama3", "gptoss", "gemma4", "gemma4-mlx"]
+    /// llama-server passes `enable_thinking: true` to a template that can think, unless a request says
+    /// otherwise (b11081 server-context.cpp). Qwen3's template reads a missing value the same way; Gemma 4's
+    /// reads it as off, so its goldens need the value llama-server gave.
+    private static let thinksByDefault: Set = ["gemma4", "gemma4-mlx"]
     private static let caseNames = ["plain", "multi-turn", "tools", "tool-roundtrip", "unicode"]
     static let allCases: [Case] = families.flatMap { family in caseNames.map { Case(family: family, name: $0) } }
 
@@ -61,7 +65,8 @@ struct ChatTemplateTests {
             messages: body["messages"]?.arrayValue ?? [],
             tools: body["tools"]?.arrayValue,
             bosToken: oracle.bosToken,
-            eosToken: oracle.eosToken
+            eosToken: oracle.eosToken,
+            extra: thinksByDefault.contains(testCase.family) ? ["enable_thinking": .boolean(true)] : [:]
         ))
     }
 
@@ -110,6 +115,12 @@ struct ChatTemplateTests {
         let calls = try #require(ChatTemplate.prepared(messages)[0]["tool_calls"]?.arrayValue)
         #expect(calls[0]["function"]?["arguments"]?["a"]?.intValue == 1)
         #expect(calls[1]["function"]?["arguments"]?.stringValue == "not json")
+    }
+
+    @Test("a trimmed tag right after a literal brace leaves no space behind, as in jinja2")
+    func braceBeforeTrimmedTag() throws {
+        let template = try ChatTemplate("a:{\n    {%- if true -%} b {%- endif -%} }|{ {{- 'x' -}} }|{\n{#- note -#} }")
+        #expect(try template.render(.init(messages: [])) == "a:{b}|{x}|{}")
     }
 
     @Test("chat_template_kwargs reach the template, but can't replace the server's own variables")

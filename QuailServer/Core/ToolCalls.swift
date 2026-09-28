@@ -10,7 +10,7 @@ struct ParsedToolCall: Equatable, Sendable {
 /// How a model family writes its tool calls, told apart by what its chat template renders for
 /// them (the format a model is trained to emit is the one its template puts into a conversation's
 /// history). A family with no known format keeps its calls as plain content, like llama-server does
-/// for templates it can't read (Gemma's has no tool support at all).
+/// for templates it can't read (Gemma 3's has no tool support at all).
 enum ToolCallFormat: Equatable, Sendable {
     /// `<tool_call>{"name": …, "arguments": {…}}</tool_call>` (Hermes, Qwen 2.5 and 3).
     case hermesJSON
@@ -20,9 +20,15 @@ enum ToolCallFormat: Equatable, Sendable {
     case bareJSON
     /// gpt-oss's channels: `<|channel|>commentary to=functions.NAME<|message|>{…}<|call|>`.
     case harmony
+    /// `<|tool_call>call:NAME{key:<|"|>text<|"|>,n:1}<tool_call|>`: Gemma 4's own notation (`Gemma4Arguments`).
+    case gemma4
     case none
 
     static func detect(template: String) -> ToolCallFormat {
+        // What llama.cpp looks for too (b11081 chat.cpp).
+        if template.contains("'<|tool_call>call:'") {
+            return .gemma4
+        }
         if template.contains("<|channel|>"), template.contains("commentary") {
             return .harmony
         }
@@ -59,11 +65,16 @@ struct ToolCallParser: Sendable {
     /// Set once real (non-whitespace) content has been seen, so a later `{` isn't a bare call.
     private var sawContent = false
 
-    static let openTag = "<tool_call>"
-    static let closeTag = "</tool_call>"
+    private let openTag: String
+    private let closeTag: String
+    /// Whether the newline a model writes before a call is layout, not content. llama-server keeps
+    /// Gemma 4's (checked on real output), so it's kept there too.
+    private let trimsLayoutBeforeCall: Bool
 
     init(format: ToolCallFormat, tools: [Value]) {
         self.format = format
+        (openTag, closeTag) = format == .gemma4 ? ("<|tool_call>", "<tool_call|>") : ("<tool_call>", "</tool_call>")
+        trimsLayoutBeforeCall = format != .gemma4
         var schemas: [String: [String: String]] = [:]
         for tool in tools {
             guard let name = tool["function"]?["name"]?.stringValue else { continue }
@@ -132,8 +143,9 @@ struct ToolCallParser: Sendable {
                     pending = ""
                     break loop
                 }
-                if let range = pending.range(of: Self.openTag) {
-                    content(String(pending[..<range.lowerBound]).trimmingTrailingWhitespace(whenCallFollows: true))
+                if let range = pending.range(of: openTag) {
+                    content(String(pending[..<range.lowerBound])
+                        .trimmingTrailingWhitespace(whenCallFollows: trimsLayoutBeforeCall))
                     pending = String(pending[range.upperBound...])
                     state = .inCall
                     continue loop
@@ -142,16 +154,17 @@ struct ToolCallParser: Sendable {
                 // in front of it (the layout newline before a call isn't content).
                 var hold = 0
                 if !final {
-                    let partial = Self.partialSuffixLength(of: pending, for: Self.openTag)
+                    let partial = Self.partialSuffixLength(of: pending, for: openTag)
                     let head = pending.dropLast(partial)
-                    let whitespace = head.count - head.trimmingTrailingWhitespace(whenCallFollows: true).count
+                    let whitespace = head.count
+                        - head.trimmingTrailingWhitespace(whenCallFollows: trimsLayoutBeforeCall).count
                     hold = partial + whitespace
                 }
                 content(String(pending.dropLast(hold)))
                 pending = String(pending.suffix(hold))
                 break loop
             case .inCall:
-                if let range = pending.range(of: Self.closeTag) {
+                if let range = closeTagRange(in: pending) {
                     let body = String(pending[..<range.lowerBound])
                     pending = String(pending[range.upperBound...])
                     state = .text
@@ -160,12 +173,12 @@ struct ToolCallParser: Sendable {
                         // Whitespace between consecutive calls isn't content.
                         pending = String(pending.drop(while: { $0.isWhitespace }))
                     } else {
-                        content(Self.openTag + body + Self.closeTag)
+                        content(openTag + body + closeTag)
                     }
                     continue loop
                 }
                 if final {
-                    content(Self.openTag + pending) // cut off mid-call: it was never a call
+                    content(openTag + pending) // cut off mid-call: it was never a call
                     pending = ""
                 }
                 break loop
@@ -185,14 +198,45 @@ struct ToolCallParser: Sendable {
         return out
     }
 
+    /// Where the call ends. Gemma 4's strings are written raw between `<|"|>` marks, so one could hold
+    /// the closing tag's text; only a tag outside them counts.
+    private func closeTagRange(in text: String) -> Range<String.Index>? {
+        guard format == .gemma4 else { return text.range(of: closeTag) }
+        var from = text.startIndex
+        while true {
+            let close = text.range(of: closeTag, range: from ..< text.endIndex)
+            guard let quote = text.range(of: Gemma4Arguments.quote, range: from ..< text.endIndex),
+                  close.map({ quote.lowerBound < $0.lowerBound }) ?? true
+            else { return close }
+            guard let end = text.range(of: Gemma4Arguments.quote, range: quote.upperBound ..< text.endIndex)
+            else { return nil } // inside a string that hasn't ended yet
+            from = end.upperBound
+        }
+    }
+
     // MARK: Parsing
 
     private func parseTagged(_ body: String) -> ParsedToolCall? {
         switch format {
         case .hermesJSON: Self.callFromJSON(body, allowed: toolNames)
         case .qwenXML: parseXML(body)
+        case .gemma4: parseGemma4(body)
         default: nil
         }
+    }
+
+    /// `call:NAME{…}`, the arguments in Gemma 4's notation, written out as compact JSON (as llama-server does).
+    private func parseGemma4(_ body: String) -> ParsedToolCall? {
+        var text = Substring(body).drop(while: { $0.isWhitespace })
+        guard text.hasPrefix("call:"), let brace = text.firstIndex(of: "{") else { return nil }
+        let name = text[text.index(text.startIndex, offsetBy: 5) ..< brace].trimmingCharacters(in: .whitespaces)
+        guard toolNames.contains(name) else { return nil }
+        text = text[brace...]
+        guard let arguments = Gemma4Arguments.parse(&text), case .object = arguments,
+              text.allSatisfy(\.isWhitespace),
+              let json = try? OrderedJSON.serialize(arguments)
+        else { return nil }
+        return ParsedToolCall(name: name, arguments: json)
     }
 
     private func parseBare(_ text: String) -> ParsedToolCall? {
@@ -264,6 +308,93 @@ struct ToolCallParser: Sendable {
             length -= 1
         }
         return 0
+    }
+}
+
+/// Gemma 4's notation for a call's arguments, which its template writes and the model copies: JSON with
+/// bare keys and strings between `<|"|>` marks, nothing escaped inside them. Numbers, `true`, `false` and
+/// `null` are JSON's. Read leniently where it costs nothing: a key or string may also be quoted either way.
+enum Gemma4Arguments {
+    static let quote = "<|\"|>"
+
+    /// One value from the start of `text`, which is left just after it; nil if it isn't well formed.
+    static func parse(_ text: inout Substring, depth: Int = 0) -> Value? {
+        guard depth < OrderedJSON.maxDepth else { return nil }
+        text = text.drop(while: { $0.isWhitespace })
+        if let string = quoted(&text) {
+            return .string(string)
+        }
+        if take("{", from: &text) {
+            var members = OrderedDictionary<ObjectKey, Value>()
+            if take("}", from: &text) {
+                return .object(members)
+            }
+            repeat {
+                text = text.drop(while: { $0.isWhitespace })
+                guard let key = quoted(&text) ?? bareKey(&text) else { return nil }
+                text = text.drop(while: { $0.isWhitespace })
+                guard take(":", from: &text), let value = parse(&text, depth: depth + 1) else { return nil }
+                members[.string(key)] = value
+            } while take(",", from: &text)
+            return take("}", from: &text) ? .object(members) : nil
+        }
+        if take("[", from: &text) {
+            var items: [Value] = []
+            if take("]", from: &text) {
+                return .array(items)
+            }
+            repeat {
+                guard let item = parse(&text, depth: depth + 1) else { return nil }
+                items.append(item)
+            } while take(",", from: &text)
+            return take("]", from: &text) ? .array(items) : nil
+        }
+        let token = text.prefix(while: { !$0.isWhitespace && !",}]".contains($0) })
+        guard let scalar = try? OrderedJSON.parse(String(token)) else { return nil }
+        text = text.dropFirst(token.count)
+        return scalar
+    }
+
+    /// Skips whitespace, then `mark` if it's next.
+    private static func take(_ mark: Character, from text: inout Substring) -> Bool {
+        text = text.drop(while: { $0.isWhitespace })
+        guard text.first == mark else { return false }
+        text = text.dropFirst()
+        return true
+    }
+
+    /// `<|"|>text<|"|>`, or a JSON string.
+    private static func quoted(_ text: inout Substring) -> String? {
+        if text.hasPrefix(quote) {
+            let inner = text.dropFirst(quote.count)
+            guard let end = inner.range(of: quote) else { return nil }
+            text = inner[end.upperBound...]
+            return String(inner[..<end.lowerBound])
+        }
+        guard text.first == "\"" else { return nil }
+        var escaped = false
+        for index in text.indices.dropFirst() {
+            if escaped {
+                escaped = false
+            } else if text[index] == "\\" {
+                escaped = true
+            } else if text[index] == "\"" {
+                let end = text.index(after: index)
+                guard let string = try? OrderedJSON.parse(String(text[..<end])).stringValue else { return nil }
+                text = text[end...]
+                return string
+            }
+        }
+        return nil
+    }
+
+    /// A key as the template writes it: everything up to the colon (llama.cpp reads `[^:}]+`).
+    private static func bareKey(_ text: inout Substring) -> String? {
+        let key = text.prefix(while: { $0 != ":" && $0 != "}" && $0 != "," })
+        let name = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
+        text = text.dropFirst(key.count)
+        return name
     }
 }
 

@@ -10,6 +10,15 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.57.1] - 2026-09-28
+
+### Fixed
+
+- **Gemma 4's tool calls work.** Quail returned Gemma 4's calls as text, on both engines and on both the OpenAI and Anthropic routes, so agents couldn't use it. Now:
+  - Its calls come back as `tool_calls` / `tool_use`, with the same arguments llama-server gives.
+  - Its thinking (`<|channel>thought…`) comes back as reasoning, not as part of the answer. This includes the empty thought block it writes after every tool result.
+  - The tools it's offered reach it in the form it was trained on. The template renderer used to put a stray space after each `{` in Gemma 4's tool declarations.
+
 ## [0.57.0] - 2026-09-28
 
 ### Added

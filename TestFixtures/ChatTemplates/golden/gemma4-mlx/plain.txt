@@ -1,0 +1,6 @@
+<|endoftext|><|turn>system
+<|think|>
+You are a terse assistant.<turn|>
+<|turn>user
+What is the capital of France?<turn|>
+<|turn>model

@@ -96,7 +96,7 @@ struct ToolCallTests {
 
     @Test("a family's tool-call format is read from its template", arguments: [
         ("qwen3", ToolCallFormat.hermesJSON), ("qwen36", .qwenXML), ("llama3", .bareJSON),
-        ("gptoss", .harmony), ("gemma3", ToolCallFormat.none),
+        ("gptoss", .harmony), ("gemma3", ToolCallFormat.none), ("gemma4", .gemma4), ("gemma4-mlx", .gemma4),
     ])
     func detection(family: String, expected: ToolCallFormat) throws {
         #expect(try ToolCallFormat.detect(template: Self.text("ChatTemplates/templates/\(family).jinja")) == expected)
@@ -107,12 +107,17 @@ struct ToolCallTests {
     struct Model: Sendable, CustomTestStringConvertible {
         let file: String
         let family: String
+        var bos = "<|endoftext|>"
+        var eos = "<|im_end|>"
         var testDescription: String {
             file
         }
     }
 
-    static let models = [Model(file: "qwen3-8b", family: "qwen3"), Model(file: "qwen3.6-35b", family: "qwen36")]
+    static let models = [
+        Model(file: "qwen3-8b", family: "qwen3"), Model(file: "qwen3.6-35b", family: "qwen36"),
+        Model(file: "gemma-4-26b", family: "gemma4", bos: "<bos>", eos: "<eos>"),
+    ]
 
     @Test(
         "real output parses as llama-server parses it, however the tokens arrive",
@@ -125,9 +130,10 @@ struct ToolCallTests {
         let format = ToolCallFormat.detect(template: templateText)
         for (name, capture) in try Self.captured(file) {
             let tools = try Self.tools(of: file, case: name)
-            // Generation starts inside the reasoning when the template left <think> open.
-            let opened = capture.prompt
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("<think>") } ?? false
+            // Generation starts inside the reasoning when the template left it open.
+            let opened = capture.prompt.map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix(format.reasoningTags.open)
+            } ?? false
             let result = parse(chunked(capture.raw, size), format: format, tools: tools, startsInReasoning: opened)
             #expect(result.calls.map(\.name) == capture.toolCalls.map(\.name), "\(file)/\(name)")
             #expect(result.calls.map(\.arguments) == capture.toolCalls.map(\.arguments), "\(file)/\(name)")
@@ -137,11 +143,14 @@ struct ToolCallTests {
         }
     }
 
-    @Test("our rendering of the Qwen3.6 template gives llama-server's prompt for the tool conversations")
-    func qwen36PromptsMatch() throws {
-        let template = try ChatTemplate(Self.text("ChatTemplates/templates/qwen36.jinja"))
-        for (name, capture) in try Self.captured("qwen3.6-35b") {
-            let body = try Self.request(of: "qwen3.6-35b", case: name)
+    @Test(
+        "our rendering of the template gives llama-server's prompt for the tool conversations",
+        arguments: models.filter { $0.family != "qwen3" } // captured before prompts were recorded
+    )
+    func promptsMatch(model: Model) throws {
+        let template = try ChatTemplate(Self.text("ChatTemplates/templates/\(model.family).jinja"))
+        for (name, capture) in try Self.captured(model.file) {
+            let body = try Self.request(of: model.file, case: name)
             let kwargs: [String: Value] = if case let .object(members)? = body["chat_template_kwargs"] {
                 Dictionary(uniqueKeysWithValues: members.compactMap { key, value in
                     if case let .string(name) = key {
@@ -153,11 +162,16 @@ struct ToolCallTests {
             } else {
                 [:]
             }
-            let prompt = try template.render(.init(
+            var prompt = try template.render(.init(
                 messages: body["messages"]?.arrayValue ?? [], tools: body["tools"]?.arrayValue,
-                bosToken: "<|endoftext|>", eosToken: "<|im_end|>", extra: kwargs
+                bosToken: model.bos, eosToken: model.eos, extra: kwargs
             ))
-            #expect(prompt == capture.prompt, "\(name)")
+            // llama-server leaves out the BOS text Gemma 4's template starts with, and adds the token
+            // itself; quail-server tokenizes that text as the BOS instead. The same tokens either way.
+            if prompt.hasPrefix(model.bos) {
+                prompt.removeFirst(model.bos.count)
+            }
+            #expect(prompt == capture.prompt, "\(model.file)/\(name)")
         }
     }
 
@@ -225,6 +239,58 @@ struct ToolCallTests {
         #expect(parse([multi], format: .qwenXML).calls.first?.arguments == #"{"note":"line one\nline two"}"#)
         // An unknown function isn't a call.
         #expect(parse(["<tool_call><function=nope></function></tool_call>"], format: .qwenXML).calls.isEmpty)
+    }
+
+    // MARK: Gemma 4
+
+    @Test("Gemma 4: its notation becomes JSON, nested values and all")
+    func gemma4Arguments() {
+        func arguments(_ call: String) -> String? {
+            parse(["<|tool_call>call:\(call)<tool_call|>"], format: .gemma4).calls.first?.arguments
+        }
+        #expect(arguments(#"add{a:2.5,b:-4,note:<|"|>007<|"|>}"#) == #"{"a":2.5,"b":-4,"note":"007"}"#)
+        #expect(arguments(#"add{note:<|"|>say "hi"\n{x:1}, <|tool_call> or [2]<|"|>}"#)
+            == #"{"note":"say \"hi\"\\n{x:1}, <|tool_call> or [2]"}"#)
+        #expect(arguments(#"add{ a : 1 , note : [ true , false , null , { } , [ ] , {k:<|"|><|"|>} ] }"#)
+            == #"{"a":1,"note":[true,false,null,{},[],{"k":""}]}"#)
+        #expect(arguments("add{}") == "{}")
+        // Leniency that costs nothing: keys and strings quoted either way.
+        #expect(arguments(#"add{<|"|>a<|"|>:1,"note":"x\"y"}"#) == #"{"a":1,"note":"x\"y"}"#)
+    }
+
+    @Test("Gemma 4: anything that isn't a well-formed call to an offered tool is given back as text", arguments: [
+        #"<|tool_call>call:nope{a:1}<tool_call|>"#, // not an offered tool
+        #"<|tool_call>get_weather{city:<|"|>Paris<|"|>}<tool_call|>"#, // no call:
+        #"<|tool_call>call:get_weather{city:Paris}<tool_call|>"#, // a bare word isn't a value
+        #"<|tool_call>call:get_weather{city:<|"|>Paris<|"|><tool_call|>"#, // unclosed brace
+        #"<|tool_call>call:get_weather{city:<|"|>Paris<|"|>} extra<tool_call|>"#,
+        #"<|tool_call>call:get_weather[1]<tool_call|>"#,
+    ])
+    func gemma4Invalid(raw: String) {
+        let result = parse([raw], format: .gemma4)
+        #expect(result.calls.isEmpty)
+        #expect(result.content == raw)
+    }
+
+    @Test("Gemma 4: a string may hold the closing tag's text, and two calls are two calls", arguments: [1, 3, 10000])
+    func gemma4Streaming(size: Int) {
+        let raw = #"Checking.\#n<|tool_call>call:add{note:<|"|>a <tool_call|> b<|"|>}<tool_call|><|tool_call>call:add{a:1}<tool_call|>"#
+        let result = parse(chunked(raw, size), format: .gemma4)
+        #expect(result.content == "Checking.\n") // llama-server keeps Gemma 4's newline
+        #expect(result.calls.map(\.arguments) == [#"{"note":"a <tool_call|> b"}"#, #"{"a":1}"#])
+        // Cut off inside a string: no call.
+        #expect(parse([#"<|tool_call>call:add{note:<|"|>a <tool_call|>"#], format: .gemma4).calls.isEmpty)
+    }
+
+    @Test("Gemma 4: the thought channel is reasoning wherever it comes; a stray closing tag is dropped")
+    func gemma4Thoughts() {
+        let empty = parse(["<|channel>thought\n<channel|>The weather is fine."], format: .gemma4)
+        #expect(empty.reasoning == "" && empty.content == "The weather is fine.")
+        let late = parse(chunked("Sure.<|channel>thought\nHm.<channel|> Done.<channel|>", 2), format: .gemma4)
+        #expect(late.reasoning == "Hm." && late.content == "Sure.Done.")
+        // Other families' markers are plain text here, and Gemma's are plain text elsewhere.
+        #expect(parse(["<think>x</think>y"], format: .gemma4).content == "<think>x</think>y")
+        #expect(parse(["a<channel|>b"], format: .hermesJSON).content == "a<channel|>b")
     }
 
     // MARK: Llama 3's bare JSON

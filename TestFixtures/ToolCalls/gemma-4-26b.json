@@ -1,0 +1,591 @@
+{
+ "two-calls-nothink": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris and in Tokyo? Use the tool for both."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "prompt": "<|turn>system\n<|tool>declaration:get_weather{description:<|\"|>Get current weather for a city<|\"|>,parameters:{properties:{city:{type:<|\"|>STRING<|\"|>},unit:{enum:[<|\"|>celsius<|\"|>,<|\"|>fahrenheit<|\"|>],type:<|\"|>STRING<|\"|>}},required:[<|\"|>city<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><|tool>declaration:add{description:<|\"|>Add two numbers<|\"|>,parameters:{properties:{a:{type:<|\"|>NUMBER<|\"|>},b:{type:<|\"|>NUMBER<|\"|>},note:{type:<|\"|>STRING<|\"|>}},required:[<|\"|>a<|\"|>,<|\"|>b<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><turn|>\n<|turn>user\nWhat's the weather in Paris and in Tokyo? Use the tool for both.<turn|>\n<|turn>model\n<|channel>thought\n<channel|>",
+  "raw": "<|tool_call>call:get_weather{city:<|\"|>Paris<|\"|>}<tool_call|><|tool_call>call:get_weather{city:<|\"|>Tokyo<|\"|>}<tool_call|>",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Paris\"}"
+   },
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Tokyo\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "call-thinking": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris? Use the tool."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": true
+   }
+  },
+  "prompt": "<|turn>system\n<|think|>\n<|tool>declaration:get_weather{description:<|\"|>Get current weather for a city<|\"|>,parameters:{properties:{city:{type:<|\"|>STRING<|\"|>},unit:{enum:[<|\"|>celsius<|\"|>,<|\"|>fahrenheit<|\"|>],type:<|\"|>STRING<|\"|>}},required:[<|\"|>city<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><|tool>declaration:add{description:<|\"|>Add two numbers<|\"|>,parameters:{properties:{a:{type:<|\"|>NUMBER<|\"|>},b:{type:<|\"|>NUMBER<|\"|>},note:{type:<|\"|>STRING<|\"|>}},required:[<|\"|>a<|\"|>,<|\"|>b<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><turn|>\n<|turn>user\nWhat's the weather in Paris? Use the tool.<turn|>\n<|turn>model\n",
+  "raw": "<|channel>thought\nThe user is asking for the weather in Paris and explicitly instructs to \"Use the tool.\"\nI should look for a tool that can provide weather information.\nThe `get_weather` tool is available and takes a `city` parameter.\nI will call `get_weather(city='Paris')`.<channel|><|tool_call>call:get_weather{city:<|\"|>Paris<|\"|>}<tool_call|>",
+  "content": "",
+  "reasoning": "The user is asking for the weather in Paris and explicitly instructs to \"Use the tool.\"\nI should look for a tool that can provide weather information.\nThe `get_weather` tool is available and takes a `city` parameter.\nI will call `get_weather(city='Paris')`.",
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Paris\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "typed-args": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Add 2.5 and 4 using the add tool, with the note \"007\"."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "prompt": "<|turn>system\n<|tool>declaration:get_weather{description:<|\"|>Get current weather for a city<|\"|>,parameters:{properties:{city:{type:<|\"|>STRING<|\"|>},unit:{enum:[<|\"|>celsius<|\"|>,<|\"|>fahrenheit<|\"|>],type:<|\"|>STRING<|\"|>}},required:[<|\"|>city<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><|tool>declaration:add{description:<|\"|>Add two numbers<|\"|>,parameters:{properties:{a:{type:<|\"|>NUMBER<|\"|>},b:{type:<|\"|>NUMBER<|\"|>},note:{type:<|\"|>STRING<|\"|>}},required:[<|\"|>a<|\"|>,<|\"|>b<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><turn|>\n<|turn>user\nAdd 2.5 and 4 using the add tool, with the note \"007\".<turn|>\n<|turn>model\n<|channel>thought\n<channel|>",
+  "raw": "<|tool_call>call:add{a:2.5,b:4,note:<|\"|>007<|\"|>}<tool_call|>",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "add",
+    "arguments": "{\"a\":2.5,\"b\":4,\"note\":\"007\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "no-call": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Say hello in one word."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "prompt": "<|turn>system\n<|tool>declaration:get_weather{description:<|\"|>Get current weather for a city<|\"|>,parameters:{properties:{city:{type:<|\"|>STRING<|\"|>},unit:{enum:[<|\"|>celsius<|\"|>,<|\"|>fahrenheit<|\"|>],type:<|\"|>STRING<|\"|>}},required:[<|\"|>city<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><|tool>declaration:add{description:<|\"|>Add two numbers<|\"|>,parameters:{properties:{a:{type:<|\"|>NUMBER<|\"|>},b:{type:<|\"|>NUMBER<|\"|>},note:{type:<|\"|>STRING<|\"|>}},required:[<|\"|>a<|\"|>,<|\"|>b<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><turn|>\n<|turn>user\nSay hello in one word.<turn|>\n<|turn>model\n<|channel>thought\n<channel|>",
+  "raw": "Hello.",
+  "content": "Hello.",
+  "reasoning": null,
+  "tool_calls": [],
+  "finish": "stop"
+ },
+ "text-then-call": {
+  "request": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "Before calling a tool, always write one short sentence saying what you are about to do."
+    },
+    {
+     "role": "user",
+     "content": "What's the weather in Oslo?"
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "prompt": "<|turn>system\nBefore calling a tool, always write one short sentence saying what you are about to do.<|tool>declaration:get_weather{description:<|\"|>Get current weather for a city<|\"|>,parameters:{properties:{city:{type:<|\"|>STRING<|\"|>},unit:{enum:[<|\"|>celsius<|\"|>,<|\"|>fahrenheit<|\"|>],type:<|\"|>STRING<|\"|>}},required:[<|\"|>city<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><|tool>declaration:add{description:<|\"|>Add two numbers<|\"|>,parameters:{properties:{a:{type:<|\"|>NUMBER<|\"|>},b:{type:<|\"|>NUMBER<|\"|>},note:{type:<|\"|>STRING<|\"|>}},required:[<|\"|>a<|\"|>,<|\"|>b<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><turn|>\n<|turn>user\nWhat's the weather in Oslo?<turn|>\n<|turn>model\n<|channel>thought\n<channel|>",
+  "raw": "I will check the current weather in Oslo.\n<|tool_call>call:get_weather{city:<|\"|>Oslo<|\"|>}<tool_call|>",
+  "content": "I will check the current weather in Oslo.\n",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Oslo\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "nested-args": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Plan a trip: Lisbon, then Porto, then Madrid. 5 nights, with a hotel, budget 1200.50. Note: \"window seat, \\\"quiet\\\" room\". Use the tool."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "plan_trip",
+      "description": "Plan a trip with several stops",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "stops": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         },
+         "description": "Cities, in order"
+        },
+        "options": {
+         "type": "object",
+         "properties": {
+          "nights": {
+           "type": "integer"
+          },
+          "hotel": {
+           "type": "boolean"
+          },
+          "budget": {
+           "type": "number"
+          }
+         }
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "stops",
+        "options"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "prompt": "<|turn>system\n<|tool>declaration:get_weather{description:<|\"|>Get current weather for a city<|\"|>,parameters:{properties:{city:{type:<|\"|>STRING<|\"|>},unit:{enum:[<|\"|>celsius<|\"|>,<|\"|>fahrenheit<|\"|>],type:<|\"|>STRING<|\"|>}},required:[<|\"|>city<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><|tool>declaration:add{description:<|\"|>Add two numbers<|\"|>,parameters:{properties:{a:{type:<|\"|>NUMBER<|\"|>},b:{type:<|\"|>NUMBER<|\"|>},note:{type:<|\"|>STRING<|\"|>}},required:[<|\"|>a<|\"|>,<|\"|>b<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><|tool>declaration:plan_trip{description:<|\"|>Plan a trip with several stops<|\"|>,parameters:{properties:{note:{type:<|\"|>STRING<|\"|>},options:{properties:{budget:{type:<|\"|>NUMBER<|\"|>},hotel:{type:<|\"|>BOOLEAN<|\"|>},nights:{type:<|\"|>INTEGER<|\"|>}},type:<|\"|>OBJECT<|\"|>},stops:{description:<|\"|>Cities, in order<|\"|>,items:{type:<|\"|>STRING<|\"|>},type:<|\"|>ARRAY<|\"|>}},required:[<|\"|>stops<|\"|>,<|\"|>options<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><turn|>\n<|turn>user\nPlan a trip: Lisbon, then Porto, then Madrid. 5 nights, with a hotel, budget 1200.50. Note: \"window seat, \\\"quiet\\\" room\". Use the tool.<turn|>\n<|turn>model\n<|channel>thought\n<channel|>",
+  "raw": "<|tool_call>call:plan_trip{note:<|\"|>window seat, \"quiet\" room<|\"|>,options:{budget:1200.5,hotel:true,nights:5},stops:[<|\"|>Lisbon<|\"|>,<|\"|>Porto<|\"|>,<|\"|>Madrid<|\"|>]}<tool_call|>",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "plan_trip",
+    "arguments": "{\"note\":\"window seat, \\\"quiet\\\" room\",\"options\":{\"budget\":1200.5,\"hotel\":true,\"nights\":5},\"stops\":[\"Lisbon\",\"Porto\",\"Madrid\"]}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "after-result": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris? Use the tool."
+    },
+    {
+     "role": "assistant",
+     "content": "",
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "get_weather",
+        "arguments": "{\"city\": \"Paris\"}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "{\"temperature\": 18, \"sky\": \"cloudy\"}"
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "prompt": "<|turn>system\n<|tool>declaration:get_weather{description:<|\"|>Get current weather for a city<|\"|>,parameters:{properties:{city:{type:<|\"|>STRING<|\"|>},unit:{enum:[<|\"|>celsius<|\"|>,<|\"|>fahrenheit<|\"|>],type:<|\"|>STRING<|\"|>}},required:[<|\"|>city<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><|tool>declaration:add{description:<|\"|>Add two numbers<|\"|>,parameters:{properties:{a:{type:<|\"|>NUMBER<|\"|>},b:{type:<|\"|>NUMBER<|\"|>},note:{type:<|\"|>STRING<|\"|>}},required:[<|\"|>a<|\"|>,<|\"|>b<|\"|>],type:<|\"|>OBJECT<|\"|>}}<tool|><turn|>\n<|turn>user\nWhat's the weather in Paris? Use the tool.<turn|>\n<|turn>model\n<|tool_call>call:get_weather{city:<|\"|>Paris<|\"|>}<tool_call|><|tool_response>response:get_weather{value:<|\"|>{\"temperature\": 18, \"sky\": \"cloudy\"}<|\"|>}<tool_response|>",
+  "raw": "<|channel>thought\n<channel|>The weather in Paris is currently 18°C and cloudy.",
+  "content": "The weather in Paris is currently 18°C and cloudy.",
+  "reasoning": null,
+  "tool_calls": [],
+  "finish": "stop"
+ }
+}

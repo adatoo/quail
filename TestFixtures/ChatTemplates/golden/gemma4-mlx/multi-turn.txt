@@ -1,0 +1,10 @@
+<|endoftext|><|turn>system
+<|think|>
+<turn|>
+<|turn>user
+Hi there<turn|>
+<|turn>model
+Hello! How can I help?<turn|>
+<|turn>user
+Name a prime number.<turn|>
+<|turn>model

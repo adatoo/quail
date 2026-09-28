@@ -48,6 +48,15 @@ struct ChatTemplate: Sendable {
             .replacing(/(^|[^\w.])strftime_now(?=\s*\()/) { "\($0.output.1)\(nowName)" }
     }
 
+    /// jinja2's `{%-`, `{{-` and `{#-` strip all the whitespace before them. swift-jinja keeps one space
+    /// when that whitespace follows a literal `{`, so the brace can't merge with the tag into `{{`; Gemma 4's
+    /// template writes `parameters:{` and then `{%- if …` on the next line, and its tool declarations came
+    /// out as `{ properties:{ city:{ type…` instead of llama.cpp's `{properties:{city:{type…`. Printing
+    /// that brace with an expression keeps it apart from the tag with nothing in between.
+    private static func printBracesBeforeTrimmedTags(_ source: String) -> String {
+        source.replacing(/\{\s+\{([%{#])-/) { "{{ '{' }}{\($0.output.1)" }
+    }
+
     private let template: Template
     /// The clock behind `strftime_now`, so a test can pin the date a template prints.
     private let now: @Sendable () -> Date
@@ -59,7 +68,10 @@ struct ChatTemplate: Sendable {
         // transformers and llama.cpp's own engine both trim blocks and strip their leading
         // whitespace; without them templates written for those print stray newlines.
         do {
-            template = try Template(Self.routeHostFunctions(source), with: .init(lstripBlocks: true, trimBlocks: true))
+            template = try Template(
+                Self.routeHostFunctions(Self.printBracesBeforeTrimmedTags(source)),
+                with: .init(lstripBlocks: true, trimBlocks: true)
+            )
         } catch {
             throw RenderError.invalidTemplate(Self.describe(error))
         }
