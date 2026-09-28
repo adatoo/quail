@@ -6,6 +6,7 @@
 #   task vendor:sparkle              Sparkle's release tools (generate_keys, generate_appcast, sign_update)
 #   task vendor:verify [DIR=…]       every Mach-O in DIR depends only on relocatable or system paths
 #   task vendor:ollama               Ollama's official macOS build, for the comparison harness only (ADR D-063)
+#   task vendor:llama-tools          the same llama.cpp release's tools (llama-bench, …), for the harness only
 version: '3'
 
 tasks:
@@ -37,6 +38,28 @@ tasks:
         # Downloaded with curl, so it carries no quarantine flag; it's signed and notarized by Ollama.
         "$OUT/ollama" --version 2>/dev/null | head -1 || true
         echo "==> staged Ollama {{.VERSION}} in $OUT"
+
+  llama-tools:
+    desc: Stage the pinned llama.cpp release's command-line tools (llama-bench) for the comparison harness — never shipped
+    # The same tarball and sha256 as vendor:llama, unpacked whole into its own folder: embed:llama only ever copies
+    # from Vendor/llama.cpp, so nothing here can end up in the app.
+    status:
+      - test -x "Vendor/llama-tools/$(cat Vendor/llama.version)/llama-bench"
+    cmds:
+      - |
+        ROOT='{{.ROOT_DIR}}'
+        TAG="$(cat "$ROOT/Vendor/llama.version")"
+        ASSET="llama-${TAG}-bin-macos-arm64.tar.gz"
+        OUT="$ROOT/Vendor/llama-tools/$TAG"
+        TMP="$(mktemp -d)"
+        trap 'rm -rf "$TMP"' EXIT
+        curl -fsSL -o "$TMP/$ASSET" "https://github.com/ggml-org/llama.cpp/releases/download/${TAG}/${ASSET}"
+        ( cd "$TMP" && grep " $ASSET\$" "$ROOT/Vendor/llama.sha256" | shasum -a 256 -c - )
+        mkdir -p "$TMP/unz" && tar xzf "$TMP/$ASSET" -C "$TMP/unz"
+        SRC_DIR="$(find "$TMP/unz" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+        [ -x "$SRC_DIR/llama-bench" ] || { echo "error: no llama-bench in $ASSET" >&2; exit 1; }
+        rm -rf "$OUT" && mkdir -p "$(dirname "$OUT")" && mv "$SRC_DIR" "$OUT"
+        echo "==> staged llama.cpp $TAG tools in $OUT"
 
   llama:
     desc: Fetch the pinned llama.cpp release, verify its sha256, stage llama-server + dylibs in Vendor/llama.cpp

@@ -443,6 +443,9 @@ class RapidMLXEngine(Engine):
                 str(self.locate()), "--no-banner", "--no-telemetry", "serve", str(model.mlx),
                 "--served-model-name", served, "--host", "127.0.0.1", "--port", str(port), "--api-key", key,
                 "--max-num-seqs", str(fairness["slots"]), "--stream-interval", "1",
+                # The comparison is text only. Gemma 4 is a vision model, which Rapid-MLX would load through
+                # mlx-vlm (not in its Homebrew build) and serve on its multimodal path.
+                "--no-mllm",
                 # Its model profiles can switch on a quantized or compressed KV cache and prompt compression by
                 # themselves; the comparison holds every engine to a full-precision cache.
                 "--kv-cache-dtype", "bf16", "--kv-cache-turboquant", "none", "--pflash", "off",

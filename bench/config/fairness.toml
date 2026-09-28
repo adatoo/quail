@@ -34,23 +34,28 @@ rest_seconds = 10
 max_wait_seconds = 900
 rerun_above = "Moderate"
 
+# Budgets: how much of each benchmark a run does. A speed level sends `requests_per_stream` requests per stream
+# (so every engine does the same work); `max_seconds_per_level` only stops a level that's far too slow.
 [budgets.quick]
 speed_rounds = 1
-seconds_per_level = 20
+requests_per_stream = 2
+max_seconds_per_level = 180
 gsm8k_limit = 20
 mmlu_pro_limit = 1
 bfcl_per_category = 8
 
 [budgets.night]
 speed_rounds = 2
-seconds_per_level = 45
+requests_per_stream = 6
+max_seconds_per_level = 420
 gsm8k_limit = 150
 mmlu_pro_limit = 8
 bfcl_per_category = 40
 
 [budgets.full]
 speed_rounds = 3
-seconds_per_level = 60
+requests_per_stream = 10
+max_seconds_per_level = 900
 gsm8k_limit = 0          # 0: every item
 mmlu_pro_limit = 50
 bfcl_per_category = 0

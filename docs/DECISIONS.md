@@ -80,6 +80,27 @@ The report's caveats come from it.
 - a competitor adds a setting the fairness rules can't express
 - the lanes converge, for example if one engine reads both formats' weights
 
+**Amended 2026-09-28 (the speed benchmark and the native baselines):**
+- **The same work for every engine.** A speed level sends exactly `concurrency × requests_per_stream` requests (2, 6 or 10 per stream for the quick, night and full budgets). A time limit is only a cap, because a fixed duration would give a faster engine more samples and cut requests off mid-reply.
+- **Prompts:** built by `make_prompts.py` to an exact length in the model's own tokenizer (512 or 4096 tokens), from seeded filler text.
+  - Each prompt opens with its own number and topic, and every level and warm-up in a round has its own set. So no engine can get a prefix-cache hit that another doesn't.
+  - Every prompt asks for a continuation of at least 400 words. Replies then run to `max_tokens` without `ignore_eos`, which only some engines honour. A reply that stops short is counted in `short_requests`.
+- **What's reported per level:**
+  - from GuideLLM's own statistics: TTFT, ITL and TPOT (median and p95)
+  - output tokens per second over the measured window
+  - peak memory footprint of the server's whole process group, from `footprint`, which counts Metal's GPU buffers where resident size doesn't
+  - mean power, from powermetrics
+- **Thermal re-runs:** a level that ends hotter than "Moderate" is run once more, on prompts of its own (the server has seen the first set, and the first dry run's re-run was served from its cache). Both results are kept, the first marked `discarded`. The first dry run on the Mac mini needed this at concurrency 8.
+- **Refusal:** a timed run refuses to start while another LLM server runs, on battery, in Low Power Mode, or during a Time Machine backup. `--allow-others` runs anyway for a dry run, and records why its numbers don't count.
+- **Native baselines:**
+  - GGUF lane: `llama-bench` and `llama-batched-bench` (1–8 sequences). They come from the same llama.cpp release tarball and sha256 as the bundled llama-server, unpacked by `task vendor:llama-tools` into `Vendor/llama-tools/`, which `embed:llama` never reads.
+  - MLX lane: `mlx_lm.benchmark` at batch 1–8, from mlx-lm 0.31.3 and MLX 0.32.0, the versions oMLX and Rapid-MLX run on.
+  - Both bound what a server on that engine can reach. They aren't a server comparison, and the report says so.
+- **Smoke findings so far:**
+  - Quail parsed none of Gemma 4's tool calls. This was fixed in 0.57.1; see D-040's amendment.
+  - Rapid-MLX 0.14.3 needs `--no-mllm` to load Gemma 4 without mlx-vlm. Loaded text-only, it generates Gemma 4's tool call but returns an empty reply with no `tool_calls`, on both routes.
+  - Ollama 0.34.4 can't import mlx-community's MLX folders ("Invalid quantization mode ''"), so its MLX lane is empty for now.
+
 ## D-062 · 2026-09-28 · A website: hand-written HTML in `website/`, on GitHub Pages
 
 **Situation:** Quail had no home page, only a README. The owner wants the app to link to one before 1.0, with docs the app's long captions can point at instead of explaining everything in place. They bought `quail-ai.app` and `quail-ai.com`, both on Cloudflare DNS.

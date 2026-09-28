@@ -1,0 +1,9 @@
+# GuideLLM for the comparison harness's speed runs (ADR D-063), pinned. `task bench:setup` makes the environment.
+[project]
+name = "bench-guidellm"
+version = "0"
+requires-python = "==3.12.*"
+dependencies = ["guidellm==0.7.4"]
+
+[tool.uv]
+package = false

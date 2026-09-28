@@ -3,6 +3,10 @@
     python -m harness doctor                    what's installed, what's missing, how the Mac is
     python -m harness smoke [--engines …] [--models …]
                                                 start each engine with each model and record what it can do
+    python -m harness speed [--budget quick|night|full] [--engines …] [--models …]
+                                                the speed benchmark (GuideLLM), on a quieted Mac
+    python -m harness native [--budget …] [--models …]
+                                                the engine-native baselines (llama-bench, mlx_lm.benchmark)
     python -m harness restore                   resume anything a killed run left paused
 """
 
@@ -17,6 +21,8 @@ import sys
 
 from . import config, engines, machine
 from .smoke import smoke
+from .native import native
+from .speed import speed
 
 
 def new_run(kind: str):
@@ -100,6 +106,49 @@ def run_smoke(args) -> int:
     return 0 if ok else 1
 
 
+def timed(kind: str, args, body) -> int:
+    """A timed run: refuses a noisy Mac (unless --allow-others, which the run records), keeps it awake, pauses
+    Spotlight and the analysis daemons, and always puts them back."""
+    others = machine.competing_servers()
+    power = machine.power()
+    problems = []
+    if others:
+        problems.append("other LLM servers are running: " + ", ".join(others))
+    if not power["ac"]:
+        problems.append("the Mac is on battery")
+    if power["low_power_mode"]:
+        problems.append("Low Power Mode is on")
+    if machine.time_machine_running():
+        problems.append("a Time Machine backup is running")
+    if problems and not args.allow_others:
+        print("Not a quiet Mac, so no timed run:\n  " + "\n  ".join(problems)
+              + "\n(--allow-others runs anyway, for a dry run; the run records why its numbers don't count.)")
+        return 1
+    run_dir = new_run(kind)
+    (run_dir / "conditions.json").write_text(json.dumps({"budget": args.budget, "not_quiet": problems}, indent=2))
+    print(f"{kind.capitalize()} benchmark ({args.budget}) → {run_dir}")
+    if problems:
+        print("  NOT A CLEAN RUN: " + "; ".join(problems))
+    awake = machine.keep_awake()
+    try:
+        machine.quiet()
+        body(run_dir)
+    finally:
+        machine.restore()
+        awake.terminate()
+    return 0
+
+
+def run_speed(args) -> int:
+    return timed("speed", args, lambda run_dir: print(
+        f"\nresults: {speed(engines.select(args.engines), pick_models(args.models), args.budget, run_dir)}"))
+
+
+def run_native(args) -> int:
+    return timed("native", args, lambda run_dir: print(
+        f"\nresults: {native(pick_models(args.models), args.budget, run_dir)}"))
+
+
 def restore(_args) -> int:
     machine.restore()
     return 0
@@ -114,6 +163,19 @@ def main(argv: list[str] | None = None) -> int:
     smoke_parser.add_argument("--engines", help=f"comma-separated, from: {', '.join(engines.ENGINES)}")
     smoke_parser.add_argument("--models", help="comma-separated model ids from config/models.toml")
     smoke_parser.set_defaults(fn=run_smoke)
+    speed_parser = sub.add_parser("speed", help="the speed benchmark (GuideLLM)")
+    speed_parser.add_argument("--budget", default="quick", help="quick, night or full (config/fairness.toml)")
+    speed_parser.add_argument("--engines", help=f"comma-separated, from: {', '.join(engines.ENGINES)}")
+    speed_parser.add_argument("--models", help="comma-separated model ids from config/models.toml")
+    speed_parser.add_argument("--allow-others", action="store_true",
+                              help="run even though the Mac isn't quiet (a dry run; recorded as such)")
+    speed_parser.set_defaults(fn=run_speed)
+    native_parser = sub.add_parser("native", help="the engine-native baselines")
+    native_parser.add_argument("--budget", default="quick", help="quick, night or full (config/fairness.toml)")
+    native_parser.add_argument("--models", help="comma-separated model ids from config/models.toml")
+    native_parser.add_argument("--allow-others", action="store_true",
+                               help="run even though the Mac isn't quiet (a dry run; recorded as such)")
+    native_parser.set_defaults(fn=run_native)
     sub.add_parser("restore", help="resume anything a killed run left paused").set_defaults(fn=restore)
     args = parser.parse_args(argv)
     return args.fn(args)
