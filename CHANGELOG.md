@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-09-28
+
+### Added
+
+- **Qwen3.5 9B** in the catalog: Apache-licensed, the current small Qwen (MiMo V2.6 9B is tuned from it), with a thinking mode, tool calling, a 262K context and image reading on both GGUF and MLX. It sits above Qwen3 8B, the generation before it. Checked before listing: in GGUF Q4_K_M it chats, thinks, calls a tool and uses the result, and names the colours in a test image on both runtimes; the MLX download does the same on Quail server and reads text in images. On llama.cpp the GGUF reads small text in images poorly at the default image size, a known llama.cpp problem. Its MLX download is the Qwen3.5 9B 4-bit that Add Model already listed, so it still appears once.
+
 ## [0.50.1] - 2026-09-28
 
 ### Fixed
