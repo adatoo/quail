@@ -238,7 +238,7 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
    - Reach: This Mac only / Local network / Custom, instead of a free-text host
    - a masked API key
    - a "restart to apply" banner (`endpointChangedSinceStart`)
-3. [ ] **Model settings in plain sight:**
+3. [x] **Model settings in plain sight:**
    - a per-model settings popover (context, KV cache, default) instead of the small "ctx" menu
    - a "This Mac can run…" line on Models
    - the menu's Add model… opens the sheet

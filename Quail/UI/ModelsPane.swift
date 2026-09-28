@@ -46,6 +46,8 @@ struct ModelsPane: View {
     /// This Mac's chip, for matching benchmark results (read in `refresh`,
     /// not per render — `DeviceInfo.current()` touches IOKit and Metal).
     @State private var chip: String?
+    /// "Apple M4 Pro · 64 GB · comfortable up to ~55B", read with `chip`.
+    @State private var deviceLine: String?
 
     enum FormatFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -59,6 +61,18 @@ struct ModelsPane: View {
 
     var body: some View {
         Form {
+            // What fits here, in a line; the About page has the facts behind it.
+            if let deviceLine, !deviceLine.isEmpty {
+                Section {
+                    HStack {
+                        Label("This Mac: \(deviceLine)", systemImage: "desktopcomputer")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Details") { appState.mainPage = .about }
+                            .controlSize(.small)
+                    }
+                }
+            }
             // Only when there are MLX models that won't load; the Server page says it either way.
             if !appState.canServe(.mlxSafetensors), !appState.modelStore.installedMLXDirectories().isEmpty {
                 Section {
@@ -93,9 +107,11 @@ struct ModelsPane: View {
                 }
             } footer: {
                 if !rows.isEmpty {
-                    Text("Send \"model\": \"<id>\" in a request to pick a model — right-click a row to copy its id.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "Send \"model\": \"<id>\" in a request to pick a model. Each row's settings (the sliders) have its id to copy, its context size and more."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
             }
 
@@ -169,6 +185,9 @@ struct ModelsPane: View {
         .onChange(of: appState.storeRevision) { _, _ in
             Task { await refresh() }
         }
+        // The menu's Add model… (or the Server page's) asks for the sheet, whether or not this page was showing.
+        .onAppear(perform: openRequestedAddSheet)
+        .onChange(of: appState.addModelRequested) { _, _ in openRequestedAddSheet() }
         .onChange(of: appState.installs.phase) { _, newPhase in
             // Rows only appear/verify once an install reaches a terminal
             // phase; the downloading phase re-renders by observation.
@@ -180,6 +199,13 @@ struct ModelsPane: View {
                 break
             }
         }
+    }
+
+    private func openRequestedAddSheet() {
+        guard appState.addModelRequested else { return }
+        appState.addModelRequested = false
+        preselectFamily = nil
+        showAddSheet = true
     }
 
     private var entries: [InstalledModel] {
@@ -331,7 +357,7 @@ struct ModelsPane: View {
                 }
             }
         } header: {
-            Text("Storage")
+            Text("Storage and downloads")
         }
     }
 
@@ -458,6 +484,7 @@ struct ModelsPane: View {
         verdictsPending = true
         let device = DeviceInfo.current()
         chip = device.chipName
+        deviceLine = device.summaryLine
         let runtime = appState.config.runtimeID
         let bandwidth = ChipBandwidthTable.loadFromBundle()
         // Disk reconciliation + verdicts off the main actor; the pane
@@ -524,6 +551,8 @@ private struct ModelRow: View {
     let onDelete: () -> Void
     let onBenchmark: () -> Void
 
+    @State private var showSettings = false
+
     /// Two lines, so the name has the row's width to itself: the id and its
     /// loaded-state on top; format, size, context, measured speed and fit
     /// verdict beneath; actions in a column on the right. (One line of
@@ -547,9 +576,12 @@ private struct ModelRow: View {
                                 NSPasteboard.general.clearContents()
                                 NSPasteboard.general.setString(entry.id, forType: .string)
                             }
+                            Button("Model Settings…") { showSettings = true }
                             if servable {
                                 Button("Benchmark…", action: onBenchmark)
                             }
+                            Divider()
+                            Button("Delete…", role: .destructive, action: onDelete)
                         }
                         .help("Send \"model\": \"\(entry.id)\" in requests to select this one")
                     if loaded == "loaded" {
@@ -562,7 +594,20 @@ private struct ModelRow: View {
                     Badge(text: entry.format == .gguf ? "GGUF" : "MLX", color: entry.format == .gguf ? .blue : .purple)
                     Text(ByteCountFormatter.string(fromByteCount: entry.bytes, countStyle: .file))
                         .monospacedDigit()
-                    contextMenuButton
+                    // What the settings popover changes, and a way into it.
+                    Button {
+                        showSettings = true
+                    } label: {
+                        HStack(spacing: 2) {
+                            Text(contextLabel)
+                            Image(systemName: "chevron.down")
+                                .imageScale(.small)
+                        }
+                        .font(.caption)
+                        .monospacedDigit()
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Context size and KV cache — click to change")
                     if let measuredSpeed {
                         Label(
                             String(format: "%.0f tok/s", measuredSpeed),
@@ -619,6 +664,34 @@ private struct ModelRow: View {
                 .buttonStyle(.borderless)
                 .help(isDefault ? "Default — loads automatically on Start" : "Load automatically on Start")
             }
+            Button {
+                showSettings = true
+            } label: {
+                Image(systemName: "slider.horizontal.3")
+            }
+            .buttonStyle(.borderless)
+            .help("Model settings: context size, KV cache, loading on Start")
+            .popover(isPresented: $showSettings, arrowEdge: .bottom) {
+                ModelSettingsView(
+                    entry: entry,
+                    servable: servable,
+                    isDefault: isDefault,
+                    contextChoices: contextChoices,
+                    kvCacheChoices: kvCacheChoices,
+                    onSetContext: onSetContext,
+                    onSetKVCache: onSetKVCache,
+                    onToggleDefault: onToggleDefault,
+                    onBenchmark: {
+                        showSettings = false
+                        onBenchmark()
+                    },
+                    onDelete: {
+                        showSettings = false
+                        // After the popover has gone: an alert presented while it closes can be lost.
+                        Task { @MainActor in onDelete() }
+                    }
+                )
+            }
             Button(role: .destructive, action: onDelete) {
                 Image(systemName: "trash")
             }
@@ -628,60 +701,8 @@ private struct ModelRow: View {
         .padding(.vertical, 4)
     }
 
-    /// Per-model context size (ADR D-020): Automatic, or a fixed size —
-    /// each option labelled with its fit on this Mac.
-    private var contextMenuButton: some View {
-        Menu {
-            Button {
-                onSetContext(nil)
-            } label: {
-                let auto = entry.contextSize.map { " (\(RemoteFitBadge.contextLabel($0)))" } ?? ""
-                Label("Automatic\(auto)", systemImage: entry.userContextSize == nil ? "checkmark" : "")
-            }
-            Divider()
-            ForEach(contextChoices) { choice in
-                Button {
-                    onSetContext(choice.tokens)
-                } label: {
-                    Label(
-                        "\(RemoteFitBadge.contextLabel(choice.tokens)) — \(choice.verdictLabel)",
-                        systemImage: entry.userContextSize == choice.tokens ? "checkmark" : ""
-                    )
-                }
-                .disabled(choice.verdict == .wontFit)
-            }
-            if !kvCacheChoices.isEmpty {
-                Divider()
-                Section("KV cache") {
-                    ForEach(kvCacheChoices) { choice in
-                        Button {
-                            onSetKVCache(choice.setting)
-                        } label: {
-                            Label(
-                                "\(choice.setting.label) — \(ContextChoice.label(for: choice.verdict))",
-                                systemImage: entry.effectiveKVCache == choice.setting ? "checkmark" : ""
-                            )
-                        }
-                        .disabled(choice.verdict == .wontFit)
-                    }
-                }
-            }
-        } label: {
-            Text(contextLabel)
-                .font(.caption)
-                .monospacedDigit()
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .help(
-            "Context size — how much text the model can work with at once. Coding agents need 32K or more. "
-                + "An 8-bit or 4-bit KV cache holds a longer context in the same memory, a little less accurately "
-                + "(and, for MLX models, reading prompts more slowly). Applies on the next Start."
-        )
-    }
-
     private var contextLabel: String {
-        let size = "\(RemoteFitBadge.contextLabel(entry.effectiveContextSize)) ctx"
+        let size = "\(RemoteFitBadge.contextLabel(entry.effectiveContextSize)) context"
         return entry.effectiveKVCache == .full ? size : "\(size) · \(entry.effectiveKVCache.label) KV"
     }
 }

@@ -201,17 +201,31 @@ struct UISnapshotTests {
         )
     }
 
-    @Test("Models pane")
+    @Test("Models pane, and a model's settings")
     func modelsPane() async throws {
         let (appState, scratch) = try await makeAppState()
         defer { try? FileManager.default.removeItem(at: scratch) }
         await appState.setKVCache(.q8, forModel: "Qwen3-8B-Q4_K_M")
-        // The Settings window's width, and a narrow one to see the chips give way.
-        for width in [700.0, 480.0] {
+        // The window's detail column at its narrowest, and a narrow one to see the chips give way.
+        for width in [820.0, 480.0] {
             try await render(
                 ModelsPane(appState: appState), size: CGSize(width: width, height: 600), name: "models-\(Int(width))"
             )
         }
+        let entry = try #require(appState.modelStore.loadCatalog().entries.first { $0.id == "Qwen3-8B-Q4_K_M" })
+        try await render(
+            ModelSettingsView(
+                entry: entry, servable: true, isDefault: true,
+                contextChoices: [
+                    ContextChoice(tokens: 8192, verdict: .comfortable),
+                    ContextChoice(tokens: 32768, verdict: .comfortable),
+                    ContextChoice(tokens: 131_072, verdict: .wontFit, fitsWith4BitKV: true),
+                ],
+                kvCacheChoices: KVCacheSetting.allCases.map { KVCacheChoice(setting: $0, verdict: .comfortable) },
+                onSetContext: { _ in }, onSetKVCache: { _ in }, onToggleDefault: {}, onBenchmark: {}, onDelete: {}
+            ),
+            size: CGSize(width: 400, height: 330), name: "model-settings"
+        )
     }
 
     @Test("llama.cpp chosen: MLX models are said to be unavailable")

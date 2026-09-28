@@ -53,6 +53,18 @@ Settings had no server status and no Start/Stop, though Endpoint's runtime picke
   - A host from an older config that is neither loopback nor wildcard shows as Custom, unchanged, so there is no migration.
   - The exposure warnings (D-039) sit under it. Start from the page gives the same one-time warning as the menu (`ServerActions`).
 
+**Amended 2026-09-28 (model settings):**
+- Each Models row's context size and KV cache used to sit behind a small "8K ctx ⌄" menu, and the default model was a star explained only in a tooltip. They now open a **settings popover**, from a sliders button on the row, from the row's "8K context · 8-bit KV" text, or from Model Settings… in its right-click menu.
+- **The popover holds:**
+  - the id to copy (what a client sends as `"model"`)
+  - Context size and KV cache, each option labelled with its fit
+  - "Load when the server starts" (the star)
+  - Benchmark… and Delete…
+
+  It's a popover rather than an inspector: an inspector would take about 250 pt from every page, and Form rows have no selection.
+- **A "This Mac: Apple M4 Pro · 64 GB · comfortable up to ~55B" line** heads the page, with Details for the About page. It is `DeviceInfo.summaryLine`, shared with the Add Model sheet.
+- **Add Model:** every "Add Model…" outside the page (the menu, the Server page, Connect, Benchmark) opens the sheet itself, through `AppState.addModelRequested`.
+
 ## D-060 · 2026-09-28 · Live activity: `GET /slots`, the menu bar and an Activity window
 
 **Situation:** a 30,000-token prompt takes a minute and a half on Qwen3-8B, and a model load takes seconds. The whole time, Quail's menu says "Running" and the client waits in silence. The app knew the server's phase and each model's load state, from a 2 s `GET /models` poll, and nothing else: no request state, no progress, no memory, CPU or GPU figures.

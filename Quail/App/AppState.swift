@@ -429,6 +429,10 @@ final class AppState {
     /// a page before `openWindow` opens it, and that action takes no page.
     var mainPage: MainPage = .server
 
+    /// Set to open the Add Model sheet on the Models page (the menu's Add model…, the Server page's): the page
+    /// shows it and clears this, whether it was already showing or opens because of it.
+    var addModelRequested = false
+
     var baseURL: URL? {
         serverController.baseURL
     }

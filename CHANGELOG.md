@@ -10,6 +10,20 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-09-28
+
+### Changed
+
+- **Each model's settings are in plain sight.** A sliders button on every row of the Models page, or a click on its "8K context" text, opens its settings:
+  - the model id to copy
+  - context size and KV cache, each option saying whether it fits on this Mac
+  - whether it loads when the server starts
+  - Benchmark… and Delete…
+
+  They used to hide in a small "ctx" menu and a star. Right-click a row for Model Settings… and Delete… too.
+- The Models page starts with what this Mac can run, "This Mac: Apple M4 Pro · 64 GB · comfortable up to ~55B", and Details goes to the About page. The Storage section is now "Storage and downloads".
+- Add model… in the menu, and Add Model… on the Server, Connect and Benchmark pages, open the Add Model sheet directly.
+
 ## [0.53.0] - 2026-09-28
 
 ### Added

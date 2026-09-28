@@ -113,8 +113,11 @@ struct ServerPane: View {
 
     @ViewBuilder private var statusButtons: some View {
         if !appState.hasServableModel {
-            Button("Add Model…") { appState.mainPage = .models }
-                .buttonStyle(.borderedProminent)
+            Button("Add Model…") {
+                appState.addModelRequested = true
+                appState.mainPage = .models
+            }
+            .buttonStyle(.borderedProminent)
         } else if appState.canStart {
             Button("Start") { ServerActions.start(appState) }
                 .buttonStyle(.borderedProminent)

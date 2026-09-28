@@ -432,4 +432,13 @@ struct FitEstimatorTests {
         #expect(FitEstimator.contextOptions(trainedContext: 40960) == [4096, 8192, 16384, 32768, 40960])
         #expect(FitEstimator.contextOptions(trainedContext: 2048) == [2048])
     }
+
+    @Test("summaryLine: chip, memory and the comfortable size; only what's known")
+    func summaryLine() {
+        let line = Self.sixteenGB.summaryLine
+        let comfortable = FitEstimator.approxMaxParamsB(gpuCeilingBytes: 12_884_901_888, comfortable: true)
+        #expect(line == "Apple M2 · 16 GB · comfortable up to ~\(comfortable)B")
+        #expect(DeviceInfo(chipName: "Apple M2").summaryLine == "Apple M2")
+        #expect(DeviceInfo().summaryLine.isEmpty)
+    }
 }
