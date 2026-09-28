@@ -7,7 +7,48 @@ import Foundation
 /// tool's config.
 enum EndpointAddress {
     static func isWildcard(_ host: String) -> Bool {
-        host == "0.0.0.0" || host == "::" || host == "[::]"
+        let host = host.trimmingCharacters(in: .whitespaces)
+        return host == "0.0.0.0" || host == "::" || host == "[::]"
+    }
+
+    /// Who can reach a server listening on a host, as the Server page offers it (ADR D-061).
+    enum Reach: String, CaseIterable, Identifiable {
+        /// Loopback: only this Mac.
+        case thisMac
+        /// Every interface: this Mac and other devices on its networks.
+        case localNetwork
+        /// One particular address, typed in — a LAN or VPN address, say.
+        case custom
+
+        var id: String {
+            rawValue
+        }
+
+        var title: String {
+            switch self {
+            case .thisMac: "This Mac only"
+            case .localNetwork: "Local network"
+            case .custom: "Custom"
+            }
+        }
+
+        /// The host this choice listens on; `nil` for Custom, which keeps whatever address is typed.
+        var host: String? {
+            switch self {
+            case .thisMac: "127.0.0.1"
+            case .localNetwork: "0.0.0.0"
+            case .custom: nil
+            }
+        }
+    }
+
+    /// Which `Reach` a configured host amounts to. Any other address — one typed in before this choice existed,
+    /// too — is Custom, and kept as it is.
+    static func reach(of host: String) -> Reach {
+        if isLoopback(host) {
+            return .thisMac
+        }
+        return isWildcard(host) ? .localNetwork : .custom
     }
 
     /// Only this Mac can connect: a loopback address, or `localhost`.
@@ -18,7 +59,7 @@ enum EndpointAddress {
 
     /// For a client on this Mac: loopback when bound to every interface.
     static func localBase(host: String, port: Int) -> URL? {
-        url(host: isWildcard(host) ? "127.0.0.1" : host, port: port)
+        url(host: isWildcard(host) ? "127.0.0.1" : host.trimmingCharacters(in: .whitespaces), port: port)
     }
 
     /// For a client on another device: this Mac's LAN address when bound
@@ -28,10 +69,10 @@ enum EndpointAddress {
         if isWildcard(host) {
             return lanAddress.flatMap { url(host: $0, port: port) }
         }
-        if host == "127.0.0.1" || host == "localhost" || host == "::1" {
+        if isLoopback(host) {
             return nil
         }
-        return url(host: host, port: port)
+        return url(host: host.trimmingCharacters(in: .whitespaces), port: port)
     }
 
     private static func url(host: String, port: Int) -> URL? {

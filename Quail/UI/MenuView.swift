@@ -39,10 +39,10 @@ struct MenuView: View {
                 .disabled(true)
         }
 
-        // The router never rescans its models; a download, a delete, or a
-        // change in Finder since Start only takes effect after a restart.
-        if appState.serverController.phase == .ready, appState.modelsChangedSinceStart {
-            Text("Models changed — restart to apply")
+        // The router never rescans its models, and the address, key and models loaded at once are launch
+        // flags: a download, a delete, a change in Finder or on the Server page only takes effect after a restart.
+        if let reason = appState.restartReason {
+            Text(reason)
                 .disabled(true)
             Button("Restart Server") {
                 Task { await appState.restart() }
@@ -71,10 +71,7 @@ struct MenuView: View {
             }
         } else if appState.canStart {
             Button("Start") {
-                if appState.needsNetworkWarning, !confirmNetworkStart() {
-                    return
-                }
-                Task { await appState.start() }
+                ServerActions.start(appState)
             }
         } else {
             Button("Stop") {
@@ -164,36 +161,6 @@ struct MenuView: View {
         }
         let loaded = appState.servedModels.first { $0.status.value == "loaded" }?.id
         return ChatEntry.resolve(webUI: webUI, model: appState.config.defaultModelID ?? loaded)
-    }
-
-    /// The one-time warning before the server first listens on the network (Phase 4 step 3). Returns whether to
-    /// go ahead: "Listen on This Mac Only" switches the host back to loopback and starts; Cancel doesn't start.
-    private func confirmNetworkStart() -> Bool {
-        NSApp.activate()
-        let alert = NSAlert()
-        alert.messageText = "Quail server will listen on your network"
-        let host = appState.config.host
-        alert.informativeText = appState.networkExposure == .open
-            ? "The host is \(host), so other devices on your network can reach the server, and with the API key off, "
-            + "anyone on it can use your models. Turn the key on in Quail → Server, or keep the server to this Mac."
-            : "The host is \(host), so other devices on your network can reach the server. They need its API key "
-            + "(Quail → Server) to use it."
-        alert.alertStyle = appState.networkExposure == .open ? .critical : .warning
-        alert.addButton(withTitle: "Start")
-        alert.addButton(withTitle: "Listen on This Mac Only")
-        alert.addButton(withTitle: "Cancel")
-        let response = alert.runModal()
-        switch response {
-        case .alertFirstButtonReturn:
-            appState.acknowledgeNetworkWarning()
-            return true
-        case .alertSecondButtonReturn:
-            appState.acknowledgeNetworkWarning()
-            appState.setHost("127.0.0.1")
-            return true
-        default:
-            return false
-        }
     }
 
     /// Opens the Quail window at `page`, or at the page it last showed.

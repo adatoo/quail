@@ -227,17 +227,32 @@ struct UISnapshotTests {
         )
     }
 
-    @Test("Server page: on this Mac; on the network with the API key, and without")
+    @Test("Server page: stopped; on the network with the API key, and without; a custom address")
     func serverPage() async throws {
         let (appState, scratch) = try await makeAppState()
         defer { try? FileManager.default.removeItem(at: scratch) }
         appState.setKeepAwake(true)
-        try await renderWindow(appState, page: .server, name: "server")
+        try await renderWindow(appState, page: .server, name: "server-stopped")
         appState.setHost("0.0.0.0")
         appState.setAPIKeyEnabled(true)
         try await renderWindow(appState, page: .server, name: "server-lan-key")
         appState.setAPIKeyEnabled(false)
         try await renderWindow(appState, page: .server, name: "server-lan-open")
+        appState.setAPIKeyEnabled(true)
+        appState.setHost("192.168.1.20")
+        try await renderWindow(appState, page: .server, name: "server-custom-host")
+    }
+
+    @Test("Server page: running, then with a change that needs a restart")
+    func serverPageRunning() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        appState.setDefaultModel("Qwen3-8B-Q4_K_M")
+        await appState.start()
+        try await renderWindow(appState, page: .server, name: "server-running")
+        appState.setModelsMax(2)
+        try await renderWindow(appState, page: .server, name: "server-restart-needed")
+        await appState.stop()
     }
 
     @Test("Benchmark pane, with an old result and one with the returning-turn and four-at-once columns")

@@ -119,12 +119,26 @@ extension AppState {
     }
 
     /// Where a client on this Mac reaches the endpoint: the launched
-    /// address while running, else the configured one.
+    /// address while running, else the configured one (what Start will use —
+    /// not the last run's, which `serverController.baseURL` still holds after a stop).
     var localBaseURL: URL? {
-        if let launched = serverController.baseURL, let host = launched.host(), let port = launched.port {
-            return EndpointAddress.localBase(host: host, port: port)
+        let (host, port) = liveHostAndPort
+        return EndpointAddress.localBase(host: host, port: port)
+    }
+
+    /// Where another device reaches the endpoint — this Mac's network address when it listens on every
+    /// interface — or `nil` when only this Mac can. The launched address while running, else the configured one.
+    var networkBaseURL: URL? {
+        let (host, port) = liveHostAndPort
+        return EndpointAddress.networkBase(host: host, port: port)
+    }
+
+    private var liveHostAndPort: (host: String, port: Int) {
+        let running = serverController.phase == .ready || serverController.phase == .starting
+        if running, let launched = serverController.baseURL, let host = launched.host(), let port = launched.port {
+            return (host, port)
         }
-        return EndpointAddress.localBase(host: config.host, port: config.port)
+        return (config.host, config.port)
     }
 
     var endpointInfo: EndpointInfo {
