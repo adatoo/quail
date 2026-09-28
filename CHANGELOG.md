@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.57.0] - 2026-09-28
+
+### Added
+
+- **A comparison harness in `bench/`**, for measuring Quail against llama-server, Ollama, oMLX and Rapid-MLX on the same Mac and the same weights with standard benchmarks (ADR D-063). This first part:
+  - `task bench:setup` fetches Ollama's official build and oMLX's release into scratch folders.
+  - `task bench:doctor` says what's installed, what's missing, and how quiet the Mac is.
+  - `task bench:smoke` starts every engine with every model and records what each really does: whether a request's length can be held, whether thinking is off, whether tool calls parse on the OpenAI and Anthropic routes, and whether a repeated prompt hits a cache.
+  - Nothing in `bench/` ships in the app, and it never touches your own Quail, Ollama or oMLX setup.
+
 ## [0.56.1] - 2026-09-28
 
 ### Changed

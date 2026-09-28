@@ -1,0 +1,56 @@
+# What every engine is held to (ADR D-063). The report prints this file, so change it only with a reason.
+
+# Every engine serves up to 8 requests at once, each with up to 8,192 tokens of context.
+slots = 8
+context_per_slot = 8192
+
+# Sent with every request, and pinned server-side where an engine has its own defaults.
+[sampling]
+temperature = 0.0
+top_p = 1.0
+seed = 42
+presence_penalty = 0.0
+frequency_penalty = 0.0
+
+[thinking]
+# Off everywhere: thinking changes how long an answer runs, and not every engine can show it apart from the
+# answer. The smoke test checks it really is off on each engine and model.
+enabled = false
+
+[warmup]
+requests = 3
+
+[speed]
+levels = [1, 2, 4, 8]
+prompt_tokens = 512
+output_tokens = 256
+long_prompt_tokens = 4096
+long_output_tokens = 128
+
+[thermal]
+# Wait for this before every timed level, then rest; re-run a level that ends hotter than `rerun_above`.
+wait_for = "Nominal"
+rest_seconds = 10
+max_wait_seconds = 900
+rerun_above = "Moderate"
+
+[budgets.quick]
+speed_rounds = 1
+seconds_per_level = 20
+gsm8k_limit = 20
+mmlu_pro_limit = 1
+bfcl_per_category = 8
+
+[budgets.night]
+speed_rounds = 2
+seconds_per_level = 45
+gsm8k_limit = 150
+mmlu_pro_limit = 8
+bfcl_per_category = 40
+
+[budgets.full]
+speed_rounds = 3
+seconds_per_level = 60
+gsm8k_limit = 0          # 0: every item
+mmlu_pro_limit = 50
+bfcl_per_category = 0

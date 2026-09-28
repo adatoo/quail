@@ -262,6 +262,27 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
 - [x] Both domains verified on the personal GitHub account (`adatoo`, Settings → Pages), so no other account can claim them: a `_github-pages-challenge-adatoo` TXT record in each Cloudflare zone, DNS only. Keep them.
 - [ ] Replace the offscreen screenshots with real ones from a running app when convenient.
 
+## Benchmarks against Ollama, oMLX and Rapid-MLX (D-063)
+
+Agreed 2026-09-28. Standard benchmarks, on the same weights, on a dedicated Mac (an M1 Max MacBook Pro over SSH),
+with a speed-only confirmation run on the M4 Pro Mac mini.
+1. [x] **Harness skeleton** (`bench/`):
+   - engine adapters for Quail (GGUF and MLX), llama-server, Ollama (official build, both lanes), oMLX 0.6.4 and Rapid-MLX
+   - machine control: thermal gate, pausing, restore
+   - `bench:doctor`, `bench:smoke` (capabilities.json), `bench:test` in CI
+
+   **First smoke test** (Qwen3 8B, this Mac):
+   - Every engine starts, answers, keeps thinking off and parses tool calls on both routes.
+   - Ollama, oMLX and Rapid-MLX ignore `ignore_eos`.
+   - oMLX showed no prefix-cache hit on a repeated prompt.
+   - Ollama 0.34.4's MLX runner can't load mlx-community's 4-bit folders ("Invalid quantization mode").
+2. [ ] Speed (GuideLLM) and engine-native baselines (`llama-bench`, `mlx_lm.benchmark`).
+3. [ ] Quality (lm-eval: GSM8K, MMLU-Pro) and tool calling (BFCL).
+4. [ ] The report generator and `website/compare.html` with a sourced feature table.
+5. [ ] `quail bench --url` (D-064).
+6. [ ] `quail eval tools` (D-065).
+7. [ ] The runs, and the published report.
+
 **After 1.0:**
 - Phase 4 step 4, measured-speed calibration
 - Phase 2b step 6, benchmark sharing

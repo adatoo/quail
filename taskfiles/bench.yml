@@ -1,0 +1,53 @@
+# The comparison harness (bench/, ADR D-063): Quail against llama-server, Ollama, oMLX and Rapid-MLX on the same
+# weights, with standard benchmarks. Python tooling, run with uv, outside the app — nothing here ships.
+#
+#   task bench:setup      the tool environments (oMLX) and the vendored engines (Ollama)
+#   task bench:doctor     what's installed and missing, and how quiet the Mac is
+#   task bench:smoke      start each engine with each model and record what it can do (capabilities.json)
+#   task bench:restore    resume anything a killed run left paused (Spotlight, analysis daemons)
+#   task bench:test       the harness's own tests (in `task ci`)
+#
+# ENGINES=quail-gguf,llama-server,…  MODELS=qwen3-8b,…  narrow a smoke run.
+version: '3'
+
+tasks:
+  setup:
+    desc: Make the harness's tool environments and fetch the engines it compares (never part of the app)
+    deps: [':vendor:ollama']
+    preconditions:
+      - sh: command -v uv
+        msg: 'uv is not installed — brew install uv'
+    cmds:
+      - uv sync --locked --project bench/tools/omlx --quiet
+      - echo "==> oMLX $(bench/tools/omlx/.venv/bin/python -c 'import importlib.metadata as m; print(m.version("omlx"))') ready"
+
+  doctor:
+    desc: What the comparison harness has and lacks, and how quiet the Mac is
+    dir: bench
+    cmds:
+      - uv run --quiet python -m harness doctor
+
+  smoke:
+    desc: Start each engine with each model and record what it can really do (bench/runs/<run>/capabilities.json)
+    dir: bench
+    env:
+      ENGINES: '{{.ENGINES}}'
+      MODELS: '{{.MODELS}}'
+    cmds:
+      - |
+        args=()
+        [ -n "${ENGINES:-}" ] && args+=(--engines "$ENGINES")
+        [ -n "${MODELS:-}" ] && args+=(--models "$MODELS")
+        uv run --quiet python -m harness smoke "${args[@]}"
+
+  restore:
+    desc: Resume whatever a killed benchmark run left paused (Spotlight indexing, analysis daemons)
+    dir: bench
+    cmds:
+      - uv run --quiet python -m harness restore
+
+  test:
+    desc: The comparison harness's own tests (parsers, configuration, launch settings)
+    dir: bench
+    cmds:
+      - uv run --quiet python -m unittest discover -s harness/tests -t . -q

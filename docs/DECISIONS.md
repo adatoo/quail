@@ -2,6 +2,84 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-063 · 2026-09-28 · Comparing Quail with Ollama, oMLX and Rapid-MLX: method and harness
+
+**Situation:** the owner wants to know how Quail compares with Ollama, oMLX and Rapid-MLX, measured with standard benchmarks. The results go in the repo and on the website, including where Quail loses. Until now only `quail bench` existed. It depends on llama-server's `/tokenize` and server-side `timings`, so it can't measure the others.
+
+**Decision:** a harness in `bench/` drives standard tools against every engine on the same weights, under one set of fairness rules.
+
+**What it compares**
+- **Two lanes, never mixed:**
+  - GGUF lane: Quail, the bundled llama-server and Ollama, all on the same `.gguf` file.
+  - MLX lane: Quail, oMLX, Rapid-MLX and Ollama's MLX runner, all on the same MLX folder.
+  - Results across lanes are labelled as different quantisations.
+- **Models:** Qwen3 8B, Qwen3.6 35B-A3B and Gemma 4 26B-A4B (`bench/config/models.toml`).
+- **Standard tools:**
+  - speed: GuideLLM
+  - quality: EleutherAI's lm-evaluation-harness (GSM8K, MMLU-Pro)
+  - tool calling: BFCL
+  - engine-native baselines: `llama-bench`, `mlx_lm.benchmark`
+- **Tool environments:** each tool has its own uv-locked environment under `bench/tools/`. The driver uses the standard library only, so CI tests it without installing anything (`task bench:test`).
+- **Nothing in `bench/` ships in the app.** AGENTS.md's "don't bundle Python" still holds.
+
+**Fairness** (`bench/config/fairness.toml`; the report prints it):
+- **Capacity:** 8 slots of 8K context.
+- **KV cache:** full precision everywhere; flash attention on for GGUF.
+- **Sampling:** sent on every request (temperature 0, seed 42, penalties 0), and pinned server-side where an engine has its own defaults.
+- **Thinking:** off everywhere, checked per engine and model.
+- **Warm-up:** the same untimed requests before timing.
+- **Settings that need explicit flags:**
+  - Rapid-MLX's model profiles can switch on a quantized or compressed KV cache (TurboQuant) and prompt compression (PFlash) by themselves, so it gets explicit flags.
+  - Ollama and oMLX ignore `ignore_eos`, so output length is held by the prompts and every request's token count is recorded.
+
+**Engine sources**
+- **Ollama:** its official build (`task vendor:ollama`, pinned by sha256). Homebrew's builds the MLX runner against Homebrew's mlx-c.
+- **oMLX:** its release wheel.
+- **Rapid-MLX:** as installed.
+- **Quail:** a Release build; a Debug build is refused.
+
+**Isolation**
+- Every engine runs with a scratch `HOME` and scratch model and cache folders.
+- The user's Quail, Ollama and oMLX are never touched, and never stopped: the harness asks.
+- Random API keys, redacted from the recorded launch commands.
+
+**Accuracy**
+- **Order:** engines are interleaved with alternating order, and results are the median with the range across rounds.
+- **Before every timed level:** a thermal gate (powermetrics must read "Nominal").
+- **During the run:**
+  - `caffeinate` keeps the Mac awake.
+  - Spotlight and the photo and media analysis daemons are paused.
+  - One server runs at a time.
+  - Anything paused is recorded first and always restored, including by `task bench:restore` after a killed run.
+- **What counts as a difference:** a speed claim needs more than 5% and more than the spread between rounds. Quality claims use confidence intervals on the same items.
+- **Hosts:**
+  - Published numbers come from a dedicated Mac (an M1 Max MacBook Pro, 64 GB) driven over SSH.
+  - A speed-only confirmation run on the M4 Pro Mac mini checks the ranking holds on newer hardware.
+
+**The smoke test** (`task bench:smoke`) comes before any timing and writes `capabilities.json`. It records:
+- whether `ignore_eos` and streamed usage work
+- whether thinking really is off
+- whether tool calls come back parsed on the OpenAI and Anthropic routes
+- how many tokens the same prompt counts as
+- whether a repeated prompt hits a prefix cache
+
+The report's caveats come from it.
+
+**Publication:**
+- Dated and versioned.
+- The losses are shown, in a generated "Where Quail is slower or worse" section.
+- Every competitor feature claim links to its own docs or source.
+- Stable releases only (not Ollama's release candidates).
+
+**Alternatives:**
+- **Extend `quail bench` to do it all:** that would be our method, not a standard one. `quail bench --url` still comes, so Quail can measure any server itself, cross-checked against GuideLLM.
+- **Compare with each engine's own published numbers:** different Macs, settings and prompts.
+- **Rent a cloud Mac:** a Scaleway Mac mini M4 Pro is about €12 a night (24-hour minimum). It isn't needed while a dedicated laptop is available.
+
+**Revisit if:**
+- a competitor adds a setting the fairness rules can't express
+- the lanes converge, for example if one engine reads both formats' weights
+
 ## D-062 · 2026-09-28 · A website: hand-written HTML in `website/`, on GitHub Pages
 
 **Situation:** Quail had no home page, only a README. The owner wants the app to link to one before 1.0, with docs the app's long captions can point at instead of explaining everything in place. They bought `quail-ai.app` and `quail-ai.com`, both on Cloudflare DNS.
