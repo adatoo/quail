@@ -2,6 +2,8 @@
 
 **Quick AI, local.** A Postgres.app-style menu bar app for running local LLM servers on Apple Silicon.
 
+**Website and docs: [quail-ai.app](https://quail-ai.app)**
+
 Quail starts a runtime, exposes an OpenAI-compatible endpoint, and gets out of the way. It runs **Quail server**, its own server for both GGUF and MLX models, with **llama.cpp**'s `llama-server` bundled as a fallback for GGUF, from one shared model folder and one honest opinion about what fits on your machine.
 
 ## Install
@@ -41,6 +43,7 @@ Beta, heading for 1.0: see the Road to 1.0 at the end of [docs/IMPLEMENTATION_PL
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Phases, tasks, acceptance criteria, build/verify loop |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Decision records with the trade-offs behind them |
 | [AGENTS.md](AGENTS.md) | Conventions for humans and coding agents working in this repo |
+| [website/](website/) | The website at [quail-ai.app](https://quail-ai.app): landing page and user docs, plain HTML (D-062) |
 
 ## Requirements
 

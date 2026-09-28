@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-09-28
+
+### Added
+
+- **Quail links to its website, [quail-ai.app](https://quail-ai.app):**
+  - Quail Help in the menu opens the docs.
+  - "Learn more" beside the Server, General, Benchmark and model settings captions goes to the matching docs page.
+  - About has Website and Documentation links.
+  - The Homebrew cask's homepage is the website too.
+
 ## [0.55.2] - 2026-09-28
 
 ### Added
