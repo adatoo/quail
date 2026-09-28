@@ -8,16 +8,37 @@ enum ChatDelta: Equatable, Sendable {
     case toolCall(ParsedToolCall)
 }
 
-/// Separates `<think>…</think>` reasoning from the answer as text streams in, like llama-server's
-/// default (`reasoning_format` "auto"): the reasoning goes to `reasoning_content`, the tags and the
-/// whitespace right after each are dropped, and nothing that could still be half a tag is emitted.
+/// The tags a model family wraps its reasoning in.
+struct ReasoningTags: Equatable, Sendable {
+    var open: String
+    var close: String
+    /// Whether a reasoning block can also come after answer text, not only at the start of a reply.
+    var anywhere = false
+
+    /// `<think>…</think>`: Qwen3 and most reasoning models.
+    static let think = ReasoningTags(open: "<think>", close: "</think>")
+    /// Gemma 4's thought channel. It writes an empty one after a tool result even with thinking off, and
+    /// can end a reply with another or with a stray `<channel|>`, as llama.cpp's own parser notes.
+    static let gemma4 = ReasoningTags(open: "<|channel>thought", close: "<channel|>", anywhere: true)
+}
+
+extension ToolCallFormat {
+    /// How this family marks its reasoning (Harmony's channels have their own parser).
+    var reasoningTags: ReasoningTags {
+        self == .gemma4 ? .gemma4 : .think
+    }
+}
+
+/// Separates reasoning (`<think>…</think>`, or the family's own `tags`) from the answer as text streams
+/// in, like llama-server's default (`reasoning_format` "auto"): the reasoning goes to
+/// `reasoning_content`, the tags and the whitespace right after each are dropped, and nothing that could
+/// still be half a tag is emitted.
 ///
 /// A model may open the tag itself, or its chat template may have opened it already (Qwen3's
 /// generation prompt ends with `<think>` when thinking is on), in which case generation starts
 /// inside the reasoning (`startsInReasoning`).
 struct ReasoningSplitter: Sendable {
-    static let open = "<think>"
-    static let close = "</think>"
+    private let tags: ReasoningTags
 
     private enum Mode {
         /// Before any answer text: the opening tag may still come.
@@ -31,7 +52,8 @@ struct ReasoningSplitter: Sendable {
     /// After a tag, whitespace is dropped until the first real character.
     private var skippingWhitespace: Bool
 
-    init(startsInReasoning: Bool) {
+    init(startsInReasoning: Bool, tags: ReasoningTags = .think) {
+        self.tags = tags
         mode = startsInReasoning ? .reasoning : .start
         skippingWhitespace = startsInReasoning
     }
@@ -79,32 +101,53 @@ struct ReasoningSplitter: Sendable {
                 // Leading whitespace before an opening tag is skipped along with the tag; keep it
                 // aside until we know which it is.
                 let body = pending.drop(while: { $0.isWhitespace })
-                if body.hasPrefix(Self.open) {
-                    pending = String(body.dropFirst(Self.open.count))
+                if body.hasPrefix(tags.open) {
+                    pending = String(body.dropFirst(tags.open.count))
                     mode = .reasoning
                     skippingWhitespace = true
                     continue
                 }
-                if !final, Self.open.hasPrefix(String(body)) {
+                if !final, tags.open.hasPrefix(String(body)) {
                     return out // the start of a tag, or only whitespace so far: wait
                 }
                 mode = .answer
                 continue
             case .reasoning:
-                if let range = pending.range(of: Self.close) {
+                if let range = pending.range(of: tags.close) {
                     emit(.reasoning(String(pending[..<range.lowerBound])))
                     pending = String(pending[range.upperBound...])
                     mode = .answer
                     skippingWhitespace = true
                     continue
                 }
-                let hold = final ? 0 : Self.partialSuffixLength(of: pending, for: Self.close)
+                let hold = final ? 0 : Self.partialSuffixLength(of: pending, for: tags.close)
                 emit(.reasoning(String(pending.dropLast(hold))))
                 pending = String(pending.suffix(hold))
                 return out
             case .answer:
-                emit(.content(pending))
-                pending = ""
+                guard tags.anywhere else {
+                    emit(.content(pending))
+                    pending = ""
+                    return out
+                }
+                // A later reasoning block opens as the first one did; a closing tag with nothing open is dropped.
+                let open = pending.range(of: tags.open)
+                let close = pending.range(of: tags.close)
+                if let tag = [open, close].compactMap(\.self).min(by: { $0.lowerBound < $1.lowerBound }) {
+                    emit(.content(String(pending[..<tag.lowerBound])))
+                    pending = String(pending[tag.upperBound...])
+                    if tag == open {
+                        mode = .reasoning
+                        skippingWhitespace = true
+                    }
+                    continue
+                }
+                let hold = final ? 0 : max(
+                    Self.partialSuffixLength(of: pending, for: tags.open),
+                    Self.partialSuffixLength(of: pending, for: tags.close)
+                )
+                emit(.content(String(pending.dropLast(hold))))
+                pending = String(pending.suffix(hold))
                 return out
             }
         }

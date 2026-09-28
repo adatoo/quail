@@ -1,0 +1,6 @@
+<|endoftext|><|turn>system
+<|think|>
+<|tool>declaration:get_weather{description:<|"|>Get the current weather for a city.<|"|>,parameters:{properties:{city:{description:<|"|>City name, e.g. Paris<|"|>,type:<|"|>STRING<|"|>},unit:{description:<|"|>Temperature unit<|"|>,enum:[<|"|>celsius<|"|>,<|"|>fahrenheit<|"|>],type:<|"|>STRING<|"|>}},required:[<|"|>city<|"|>],type:<|"|>OBJECT<|"|>}}<tool|><|tool>declaration:get_time{description:<|"|>Get the current time in a timezone.<|"|>,parameters:{properties:{timezone:{type:<|"|>STRING<|"|>}},required:[<|"|>timezone<|"|>],type:<|"|>OBJECT<|"|>}}<tool|><turn|>
+<|turn>user
+What's the weather in Paris and what time is it in Tokyo?<turn|>
+<|turn>model

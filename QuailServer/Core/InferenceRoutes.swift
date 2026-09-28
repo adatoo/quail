@@ -387,8 +387,9 @@ struct InferenceRoutes: Sendable {
                 }
             }
             // A constrained reply comes after the thinking block, if the template has one.
-            let reasoning: JSONSchemaGrammar.Reasoning = tokens.thinkingIsOpen ? .open
-                : tokens.supportsThinking ? .optional : .none
+            let tags = tokens.toolFormat.reasoningTags
+            let reasoning: JSONSchemaGrammar.Reasoning = tokens.thinkingIsOpen ? .open(tags)
+                : tokens.supportsThinking ? .optional(tags) : .none
             if settings.constraint != nil, tokens.toolFormat == .harmony {
                 throw RequestError
                     .invalid("constrained output isn't supported for this model's chat format (Harmony) yet")
@@ -495,7 +496,7 @@ struct InferenceRoutes: Sendable {
         }
     }
 
-    /// The prompt text for a chat request, and whether its template left a `<think>` open.
+    /// The prompt text for a chat request, and whether its template left the reasoning block open.
     private func renderPrompt(
         _ chat: ChatRequest, engine: any Engine, info: EngineInfo
     ) async throws -> (
@@ -523,12 +524,13 @@ struct InferenceRoutes: Sendable {
                 extra: chat.templateKwargs
             ))
             let tail = text.reversed().drop(while: { $0.isWhitespace })
+            let format = ToolCallFormat.detect(template: source)
             return (
                 text,
                 media,
-                String(tail.reversed()).hasSuffix(ReasoningSplitter.open),
-                source.contains(ReasoningSplitter.open),
-                ToolCallFormat.detect(template: source)
+                String(tail.reversed()).hasSuffix(format.reasoningTags.open),
+                source.contains(format.reasoningTags.open),
+                format
             )
         } catch {
             throw RequestError.invalid(error.localizedDescription)

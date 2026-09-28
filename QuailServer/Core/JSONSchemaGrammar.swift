@@ -26,10 +26,18 @@ enum JSONSchemaGrammar {
     enum Reasoning: Equatable, Sendable {
         /// No thinking block: the answer starts at the first token.
         case none
-        /// The model writes `<think>…</think>` first, or goes straight to the answer.
-        case optional
-        /// The template already opened `<think>`, so the reply continues the thinking and then closes it.
-        case open
+        /// The model writes its thinking block (`<think>…</think>`, or its family's tags) first, or goes
+        /// straight to the answer.
+        case optional(ReasoningTags)
+        /// The template already opened the thinking block, so the reply continues it and then closes it.
+        case open(ReasoningTags)
+
+        var tags: ReasoningTags? {
+            switch self {
+            case .none: nil
+            case let .optional(tags), let .open(tags): tags
+            }
+        }
     }
 
     /// Text a reply must carry around the JSON: a tool call's tags, for instance. GBNF as it's written in a
@@ -59,31 +67,33 @@ enum JSONSchemaGrammar {
             }
             switch reasoning {
             case .none: converter.rules["root"] = body
-            case .optional: converter.rules["root"] = "(\"<think>\" think-0 \"</think>\" think-space)? \(body)"
-            case .open: converter.rules["root"] = "think-0 \"</think>\" think-space \(body)"
+            case let .optional(tags):
+                converter.rules["root"] = "(\"\(tags.open)\" think-0 \"\(tags.close)\" think-space)? \(body)"
+            case let .open(tags): converter.rules["root"] = "think-0 \"\(tags.close)\" think-space \(body)"
             }
         }
-        if reasoning != .none {
-            converter.rules["think-space"] = "[\\n]{0,2}"
-            // Any text that doesn't contain "</think>": one rule per prefix of the tag matched so far, and
-            // a "<" always restarts the match, so the closing tag is recognised wherever it comes.
-            let tag = Array("</think>")
-            converter.rules["think-0"] = "| [^<] think-0 | \"<\" think-1"
-            for matched in 1 ..< tag.count {
-                let next = tag[matched]
-                var rule = "| \"<\" think-1"
-                rule += " | [^<\(next)] think-0"
-                if matched == tag.count - 1 {
-                    rule = "| \"<\" think-1 | [^<>] think-0"
-                } else if matched == 1 {
-                    rule = "| \"<\" think-1 | [^</] think-0 | \"/\" think-2"
-                } else {
-                    rule += " | \"\(next)\" think-\(matched + 1)"
-                }
-                converter.rules["think-\(matched)"] = rule
-            }
+        if let tags = reasoning.tags {
+            addThinkingRules(closedBy: tags.close, to: &converter)
         }
         return converter.grammar()
+    }
+
+    /// `think-0`: any text that doesn't contain `close`. One rule per prefix of the tag matched so far; the
+    /// tag's first character appears nowhere else in it (`</think>`, `<channel|>`), so that character
+    /// always restarts the match and the closing tag is recognised wherever it comes.
+    private static func addThinkingRules(closedBy close: String, to converter: inout Converter) {
+        converter.rules["think-space"] = "[\\n]{0,2}"
+        let tag = Array(close)
+        let first = tag[0]
+        converter.rules["think-0"] = "| [^\(first)] think-0 | \"\(first)\" think-1"
+        for matched in 1 ..< tag.count {
+            let next = tag[matched]
+            var rule = "| \"\(first)\" think-1 | [^\(first)\(next)] think-0"
+            if matched < tag.count - 1 {
+                rule += " | \"\(next)\" think-\(matched + 1)"
+            }
+            converter.rules["think-\(matched)"] = rule
+        }
     }
 
     /// Keywords that constrain a value and that this converter doesn't implement.

@@ -1,0 +1,7 @@
+<|endoftext|><|turn>system
+<|think|>
+<|tool>declaration:get_weather{description:<|"|>Get the current weather for a city.<|"|>,parameters:{properties:{city:{type:<|"|>STRING<|"|>},unit:{enum:[<|"|>celsius<|"|>,<|"|>fahrenheit<|"|>],type:<|"|>STRING<|"|>}},required:[<|"|>city<|"|>],type:<|"|>OBJECT<|"|>}}<tool|><turn|>
+<|turn>user
+What's the weather in Paris?<turn|>
+<|turn>model
+<|tool_call>call:get_weather{city:<|"|>Paris<|"|>,unit:<|"|>celsius<|"|>}<tool_call|><|tool_response>response:get_weather{value:<|"|>{"temp": 18, "sky": "cloudy"}<|"|>}<tool_response|><|channel>thought

@@ -16,7 +16,7 @@ struct ChatOutputParser: Sendable {
             harmony = HarmonyParser(toolNames: names)
             reasoning = nil
         } else {
-            reasoning = ReasoningSplitter(startsInReasoning: startsInReasoning)
+            reasoning = ReasoningSplitter(startsInReasoning: startsInReasoning, tags: format.reasoningTags)
         }
     }
 

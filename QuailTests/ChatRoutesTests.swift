@@ -494,6 +494,43 @@ struct ChatRoutesTests {
         #expect(harmony.prompt.contains("<|start|>developer<|message|># Instructions\n\nBe terse"))
     }
 
+    @Test("Gemma 4, on its real template: the thought channel is reasoning and its calls are tool_calls")
+    func gemma4Reply() async {
+        let harness = Harness(
+            pieces: [
+                "<|channel>thought\n",
+                "Need weather.",
+                "<channel|>",
+                #"<|tool_call>call:get_weather{city:<|"|>"#,
+                #"Paris<|"|>}<tool_call|>"#,
+            ],
+            template: Self.template("gemma4")
+        )
+        let reply = await harness.json(
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":\#(Self.weatherTools),"chat_template_kwargs":{"enable_thinking":true}}"#
+        )
+        #expect(message(reply.json)["reasoning_content"] as? String == "Need weather.")
+        let call = (message(reply.json)["tool_calls"] as? [[String: Any]])?.first?["function"] as? [String: Any]
+        #expect(call?["name"] as? String == "get_weather")
+        #expect(call?["arguments"] as? String == #"{"city":"Paris"}"#)
+        #expect((reply.json["choices"] as? [[String: Any]])?.first?["finish_reason"] as? String == "tool_calls")
+    }
+
+    @Test("Gemma 4 thinking after a tool result: the template opens the thought channel, so the reply starts in it")
+    func gemma4OpenThought() async {
+        let body = #"{"model":"Alpha","messages":[{"role":"user","content":"x"},{"role":"assistant","content":null,"tool_calls":[{"id":"c1","type":"function","function":{"name":"get_weather","arguments":"{\"city\":\"Paris\"}"}}]},{"role":"tool","tool_call_id":"c1","content":"18C"}],"tools":\#(Self.weatherTools),"chat_template_kwargs":{"enable_thinking":true}"#
+        let harness = Harness(pieces: ["It's 18.", "<channel|>", "It is 18°C."], template: Self.template("gemma4")) {
+            $0.capabilities = .init(grammar: true)
+        }
+        let reply = await harness.json(body + "}")
+        #expect(harness.prompt.hasSuffix("<tool_response|><|channel>thought\n"))
+        #expect(message(reply.json)["reasoning_content"] as? String == "It's 18.")
+        #expect(message(reply.json)["content"] as? String == "It is 18°C.")
+        // Constrained output continues the open channel, closed by Gemma's own tag.
+        _ = await harness.json(body + #","response_format":{"type":"json_object"}}"#)
+        #expect(harness.world.requests.last?.grammar?.contains(#"root ::= think-0 "<channel|>" think-space"#) == true)
+    }
+
     // MARK: errors
 
     @Test("bad chat requests are 400s", arguments: [
