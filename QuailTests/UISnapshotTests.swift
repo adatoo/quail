@@ -14,7 +14,7 @@ struct UISnapshotTests {
         .map { URL(fileURLWithPath: $0, isDirectory: true) }
 
     private func makeAppState(
-        runtime id: RuntimeID = .quail, results: [BenchmarkResult] = []
+        runtime id: RuntimeID = .quail, results: [BenchmarkResult] = [], fakeRuntime: FakeRuntime? = nil
     ) async throws -> (AppState, URL) {
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("quail-snapshots-\(UUID().uuidString)", isDirectory: true)
@@ -35,10 +35,7 @@ struct UISnapshotTests {
             config: { var config = Config(); config.runtimeID = id; return config }(),
             configURL: scratch.appendingPathComponent("config.json"),
             secretStore: FakeSecretStore(),
-            runtime: FakeRuntime(launchSpec: LaunchSpec(
-                executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["30"], environment: [:],
-                currentDirectoryURL: nil
-            ), id: id, formats: id == .quail ? [.gguf, .mlxSafetensors] : [.gguf]),
+            runtime: fakeRuntime ?? Self.fakeRuntime(id),
             modelsRootURL: models,
             catalogLocations: .init(bundle: .main, directory: scratch),
             shapeCache: ModelShapeCache(url: nil),
@@ -51,13 +48,23 @@ struct UISnapshotTests {
         return (appState, scratch)
     }
 
-    private func render(_ view: some View, size: CGSize, name: String) async throws {
+    private static func fakeRuntime(_ id: RuntimeID = .quail) -> FakeRuntime {
+        FakeRuntime(launchSpec: LaunchSpec(
+            executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["30"], environment: [:],
+            currentDirectoryURL: nil
+        ), id: id, formats: id == .quail ? [.gguf, .mlxSafetensors] : [.gguf])
+    }
+
+    private func render(
+        _ view: some View, size: CGSize, name: String, appearance: NSAppearance.Name = .aqua
+    ) async throws {
         let directory = try #require(Self.outputDirectory)
         let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
         hosting.frame = CGRect(origin: .zero, size: size)
         let window = NSWindow(
             contentRect: hosting.frame, styleMask: [.titled], backing: .buffered, defer: false
         )
+        window.appearance = NSAppearance(named: appearance)
         window.contentView = hosting
         window.orderFrontRegardless()
         // Let tasks, lists and async loads settle.
@@ -301,6 +308,34 @@ struct UISnapshotTests {
         // The sidebar on its own too: inside the split view, offscreen rendering leaves it blank.
         appState.mainPage = .server
         try await render(MainSidebar(appState: appState), size: CGSize(width: 200, height: 320), name: "sidebar")
+    }
+
+    /// The website's picture of the Quail window (`task site:screenshots`), light and dark: the server running
+    /// with a model loaded. The sidebar and the page are drawn side by side, since offscreen rendering leaves the
+    /// real split view's sidebar blank.
+    @Test("Website: the Quail window, light and dark")
+    func websiteScreenshots() async throws {
+        let runtime = Self.fakeRuntime()
+        let (appState, scratch) = try await makeAppState(fakeRuntime: runtime)
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        appState.setDefaultModel("Qwen3-8B-Q4_K_M")
+        await runtime.setListModelsResult(.success([
+            ServedModel(id: "Qwen3-8B-Q4_K_M", status: .init(value: "loaded", failed: nil, exitCode: nil)),
+        ]))
+        await appState.start()
+        appState.mainPage = .server
+        let window = HStack(spacing: 0) {
+            MainSidebar(appState: appState)
+                .frame(width: 200)
+            Divider()
+            ServerPane(appState: appState)
+        }
+        for (name, appearance) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
+            try await render(
+                window, size: CGSize(width: 1100, height: 700), name: "quail-window-\(name)", appearance: appearance
+            )
+        }
+        await appState.stop()
     }
 
     /// The whole Quail window, sidebar included, on `page`.

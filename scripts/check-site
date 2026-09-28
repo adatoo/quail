@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+"""Checks the website in website/ (ADR D-062) before it's published: every page has a title and a description,
+and every link and image inside the site points at a file that exists, including #fragments, which must name an
+id on the target page. Links off the site aren't fetched. The docs pages repeat one sidebar (there's no build
+step to share it), so every docs page's sidebar must list the same pages, and every docs page must be in it.
+
+The site's links are relative, so it works both at https://adatoo.github.io/quail/ and at the root of a
+domain; a link starting with "/" would break one of the two, so it's reported too (404.html, which GitHub
+Pages serves at any depth, works out the root itself).
+
+Usage: scripts/check-site [DIR]    (default: website)
+"""
+
+import html.parser
+import os
+import sys
+import urllib.parse
+
+
+class Page(html.parser.HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []  # (attribute value, line)
+        self.ids = set()
+        self.title = ""
+        self.description = None
+        self.docs_nav = []  # the hrefs in <nav class="docs-nav">
+        self._in_title = False
+        self._in_docs_nav = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if "id" in attrs:
+            self.ids.add(attrs["id"])
+        for name in ("href", "src", "srcset"):
+            if name in attrs and attrs[name]:
+                self.links.append((attrs[name], self.getpos()[0]))
+        if tag == "nav" and "docs-nav" in (attrs.get("class") or "").split():
+            self._in_docs_nav = True
+        if tag == "a" and self._in_docs_nav and attrs.get("href"):
+            self.docs_nav.append(attrs["href"])
+        if tag == "title":
+            self._in_title = True
+        if tag == "meta" and attrs.get("name") == "description":
+            self.description = attrs.get("content", "")
+
+    def handle_endtag(self, tag):
+        if tag == "title":
+            self._in_title = False
+        if tag == "nav":
+            self._in_docs_nav = False
+
+    def handle_data(self, data):
+        if self._in_title:
+            self.title += data
+
+
+def parse(path):
+    page = Page()
+    with open(path, encoding="utf-8") as f:
+        page.feed(f.read())
+    return page
+
+
+def main():
+    root = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else "website")
+    pages = {}
+    for folder, _, files in os.walk(root):
+        for name in files:
+            if name.endswith(".html"):
+                path = os.path.join(folder, name)
+                pages[path] = parse(path)
+
+    problems = []
+    for path, page in sorted(pages.items()):
+        where = os.path.relpath(path, root)
+        if not page.title.strip():
+            problems.append(f"{where}: no <title>")
+        if page.description is None and not where.endswith("404.html"):
+            problems.append(f"{where}: no <meta name=\"description\">")
+        for value, line in page.links:
+            if where.endswith("404.html"):
+                continue
+            url = value.split()[0]  # srcset: the first candidate's URL
+            parsed = urllib.parse.urlparse(url)
+            if parsed.scheme or url.startswith("//") or url.startswith("mailto:"):
+                continue
+            if url.startswith("/"):
+                problems.append(f"{where}:{line}: {url} is absolute; use a relative link")
+                continue
+            target = os.path.normpath(os.path.join(os.path.dirname(path), urllib.parse.unquote(parsed.path)))
+            if not parsed.path:
+                target = path
+            elif os.path.isdir(target):
+                target = os.path.join(target, "index.html")
+            if not os.path.exists(target):
+                problems.append(f"{where}:{line}: {url} → {os.path.relpath(target, root)} doesn't exist")
+                continue
+            if parsed.fragment and target in pages and parsed.fragment not in pages[target].ids:
+                problems.append(f"{where}:{line}: {url} → no id \"{parsed.fragment}\" on that page")
+
+    docs = {path: page for path, page in pages.items() if os.path.basename(os.path.dirname(path)) == "docs"}
+    sidebars = {tuple(page.docs_nav) for page in docs.values()}
+    if len(sidebars) > 1:
+        problems.append("docs pages don't all have the same sidebar: " + "; ".join(" ".join(s) for s in sidebars))
+    listed = set().union(*sidebars) if sidebars else set()
+    for path in docs:
+        name = os.path.basename(path)
+        if name not in listed and name != "index.html":
+            problems.append(f"docs/{name}: not in the docs sidebar")
+
+    if problems:
+        print("\n".join(problems))
+        print(f"{len(problems)} problem(s) in {len(pages)} pages")
+        return 1
+    print(f"website OK: {len(pages)} pages, every link and image inside the site resolves")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connect a tool — Quail</title>
+  <meta name="description" content="Point Claude Code, Codex, opencode, editors, chat apps and your own code at Quail.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="getting-started.html" aria-current="page">Docs</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <nav class="docs-nav" aria-label="Documentation">
+        <h2>Get started</h2>
+        <ul>
+          <li><a href="getting-started.html">Getting started</a></li>
+        </ul>
+        <h2>Using Quail</h2>
+        <ul>
+          <li><a href="models.html">Models</a></li>
+          <li><a href="connect.html" aria-current="page">Connect a tool</a></li>
+          <li><a href="network.html">Network and API key</a></li>
+          <li><a href="power.html">Power</a></li>
+          <li><a href="benchmark.html">Benchmark</a></li>
+        </ul>
+        <h2>Reference</h2>
+        <ul>
+          <li><a href="cli.html">The quail command</a></li>
+          <li><a href="troubleshooting.html">Troubleshooting</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+    </nav>
+    <main class="prose">
+<h1>Connect a tool</h1>
+<p class="lede">Quail's server speaks the OpenAI and Anthropic APIs, so most tools that let you change their endpoint work with it.</p>
+
+<h2 id="connect-page">The Connect page</h2>
+<p>Choose <span class="path">Connect a Tool…</span> in the menu, or <span class="path">Connect</span> in the Quail window. Pick a tool and a model, and Quail fills in its setup with your address, API key and model:</p>
+<ol>
+  <li>Copy the snippet into the place it says (“Goes in: …”).</li>
+  <li>Click <span class="path">Test</span>: it sends one tiny request exactly as that tool would, and says whether it worked.</li>
+</ol>
+<p>Using the tool on another computer? Choose <span class="path">Used from: Another device</span> for your Mac's network address, and set <a href="network.html">Reachable from</a> to Local network.</p>
+<p>Quail never edits another app's settings. It gives you the snippet, and a link to the tool's own setup docs.</p>
+
+<h2 id="launch">Or let Quail start the tool</h2>
+<p>For coding agents, <code>quail launch</code> starts the tool pointed at Quail, for that run only — the tool's own settings are untouched. Its context is set to what the model runs at.</p>
+<pre><code>quail launch claude             # Claude Code, with the default model
+quail launch codex -m qwen3-8b  # a particular model
+quail launch opencode -- run "fix the tests"   # arguments after -- go to the tool</code></pre>
+<p>Supported: <code>claude</code>, <code>codex</code>, <code>opencode</code>, <code>qwen</code>, <code>aider</code>, <code>goose</code>.</p>
+
+<h2 id="tools">Tools with a ready-made setup</h2>
+<table>
+  <tr><th>Tool</th><th>Speaks</th><th>Needs</th></tr>
+  <tr><td>Claude Code</td><td>Anthropic Messages</td><td>32K context</td></tr>
+  <tr><td>OpenAI Codex CLI</td><td>OpenAI Responses</td><td>16K context</td></tr>
+  <tr><td>opencode</td><td>OpenAI Chat Completions</td><td>16K context</td></tr>
+  <tr><td>Cline, Roo Code</td><td>OpenAI Chat Completions</td><td>32K context</td></tr>
+  <tr><td>aider, Goose, Qwen Code</td><td>OpenAI Chat Completions</td><td></td></tr>
+  <tr><td>Continue, Zed</td><td>OpenAI Chat Completions</td><td></td></tr>
+  <tr><td>Open WebUI, LibreChat</td><td>OpenAI Chat Completions</td><td></td></tr>
+  <tr><td>curl, Python, JavaScript</td><td>OpenAI Chat Completions</td><td></td></tr>
+</table>
+<p>If a model's context is smaller than a tool needs, the Connect page says so; raise it in the model's settings (see <a href="models.html#settings">Models</a>) and restart the server.</p>
+
+<h2 id="any-client">Any other client</h2>
+<table>
+  <tr><th>OpenAI base URL</th><td><code>http://127.0.0.1:8080/v1</code></td></tr>
+  <tr><th>Anthropic base URL</th><td><code>http://127.0.0.1:8080</code> (clients add <code>/v1/messages</code>)</td></tr>
+  <tr><th>API key</th><td>Sent as <code>Authorization: Bearer &lt;key&gt;</code> or <code>x-api-key: &lt;key&gt;</code></td></tr>
+  <tr><th>Model</th><td>The model's id from the Models page</td></tr>
+</table>
+<pre><code>curl http://127.0.0.1:8080/v1/chat/completions \
+  -H "Authorization: Bearer $QUAIL_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "Qwen3-8B-Q4_K_M", "messages": [{"role": "user", "content": "Hello"}]}'</code></pre>
+<p>The address and key are on the Server page, and <code>quail config --show-key</code> prints them.</p>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="index.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail/issues/new/choose">Report an issue</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

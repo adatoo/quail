@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Troubleshooting — Quail</title>
+  <meta name="description" content="What to do when the server won&#x27;t start, a model won&#x27;t load, or a tool can&#x27;t connect.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="getting-started.html" aria-current="page">Docs</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <nav class="docs-nav" aria-label="Documentation">
+        <h2>Get started</h2>
+        <ul>
+          <li><a href="getting-started.html">Getting started</a></li>
+        </ul>
+        <h2>Using Quail</h2>
+        <ul>
+          <li><a href="models.html">Models</a></li>
+          <li><a href="connect.html">Connect a tool</a></li>
+          <li><a href="network.html">Network and API key</a></li>
+          <li><a href="power.html">Power</a></li>
+          <li><a href="benchmark.html">Benchmark</a></li>
+        </ul>
+        <h2>Reference</h2>
+        <ul>
+          <li><a href="cli.html">The quail command</a></li>
+          <li><a href="troubleshooting.html" aria-current="page">Troubleshooting</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+    </nav>
+    <main class="prose">
+<h1>Troubleshooting</h1>
+<p class="lede">Start with the logs: <span class="path">Logs…</span> in the menu, or <code>quail logs -f</code>. The files are in <code>~/Library/Logs/Quail</code>.</p>
+
+<h2 id="start">The server won't start</h2>
+<ul>
+  <li><strong>“Port 8080 is already in use by …”</strong> Another program has the port. Quit it, or choose a different port on the Server page.</li>
+  <li><strong>Start is greyed out.</strong> There's no model the chosen runtime can run. Add one on the Models page — or, if you only have MLX models, choose the Quail server runtime on the Server page.</li>
+  <li><strong>It failed.</strong> The Server page shows the reason and a Show Logs button.</li>
+</ul>
+
+<h2 id="model">A model won't load, or is missing</h2>
+<ul>
+  <li><strong>“Restart to load”</strong> on a model's row, or “Models changed — restart to apply” in the menu: the server only knows the models it started with. Restart it.</li>
+  <li><strong>“Needs the Quail server runtime”:</strong> it's an MLX model and the runtime is llama.cpp.</li>
+  <li><strong>Loading fails or the Mac slows to a crawl:</strong> the model may be too big. Check its verdict on the Models page, lower its context size, try an 8-bit KV cache, set fewer models loaded at once, or quit memory-hungry apps.</li>
+</ul>
+
+<h2 id="tools">A tool can't connect</h2>
+<ul>
+  <li>Use the <strong>Test</strong> button on the Connect page: it makes the same request as the tool and shows the server's error if there is one.</li>
+  <li><strong>401 / “Invalid API key”:</strong> the tool has an old key. Copy it again from the Server page. If you just made a new key, restart the server.</li>
+  <li><strong>From another device:</strong> set Reachable from to Local network, restart, and use the “From other devices” address. Check the Mac's firewall allows Quail.</li>
+  <li><strong>The tool says the context is too small,</strong> or cuts off: raise the model's context size (coding agents need 32K or more) and restart.</li>
+</ul>
+
+<h2 id="window">I can't find the window</h2>
+<p>Click the bird in the menu bar and choose <span class="path">Open Quail</span>. The window opens on your current desktop, even over a full-screen app.</p>
+
+<h2 id="install">Installing</h2>
+<ul>
+  <li><strong>macOS says Quail is damaged or can't be checked:</strong> official downloads are signed and notarized, so download it again from the releases page. A build of your own made with <code>task build</code> is unsigned and won't open; use <code>task install</code>.</li>
+  <li><strong><code>quail: command not found</code>:</strong> install it from <span class="path">General → Command line</span>, and add <code>~/.local/bin</code> to your PATH.</li>
+</ul>
+
+<h2 id="report">Reporting a problem</h2>
+<p>Click <span class="path">About → Copy Details</span> — Quail's versions and your Mac's — and paste them into a <a href="https://github.com/adatoo/quail/issues/new/choose">new issue</a>, with what you did and what happened. The last lines of <code>quail logs</code> help too.</p>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="index.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail/issues/new/choose">Report an issue</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.55.2] - 2026-09-28
+
+### Added
+
+- **A website:** a landing page, and docs covering getting started, models, connecting tools, the network and API key, power, benchmarks, the `quail` command, troubleshooting and privacy. It lives in `website/` and is published with GitHub Pages; `task site:serve` shows it locally.
+
 ## [0.55.1] - 2026-09-28
 
 ### Changed

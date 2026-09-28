@@ -2,6 +2,26 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-062 · 2026-09-28 · A website: hand-written HTML in `website/`, on GitHub Pages
+
+**Situation:** Quail had no home page, only a README. The owner wants the app to link to one before 1.0, with docs the app's long captions can point at instead of explaining everything in place. They want a domain of its own, not bought yet.
+
+**Decision:** A landing page and ten short docs pages in `website/`, as plain HTML with one stylesheet: no build step, no framework, no JavaScript except on the 404 page.
+- **Pages:** getting started, models, connect a tool, network and API key, power, benchmark, the `quail` command, troubleshooting and privacy, plus an index.
+- **The docs sidebar** is repeated on each page. `scripts/check-site` (`task site:check`, run by the workflow) fails if the copies differ, and also checks titles, descriptions and every link and image inside the site, including `#fragments`.
+- **Links are relative,** so the site works both at `https://adatoo.github.io/quail/` and at the root of a domain.
+- **Deploy:** `.github/workflows/pages.yml` checks the site on pull requests and deploys it from `main` with `actions/deploy-pages`. Pages must be switched to "GitHub Actions" in the repository's settings once; the workflow doesn't turn it on itself.
+- **Domain:** until the domain exists, the site lives at the Pages address. Adding `website/CNAME` and DNS moves it, and GitHub then redirects the old address.
+- **Screenshots:** `task site:screenshots` renders the Quail window, light and dark, through the snapshot suite (`UISnapshotTests.websiteScreenshots`).
+  - The sidebar and page are drawn side by side, because offscreen rendering leaves a real split view's sidebar blank.
+  - Rendered offscreen, the window is inactive, so the sidebar's labels are grey. Real screenshots from a running app can replace these images.
+
+**Alternatives:**
+- **A static site generator** (Jekyll, Hugo, Astro Starlight): Markdown docs and a shared layout, but a toolchain to install and pin for about ten pages. The repo keeps dependencies to what the app needs (AGENTS.md), and `quail-server`'s own page is hand-written too (D-042).
+- **Docs in the repo's Markdown only:** no landing page, and GitHub's rendering is the look.
+
+**Revisit if:** the docs grow past what one person keeps consistent by hand (about 20 pages), or need search. Then a generator earns its keep.
+
 ## D-061 · 2026-09-28 · One Quail window with a sidebar, instead of six Settings tabs
 
 **Situation:** Settings had six tabs holding three kinds of thing:

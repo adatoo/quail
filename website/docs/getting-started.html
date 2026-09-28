@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Getting started — Quail</title>
+  <meta name="description" content="Install Quail, add a model, start the server and check it answers — no terminal needed.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="getting-started.html" aria-current="page">Docs</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <nav class="docs-nav" aria-label="Documentation">
+        <h2>Get started</h2>
+        <ul>
+          <li><a href="getting-started.html" aria-current="page">Getting started</a></li>
+        </ul>
+        <h2>Using Quail</h2>
+        <ul>
+          <li><a href="models.html">Models</a></li>
+          <li><a href="connect.html">Connect a tool</a></li>
+          <li><a href="network.html">Network and API key</a></li>
+          <li><a href="power.html">Power</a></li>
+          <li><a href="benchmark.html">Benchmark</a></li>
+        </ul>
+        <h2>Reference</h2>
+        <ul>
+          <li><a href="cli.html">The quail command</a></li>
+          <li><a href="troubleshooting.html">Troubleshooting</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+    </nav>
+    <main class="prose">
+<h1>Getting started</h1>
+<p class="lede">Install Quail, add a model that suits your Mac, start the server and check it answers. About five minutes, most of it the download.</p>
+
+<h2 id="install">1. Install</h2>
+<p>With Homebrew, which also puts the <code>quail</code> command on your PATH:</p>
+<pre><code>brew install --cask adatoo/tap/quail-ai</code></pre>
+<p>Or download the DMG from the <a href="https://github.com/adatoo/quail/releases/latest">latest release</a>, open it and drag Quail to Applications. Quail is signed and notarized, and updates itself.</p>
+<p>Quail needs macOS 14 Sonoma or later on an Apple silicon Mac. It lives in the menu bar: a bird that is grey when the server is stopped, yellow while it starts, green while it runs and red if it failed. There is no Dock icon.</p>
+
+<h2 id="window">2. Open the Quail window</h2>
+<p>Click the bird and choose <span class="path">Open Quail</span> (<kbd>⌘</kbd><kbd>,</kbd>). The window's sidebar has everything:</p>
+<table>
+  <tr><th>Server</th><td>Whether it's running, Start and Stop, the address and API key to give your tools, who can reach it, and how it starts.</td></tr>
+  <tr><th>Models</th><td>What's installed, Add Model…, and each model's settings.</td></tr>
+  <tr><th>Connect</th><td>Setup for your coding tools, editors and chat apps.</td></tr>
+  <tr><th>Benchmark</th><td>Measure a model's speed on this Mac.</td></tr>
+  <tr><th>General</th><td>Open at login, the menu bar, the <code>quail</code> command and updates.</td></tr>
+  <tr><th>About</th><td>Versions, licences and this Mac's hardware.</td></tr>
+</table>
+
+<h2 id="model">3. Add a model</h2>
+<p>On the Models page, click <span class="path">Add Model…</span>. The top of the list is <em>Recommended for this Mac</em>: models that run comfortably in your memory. Pick one, keep the suggested format and size, and click Download. Each model shows whether it fits before you download it — see <a href="models.html">Models</a>.</p>
+<p>A small model to start with is Qwen3 8B, or Qwen3 4B on a Mac with 8 GB. From the terminal:</p>
+<pre><code>quail pull qwen3-8b</code></pre>
+<p>Downloads resume where they stopped if interrupted.</p>
+
+<h2 id="start">4. Start the server</h2>
+<p>Click <span class="path">Start</span> on the Server page, or in the menu. The bird turns green, and the Server page shows the address to use, <code>http://127.0.0.1:8080</code> unless you change it.</p>
+
+<h2 id="test">5. Check it answers</h2>
+<p>Choose <span class="path">Test…</span> in the menu. It checks three things, with timings: the server is up, a model is loaded, and the first token of a reply arrives.</p>
+
+<h2 id="use">6. Use it</h2>
+<ul>
+  <li><strong>Your tools:</strong> the <a href="connect.html">Connect</a> page has a ready-made setup for each, with a Test button.</li>
+  <li><strong>A quick chat:</strong> <span class="path">Open Chat in Browser</span> in the menu opens the server's own chat page, already signed in.</li>
+  <li><strong>The terminal:</strong> <code>quail chat</code>, <code>quail launch claude</code> and more — see <a href="cli.html">the quail command</a>.</li>
+</ul>
+<div class="note">Installed from the DMG? Install the <code>quail</code> command from <span class="path">General → Command line → Install</span>. It links <code>~/.local/bin/quail</code> to the copy inside the app.</div>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="index.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail/issues/new/choose">Report an issue</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

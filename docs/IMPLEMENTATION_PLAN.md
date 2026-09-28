@@ -242,7 +242,7 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
    - a per-model settings popover (context, KV cache, default) instead of the small "ctx" menu
    - a "This Mac can run…" line on Models
    - the menu's Add model… opens the sheet
-4. [ ] **Website** (D-062): a landing page and short docs in `website/`, hand-written HTML, deployed to GitHub Pages. The domain is new, not bought yet, so ship on the Pages URL first.
+4. [x] **Website** (D-062): a landing page and short docs in `website/`, hand-written HTML, deployed to GitHub Pages. The domain is new, not bought yet, so ship on the Pages URL first.
 5. [x] **Links from the app:** *(built 2026-09-28; the website links appear once `QuailWebsiteURL` is set — see below)*
    - `QuailWebsiteURL` in Info.plist
    - "Learn more" links replacing long captions
@@ -252,6 +252,12 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
 6. [x] **README and repo:** *(README done 2026-09-28; the repository's description and homepage wait for the website)* drop "Pre-alpha" and the stale uv/oMLX/Rapid-MLX lines; set the GitHub description and homepage.
 7. [ ] **Phase 4 step 5b** on a Mac that has never had Quail.
 8. [ ] **1.0.0:** `PR_TITLE="chore: release 1.0.0" TARGET=1.0.0 task version:bump`, with a CHANGELOG section summarising the product.
+
+**The website, when it goes live:**
+1. Switch Pages to "GitHub Actions" (repository Settings → Pages) and run the Website workflow.
+2. Set `QuailWebsiteURL` (item 5) and the repository's homepage.
+3. Once the domain is bought, add `website/CNAME`, the DNS records, and "Enforce HTTPS", then update `QuailWebsiteURL` and the cask's `homepage`.
+4. Replace the offscreen screenshots with real ones from a running app when convenient.
 
 **After 1.0:**
 - Phase 4 step 4, measured-speed calibration

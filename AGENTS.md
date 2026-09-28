@@ -26,6 +26,7 @@ task generate              # xcodegen — only after editing project.yml; Quail.
 task vendor:llama          # once per llama.cpp bump; updates Vendor/llama.cpp (verifies the sha256 and the @rpath closure)
 task verify:bundle         # the built app: every Mach-O relocatable, catalog.json / llama.version / licence present
 task install               # Release build, signed, to ~/Apps/Quail.app (quit Quail first) — the app you can actually launch
+task site:serve            # the website (website/, ADR D-062) at localhost:8765; task site:check checks its links
 ```
 
 Xcode's build phases call `task embed:*`, so go-task must be installed anywhere Xcode builds Quail.

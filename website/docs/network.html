@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Network and API key — Quail</title>
+  <meta name="description" content="Who can reach Quail&#x27;s server, the addresses to use, and the API key.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="getting-started.html" aria-current="page">Docs</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <nav class="docs-nav" aria-label="Documentation">
+        <h2>Get started</h2>
+        <ul>
+          <li><a href="getting-started.html">Getting started</a></li>
+        </ul>
+        <h2>Using Quail</h2>
+        <ul>
+          <li><a href="models.html">Models</a></li>
+          <li><a href="connect.html">Connect a tool</a></li>
+          <li><a href="network.html" aria-current="page">Network and API key</a></li>
+          <li><a href="power.html">Power</a></li>
+          <li><a href="benchmark.html">Benchmark</a></li>
+        </ul>
+        <h2>Reference</h2>
+        <ul>
+          <li><a href="cli.html">The quail command</a></li>
+          <li><a href="troubleshooting.html">Troubleshooting</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+    </nav>
+    <main class="prose">
+<h1>Network and API key</h1>
+<p class="lede">By default only this Mac can reach Quail's server, and every request needs its API key.</p>
+
+<h2 id="reach">Reachable from</h2>
+<p>On the Server page, <span class="path">Network → Reachable from</span> sets who can connect:</p>
+<table>
+  <tr><th>This Mac only</th><td>The default. The server listens on <code>127.0.0.1</code>; nothing else can connect.</td></tr>
+  <tr><th>Local network</th><td>The server listens on every network interface (<code>0.0.0.0</code>), so your other computers and phones can use it.</td></tr>
+  <tr><th>Custom</th><td>One address you type, such as a VPN address. Press Return to save it.</td></tr>
+</table>
+<p>The first time you start the server with it reachable from the network, Quail asks once, and offers to keep it to this Mac instead.</p>
+
+<h2 id="addresses">The address to use</h2>
+<p>The Server page shows the addresses that work, each with a Copy button:</p>
+<ul>
+  <li><strong>On this Mac:</strong> <code>http://127.0.0.1:8080</code>.</li>
+  <li><strong>From other devices:</strong> your Mac's network address, such as <code>http://192.168.1.20:8080</code>, when the server is reachable from the network.</li>
+</ul>
+<p>Change the port on the same page. The address, port, API key and models loaded at once apply when the server restarts; the page and the menu say when a restart is needed.</p>
+
+<h2 id="key">The API key</h2>
+<p><span class="path">Require API key</span> is on from the start, with a random key kept in your Keychain. Clients send it as <code>Authorization: Bearer &lt;key&gt;</code> or <code>x-api-key: &lt;key&gt;</code>; the Connect page fills it in for you.</p>
+<ul>
+  <li><strong>Show</strong> reveals it; you can type your own there and press Return.</li>
+  <li><strong>New Key…</strong> replaces it. Tools set up with the old key stop working until you give them the new one.</li>
+</ul>
+<div class="note"><strong>Leave the key on.</strong> Without one, any web page you open could send requests to the server on this Mac, and anyone on your network could use your models when it's reachable from the network. The Server page warns you in red when that's the case.</div>
+
+<h2 id="browsers">Web pages</h2>
+<p>Quail server refuses requests from other web pages and from pages that pretend to be it (a “DNS rebinding” attack). Its own chat page, opened from the menu, signs in with a one-time ticket, so the key never appears in a URL.</p>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="index.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail/issues/new/choose">Report an issue</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

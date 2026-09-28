@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quail — local AI models on your Mac</title>
+  <meta name="description" content="Quail is a free, open-source menu bar app that runs local AI models on Apple silicon and gives your coding tools, editors and chat apps an OpenAI- and Anthropic-compatible endpoint.">
+  <link rel="icon" href="assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="assets/img/icon-256.png">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="docs/getting-started.html">Docs</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <img class="icon" src="assets/img/icon-256.png" alt="Quail's icon: a quail in flight">
+        <h1>Local AI models,<br>one click from your tools.</h1>
+        <p class="lede">Quail is a menu bar app that runs AI models on your Mac and gives Claude Code, Codex, your editor and your chat apps an OpenAI- and Anthropic-compatible endpoint. Free and open source, for Apple silicon.</p>
+        <div class="actions">
+          <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download for Mac</a>
+          <a class="button secondary" href="docs/getting-started.html">Get started</a>
+        </div>
+        <div class="install">
+          <pre><code>brew install --cask adatoo/tap/quail-ai</code></pre>
+          <p>Or download the DMG. Needs macOS 14 Sonoma or later on Apple silicon. Signed and notarized; Quail updates itself.</p>
+        </div>
+        <figure class="shot">
+          <picture>
+            <source srcset="assets/img/quail-window-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="assets/img/quail-window-light.png" width="2200" height="1400" alt="The Quail window: the Server page, showing the server running with its address and API key, and a sidebar with Server, Models, Connect, Benchmark, General and About.">
+          </picture>
+          <figcaption>The Quail window: the server, its models, your tools and benchmarks, in one place.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="band alt">
+      <div class="wrap">
+        <h2>Start it, point your tools at it, get on with your work.</h2>
+        <p class="sub">Quail starts a model server, keeps it running, and stays out of the way in the menu bar. Everything it does happens on your Mac.</p>
+        <div class="grid">
+          <div class="card">
+            <h3>GGUF and MLX, one server</h3>
+            <p>Quail server runs both formats from one model folder: llama.cpp for GGUF, Apple's MLX for MLX models. llama.cpp's own server stays bundled as a fallback.</p>
+          </div>
+          <div class="card">
+            <h3>It knows what fits</h3>
+            <p>Before you download, every model gets a verdict for this Mac — Comfortable, Tight or Won't fit — and an estimated speed. Context sizes adjust to your memory.</p>
+          </div>
+          <div class="card">
+            <h3>Connect your tools</h3>
+            <p>Copy-ready setup for Claude Code, Codex, opencode, Continue, Cline, Zed, Open WebUI and more, each with a Test button. Or let <code>quail launch</code> start the tool for you.</p>
+          </div>
+          <div class="card">
+            <h3>A command, like ollama</h3>
+            <p><code>quail pull qwen3-8b</code>, <code>quail chat</code>, <code>quail bench</code>, <code>quail launch claude</code>. It talks to the app, so the menu and the terminal always agree.</p>
+          </div>
+          <div class="card">
+            <h3>Built for Apple silicon</h3>
+            <p>Several requests decoded at once, a prompt cache per conversation, and faster decoding when a reply repeats its prompt. Benchmark any model on your own Mac and compare runs.</p>
+          </div>
+          <div class="card">
+            <h3>Private by default</h3>
+            <p>Prompts never leave your Mac. The server answers only this Mac until you say otherwise, an API key is on from the start, and it all works offline once models are downloaded.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap split">
+        <div>
+          <h2>Works with the tools you use</h2>
+          <p class="sub">Every snippet is filled in with your address, key and model, and checked against the tool's own docs. Quail never edits another app's settings.</p>
+          <ul class="tools">
+            <li>Claude Code</li><li>OpenAI Codex CLI</li><li>opencode</li><li>aider</li><li>Goose</li><li>Qwen Code</li>
+            <li>Continue</li><li>Cline</li><li>Roo Code</li><li>Zed</li><li>Open WebUI</li><li>LibreChat</li>
+            <li>curl</li><li>Python</li><li>JavaScript</li>
+          </ul>
+        </div>
+        <div>
+          <pre><code>$ quail pull qwen3-8b
+$ quail launch claude
+$ quail chat why is the sky blue</code></pre>
+          <p class="sub">The server speaks OpenAI Chat Completions and Responses, and Anthropic Messages, so Claude Code works too.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="band alt">
+      <div class="wrap">
+        <h2>Models that suit your Mac</h2>
+        <p class="sub">A curated list recommends what runs comfortably on your memory: Qwen3 and Qwen3.6, Qwen3-Coder, Gemma 4, gpt-oss, Llama 3.1, DeepSeek-R1 distills and more, with vision models marked. Add any GGUF from Hugging Face, choose from over a hundred MLX models, or move in the models LM Studio, llama.cpp and the Hugging Face cache already downloaded.</p>
+        <p><a href="docs/models.html">How models, fit and context size work →</a></p>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap">
+        <h2>What it deliberately doesn't do</h2>
+        <ul class="nots">
+          <li>A chat window of its own: open the server's chat page in your browser, or use <code>quail chat</code>.</li>
+          <li>Agents, or image and audio generation.</li>
+          <li>Anything in the cloud: no account, no telemetry.</li>
+          <li>Edit other apps' settings: it gives you the snippet.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="docs/getting-started.html">Docs</a>
+        <a href="docs/privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail/issues/new/choose">Report an issue</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

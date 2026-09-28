@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Benchmark — Quail</title>
+  <meta name="description" content="Measure how fast a model runs on your Mac, and compare runs.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="getting-started.html" aria-current="page">Docs</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <nav class="docs-nav" aria-label="Documentation">
+        <h2>Get started</h2>
+        <ul>
+          <li><a href="getting-started.html">Getting started</a></li>
+        </ul>
+        <h2>Using Quail</h2>
+        <ul>
+          <li><a href="models.html">Models</a></li>
+          <li><a href="connect.html">Connect a tool</a></li>
+          <li><a href="network.html">Network and API key</a></li>
+          <li><a href="power.html">Power</a></li>
+          <li><a href="benchmark.html" aria-current="page">Benchmark</a></li>
+        </ul>
+        <h2>Reference</h2>
+        <ul>
+          <li><a href="cli.html">The quail command</a></li>
+          <li><a href="troubleshooting.html">Troubleshooting</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+    </nav>
+    <main class="prose">
+<h1>Benchmark</h1>
+<p class="lede">Measure a model on your own Mac, the same way every time, so runs can be compared — across models, formats, settings and Macs.</p>
+
+<h2 id="run">Run one</h2>
+<p>Start the server, open <span class="path">Benchmark</span> (in the menu or the Quail window), choose a model and click <span class="path">Run Benchmark</span>. A small model takes about a minute. Whatever was loaded before is loaded again afterwards. From the terminal: <code>quail bench &lt;model&gt;</code>.</p>
+
+<h2 id="measures">What it measures</h2>
+<p>The fixed <code>quail-bench-1</code> suite: one warm-up, then three runs of each, reporting the median with the lowest and highest.</p>
+<table>
+  <tr><th>Prompt 512 / 4K</th><td>How fast it reads a prompt of 512 and 4,096 tokens (tokens a second).</td></tr>
+  <tr><th>Generate</th><td>How fast it writes 256 tokens (tokens a second).</td></tr>
+  <tr><th>1st token</th><td>Time to the first token of a reply to the 512-token prompt.</td></tr>
+  <tr><th>Next turn</th><td>Time to the first token when a conversation continues, using what's already cached.</td></tr>
+  <tr><th>4 at once</th><td>Total tokens a second with four requests at the same time.</td></tr>
+  <tr><th>Load</th><td>Time to load the model from disk.</td></tr>
+</table>
+<p>Each result also records the Mac, the model file, the engine and its settings, and the conditions: thermal state, Low Power Mode, battery, and other models loaded.</p>
+
+<h2 id="compare">Compare</h2>
+<p>Select two results to compare them: the older is the baseline, and each figure reads “1.23× faster” or “19% slower”. Right-click to set a different baseline. <span class="path">Copy as Markdown</span> and <span class="path">Export JSON…</span> share results. After a benchmark, the Models page shows the measured speed next to each model.</p>
+
+<h2 id="tips">Fair numbers</h2>
+<ul>
+  <li>Plug a laptop in, and quit busy apps.</li>
+  <li>Macs slow down as they heat up. Let the Mac cool between big runs, and alternate the order when comparing two things.</li>
+  <li>Compare like with like: the same context size and KV cache, and nothing else loaded.</li>
+</ul>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="index.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail/issues/new/choose">Report an issue</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

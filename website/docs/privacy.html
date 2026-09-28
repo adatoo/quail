@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy — Quail</title>
+  <meta name="description" content="What Quail sends over the network — and what it doesn&#x27;t.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="getting-started.html" aria-current="page">Docs</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <nav class="docs-nav" aria-label="Documentation">
+        <h2>Get started</h2>
+        <ul>
+          <li><a href="getting-started.html">Getting started</a></li>
+        </ul>
+        <h2>Using Quail</h2>
+        <ul>
+          <li><a href="models.html">Models</a></li>
+          <li><a href="connect.html">Connect a tool</a></li>
+          <li><a href="network.html">Network and API key</a></li>
+          <li><a href="power.html">Power</a></li>
+          <li><a href="benchmark.html">Benchmark</a></li>
+        </ul>
+        <h2>Reference</h2>
+        <ul>
+          <li><a href="cli.html">The quail command</a></li>
+          <li><a href="troubleshooting.html">Troubleshooting</a></li>
+          <li><a href="privacy.html" aria-current="page">Privacy</a></li>
+        </ul>
+    </nav>
+    <main class="prose">
+<h1>Privacy</h1>
+<p class="lede">Your prompts, replies and files never leave your Mac. Quail has no account, no analytics and no telemetry.</p>
+
+<h2 id="network">What goes over the network</h2>
+<p>Quail connects to three places, and only for these reasons:</p>
+<table>
+  <tr><th>Hugging Face</th><td>When you browse, check or download models: the model listings, the start of each file (its header) for the fit verdict, and the downloads themselves. Your Hugging Face token is sent only if you added one.</td></tr>
+  <tr><th>GitHub (raw.githubusercontent.com)</th><td>Once a week: the latest model catalog, two small JSON files from this project's repository.</td></tr>
+  <tr><th>GitHub Releases</th><td>The update check: daily unless you change it in <span class="path">General → Updates</span>, or never. It downloads a small list of versions; the request says which version of Quail is asking, and nothing else about your Mac.</td></tr>
+</table>
+<p>Like any web request, these reveal your IP address to the site. Nothing else is sent: no prompts, no model names you use, no usage.</p>
+<p>Once your models are downloaded, Quail works with no connection at all — serving, chatting, benchmarking and <code>quail launch</code>. The project checks this with a test that runs the app and its servers with the network blocked.</p>
+
+<h2 id="server">The server</h2>
+<p>The model server runs on your Mac. It answers only this Mac unless you make it reachable from your network, and requires an API key from the start; Quail server, the default runtime, also refuses requests from other web pages. See <a href="network.html">Network and API key</a>.</p>
+
+<h2 id="stored">What Quail stores, and where</h2>
+<table>
+  <tr><th>Settings</th><td><code>~/Library/Application Support/Quail/config.json</code></td></tr>
+  <tr><th>API key, Hugging Face token</th><td>Your Keychain</td></tr>
+  <tr><th>Models</th><td><code>~/Library/Application Support/Quail/Models</code>, or the folder you moved them to</td></tr>
+  <tr><th>Benchmark results</th><td><code>~/Library/Application Support/Quail/benchmarks.json</code></td></tr>
+  <tr><th>Logs</th><td><code>~/Library/Logs/Quail</code></td></tr>
+</table>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="index.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail/issues/new/choose">Report an issue</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
