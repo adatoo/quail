@@ -7,6 +7,7 @@ import SwiftUI
 struct AboutPage: View {
     let appState: AppState
 
+    @Environment(\.websiteBase) private var websiteBase
     @State private var device = DeviceInfo.current()
     @State private var showLicences = false
     @State private var copied = false
@@ -36,13 +37,27 @@ struct AboutPage: View {
                             copied = false
                         }
                     }
-                    .help("Copies this page — Quail's versions and this Mac's — for a bug report")
+                    .help("Copies this page — Quail's versions and this Mac's — to paste into a bug report")
+                }
+            }
+
+            Section {
+                HStack(spacing: 18) {
+                    if let websiteBase {
+                        Link("Website", destination: websiteBase)
+                        Link("Documentation", destination: Website.help(base: websiteBase))
+                    }
+                    Link("Release Notes", destination: Website.releaseNotes)
+                    Link("Report an Issue", destination: Website.newIssue)
+                    Link("Source Code", destination: Website.repository)
+                    Spacer()
                 }
             }
 
             Section("Quail") {
                 LabeledContent("Distribution") { Text(facts.distribution).textSelection(.enabled) }
                 LabeledContent("llama.cpp") { Text(facts.llamaCppLine).textSelection(.enabled) }
+                LabeledContent("MLX") { Text(facts.mlxLine).textSelection(.enabled) }
                 LabeledContent("Model catalog") { Text(facts.catalogLine).textSelection(.enabled) }
                 LabeledContent("Third-party licences") {
                     Button("Show…") { showLicences = true }

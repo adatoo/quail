@@ -65,6 +65,20 @@ Settings had no server status and no Start/Stop, though Endpoint's runtime picke
 - **A "This Mac: Apple M4 Pro · 64 GB · comfortable up to ~55B" line** heads the page, with Details for the About page. It is `DeviceInfo.summaryLine`, shared with the Add Model sheet.
 - **Add Model:** every "Add Model…" outside the page (the menu, the Server page, Connect, Benchmark) opens the sheet itself, through `AppState.addModelRequested`.
 
+
+**Amended 2026-09-28 (links to the website, ADR D-062):**
+- **`Website`** holds every link out of the app. The website's address is `Info.plist`'s `QuailWebsiteURL` (from `project.yml`), so a new domain is a one-line change. It is empty until the site is published, and empty hides every website link.
+- **"Learn more"** (`LearnMoreLink`) now sits beside captions cut to one line, pointing at the matching docs section:
+  - the address and key, and the network (Server page)
+  - power, and the lid-closed option
+  - the `quail` command (General)
+  - the benchmark suite
+  - a model's settings
+- **The menu** gains Quail Help: the docs, or the README without a website.
+- **About** gains:
+  - links: Release Notes, Report an Issue, Source Code, plus Website and Documentation when there is a website
+  - an MLX row: the mlx-swift-lm and mlx-swift pins, read from the notices file. `quail-server`'s version is the app's own, so it needs no row of its own (Phase 4 step 6).
+
 ## D-060 · 2026-09-28 · Live activity: `GET /slots`, the menu bar and an Activity window
 
 **Situation:** a 30,000-token prompt takes a minute and a half on Qwen3-8B, and a model load takes seconds. The whole time, Quail's menu says "Running" and the client waits in silence. The app knew the server's phase and each model's load state, from a 2 s `GET /models` poll, and nothing else: no request state, no progress, no memory, CPU or GPU figures.

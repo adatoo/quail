@@ -57,9 +57,13 @@ struct GeneralPage: View {
             } header: {
                 Text("Command line")
             } footer: {
-                Text("quail start · quail chat · quail launch claude — like ollama.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("quail start · quail chat · quail launch claude — like ollama.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 8)
+                    LearnMoreLink(.cli)
+                }
             }
 
             if let updateSettings {

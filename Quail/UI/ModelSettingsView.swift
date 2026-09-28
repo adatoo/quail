@@ -66,7 +66,10 @@ struct ModelSettingsView: View {
                 .help("The default model (the star on its row). One model is the default at a time.")
             }
 
-            caption("Changes apply the next time the server starts.")
+            HStack(alignment: .firstTextBaseline) {
+                caption("Changes apply the next time the server starts.")
+                LearnMoreLink(.models, section: "settings")
+            }
 
             Divider()
 

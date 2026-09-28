@@ -42,8 +42,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "0.54.0"
-    CURRENT_PROJECT_VERSION: "93"
+    MARKETING_VERSION: "0.55.0"
+    CURRENT_PROJECT_VERSION: "94"
     ENABLE_HARDENED_RUNTIME: YES
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_LSUIElement: YES
@@ -107,6 +107,10 @@ targets:
         # what's already bundled), so a bad push can't degrade the app
         # below its own shipped seed.
         QuailCatalogURL: "https://raw.githubusercontent.com/adatoo/quail/main/Quail/Resources/catalog.json"
+        # Website.base(in:) reads this (ADR D-062): the website and its docs, which "Learn more", Quail Help and
+        # About link to. Empty until the site is published; then https://adatoo.github.io/quail/, and the
+        # project's own domain once it has one. Empty hides every website link (Help falls back to the README).
+        QuailWebsiteURL: ""
         # Sparkle (ADR D-032). The feed is the appcast.xml each release attaches;
         # `releases/latest` always redirects to the newest full release.
         SUFeedURL: "https://github.com/adatoo/quail/releases/latest/download/appcast.xml"

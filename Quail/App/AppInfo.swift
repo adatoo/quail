@@ -41,6 +41,27 @@ enum AppInfo {
         return try? String(contentsOf: url, encoding: .utf8)
     }
 
+    /// A bundled component's version as the notices file's table lists it ("mlx-swift-lm" → "3.31.4"), read once.
+    static func componentVersion(_ name: String, in bundle: Bundle = .main) -> String? {
+        if bundle == .main {
+            return mainComponentVersions[name]
+        }
+        return componentVersions(in: thirdPartyNotices(in: bundle) ?? "")[name]
+    }
+
+    private static let mainComponentVersions = componentVersions(in: thirdPartyNotices() ?? "")
+
+    /// The notices file's component table: `| Component | Version | Licence | Shipped in |` rows.
+    static func componentVersions(in notices: String) -> [String: String] {
+        var versions: [String: String] = [:]
+        for line in notices.split(separator: "\n") where line.hasPrefix("| ") {
+            let cells = line.split(separator: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+            guard cells.count >= 2, cells[0] != "Component", !cells[0].hasPrefix("---") else { continue }
+            versions[cells[0]] = cells[1]
+        }
+        return versions
+    }
+
     /// llama.cpp's licence text, which its MIT licence requires to travel with
     /// the app; `task embed:llama` copies it into Resources.
     static func llamaCppLicence(in bundle: Bundle = .main) -> String? {
@@ -59,6 +80,9 @@ struct AboutFacts: Equatable {
     var catalogRevision: Int
     var catalogAsOf: String?
     var macOS: String
+    /// The MLX engine's pins: mlx-swift-lm and the mlx-swift under it (from the notices file).
+    var mlxSwiftLM: String?
+    var mlxSwift: String?
 
     static func current(catalog: Catalog, bundle: Bundle = .main) -> AboutFacts {
         let os = ProcessInfo.processInfo.operatingSystemVersion
@@ -69,7 +93,9 @@ struct AboutFacts: Equatable {
             llamaCppTag: AppInfo.llamaCppTag(in: bundle),
             catalogRevision: catalog.revision,
             catalogAsOf: catalog.asOf,
-            macOS: "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
+            macOS: "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)",
+            mlxSwiftLM: AppInfo.componentVersion("mlx-swift-lm", in: bundle),
+            mlxSwift: AppInfo.componentVersion("mlx-swift", in: bundle)
         )
     }
 
@@ -81,6 +107,12 @@ struct AboutFacts: Equatable {
         llamaCppTag ?? "—"
     }
 
+    /// "mlx-swift-lm 3.31.4 (mlx-swift 0.31.6)", or a dash.
+    var mlxLine: String {
+        guard let mlxSwiftLM else { return "—" }
+        return "mlx-swift-lm \(mlxSwiftLM)" + (mlxSwift.map { " (mlx-swift \($0))" } ?? "")
+    }
+
     var catalogLine: String {
         catalogAsOf.map { "revision \(catalogRevision) · \($0)" } ?? "revision \(catalogRevision)"
     }
@@ -89,6 +121,9 @@ struct AboutFacts: Equatable {
     var summary: String {
         var lines = ["Quail \(versionLine), \(distribution)"]
         lines.append("llama.cpp \(llamaCppLine)")
+        if mlxSwiftLM != nil {
+            lines.append("MLX: \(mlxLine)")
+        }
         lines.append("Catalog \(catalogLine)")
         lines.append("macOS \(macOS)")
         return lines.joined(separator: "\n")
