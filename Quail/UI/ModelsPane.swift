@@ -15,11 +15,17 @@ import SwiftUI
 /// is a visible hitch.
 struct ModelsPane: View {
     let appState: AppState
+    /// Tests only: stay in the first moments before anything has been read.
+    var startsLoading = false
 
     /// The user's explicit ask for step 7: "MLX is preferred — should
     /// have a switch/filter to just show MLX models."
     @State private var formatFilter: FormatFilter = .all
     @State private var rows: [InstalledModel] = []
+    /// Whether the store has been read at all yet: until then the list shows a placeholder, not "No models".
+    @State private var hasLoaded = false
+    /// Whether the rows' fit verdicts are still being worked out.
+    @State private var verdictsPending = true
     @State private var verdicts: [String: FitEstimate] = [:]
     @State private var contextChoices: [String: [ContextChoice]] = [:]
     @State private var kvCacheChoices: [String: [KVCacheChoice]] = [:]
@@ -146,7 +152,10 @@ struct ModelsPane: View {
         } message: {
             Text(relocationError ?? "")
         }
-        .onAppear { tokenDraft = appState.hfToken ?? "" }
+        .onAppear {
+            tokenDraft = appState.hfToken ?? ""
+            seedFromLastVisit()
+        }
         // Keyed on the server phase: opening the pane refreshes once,
         // and every stop→ready transition refreshes again (the verdicts
         // re-check against current device facts, the Load buttons appear).
@@ -207,7 +216,9 @@ struct ModelsPane: View {
     }
 
     @ViewBuilder private var installedList: some View {
-        if entries.isEmpty {
+        if !hasLoaded {
+            ModelsLoadingPlaceholder()
+        } else if entries.isEmpty {
             ContentUnavailable(
                 filter: formatFilter,
                 recommended: topRecommendation,
@@ -227,6 +238,7 @@ struct ModelsPane: View {
                 ModelRow(
                     entry: entry,
                     verdict: verdicts[entry.id],
+                    verdictPending: verdictsPending && verdicts[entry.id] == nil,
                     loaded: loadedStates[entry.id],
                     serverReady: appState.serverController.phase == .ready,
                     servable: appState.canServe(entry.format),
@@ -420,10 +432,33 @@ struct ModelsPane: View {
 
     private static let logger = Logger(subsystem: "com.datoos.quail", category: "ModelsPane")
 
+    /// The last list shown, so reopening the tab starts from it (the refresh then replaces it).
+    private func seedFromLastVisit() {
+        guard !hasLoaded, !startsLoading, let last = appState.lastModelsSnapshot else { return }
+        rows = last.rows
+        verdicts = last.verdicts
+        contextChoices = last.contextChoices
+        kvCacheChoices = last.kvCacheChoices
+        verdictsPending = false
+        hasLoaded = true
+    }
+
     private func refresh() async {
+        guard !startsLoading else { return }
         Self.logger.notice("refresh: start")
-        loadedStates = await appState.loadedModelStates()
         let store = appState.modelStore
+        // The rows first, from the store's own index (a small file), so the list isn't empty while each model's
+        // header is read for its verdict below.
+        // An empty index proves nothing (a model dropped in by hand isn't in it until the reconcile below), so the
+        // placeholder stays until then.
+        if !hasLoaded {
+            let indexed = await Task.detached(priority: .userInitiated) { store.loadCatalog().entries }.value
+            if !indexed.isEmpty {
+                rows = indexed.sorted { $0.id < $1.id }
+                hasLoaded = true
+            }
+        }
+        verdictsPending = true
         let device = DeviceInfo.current()
         chip = device.chipName
         let runtime = appState.config.runtimeID
@@ -455,6 +490,13 @@ struct ModelsPane: View {
         verdicts = result.1
         contextChoices = result.2
         kvCacheChoices = result.3
+        verdictsPending = false
+        hasLoaded = true
+        appState.lastModelsSnapshot = .init(
+            rows: result.0, verdicts: result.1, contextChoices: result.2, kvCacheChoices: result.3
+        )
+        // The server's loaded states last: a busy server shouldn't hold the list back.
+        loadedStates = await appState.loadedModelStates()
         Self.logger.notice("refresh: done, rows \(result.0.map(\.id), privacy: .public)")
     }
 }
@@ -463,6 +505,8 @@ struct ModelsPane: View {
 private struct ModelRow: View {
     let entry: InstalledModel
     let verdict: FitEstimate?
+    /// Still being worked out: "Checking…", not "Fit unknown".
+    let verdictPending: Bool
     let loaded: String?
     let serverReady: Bool
     /// Whether the chosen runtime can serve this model's format; an MLX row under llama.cpp can't.
@@ -532,6 +576,8 @@ private struct ModelRow: View {
                     }
                     if let verdict {
                         FitVerdictBadge(estimate: verdict)
+                    } else if verdictPending {
+                        Badge(text: "Checking…", color: .secondary)
                     } else {
                         // Never a blank: say it couldn't be judged, and why.
                         Badge(text: "Fit unknown", color: .secondary)
@@ -711,5 +757,35 @@ struct KVCacheChoice: Identifiable, Equatable {
 
     var id: String {
         setting.rawValue
+    }
+}
+
+/// What the Installed list shows before the store has been read: rows shaped like the real ones, so the pane
+/// doesn't claim there are no models for the moment it takes to look.
+private struct ModelsLoadingPlaceholder: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(0 ..< 3, id: \.self) { index in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(index == 1 ? "mlx-community--Qwen3-8B-4bit" : "Qwen3.6-35B-A3B-UD-Q4_K_M")
+                        .font(.body)
+                    HStack(spacing: 8) {
+                        Text("GGUF · 19.8 GB · 32K ctx · Comfortable")
+                        Text("Chat · Coding")
+                    }
+                    .font(.caption)
+                }
+                .redacted(reason: .placeholder)
+            }
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Reading your models…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 6)
+        .accessibilityLabel("Reading your models")
     }
 }

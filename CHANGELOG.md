@@ -10,6 +10,10 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Fixed
+
+- Settings → Models no longer shows "No models installed yet" for a moment while it reads your models. It shows placeholder rows until it knows. The rows appear as soon as the store's index is read, with "Checking…" where each fit verdict is still being worked out. Reopening the tab starts from the last list.
+
 ## [0.50.0] - 2026-09-27
 
 ### Added
