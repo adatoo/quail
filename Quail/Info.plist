@@ -31,7 +31,7 @@
 	<key>QuailCatalogURL</key>
 	<string>https://raw.githubusercontent.com/adatoo/quail/main/Quail/Resources/catalog.json</string>
 	<key>QuailWebsiteURL</key>
-	<string></string>
+	<string>https://quail-ai.app/</string>
 	<key>SUAutomaticallyUpdate</key>
 	<false/>
 	<key>SUEnableAutomaticChecks</key>

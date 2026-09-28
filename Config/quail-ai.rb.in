@@ -8,7 +8,7 @@ cask "quail-ai" do
   url "https://github.com/adatoo/quail/releases/download/v#{version}/Quail-#{version}.dmg"
   name "Quail"
   desc "Menu bar app that runs local LLM servers"
-  homepage "https://github.com/adatoo/quail"
+  homepage "https://quail-ai.app/"
 
   livecheck do
     url :url
