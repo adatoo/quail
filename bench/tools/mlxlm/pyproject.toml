@@ -1,0 +1,10 @@
+# mlx-lm's own benchmark, the MLX lane's engine-native baseline (ADR D-063), pinned to the mlx-lm and MLX that
+# oMLX 0.6.4 and Rapid-MLX 0.14.3 run on. `task bench:setup` makes the environment.
+[project]
+name = "bench-mlxlm"
+version = "0"
+requires-python = "==3.12.*"
+dependencies = ["mlx-lm==0.31.3", "mlx==0.32.0"]
+
+[tool.uv]
+package = false

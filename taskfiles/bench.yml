@@ -1,25 +1,32 @@
 # The comparison harness (bench/, ADR D-063): Quail against llama-server, Ollama, oMLX and Rapid-MLX on the same
 # weights, with standard benchmarks. Python tooling, run with uv, outside the app — nothing here ships.
 #
-#   task bench:setup      the tool environments (oMLX) and the vendored engines (Ollama)
+#   task bench:setup      the tool environments (oMLX, GuideLLM, mlx-lm) and the vendored engines and tools
 #   task bench:doctor     what's installed and missing, and how quiet the Mac is
 #   task bench:smoke      start each engine with each model and record what it can do (capabilities.json)
+#   task bench:speed      the speed benchmark (GuideLLM) on a quieted Mac; BUDGET=quick|night|full
+#   task bench:native     the engine-native baselines: llama-bench, llama-batched-bench, mlx_lm.benchmark
 #   task bench:restore    resume anything a killed run left paused (Spotlight, analysis daemons)
 #   task bench:test       the harness's own tests (in `task ci`)
 #
-# ENGINES=quail-gguf,llama-server,…  MODELS=qwen3-8b,…  narrow a smoke run.
+# ENGINES=quail-gguf,llama-server,…  MODELS=qwen3-8b,…  narrow a run. ALLOW_OTHERS=1 times a Mac that isn't
+# quiet (another LLM server running, on battery): a dry run, recorded as one.
 version: '3'
 
 tasks:
   setup:
     desc: Make the harness's tool environments and fetch the engines it compares (never part of the app)
-    deps: [':vendor:ollama']
+    deps: [':vendor:ollama', ':vendor:llama-tools']
     preconditions:
       - sh: command -v uv
         msg: 'uv is not installed — brew install uv'
     cmds:
       - uv sync --locked --project bench/tools/omlx --quiet
       - echo "==> oMLX $(bench/tools/omlx/.venv/bin/python -c 'import importlib.metadata as m; print(m.version("omlx"))') ready"
+      - uv sync --locked --project bench/tools/guidellm --quiet
+      - echo "==> GuideLLM $(bench/tools/guidellm/.venv/bin/guidellm --version | awk '{print $NF}') ready"
+      - uv sync --locked --project bench/tools/mlxlm --quiet
+      - echo "==> mlx-lm $(bench/tools/mlxlm/.venv/bin/python -c 'import importlib.metadata as m; print(m.version("mlx-lm"))') ready"
 
   doctor:
     desc: What the comparison harness has and lacks, and how quiet the Mac is
@@ -39,6 +46,36 @@ tasks:
         [ -n "${ENGINES:-}" ] && args+=(--engines "$ENGINES")
         [ -n "${MODELS:-}" ] && args+=(--models "$MODELS")
         uv run --quiet python -m harness smoke "${args[@]}"
+
+  speed:
+    desc: The speed benchmark — GuideLLM against each engine, the same prompts for all (bench/runs/<run>/speed.jsonl)
+    dir: bench
+    env:
+      ENGINES: '{{.ENGINES}}'
+      MODELS: '{{.MODELS}}'
+      BUDGET: '{{.BUDGET | default "quick"}}'
+      ALLOW_OTHERS: '{{.ALLOW_OTHERS}}'
+    cmds:
+      - |
+        args=(--budget "$BUDGET")
+        [ -n "${ENGINES:-}" ] && args+=(--engines "$ENGINES")
+        [ -n "${MODELS:-}" ] && args+=(--models "$MODELS")
+        [ -n "${ALLOW_OTHERS:-}" ] && args+=(--allow-others)
+        PYTHONUNBUFFERED=1 uv run --quiet python -m harness speed "${args[@]}"
+
+  native:
+    desc: The engine-native baselines — llama-bench, llama-batched-bench and mlx_lm.benchmark on the same weights
+    dir: bench
+    env:
+      MODELS: '{{.MODELS}}'
+      BUDGET: '{{.BUDGET | default "quick"}}'
+      ALLOW_OTHERS: '{{.ALLOW_OTHERS}}'
+    cmds:
+      - |
+        args=(--budget "$BUDGET")
+        [ -n "${MODELS:-}" ] && args+=(--models "$MODELS")
+        [ -n "${ALLOW_OTHERS:-}" ] && args+=(--allow-others)
+        PYTHONUNBUFFERED=1 uv run --quiet python -m harness native "${args[@]}"
 
   restore:
     desc: Resume whatever a killed benchmark run left paused (Spotlight indexing, analysis daemons)

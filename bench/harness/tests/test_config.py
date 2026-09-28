@@ -22,7 +22,7 @@ class ConfigTests(unittest.TestCase):
         fairness = config.fairness()
         self.assertEqual(fairness["slots"], 8)
         self.assertEqual(fairness["sampling"]["temperature"], 0.0)
-        self.assertIn("seconds_per_level", config.budget("quick"))
+        self.assertIn("requests_per_stream", config.budget("quick"))
         with self.assertRaises(SystemExit):
             config.budget("nonsense")
 

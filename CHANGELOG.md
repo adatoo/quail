@@ -10,6 +10,18 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-09-28
+
+### Added
+
+- **The comparison harness can time the engines** (ADR D-063):
+  - `task bench:speed` runs GuideLLM against each engine with the same prompts. It covers 512 → 256 tokens at 1, 2, 4 and 8 requests at once, and 4096 → 128 tokens.
+  - Each level records time to first token, time between tokens, throughput, peak memory (GPU buffers included) and power.
+  - Every engine gets exactly the same number of requests. The prompts are exact lengths in the model's own tokenizer, and none repeats, so no engine gets a cache hit another doesn't. The Mac cools down before each level, and a level that ends hot is run again.
+  - `task bench:native` gives each lane's own ceiling on the same weights: `llama-bench` and `llama-batched-bench` from the llama.cpp release Quail bundles, and `mlx_lm.benchmark`.
+  - A timed run won't start on a Mac that isn't quiet. `ALLOW_OTHERS=1` runs it anyway as a dry run, and marks it as one.
+- Rapid-MLX is loaded text-only, so Gemma 4 starts without mlx-vlm.
+
 ## [0.57.1] - 2026-09-28
 
 ### Fixed
