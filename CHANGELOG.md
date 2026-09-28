@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.56.1] - 2026-09-28
+
+### Changed
+
+- The plan records that `quail-ai.app` and `quail-ai.com` are verified on the project's GitHub account, and the fresh-Mac checklist says Test… where it said Ping.
+
 ## [0.56.0] - 2026-09-28
 
 ### Added

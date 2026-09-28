@@ -178,8 +178,8 @@ Mac App Store publication is cancelled (D-053). Completed steps in earlier phase
 5b. [ ] **Developer distribution acceptance.** On a Mac that has never had Quail, record the app and macOS versions and each result:
     1. `brew install --cask adatoo/tap/quail-ai`: the app opens without a Gatekeeper warning, and `quail --version` works in a new terminal (the CLI on PATH).
     2. Uninstall (`brew uninstall --cask quail-ai`), then install from the latest release's DMG: opening the downloaded DMG and dragging the app to Applications gives no warning beyond macOS's "downloaded from the internet" prompt, and `spctl -a -vv /Applications/Quail.app` says "Notarized Developer ID".
-    3. Start the server, add Qwen3 0.6B from Add Model, and run Ping in Connect: it passes.
-    4. Turn off Wi-Fi, quit and reopen Quail: the server starts, Ping passes, Add Model says it's offline.
+    3. Start the server, add Qwen3 0.6B from Add Model, and run **Test…** (the menu, or the Server page): it passes.
+    4. Turn off Wi-Fi, quit and reopen Quail: the server starts, Test passes, Add Model says it's offline.
     5. With a release older than the newest installed, Quail → General → Check for Updates finds, installs and relaunches the newer one.
     6. The same with a GGUF and an MLX model on Quail server, and one Connect snippet (Claude Code or opencode).
 6. ~~About pane~~ — done as a section of Settings → General, not a pane (D-029), and since D-061 a page of the Quail window: app version, distribution, llama.cpp tag, MLX pins, catalog revision, macOS, this Mac's hardware, Copy Details, links (release notes, issues, source, and the website once it's published) and the open-source licences. `quail-server`'s version is the app's own; the update check is in General.
@@ -259,7 +259,7 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
 - [x] `quail-ai.com` and `www.quail-ai.com` in Cloudflare, proxied: a 301 Redirect Rule to the same path on `https://quail-ai.app`.
 - [x] Enforce HTTPS, once GitHub issued the certificate.
 - [x] `QuailWebsiteURL`, the cask's `homepage`, a README link, and the repository's homepage and description.
-- [ ] Verify `quail-ai.app` on the personal GitHub account: Settings → Pages → Add a domain. Then add the `_github-pages-challenge-adatoo` TXT record it shows, DNS only, and keep it.
+- [x] Both domains verified on the personal GitHub account (`adatoo`, Settings → Pages), so no other account can claim them: a `_github-pages-challenge-adatoo` TXT record in each Cloudflare zone, DNS only. Keep them.
 - [ ] Replace the offscreen screenshots with real ones from a running app when convenient.
 
 **After 1.0:**
