@@ -307,5 +307,12 @@ struct CatalogTests {
         #expect(embed.mlx == nil, "embedding family ships GGUF only")
         let gemma = try #require(catalog.families.first { $0.id == "gemma-4-12b" })
         #expect(gemma.gguf?.mmproj == "mmproj-F16.gguf")
+        let qwen35 = try #require(catalog.families.first { $0.id == "qwen3.5-9b" })
+        // bartowski's, not unsloth's: unsloth's template turns thinking off unless a request asks for it.
+        #expect(qwen35.gguf?.repo == "bartowski/Qwen_Qwen3.5-9B-GGUF")
+        #expect(qwen35.gguf?.mmproj == "mmproj-Qwen_Qwen3.5-9B-f16.gguf")
+        // The same repo Rapid-MLX lists, so Add Model shows it once (Catalog.current drops the duplicate).
+        #expect(qwen35.mlx?.repo == "mlx-community/Qwen3.5-9B-4bit")
+        #expect(qwen35.mlx?.vision == true)
     }
 }
