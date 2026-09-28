@@ -295,6 +295,16 @@ final class AppState {
         }
     }
 
+    /// What the Models pane last showed, so reopening it starts from that instead of an empty list.
+    struct ModelsSnapshot {
+        var rows: [InstalledModel]
+        var verdicts: [String: FitEstimate]
+        var contextChoices: [String: [ContextChoice]]
+        var kvCacheChoices: [String: [KVCacheChoice]]
+    }
+
+    var lastModelsSnapshot: ModelsSnapshot?
+
     /// Live activity for the menu bar and the Activity window (ADR D-060).
     let activity = ActivityMonitor()
 

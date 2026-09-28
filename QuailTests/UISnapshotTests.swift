@@ -190,6 +190,16 @@ struct UISnapshotTests {
         )
     }
 
+    @Test("Models pane, before the store has been read")
+    func modelsPaneLoading() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        try await render(
+            ModelsPane(appState: appState, startsLoading: true), size: CGSize(width: 700, height: 600),
+            name: "models-loading"
+        )
+    }
+
     @Test("Models pane")
     func modelsPane() async throws {
         let (appState, scratch) = try await makeAppState()
