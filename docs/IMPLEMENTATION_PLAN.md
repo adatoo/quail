@@ -232,7 +232,7 @@ Found while reviewing the project on 2026-09-24; not part of any phase.
 Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. What stands between v0.51 and a 1.0.0 tag, in order:
 
 1. [x] **One Quail window** (D-061): a sidebar of Server · Models · Connect · Benchmark | General · About replaces the six Settings tabs; This Mac folds into About.
-2. [ ] **The Server page:**
+2. [x] **The Server page:**
    - status, Start/Stop/Restart and Test
    - usable addresses (this Mac, the network) instead of `0.0.0.0`
    - Reach: This Mac only / Local network / Custom, instead of a free-text host

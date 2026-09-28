@@ -99,6 +99,12 @@ final class ServerController {
         return components.url
     }
 
+    /// What the server was last started with, to compare with what Start would use now
+    /// (`AppState.endpointChangedSinceStart`).
+    var launchedConfig: EndpointConfig? {
+        config
+    }
+
     /// The API key the runtime was actually launched with — not whatever
     /// Settings currently holds, which can drift (regenerated, toggled
     /// off, a new custom key) while the server keeps running the old

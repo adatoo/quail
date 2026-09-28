@@ -40,6 +40,19 @@ Settings had no server status and no Start/Stop, though Endpoint's runtime picke
 
 **Revisit if:** Phase 5's multiple endpoints need a list of servers: the Server page is written over one controller and config so it can sit under one.
 
+**Amended 2026-09-28 (the Server page):**
+- **Status at the top:** the server's state and what's loaded, with Start, Stop and Test…. When it failed, the reason and Show Logs. With no model, Add Model….
+  - A line with Restart appears when a restart is needed: `AppState.restartReason`, for changed models as before, or for a changed address, port, key or models-at-once. That is `endpointChangedSinceStart`, which compares `ServerController.launchedConfig` with what Start would use.
+  - The menu shows the same line.
+- **Address shows addresses a client can use,** never `0.0.0.0`. "On this Mac" is loopback when listening everywhere. "From other devices" is this Mac's network address, and appears only when other devices can connect.
+  - Both show the launched address while the server runs, and otherwise what Start will use: `AppState.localBaseURL` no longer keeps the last run's address after a stop.
+  - The API key is masked, with Show (where it can be edited, saved on Return), Copy, and New Key… behind a confirmation.
+- **"Reachable from: This Mac only | Local network | Custom" replaces the free-text Host** (`EndpointAddress.Reach`).
+  - The first two write `127.0.0.1` and `0.0.0.0`.
+  - Custom takes an address, saved on Return or Save; the old field saved on every keystroke, so its warnings flipped as you typed.
+  - A host from an older config that is neither loopback nor wildcard shows as Custom, unchanged, so there is no migration.
+  - The exposure warnings (D-039) sit under it. Start from the page gives the same one-time warning as the menu (`ServerActions`).
+
 ## D-060 · 2026-09-28 · Live activity: `GET /slots`, the menu bar and an Activity window
 
 **Situation:** a 30,000-token prompt takes a minute and a half on Qwen3-8B, and a model load takes seconds. The whole time, Quail's menu says "Running" and the client waits in silence. The app knew the server's phase and each model's load state, from a 2 s `GET /models` poll, and nothing else: no request state, no progress, no memory, CPU or GPU figures.

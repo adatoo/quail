@@ -466,7 +466,7 @@ final class AppState {
         signatureAtStart = nil
     }
 
-    /// The menu's "Restart" for `modelsChangedSinceStart`.
+    /// The menu's and the Server page's "Restart", for `restartReason`.
     func restart() async {
         await stop()
         await start()
@@ -483,6 +483,21 @@ final class AppState {
     /// changed. The router never rescans (confirmed against the real
     /// binary), so these only take effect after a restart; the menu says so.
     private(set) var modelsChangedSinceStart = false
+
+    /// The running server was started with a different address, port, API key or number of models loaded at
+    /// once than Start would use now. They are launch flags, so they apply only after a restart.
+    var endpointChangedSinceStart: Bool {
+        guard serverController.phase == .ready, let launched = serverController.launchedConfig else { return false }
+        return launched != endpointConfig()
+    }
+
+    /// Why the running server should be restarted, for the menu and the Server page; `nil` when it needn't be.
+    var restartReason: String? {
+        if serverController.phase == .ready, modelsChangedSinceStart {
+            return "Models changed — restart to apply"
+        }
+        return endpointChangedSinceStart ? "Settings changed — restart to apply" : nil
+    }
 
     private var storeWatcher: StoreWatcher?
 

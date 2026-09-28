@@ -354,6 +354,50 @@ struct AppStateTests {
         #expect(Config.load(from: scratch.appendingPathComponent("config.json")).lanWarningShown)
     }
 
+    @Test("a changed address, port, key or models-at-once asks for a restart while running, until it restarts")
+    func endpointChangedSinceStart() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        var config = Config()
+        config.port = 18123
+        let appState = makeAppState(config: config, scratchDir: scratch)
+        try writeFixtureGGUF(named: "Alpha", to: appState.modelStore)
+
+        // Stopped: nothing to restart, whatever changes.
+        appState.setPort(18124)
+        #expect(!appState.endpointChangedSinceStart)
+        #expect(appState.restartReason == nil)
+
+        await appState.start()
+        #expect(!appState.endpointChangedSinceStart, "just started with what's configured")
+        #expect(appState.restartReason == nil)
+
+        appState.setPort(18125)
+        #expect(appState.endpointChangedSinceStart)
+        #expect(appState.restartReason == "Settings changed — restart to apply")
+        appState.setPort(18124)
+        #expect(!appState.endpointChangedSinceStart, "changed back")
+
+        appState.regenerateAPIKey()
+        #expect(appState.endpointChangedSinceStart)
+        await appState.restart()
+        #expect(!appState.endpointChangedSinceStart)
+
+        appState.setModelsMax(3)
+        #expect(appState.endpointChangedSinceStart)
+        appState.setHost("0.0.0.0")
+        await appState.restart()
+        #expect(!appState.endpointChangedSinceStart)
+        // What a client uses: the launched address while running, never 0.0.0.0.
+        #expect(appState.localBaseURL?.absoluteString == "http://127.0.0.1:18124")
+
+        await appState.stop()
+        #expect(!appState.endpointChangedSinceStart)
+        // Stopped: what Start will use, not the last run's.
+        appState.setPort(18126)
+        #expect(appState.localBaseURL?.absoluteString == "http://127.0.0.1:18126")
+    }
+
     @Test("setHost and setPort persist to config.json")
     func setHostAndPortPersist() {
         let scratch = scratchDirectory()

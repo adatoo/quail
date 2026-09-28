@@ -52,6 +52,32 @@ struct ConnectTests {
         #expect(EndpointAddress.networkBase(host: "0.0.0.0", port: 8080, lanAddress: nil) == nil)
     }
 
+    @Test("Reach: loopback is This Mac, every interface is Local network, any other address is Custom and kept")
+    func reach() {
+        for host in ["127.0.0.1", "localhost", "::1", " 127.0.0.1 ", "127.0.0.2"] {
+            #expect(EndpointAddress.reach(of: host) == .thisMac, "\(host)")
+        }
+        for host in ["0.0.0.0", "::", "[::]", " 0.0.0.0"] {
+            #expect(EndpointAddress.reach(of: host) == .localNetwork, "\(host)")
+        }
+        for host in ["192.168.1.20", "100.64.0.7", "my-mac.local"] {
+            #expect(EndpointAddress.reach(of: host) == .custom, "\(host)")
+        }
+        #expect(EndpointAddress.Reach.thisMac.host == "127.0.0.1")
+        #expect(EndpointAddress.Reach.localNetwork.host == "0.0.0.0")
+        #expect(EndpointAddress.Reach.custom.host == nil)
+        // Each choice's own host reads back as that choice.
+        for choice in EndpointAddress.Reach.allCases {
+            if let host = choice.host {
+                #expect(EndpointAddress.reach(of: host) == choice)
+            }
+        }
+        // A custom address is where other devices connect; any loopback address is nowhere they can.
+        #expect(EndpointAddress.networkBase(host: "192.168.1.20", port: 8080, lanAddress: "10.0.0.2")?
+            .absoluteString == "http://192.168.1.20:8080")
+        #expect(EndpointAddress.networkBase(host: "127.0.0.2", port: 8080, lanAddress: "10.0.0.2") == nil)
+    }
+
     @Test("ConnectionTester surfaces the server's own error message")
     func errorMessage() {
         let body = Data(#"{"error":{"message":"Invalid API Key","type":"authentication_error","code":401}}"#.utf8)

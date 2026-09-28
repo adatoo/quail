@@ -10,6 +10,19 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.53.0] - 2026-09-28
+
+### Added
+
+- **The Server page says what the server is doing and lets you act on it.** It shows running, stopped or failed, and what's loaded. It has Start, Stop and Test…, and when the server failed, the reason and Show Logs. When a change needs a restart, a line says so with a Restart button; the menu shows the same line.
+
+### Changed
+
+- **The address you copy works.** The Server page shows "On this Mac" and, when other devices can connect, "From other devices", with this Mac's network address. It no longer shows `http://0.0.0.0:8080`.
+- **Choose who can reach the server instead of typing an IP address:** This Mac only, Local network, or Custom (any address, saved when you press Return). An address set before now shows as Custom, unchanged. Starting from the page asks once before the server listens on the network, as the menu does.
+- **The API key is hidden until you click Show.** A new key needs a confirmation, since tools set up with the old one stop working.
+- Changing the address, port, key or number of models loaded at once while the server runs now says to restart. The menu said so only for changed models.
+
 ## [0.52.0] - 2026-09-28
 
 ### Changed
