@@ -4,8 +4,8 @@ and every link and image inside the site points at a file that exists, including
 id on the target page. Links off the site aren't fetched. The docs pages repeat one sidebar (there's no build
 step to share it), so every docs page's sidebar must list the same pages, and every docs page must be in it.
 
-The site's links are relative, so it works both at https://adatoo.github.io/quail/ and at the root of a
-domain; a link starting with "/" would break one of the two, so it's reported too (404.html, which GitHub
+The site's links are relative, so it works both at https://adatoo.github.io/quail/ and at the root of its
+domain (https://quail-ai.app); a link starting with "/" would break one of the two, so it's reported too (404.html, which GitHub
 Pages serves at any depth, works out the root itself).
 
 Usage: scripts/check-site [DIR]    (default: website)

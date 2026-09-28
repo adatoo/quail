@@ -2,7 +2,8 @@ name: Website
 
 # Publishes website/ to GitHub Pages (ADR D-062): plain HTML and CSS, no build step, so the job only checks the
 # links and uploads the folder. Pages must be set to deploy from "GitHub Actions" (Settings → Pages) — this
-# workflow doesn't turn it on by itself. A custom domain is a website/CNAME file plus DNS; nothing here changes.
+# workflow doesn't turn it on by itself. The custom domain (quail-ai.app) is a Pages setting plus DNS, not a
+# CNAME file: GitHub ignores one when a workflow deploys.
 on:
   push:
     branches: [main]
