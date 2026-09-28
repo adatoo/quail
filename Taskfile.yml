@@ -42,6 +42,9 @@ includes:
   notices:
     taskfile: taskfiles/notices.yml
     dir: '{{.ROOT_DIR}}'
+  bench:
+    taskfile: taskfiles/bench.yml
+    dir: '{{.ROOT_DIR}}'
 
 vars:
   # Repo-local, gitignored, and what CI uses — so a task build never rewrites
@@ -118,6 +121,7 @@ tasks:
       - task: notices:check
       - task: verify:bundle
       - task: test
+      - task: bench:test
 
   lint:
     desc: swiftformat --lint

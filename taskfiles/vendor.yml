@@ -5,9 +5,39 @@
 #   task vendor:uv [VERSION=0.12.17] the `uv` binary (not shipped in the app yet)
 #   task vendor:sparkle              Sparkle's release tools (generate_keys, generate_appcast, sign_update)
 #   task vendor:verify [DIR=…]       every Mach-O in DIR depends only on relocatable or system paths
+#   task vendor:ollama               Ollama's official macOS build, for the comparison harness only (ADR D-063)
 version: '3'
 
 tasks:
+  ollama:
+    desc: Fetch Ollama's official macOS build for the comparison harness (bench/, ADR D-063) — never shipped in the app
+    # Official build, not Homebrew's: the formula builds Ollama's MLX runner against Homebrew's mlx-c, which would
+    # compare a different build. Pinned in bench/config/engines.toml (version and sha256).
+    vars:
+      VERSION:
+        sh: sed -nE '/^\[ollama\]/,/^\[/ s/^version = "([^"]+)"/\1/p' bench/config/engines.toml
+      SHA256:
+        sh: sed -nE '/^\[ollama\]/,/^\[/ s/^sha256 = "([^"]+)"/\1/p' bench/config/engines.toml
+    status:
+      - test -x "Vendor/bench/ollama-{{.VERSION}}/ollama"
+    cmds:
+      - |
+        ROOT='{{.ROOT_DIR}}'
+        OUT="$ROOT/Vendor/bench/ollama-{{.VERSION}}"
+        URL="https://github.com/ollama/ollama/releases/download/v{{.VERSION}}/ollama-darwin.tgz"
+        TMP="$(mktemp -d)"
+        trap 'rm -rf "$TMP"' EXIT
+        echo "==> fetching $URL"
+        curl -fsSL -o "$TMP/ollama-darwin.tgz" "$URL"
+        echo "==> verifying sha256"
+        echo "{{.SHA256}}  $TMP/ollama-darwin.tgz" | shasum -a 256 -c -
+        rm -rf "$OUT" && mkdir -p "$OUT"
+        tar xzf "$TMP/ollama-darwin.tgz" -C "$OUT"
+        [ -x "$OUT/ollama" ] || { echo "error: no ollama binary in the archive" >&2; exit 1; }
+        # Downloaded with curl, so it carries no quarantine flag; it's signed and notarized by Ollama.
+        "$OUT/ollama" --version 2>/dev/null | head -1 || true
+        echo "==> staged Ollama {{.VERSION}} in $OUT"
+
   llama:
     desc: Fetch the pinned llama.cpp release, verify its sha256, stage llama-server + dylibs in Vendor/llama.cpp
     # Skipped when Vendor/llama.cpp is already this tag; `task --force vendor:llama` re-fetches.

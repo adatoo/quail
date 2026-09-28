@@ -37,3 +37,13 @@ Vendor/.uv-staged
 release-notes.md
 Vendor/sparkle/
 Vendor/.sparkle-staged
+
+# The comparison harness (bench/, ADR D-063): its runs, scratch space (.noindex keeps Spotlight out),
+# tool environments, and the engines it fetches
+bench/runs/
+bench/.work.noindex/
+bench/tools/*/.venv/
+bench/.venv/
+Vendor/llama-tools/
+Vendor/bench/
+__pycache__/

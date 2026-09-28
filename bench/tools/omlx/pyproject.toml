@@ -1,0 +1,12 @@
+# oMLX for the comparison harness (ADR D-063), from its release wheel, pinned. `task bench:setup` makes the
+# environment; the harness runs .venv/bin/omlx with a scratch --base-path, never ~/.omlx.
+[project]
+name = "bench-omlx"
+version = "0"
+requires-python = "==3.12.*"
+dependencies = [
+    "omlx @ https://github.com/jundot/omlx/releases/download/v0.6.4/omlx-0.6.4-cp312-cp312-macosx_15_0_universal2.whl",
+]
+
+[tool.uv]
+package = false

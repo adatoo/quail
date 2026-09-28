@@ -1,0 +1,27 @@
+# The models compared (ADR D-063). Each has the same weights in every engine of a lane: the GGUF file for Quail,
+# llama-server and Ollama; the MLX folder for Quail, oMLX, Rapid-MLX and Ollama's MLX runner.
+#
+# Paths are relative to the model store: ~/Library/Application Support/Quail/Models, or QUAIL_BENCH_STORE.
+# `quail pull <catalog>` puts a missing GGUF there; `bench:doctor` says what's missing.
+
+["qwen3-8b"]
+name = "Qwen3 8B"
+catalog = "qwen3-8b:Q4_K_M"
+gguf = "gguf/Qwen3-8B-Q4_K_M.gguf"
+mlx = "mlx/mlx-community--Qwen3-8B-4bit"
+# Qwen3's thinking is switched off with the template's enable_thinking (and Ollama's reasoning_effort).
+family = "qwen3"
+
+["qwen3.6-35b-a3b"]
+name = "Qwen3.6 35B-A3B"
+catalog = "qwen3.6-35b-a3b:Q4_K_M"
+gguf = "gguf/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"
+mlx = "mlx/mlx-community--Qwen3.6-35B-A3B-4bit"
+family = "qwen3"
+
+["gemma-4-26b-a4b"]
+name = "Gemma 4 26B-A4B"
+catalog = "gemma-4-26b-a4b:Q4_K_M"
+gguf = "gguf/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf"
+mlx = "mlx/mlx-community--gemma-4-26b-a4b-it-4bit"
+family = "gemma4"
