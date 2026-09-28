@@ -137,6 +137,11 @@ struct MenuView: View {
         }
         .keyboardShortcut(",")
 
+        // The website's docs (ADR D-062), or the README until there is one.
+        Button("Quail Help") {
+            NSWorkspace.shared.open(Website.help(base: Website.base()))
+        }
+
         if let updateSettings {
             Button("Check for Updates…") { updateSettings.checkNow() }
         }

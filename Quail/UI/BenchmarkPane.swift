@@ -121,12 +121,16 @@ struct BenchmarkPane: View {
                     .foregroundStyle(.red)
                     .font(.callout)
             } else {
-                Text(
-                    "Runs \(BenchmarkSuite.id): prompt processing at 512 and 4096 tokens, generation of 256 tokens, time to first token, a returning conversation's next turn, four requests at once, and load time — \(BenchmarkSuite.measuredRuns) runs each after a warm-up. What's loaded now is loaded again afterwards."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .firstTextBaseline) {
+                    Text(
+                        "Runs \(BenchmarkSuite.id): reading prompts, writing, first token, a returning turn, four at once and loading — \(BenchmarkSuite.measuredRuns) runs each. What's loaded now is loaded again afterwards."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    LearnMoreLink(.benchmark, section: "measures")
+                }
             }
         }
     }

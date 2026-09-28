@@ -25,11 +25,9 @@ struct UpdatesSection: View {
         } header: {
             Text("Updates")
         } footer: {
-            Text(
-                "Quail asks before installing unless automatic installs are on. Installing restarts Quail; the server is stopped cleanly first."
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Text("Installing restarts Quail, stopping the server cleanly first.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 }

@@ -191,13 +191,17 @@ struct ServerPane: View {
         } header: {
             Text("Address")
         } footer: {
-            Text(
-                appState.config.apiKeyEnabled
-                    ? "Clients send the key as a Bearer token or x-api-key. Connect fills in both for you."
-                    : "Without a key, any web page you open can use your models."
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text(
+                    appState.config.apiKeyEnabled
+                        ? "Clients send the key as a Bearer token or x-api-key. Connect fills in both for you."
+                        : "Without a key, any web page you open can use your models."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                LearnMoreLink(.network, section: "key")
+            }
         }
     }
 
@@ -270,6 +274,11 @@ struct ServerPane: View {
             )
         } header: {
             Text("Network")
+        } footer: {
+            HStack {
+                Spacer()
+                LearnMoreLink(.network, section: "reach")
+            }
         }
     }
 

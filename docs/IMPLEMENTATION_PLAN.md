@@ -182,7 +182,7 @@ Mac App Store publication is cancelled (D-053). Completed steps in earlier phase
     4. Turn off Wi-Fi, quit and reopen Quail: the server starts, Ping passes, Add Model says it's offline.
     5. With a release older than the newest installed, Quail → General → Check for Updates finds, installs and relaunches the newer one.
     6. The same with a GGUF and an MLX model on Quail server, and one Connect snippet (Claude Code or opencode).
-6. ~~About pane~~ — done as a section of Settings → General, not a pane (D-029): app version, distribution, llama.cpp tag, catalog revision, macOS, Copy Details and the open-source licences. Still to add there as they exist: the `quail-server` version, runtime pins, the update check.
+6. ~~About pane~~ — done as a section of Settings → General, not a pane (D-029), and since D-061 a page of the Quail window: app version, distribution, llama.cpp tag, MLX pins, catalog revision, macOS, this Mac's hardware, Copy Details, links (release notes, issues, source, and the website once it's published) and the open-source licences. `quail-server`'s version is the app's own; the update check is in General.
 
 ## Phase 5 — Multiple endpoints
 
@@ -243,7 +243,7 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
    - a "This Mac can run…" line on Models
    - the menu's Add model… opens the sheet
 4. [ ] **Website** (D-062): a landing page and short docs in `website/`, hand-written HTML, deployed to GitHub Pages. The domain is new, not bought yet, so ship on the Pages URL first.
-5. [ ] **Links from the app:**
+5. [x] **Links from the app:** *(built 2026-09-28; the website links appear once `QuailWebsiteURL` is set — see below)*
    - `QuailWebsiteURL` in Info.plist
    - "Learn more" links replacing long captions
    - Quail Help in the menu

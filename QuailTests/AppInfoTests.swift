@@ -107,6 +107,23 @@ struct AppInfoTests {
         """)
     }
 
+    @Test("MLX's versions come from the notices table, and show in the rows and the bug report")
+    func mlx() {
+        let versions = AppInfo.componentVersions(in: """
+        | Component | Version | Licence | Shipped in |
+        | --- | --- | --- | --- |
+        | mlx-swift | 0.31.6 | MIT | quail-server (through mlx-swift-lm) |
+        | mlx-swift-lm | 3.31.4 | MIT | quail-server |
+        """)
+        #expect(versions == ["mlx-swift": "0.31.6", "mlx-swift-lm": "3.31.4"])
+        var facts = facts()
+        #expect(facts.mlxLine == "—")
+        facts.mlxSwiftLM = versions["mlx-swift-lm"]
+        facts.mlxSwift = versions["mlx-swift"]
+        #expect(facts.mlxLine == "mlx-swift-lm 3.31.4 (mlx-swift 0.31.6)")
+        #expect(facts.summary.contains("MLX: mlx-swift-lm 3.31.4 (mlx-swift 0.31.6)"))
+    }
+
     @Test("facts gathered from the running app are complete")
     func current() {
         let facts = AboutFacts.current(catalog: Catalog())

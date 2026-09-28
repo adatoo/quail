@@ -291,6 +291,11 @@ struct UISnapshotTests {
         defer { try? FileManager.default.removeItem(at: scratch) }
         try await renderWindow(appState, page: .general, name: "general")
         try await renderWindow(appState, page: .about, name: "about")
+        // With a website: "Learn more" beside the short captions, and About's Website and Documentation links.
+        let site = URL(string: "https://adatoo.github.io/quail/")
+        try await renderWindow(appState, page: .about, name: "about-website", website: site)
+        appState.setKeepAwake(true)
+        try await renderWindow(appState, page: .server, name: "server-website", website: site)
         try await renderWindow(appState, page: .connect, name: "connect")
         try await renderWindow(appState, page: .models, name: "main-window")
         // The sidebar on its own too: inside the split view, offscreen rendering leaves it blank.
@@ -300,9 +305,13 @@ struct UISnapshotTests {
 
     /// The whole Quail window, sidebar included, on `page`.
     private func renderWindow(
-        _ appState: AppState, page: MainPage, name: String, width: Double = 1100, height: Double = 760
+        _ appState: AppState, page: MainPage, name: String, width: Double = 1100, height: Double = 760,
+        website: URL? = nil
     ) async throws {
         appState.mainPage = page
-        try await render(MainWindow(appState: appState), size: CGSize(width: width, height: height), name: name)
+        try await render(
+            MainWindow(appState: appState).environment(\.websiteBase, website),
+            size: CGSize(width: width, height: height), name: name
+        )
     }
 }

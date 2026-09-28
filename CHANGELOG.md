@@ -10,6 +10,18 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-09-28
+
+### Added
+
+- **Quail Help** in the menu opens the documentation.
+- **About** has links to the release notes, to report an issue, and to the source code. It also shows the MLX engine's versions, and Copy Details includes them.
+- **"Learn more" links** go from the Server, General, Benchmark and model settings pages to the documentation. They appear once the website is published.
+
+### Changed
+
+- **Shorter explanations:** the power, updates and benchmark captions are one line each now, with the details in the documentation.
+
 ## [0.54.0] - 2026-09-28
 
 ### Changed

@@ -30,6 +30,8 @@
 	<string>Copyright © 2026 Arif Datoo. MIT Licence.</string>
 	<key>QuailCatalogURL</key>
 	<string>https://raw.githubusercontent.com/adatoo/quail/main/Quail/Resources/catalog.json</string>
+	<key>QuailWebsiteURL</key>
+	<string></string>
 	<key>SUAutomaticallyUpdate</key>
 	<false/>
 	<key>SUEnableAutomaticChecks</key>

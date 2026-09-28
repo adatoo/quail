@@ -11,12 +11,10 @@ struct PowerSection: View {
                 "Keep this Mac awake while the server runs",
                 isOn: Binding(get: { appState.config.keepAwake }, set: { appState.setKeepAwake($0) })
             )
-            Text(
-                "Stops idle sleep, as caffeinate does, so a long download, benchmark or agent session isn't cut off. The display can still turn off."
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+            Text("Stops idle sleep, as caffeinate does, so long jobs aren't cut off. The display can still turn off.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             Toggle(
                 "Also with the lid closed, when plugged in",
@@ -26,12 +24,17 @@ struct PowerSection: View {
                 )
             )
             .disabled(!appState.config.keepAwake)
-            Text(
-                "macOS sleeps a laptop when its lid closes, whatever an app asks, so this turns sleep off system-wide while the server runs on power. It asks for your password when the server first starts. Sleep comes back when you unplug, stop the server or quit Quail. A closed laptop running a model gets warm: keep it out of a bag."
+            HStack(alignment: .firstTextBaseline) {
+                Text("Turns sleep off for the whole Mac while it's plugged in; asks for your password once.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                LearnMoreLink(.power, section: "lid")
+            }
+            .help(
+                "macOS sleeps a laptop when its lid closes, whatever an app asks. Sleep comes back when you unplug, stop the server or quit Quail. A closed laptop running a model gets warm: keep it out of a bag."
             )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
             if appState.config.keepAwake, appState.config.keepAwakeLidClosed, let status = appState.lidGuardStatus {
                 Label(status, systemImage: "moon.zzz")
                     .font(.caption)
