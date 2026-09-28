@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Settings → Connect (Phase 2b step 1): copy-ready config for coding
+/// The Quail window's Connect page (Phase 2b step 1): copy-ready config for coding
 /// tools, editors, chat apps and SDKs, filled in with this endpoint's
 /// address, API key and a chosen model — plus a Test that makes the same
 /// kind of request the tool will. Copy-only: Quail never edits other apps'
@@ -29,8 +29,10 @@ struct ConnectPane: View {
                     }
                 }
             }
-            .listStyle(.sidebar)
-            .frame(width: 190)
+            // Not `.sidebar`: inside the Quail window's detail column, a second sidebar would read as window
+            // chrome rather than a list of tools.
+            .listStyle(.inset)
+            .frame(width: 200)
 
             Divider()
 
@@ -42,11 +44,6 @@ struct ConnectPane: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        // Fixed, not min: the Settings window sizes to its tab, and a
-        // grouped Form's ideal height is all of its content — a long
-        // snippet plus notes made the window taller than the screen.
-        // The Form scrolls within this.
-        .frame(height: 600)
         .onAppear {
             if selectedID == nil {
                 selectedID = Self.integrations.first?.id
@@ -104,7 +101,10 @@ struct ConnectPane: View {
             Section {
                 if installedModels.isEmpty {
                     LabeledContent("Model") {
-                        Text("No models installed — add one in Models.").foregroundStyle(.secondary)
+                        HStack {
+                            Text("No models installed.").foregroundStyle(.secondary)
+                            Button("Go to Models") { appState.mainPage = .models }
+                        }
                     }
                 } else {
                     Picker("Model", selection: $model) {
@@ -246,13 +246,13 @@ struct ConnectPane: View {
                 EndpointAddress.isWildcard(appState.config.host)
                     ? "Couldn't find this Mac's network address."
                     :
-                    "The server only listens on this Mac. Set Host to 0.0.0.0 in Endpoint to reach it from other devices.",
+                    "The server only listens on this Mac. Set Host to 0.0.0.0 on the Server page to reach it from other devices.",
                 systemImage: "exclamationmark.triangle.fill"
             )
             .foregroundStyle(.orange)
         } else if !appState.config.apiKeyEnabled {
             Label(
-                "Anyone on your network can use this endpoint — consider turning on the API key in Endpoint.",
+                "Anyone on your network can use this endpoint — consider turning on the API key on the Server page.",
                 systemImage: "exclamationmark.triangle.fill"
             )
             .foregroundStyle(.orange)
@@ -287,24 +287,6 @@ struct ConnectPane: View {
         }
         testOutcome = await ConnectionTester.test(api: integration.api, values: local)
         testing = false
-    }
-}
-
-/// A Copy button that briefly reads "Copied".
-private struct CopyButton: View {
-    let text: String
-    @State private var copied = false
-
-    var body: some View {
-        Button(copied ? "Copied" : "Copy") {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(text, forType: .string)
-            copied = true
-            Task {
-                try? await Task.sleep(for: .seconds(1.5))
-                copied = false
-            }
-        }
     }
 }
 

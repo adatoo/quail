@@ -9,7 +9,7 @@ extension AppState {
             return ControlResponse(ok: true, status: statusInfo)
         case .start:
             guard hasServableModel else {
-                return .failure("No model installed — add one in Quail → Settings → Models.")
+                return .failure("No model installed — add one with `quail pull <name>`, or in Quail → Models.")
             }
             if canStart {
                 await start()
@@ -197,7 +197,7 @@ extension AppState {
         }
         let installed = modelStore.loadCatalog().entries
         guard let model = requested ?? config.defaultModelID ?? installed.first?.id else {
-            return .failure("No model installed — add one in Quail → Settings → Models.")
+            return .failure("No model installed — add one with `quail pull <name>`, or in Quail → Models.")
         }
         guard let entry = installed.first(where: { $0.id == model }) else {
             return .failure("No installed model named '\(model)'. See `quail list`.")
@@ -216,12 +216,12 @@ extension AppState {
         var warnings: [String] = []
         if let needed = integration.minContext, entry.effectiveContextSize < needed {
             warnings.append(
-                "\(integration.name) needs at least \(needed / 1024)K of context; \(model) runs at \(entry.effectiveContextSize / 1024)K. Raise it in Quail → Settings → Models (the ctx menu), then `quail restart`."
+                "\(integration.name) needs at least \(needed / 1024)K of context; \(model) runs at \(entry.effectiveContextSize / 1024)K. Raise it with `quail ctx \(model) \(needed / 1024)k` (or in Quail → Models), then `quail restart`."
             )
         }
         if !canServe(entry.format) {
             warnings.append(
-                "\(model) is an MLX model, which the llama.cpp runtime can't serve — switch the runtime to Quail server in Quail → Settings → Endpoint."
+                "\(model) is an MLX model, which the llama.cpp runtime can't serve — switch the runtime to Quail server in Quail → Server."
             )
         }
         if serverController.phase == .ready, !servedModels.contains(where: { $0.id == model }) {

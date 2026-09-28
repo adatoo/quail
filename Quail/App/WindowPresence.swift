@@ -1,7 +1,7 @@
 import AppKit
 
-/// Keeps Quail's windows (Settings, Logs, Test) in front when you come back
-/// to the Space they're on.
+/// Keeps Quail's windows (the Quail window, Logs, Test, Activity) in front
+/// when you come back to the Space they're on, and finds one by its scene id.
 ///
 /// Quail is menu-bar-only (`LSUIElement`, an `.accessory` app), and macOS
 /// doesn't restore an accessory app's window when you return to a Space:
@@ -9,7 +9,7 @@ import AppKit
 /// it — with no Dock icon or ⌘-Tab to bring it back (user-reported).
 /// Becoming a `.regular` app while a window is open was tried and
 /// rejected: a regular app's window can't join another app's full-screen
-/// Space, so Settings opened over a full-screen terminal landed on the
+/// Space, so a window opened over a full-screen terminal landed on the
 /// desktop Space instead (`.fullScreenAuxiliary` is an accessory-app
 /// privilege). So instead, on every Space change, each tracked window
 /// that's on the now-active Space is ordered back to the front.
@@ -22,17 +22,23 @@ final class WindowPresence {
 
     private struct WeakWindow {
         weak var window: NSWindow?
+        var id: String?
     }
 
-    /// Called as each Quail window is created (`WindowFrontier`).
-    func track(_ window: NSWindow) {
-        windows[ObjectIdentifier(window)] = WeakWindow(window: window)
+    /// Called as each Quail window is created (`WindowFrontier`), with the id of the scene it belongs to.
+    func track(_ window: NSWindow, id: String?) {
+        windows[ObjectIdentifier(window)] = WeakWindow(window: window, id: id)
         guard spaceObserver == nil else { return }
         spaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.spaceChanged() }
         }
+    }
+
+    /// The open window of the scene with this id, if there is one.
+    func window(id: String) -> NSWindow? {
+        windows.values.first { $0.id == id && $0.window != nil }?.window
     }
 
     private func spaceChanged() {

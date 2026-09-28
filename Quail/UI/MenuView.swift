@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The MenuBarExtra's dropdown content: status, Start/Stop, Test…, Logs…,
-/// Settings, Quit.
+/// the Quail window's pages, Quit.
 ///
 /// This is a plain, flat list of `Button`/`Divider`/`Text` — no `VStack`,
 /// padding, or explicit frame. `MenuBarExtra`'s default `.menu` style
@@ -16,7 +16,6 @@ struct MenuView: View {
     /// `nil` where no updater runs (previews and tests).
     var updateSettings: UpdateSettings?
 
-    @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -68,8 +67,7 @@ struct MenuView: View {
             Button("Start") {}
                 .disabled(true)
             Button("Add model…") {
-                appState.settingsTab = .models
-                bringToFront { openSettings() }
+                openMain(.models)
             }
         } else if appState.canStart {
             Button("Start") {
@@ -86,27 +84,25 @@ struct MenuView: View {
         }
 
         Button("Test…") {
-            bringToFront { openWindow(id: "ping") }
+            bringToFront(id: "ping") { openWindow(id: "ping") }
         }
         .disabled(appState.serverController.phase != .ready)
 
         Button("Activity…") {
-            bringToFront { openWindow(id: "activity") }
+            bringToFront(id: "activity") { openWindow(id: "activity") }
         }
 
         Button("Benchmark…") {
-            appState.settingsTab = .benchmark
-            bringToFront { openSettings() }
+            openMain(.benchmark)
         }
 
         Button("Connect a Tool…") {
-            appState.settingsTab = .connect
-            bringToFront { openSettings() }
+            openMain(.connect)
         }
 
         // D-001: runtimes ship their own chat UIs — link to them. Quail server's page is signed in with a
-        // one-time ticket (D-042); llama.cpp's needs the key pasted into its settings (Settings → Endpoint
-        // has a Copy button), since it reads nothing from the URL.
+        // one-time ticket (D-042); llama.cpp's needs the key pasted into its settings (the Server page has
+        // a Copy button), since it reads nothing from the URL.
         // A runtime with no web UI of its own (Rapid-MLX) gets `quail chat`
         // instead: the same item, copying the command to the clipboard.
         let chat = chatEntry
@@ -126,7 +122,7 @@ struct MenuView: View {
         .disabled(appState.serverController.phase != .ready)
 
         Button("Logs…") {
-            bringToFront { openWindow(id: "logs") }
+            bringToFront(id: "logs") { openWindow(id: "logs") }
         }
 
         Toggle(
@@ -136,8 +132,10 @@ struct MenuView: View {
 
         Divider()
 
-        Button("Settings…") {
-            bringToFront { openSettings() }
+        // The Quail window (ADR D-061), on whichever page it last showed (the Server page the first time).
+        // It holds the settings too, so it keeps Settings' ⌘,.
+        Button("Open Quail") {
+            openMain(nil)
         }
         .keyboardShortcut(",")
 
@@ -168,15 +166,6 @@ struct MenuView: View {
         return ChatEntry.resolve(webUI: webUI, model: appState.config.defaultModelID ?? loaded)
     }
 
-    /// Opens a window *in front*. Quail is a menu-bar-only app
-    /// (`LSUIElement`); on macOS 14+ `NSApp.activate()` is only a request
-    /// the frontmost app may decline, so Settings/Logs/Test used to open
-    /// behind other apps or on another Space (user-reported; confirmed via
-    /// the window server — the Settings window existed but wasn't
-    /// onscreen, because the frontmost app was full-screen on its own
-    /// Space). After opening, each visible Quail window is allowed onto
-    /// the current (possibly full-screen) Space and ordered front
-    /// regardless of activation, and the newest is made key.
     /// The one-time warning before the server first listens on the network (Phase 4 step 3). Returns whether to
     /// go ahead: "Listen on This Mac Only" switches the host back to loopback and starts; Cancel doesn't start.
     private func confirmNetworkStart() -> Bool {
@@ -186,9 +175,9 @@ struct MenuView: View {
         let host = appState.config.host
         alert.informativeText = appState.networkExposure == .open
             ? "The host is \(host), so other devices on your network can reach the server, and with the API key off, "
-            + "anyone on it can use your models. Turn the key on in Settings → Endpoint, or keep the server to this Mac."
+            + "anyone on it can use your models. Turn the key on in Quail → Server, or keep the server to this Mac."
             : "The host is \(host), so other devices on your network can reach the server. They need its API key "
-            + "(Settings → Endpoint) to use it."
+            + "(Quail → Server) to use it."
         alert.alertStyle = appState.networkExposure == .open ? .critical : .warning
         alert.addButton(withTitle: "Start")
         alert.addButton(withTitle: "Listen on This Mac Only")
@@ -207,34 +196,11 @@ struct MenuView: View {
         }
     }
 
-    private func bringToFront(_ open: () -> Void) {
-        let before = Set(NSApp.windows.filter(\.isVisible).map(ObjectIdentifier.init))
-        NSApp.activate()
-        open()
-        // SwiftUI shows the window a few run-loop turns later, so poll
-        // briefly for it rather than acting on the very next turn.
-        Task { @MainActor in
-            for _ in 0 ..< 20 {
-                let visible = NSApp.windows
-                    .filter { $0.isVisible && $0.canBecomeKey && ($0.level == .normal || $0.level == .floating) }
-                let opened = visible.filter { !before.contains(ObjectIdentifier($0)) }
-                if let target = opened.last ?? (visible.isEmpty ? nil : visible.last) {
-                    for window in visible {
-                        // .fullScreenAuxiliary: may appear on a full-screen
-                        // app's Space — otherwise, with e.g. a full-screen
-                        // terminal in front, the window opens on the desktop
-                        // Space and seems to vanish (the user-reported case).
-                        window.collectionBehavior.formUnion([.moveToActiveSpace, .fullScreenAuxiliary])
-                    }
-                    target.orderFrontRegardless()
-                    target.makeKey()
-                    NSApp.activate()
-                    if !opened.isEmpty {
-                        return
-                    }
-                }
-                try? await Task.sleep(for: .milliseconds(50))
-            }
+    /// Opens the Quail window at `page`, or at the page it last showed.
+    private func openMain(_ page: MainPage?) {
+        if let page {
+            appState.mainPage = page
         }
+        bringToFront(id: MainWindow.id) { openWindow(id: MainWindow.id) }
     }
 }

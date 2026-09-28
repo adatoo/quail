@@ -77,7 +77,7 @@ struct List: AsyncParsableCommand {
             return try Output.printJSON(models)
         }
         guard !models.isEmpty else {
-            return print("No models installed. Add one in Quail → Settings → Models.")
+            return print("No models installed. Add one with `quail pull <name>`, or in Quail → Models.")
         }
         Output.printTable(
             ["NAME", "SIZE", "CONTEXT", "FIT", ""],

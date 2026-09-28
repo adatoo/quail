@@ -1,7 +1,7 @@
 import os
 import SwiftUI
 
-/// The Models settings tab (docs/IMPLEMENTATION_PLAN.md Phase 2 step 7):
+/// The Quail window's Models page (docs/IMPLEMENTATION_PLAN.md Phase 2 step 7):
 /// installed models with format badge, size, fit verdict and loaded
 /// state; delete with confirm; store relocation behind a real
 /// `NSOpenPanel`; and the Hugging Face token field deferred from step 5.
@@ -59,7 +59,7 @@ struct ModelsPane: View {
 
     var body: some View {
         Form {
-            // Only when there are MLX models that won't load; Settings → Endpoint says it either way.
+            // Only when there are MLX models that won't load; the Server page says it either way.
             if !appState.canServe(.mlxSafetensors), !appState.modelStore.installedMLXDirectories().isEmpty {
                 Section {
                     MLXUnavailableBanner(appState: appState)
@@ -108,9 +108,6 @@ struct ModelsPane: View {
             storeSection
         }
         .formStyle(.grouped)
-        // A grouped Form scrolls, so its ideal height is tiny and the
-        // Settings window (which sizes to the tab) would collapse.
-        .frame(minHeight: 560)
         .sheet(isPresented: $showCleanUp) {
             CleanUpSheet(appState: appState)
         }
@@ -273,7 +270,7 @@ struct ModelsPane: View {
                     },
                     onBenchmark: {
                         appState.benchmarks.requestedModel = entry.id
-                        appState.settingsTab = .benchmark
+                        appState.mainPage = .benchmark
                     }
                 )
             }
@@ -602,7 +599,7 @@ private struct ModelRow: View {
                 Text("Needs the Quail server runtime")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .help("Choose Quail server in Settings → Endpoint (with the server stopped) to run MLX models.")
+                    .help("Choose Quail server on the Server page (with the server stopped) to run MLX models.")
             } else if serverReady, loaded != nil, loaded != "loaded" {
                 Button("Load", action: onLoad)
                     .controlSize(.small)

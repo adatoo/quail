@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The in-app updater. Not started when hosting unit tests (it would check the real feed).
     private let updater = Updater(start: !isHostingUnitTests)
 
-    /// What Settings → Updates and the menu's "Check for Updates…" use.
+    /// What the General page's Updates section and the menu's "Check for Updates…" use.
     var updateSettings: UpdateSettings? {
         updater.settings
     }
@@ -86,7 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             await appState.reconcileStore()
             appState.startWatchingStore()
-            // "Always on" (`quail service enable` / Settings): start the
+            // "Always on" (`quail service enable` / the Server page): start the
             // server as soon as Quail launches — at login, with openAtLogin.
             if appState.config.autoStartServer, appState.canStart {
                 await appState.start()

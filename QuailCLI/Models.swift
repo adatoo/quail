@@ -3,7 +3,7 @@ import Darwin
 import Foundation
 
 // CLI v2 (docs/IMPLEMENTATION_PLAN.md Phase 2b step 5): pull, rm, default,
-// ctx, config — each asks the app to do what its Settings UI does.
+// ctx, config — each asks the app to do what its window does.
 
 struct Pull: AsyncParsableCommand {
     static let configuration = CommandConfiguration(

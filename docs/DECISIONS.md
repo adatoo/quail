@@ -2,6 +2,44 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-061 · 2026-09-28 · One Quail window with a sidebar, instead of six Settings tabs
+
+**Situation:** Settings had six tabs holding three kinds of thing:
+- preferences (General, Endpoint)
+- the app's work surfaces (Models, Connect, Benchmark)
+- a page of facts (This Mac)
+
+The server's settings were spread over three of them:
+- auto-start and keep-awake under General
+- runtime, host, port, API key and "Max loaded models" under Endpoint, in a section that was also called "Models"
+- the default model and context size in Models
+
+Settings had no server status and no Start/Stop, though Endpoint's runtime picker said to stop the server. The owner found they had to think several times to work out where anything was.
+
+**Decision:** Settings becomes one resizable `Window("Quail", id: "main")` with a sidebar. The pages are Server, Models, Connect and Benchmark, then a gap, then General and About.
+- **Server** takes everything about the server. It is today's Endpoint, plus "Start the server when Quail opens" and the Power section, which leave General; "Max loaded models" becomes "Models loaded at once" under Memory.
+- **General** is Quail itself: open at login, menu bar activity, the `quail` command and updates.
+- **About** is now a page of its own, amending D-029: versions, licences, and the This Mac facts. It has one Copy Details for a bug report, covering both Quail and this Mac. The This Mac tab is gone.
+- **Scene:** a `Window` scene rather than `Settings`. The window now shows live state, runs tests and benchmarks, and can be resized, so pages fill it and scroll. The old window sized itself to each tab, with a minimum height per pane and a fixed height for Connect. Removing that cleared those workarounds.
+- **The menu:** "Open Quail" (⌘,) opens the window on the page it last showed, the Server page the first time. The window also takes ⌘, while it's key, through `CommandGroup(replacing: .appSettings)`. Add model…, Benchmark… and Connect a Tool… open it at their page (`AppState.mainPage`, which replaced `settingsTab`).
+- **Messages** from the app and the CLI say "Quail → Server" or "Quail → Models" where they said "Settings → Endpoint" or "Settings → Models". The CLI's suggest a `quail` command first.
+- **Windows:** `opensInFront(id:)` registers each window under its scene id, so `bringToFront(id:)` fronts the one asked for rather than the newest visible window. Windows are no longer restorable, so they don't reappear by themselves after a relaunch; `Settings` never did.
+
+**Alternatives:**
+- **A main window plus a slimmer Settings window.** This is closer to the Mac convention, but you'd still have to know which window holds what.
+- **Keeping the tabs and regrouping.** This was the least work, but it leaves preferences and tools mixed in "Settings".
+
+**Follow-ups, in order (docs/IMPLEMENTATION_PLAN.md, Road to 1.0):**
+1. The Server page proper: status and Start/Stop; usable addresses instead of `0.0.0.0`; a This Mac / Local network / Custom choice instead of a free-text host; a restart banner.
+2. Per-model settings in a popover instead of a small "ctx" menu.
+3. "Learn more" links to the website instead of long captions.
+
+**Checked:**
+- snapshots of every page, rendered in the window, and the sidebar alone (inside the split view, offscreen rendering leaves the sidebar blank)
+- unit tests
+
+**Revisit if:** Phase 5's multiple endpoints need a list of servers: the Server page is written over one controller and config so it can sit under one.
+
 ## D-060 · 2026-09-28 · Live activity: `GET /slots`, the menu bar and an Activity window
 
 **Situation:** a 30,000-token prompt takes a minute and a half on Qwen3-8B, and a model load takes seconds. The whole time, Quail's menu says "Running" and the client waits in silence. The app knew the server's phase and each model's load state, from a 2 s `GET /models` poll, and nothing else: no request state, no progress, no memory, CPU or GPU figures.
@@ -639,7 +677,7 @@ The hidden `<select>` stays the source of truth, so nothing else in the script c
 **Alternatives:** Keep the scripts behind a thin Taskfile (two sources of truth); make or just (Task was already installed and its YAML is the least surprising for CI).
 **Revisit if:** another interpreter difference causes a silent failure, or requiring go-task to build proves a real burden on contributors — the embed steps could then return to one small script.
 
-## D-029 · 2026-09-24 · About lives in Settings → General; no About menu item, tab or window
+## D-029 · 2026-09-24 · About lives in Settings → General; no About menu item, tab or window *(superseded in part by D-061: About is a page of the Quail window)*
 
 **Decision:** Version, distribution channel, the bundled llama.cpp tag, the catalog revision, the macOS version, a "Copy Details" button for bug reports and the open-source licences all sit in one **About** section at the bottom of Settings → General, in both builds. Quail has no separate About window, tab or menu item. The llama.cpp tag reaches the app because `scripts/embed-llama.sh` copies `scripts/llama.version` (the pin `vendor-llama.sh` downloads) into `Contents/Resources`; CI fails the build if that file or `LICENSE-llama.cpp` is missing from the app.
 **Alternatives:** A dedicated About tab, or an "About Quail" item in the menu-bar menu (what Phase 4 step 6 planned). Rejected: Quail is an `LSUIElement` menu-bar agent, so it has no app menu with a conventional About item to be missing, and one place beats three for a person filing a bug.

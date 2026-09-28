@@ -6,7 +6,7 @@ import Sparkle
 extension SPUUpdater: UpdateBackend {}
 
 /// The in-app updater (ADR D-032): checks the appcast each release attaches, on
-/// the schedule Settings → Updates chooses, and installs with Sparkle's standard UI.
+/// the schedule the General page's Updates section chooses, and installs with Sparkle's standard UI.
 /// Sparkle, checking the appcast on GitHub Releases (ADR D-032).
 ///
 /// Installing quits Quail through the ordinary `applicationShouldTerminate`, so the

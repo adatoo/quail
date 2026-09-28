@@ -23,26 +23,36 @@ struct QuailApp: App {
         // An earlier `.window` style drew its own floating panel by hand,
         // which looked and behaved unlike every other menu bar app.
 
-        Settings {
-            SettingsView(appState: appDelegate.appState, updateSettings: appDelegate.updateSettings).opensInFront()
+        // The Quail window (ADR D-061): server, models, connect, benchmark, settings, about. Not opened at
+        // launch: the MenuBarExtra comes first, and SwiftUI opens no `Window` of a menu bar app by itself.
+        Window("Quail", id: MainWindow.id) {
+            MainWindow(appState: appDelegate.appState, updateSettings: appDelegate.updateSettings)
+                .opensInFront(id: MainWindow.id)
+        }
+        .defaultSize(width: 1100, height: 720)
+        .windowResizability(.contentMinSize)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                OpenMainWindowCommand()
+            }
         }
 
         // Real windows, not `.sheet`s presented from the MenuBarExtra's
         // content — see PingSheet.swift's doc comment for why.
         Window("Ping", id: "ping") {
-            PingSheet(appState: appDelegate.appState).opensInFront()
+            PingSheet(appState: appDelegate.appState).opensInFront(id: "ping")
         }
         .defaultSize(width: 360, height: 220)
         .windowResizability(.contentSize)
 
         Window("Activity", id: "activity") {
-            ActivityWindow(appState: appDelegate.appState).opensInFront()
+            ActivityWindow(appState: appDelegate.appState).opensInFront(id: "activity")
         }
         .defaultSize(width: 340, height: 320)
         .windowResizability(.contentSize)
 
         Window("Logs", id: "logs") {
-            LogsWindow(appState: appDelegate.appState).opensInFront()
+            LogsWindow(appState: appDelegate.appState).opensInFront(id: "logs")
         }
         .defaultSize(width: 640, height: 420)
     }

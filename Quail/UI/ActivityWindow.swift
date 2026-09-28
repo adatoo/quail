@@ -240,6 +240,10 @@ private struct WindowLevel: NSViewRepresentable {
 struct MenuBarLabel: View {
     let appState: AppState
 
+    #if DEBUG
+        @Environment(\.openWindow) private var openWindow
+    #endif
+
     var body: some View {
         HStack(spacing: 4) {
             Image(nsImage: appState.menuBarIcon)
@@ -247,6 +251,16 @@ struct MenuBarLabel: View {
                 Text(label).monospacedDigit()
             }
         }
+        #if DEBUG
+        // Debug builds only: `-QuailOpenPage server` (any `MainPage`) opens the Quail window at launch, so a
+        // development copy (with `QUAIL_DATA_ROOT`) can be looked at and screenshotted without clicking the menu.
+        .task {
+            if let raw = UserDefaults.standard.string(forKey: "QuailOpenPage"), let page = MainPage(rawValue: raw) {
+                appState.mainPage = page
+                bringToFront(id: MainWindow.id) { openWindow(id: MainWindow.id) }
+            }
+        }
+        #endif
     }
 }
 

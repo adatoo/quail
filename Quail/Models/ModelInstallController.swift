@@ -321,7 +321,7 @@ final class ModelInstallController {
     nonisolated static func describe(_ error: HFDownloadError) -> String {
         switch error {
         case .invalidRepoID: "invalid repo id"
-        case .gatedRepoRequiresToken: "this repo is gated — add your Hugging Face token in Settings"
+        case .gatedRepoRequiresToken: "this repo is gated — add your Hugging Face token in Quail → Models"
         case let .httpStatus(code): "HTTP \(code)"
         case .invalidResponse: "invalid response"
         case let .checksumMismatch(file, _, _): "checksum mismatch for \(file)"

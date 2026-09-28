@@ -3,7 +3,8 @@ import SwiftUI
 import Testing
 @testable import Quail
 
-/// Renders the Add Model sheet and the Models pane to PNGs, so a layout change can be looked at
+/// Renders the Quail window's pages, the Add Model sheet and the other windows to PNGs, so a layout change can be
+/// looked at
 /// without clicking through the app. Runs only with `TEST_RUNNER_QUAIL_SNAPSHOT_DIR` set (the
 /// folder to write into); it asserts nothing about pixels.
 @Suite("UI snapshots", .enabled(if: ProcessInfo.processInfo.environment["QUAIL_SNAPSHOT_DIR"] != nil))
@@ -217,12 +218,7 @@ struct UISnapshotTests {
     func llamaCppWarnings() async throws {
         let (appState, scratch) = try await makeAppState(runtime: .llamaCpp)
         defer { try? FileManager.default.removeItem(at: scratch) }
-        appState.settingsTab = .endpoint
-        try await render(
-            SettingsView(appState: appState),
-            size: CGSize(width: 900, height: 760),
-            name: "llama-endpoint"
-        )
+        try await renderWindow(appState, page: .server, name: "llama-server")
         try await render(ModelsPane(appState: appState), size: CGSize(width: 700, height: 600), name: "llama-models")
         let family = appState.catalog.families.first { $0.id == "qwen3.6-35b-a3b" }
         try await render(
@@ -231,24 +227,17 @@ struct UISnapshotTests {
         )
     }
 
-    @Test("Endpoint on the network: with the API key, and without")
-    func endpointOnNetwork() async throws {
+    @Test("Server page: on this Mac; on the network with the API key, and without")
+    func serverPage() async throws {
         let (appState, scratch) = try await makeAppState()
         defer { try? FileManager.default.removeItem(at: scratch) }
-        appState.settingsTab = .endpoint
+        appState.setKeepAwake(true)
+        try await renderWindow(appState, page: .server, name: "server")
         appState.setHost("0.0.0.0")
         appState.setAPIKeyEnabled(true)
-        try await render(
-            SettingsView(appState: appState),
-            size: CGSize(width: 900, height: 760),
-            name: "endpoint-lan-key"
-        )
+        try await renderWindow(appState, page: .server, name: "server-lan-key")
         appState.setAPIKeyEnabled(false)
-        try await render(
-            SettingsView(appState: appState),
-            size: CGSize(width: 900, height: 760),
-            name: "endpoint-lan-open"
-        )
+        try await renderWindow(appState, page: .server, name: "server-lan-open")
     }
 
     @Test("Benchmark pane, with an old result and one with the returning-turn and four-at-once columns")
@@ -262,16 +251,29 @@ struct UISnapshotTests {
         new.measurements.concurrent4 = .of([55, 56])
         let (appState, scratch) = try await makeAppState(results: [new, old])
         defer { try? FileManager.default.removeItem(at: scratch) }
-        appState.settingsTab = .benchmark
-        try await render(SettingsView(appState: appState), size: CGSize(width: 900, height: 600), name: "benchmark")
+        try await renderWindow(appState, page: .benchmark, name: "benchmark")
+        // The narrowest the window goes: the table scrolls sideways rather than being clipped.
+        try await renderWindow(appState, page: .benchmark, name: "benchmark-min", width: 1010)
     }
 
-    @Test("Settings → General")
-    func generalSettings() async throws {
+    @Test("General, About, Connect and Models pages in the window")
+    func otherPages() async throws {
         let (appState, scratch) = try await makeAppState()
         defer { try? FileManager.default.removeItem(at: scratch) }
-        appState.settingsTab = .general
-        appState.setKeepAwake(true)
-        try await render(SettingsView(appState: appState), size: CGSize(width: 900, height: 760), name: "general")
+        try await renderWindow(appState, page: .general, name: "general")
+        try await renderWindow(appState, page: .about, name: "about")
+        try await renderWindow(appState, page: .connect, name: "connect")
+        try await renderWindow(appState, page: .models, name: "main-window")
+        // The sidebar on its own too: inside the split view, offscreen rendering leaves it blank.
+        appState.mainPage = .server
+        try await render(MainSidebar(appState: appState), size: CGSize(width: 200, height: 320), name: "sidebar")
+    }
+
+    /// The whole Quail window, sidebar included, on `page`.
+    private func renderWindow(
+        _ appState: AppState, page: MainPage, name: String, width: Double = 1100, height: Double = 760
+    ) async throws {
+        appState.mainPage = page
+        try await render(MainWindow(appState: appState), size: CGSize(width: width, height: height), name: name)
     }
 }

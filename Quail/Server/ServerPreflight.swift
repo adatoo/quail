@@ -47,7 +47,7 @@ enum ServerPreflight {
         if PortCheck.isListening(host: probeHost, port: config.port) {
             let owner = PortCheck.listenerDescription(port: config.port) ?? "another process"
             return PreflightResult(
-                failure: "Port \(config.port) is already in use by \(owner). Quit it, or choose a different port in Settings → Endpoint.",
+                failure: "Port \(config.port) is already in use by \(owner). Quit it, or choose a different port in Quail → Server.",
                 notes: notes
             )
         }
