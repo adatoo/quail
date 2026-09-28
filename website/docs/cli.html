@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The quail command — Quail</title>
+  <meta name="description" content="Every quail command: start and stop the server, download models, chat, benchmark and launch coding tools.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="getting-started.html" aria-current="page">Docs</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <nav class="docs-nav" aria-label="Documentation">
+        <h2>Get started</h2>
+        <ul>
+          <li><a href="getting-started.html">Getting started</a></li>
+        </ul>
+        <h2>Using Quail</h2>
+        <ul>
+          <li><a href="models.html">Models</a></li>
+          <li><a href="connect.html">Connect a tool</a></li>
+          <li><a href="network.html">Network and API key</a></li>
+          <li><a href="power.html">Power</a></li>
+          <li><a href="benchmark.html">Benchmark</a></li>
+        </ul>
+        <h2>Reference</h2>
+        <ul>
+          <li><a href="cli.html" aria-current="page">The quail command</a></li>
+          <li><a href="troubleshooting.html">Troubleshooting</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+    </nav>
+    <main class="prose">
+<h1>The <code>quail</code> command</h1>
+<p class="lede">Quail's menu, in your terminal. It asks the running app to act, so the menu and the terminal always agree.</p>
+<p>Homebrew installs it. From the DMG, use <span class="path">General → Command line → Install</span>, which links <code>~/.local/bin/quail</code>; add <code>~/.local/bin</code> to your PATH if your shell can't find it. <code>quail start</code> opens Quail if it isn't running.</p>
+
+<h2 id="server">The server</h2>
+<table>
+  <tr><td><code>quail status</code></td><td>Whether the server is running, and on what.</td></tr>
+  <tr><td><code>quail start</code> · <code>stop</code> · <code>restart</code></td><td>Start, stop or restart it. Restart applies model and context changes.</td></tr>
+  <tr><td><code>quail service enable|disable|status</code></td><td>Keep it always on: open Quail at login and start the server automatically.</td></tr>
+  <tr><td><code>quail logs [-n 50] [-f]</code></td><td>Recent server and Quail logs; <code>-f</code> keeps printing.</td></tr>
+  <tr><td><code>quail config [--show-key]</code></td><td>Where things are: the address, API key, model store, logs and settings.</td></tr>
+</table>
+
+<h2 id="models">Models</h2>
+<table>
+  <tr><td><code>quail list</code></td><td>Installed models.</td></tr>
+  <tr><td><code>quail ps</code></td><td>Models loaded in memory.</td></tr>
+  <tr><td><code>quail pull &lt;model&gt;[:quant]</code></td><td>Download a catalog model or any Hugging Face GGUF repo: <code>qwen3-8b</code>, <code>qwen3-8b:Q8_0</code>, <code>unsloth/gemma-4-12b-it-GGUF:Q5_K_M</code>. Ctrl-C cancels; running it again resumes.</td></tr>
+  <tr><td><code>quail pull --list</code></td><td>The catalog: what's recommended for this Mac, and what's installed.</td></tr>
+  <tr><td><code>quail rm &lt;model&gt;</code></td><td>Delete a model.</td></tr>
+  <tr><td><code>quail default [&lt;model&gt;|--clear]</code></td><td>Show or set the model that loads when the server starts.</td></tr>
+  <tr><td><code>quail ctx &lt;model&gt; [32k|auto]</code></td><td>Show a model's context sizes and how each fits, or set one.</td></tr>
+</table>
+
+<h2 id="use">Using models</h2>
+<table>
+  <tr><td><code>quail chat [model] [prompt]</code></td><td>Chat in the terminal. With a prompt (or piped input) it answers once. <code>/clear</code> forgets the conversation, <code>/bye</code> exits.</td></tr>
+  <tr><td><code>quail launch &lt;tool&gt; [-m model] [-- args]</code></td><td>Start claude, codex, opencode, qwen, aider or goose pointed at Quail, for that run only.</td></tr>
+  <tr><td><code>quail bench [model] [--json] [--history]</code></td><td>Run the benchmark, or list saved results.</td></tr>
+</table>
+
+<h2 id="examples">Examples</h2>
+<pre><code>quail pull qwen3-8b
+quail default Qwen3-8B-Q4_K_M
+quail ctx Qwen3-8B-Q4_K_M 32k &amp;&amp; quail restart
+quail chat why is the sky blue
+{ echo "Summarise this change:"; git diff; } | quail chat
+quail launch claude</code></pre>
+<p><code>quail help &lt;command&gt;</code> shows every option.</p>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="index.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail/issues/new/choose">Report an issue</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

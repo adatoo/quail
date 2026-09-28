@@ -232,6 +232,32 @@ tasks:
     cmds:
       - Config/check-offline.sh
 
+  site:serve:
+    desc: Serve the website (website/) at http://localhost:8765 to look at it (ADR D-062)
+    cmds:
+      - echo "http://localhost:8765/"
+      - python3 -m http.server 8765 --directory website
+
+  site:check:
+    desc: Check the website — titles, descriptions, and every link and image inside it (ADR D-062)
+    cmds:
+      - scripts/check-site website
+
+  site:screenshots:
+    desc: Render the website's screenshots of the Quail window, light and dark, into website/assets/img
+    vars:
+      SHOTS: '{{.ROOT_DIR}}/DerivedData/website-shots'
+    cmds:
+      - rm -rf '{{.SHOTS}}'
+      - >-
+        TEST_RUNNER_QUAIL_SNAPSHOT_DIR='{{.SHOTS}}'
+        xcodebuild -scheme {{.SCHEME}} -configuration {{.CONFIGURATION}} test {{.XCODEBUILD_TRUST}}
+        -derivedDataPath "{{.DERIVED_DATA}}" -destination '{{.DESTINATION}}'
+        CODE_SIGNING_ALLOWED={{.CODE_SIGNING_ALLOWED}}
+        '-only-testing:QuailTests/UISnapshotTests/websiteScreenshots()'
+        | {{.PRETTY}}
+      - cp '{{.SHOTS}}'/quail-window-*.png website/assets/img/
+
   check:mlx-offline:
     desc: The old name for check:offline, which covers the MLX path among the rest (ADR D-044, D-051)
     cmds:

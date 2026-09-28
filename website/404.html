@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page not found — Quail</title>
+  <!-- GitHub Pages serves this page for a missing path at any depth, so relative links can't reach the rest of
+       the site. The script works out the site's root: /quail/ on github.io, / on a custom domain. -->
+  <script>
+    const root = location.pathname.startsWith("/quail/") ? "/quail/" : "/";
+    document.write('<link rel="stylesheet" href="' + root + 'assets/style.css">');
+    document.write('<link rel="icon" href="' + root + 'assets/img/icon-64.png">');
+  </script>
+</head>
+<body>
+  <main class="wrap hero">
+    <h1>Page not found</h1>
+    <p class="lede">That page isn't here. The documentation may have moved.</p>
+    <div class="actions">
+      <a class="button" id="home" href="/">Quail's home page</a>
+      <a class="button secondary" id="docs" href="/docs/">Documentation</a>
+    </div>
+  </main>
+  <script>
+    document.getElementById("home").href = root;
+    document.getElementById("docs").href = root + "docs/";
+  </script>
+</body>
+</html>

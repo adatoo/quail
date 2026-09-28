@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Models — Quail</title>
+  <meta name="description" content="Formats, fit verdicts, context size, KV cache, the default model and where models are stored.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="getting-started.html" aria-current="page">Docs</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <nav class="docs-nav" aria-label="Documentation">
+        <h2>Get started</h2>
+        <ul>
+          <li><a href="getting-started.html">Getting started</a></li>
+        </ul>
+        <h2>Using Quail</h2>
+        <ul>
+          <li><a href="models.html" aria-current="page">Models</a></li>
+          <li><a href="connect.html">Connect a tool</a></li>
+          <li><a href="network.html">Network and API key</a></li>
+          <li><a href="power.html">Power</a></li>
+          <li><a href="benchmark.html">Benchmark</a></li>
+        </ul>
+        <h2>Reference</h2>
+        <ul>
+          <li><a href="cli.html">The quail command</a></li>
+          <li><a href="troubleshooting.html">Troubleshooting</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+    </nav>
+    <main class="prose">
+<h1>Models</h1>
+<p class="lede">Quail keeps every model in one folder and tells you, before you download, whether each one fits this Mac.</p>
+
+<h2 id="formats">GGUF and MLX</h2>
+<p>Models come in two formats. <strong>GGUF</strong> files run on llama.cpp; <strong>MLX</strong> models run on Apple's MLX. Quail server, the default runtime, runs both. The llama.cpp runtime, kept as a fallback, runs GGUF only; choose the runtime on the Server page while the server is stopped.</p>
+<p>On Apple silicon, MLX usually writes replies faster, and GGUF reads short prompts a little faster. Add Model suggests MLX when Quail server is the runtime.</p>
+
+<h2 id="adding">Adding models</h2>
+<p><span class="path">Models → Add Model…</span> lists:</p>
+<ul>
+  <li><strong>Recommended for this Mac</strong>: curated models that run comfortably here, best first.</li>
+  <li><strong>The curated catalog</strong>: Qwen, Gemma, gpt-oss, Llama, DeepSeek-R1 distills and others, marked with what each is good for (coding, agents and tools, reasoning, vision…).</li>
+  <li><strong>More MLX models</strong>, from Rapid-MLX's catalog.</li>
+  <li><strong>Any Hugging Face repo</strong>: paste its name.</li>
+</ul>
+<p>The catalog updates itself weekly. From the terminal, <code>quail pull --list</code> shows the catalog and <code>quail pull &lt;name&gt;[:quant]</code> downloads.</p>
+<p>Models other apps downloaded — LM Studio, llama.cpp, the Hugging Face cache, oMLX — can be moved in rather than downloaded again: Quail offers them once, and <span class="path">Storage and downloads → ⋯ → Import Models from Other Apps…</span> reopens the list.</p>
+
+<h2 id="fit">Will it fit?</h2>
+<p>Every model gets a verdict for this Mac, worked out from its size and shape and the memory macOS lets the GPU use:</p>
+<table>
+  <tr><th>Comfortable</th><td>Runs at the chosen context with room to spare.</td></tr>
+  <tr><th>Tight</th><td>Fits at a smaller context, which Quail sets automatically. Other apps may be pushed out of memory.</td></tr>
+  <tr><th>Won't fit</th><td>Too big for this Mac, even at a small context.</td></tr>
+</table>
+<p>The Models page starts with a summary such as “This Mac: Apple M4 Pro · 64 GB · comfortable up to ~55B”. Speeds shown before a download are estimates from your chip's memory bandwidth; after a <a href="benchmark.html">benchmark</a>, the Models page shows the measured speed.</p>
+
+<h2 id="settings">A model's settings</h2>
+<p>Click the sliders button on a model's row (or its “8K context” text) to open its settings.</p>
+<h3>Context size</h3>
+<p>How much text the model can work with at once — the conversation, files and instructions together. <em>Automatic</em> picks the largest of 32K, 16K and 8K that runs comfortably here, never more than the model was trained for. Coding agents need 32K or more. Each size is labelled with its fit. From the terminal: <code>quail ctx &lt;model&gt; 32k</code>.</p>
+<h3>KV cache</h3>
+<p>The memory that holds the context. 8-bit makes it about half the size and 4-bit about a quarter, so a longer context fits in the same memory, a little less accurately. On MLX models it also makes reading long prompts slower; on GGUF the cost is too small to measure.</p>
+<h3>Load when the server starts</h3>
+<p>The default model (the star on its row) loads as soon as the server starts. Others load on their first request. From the terminal: <code>quail default &lt;model&gt;</code>.</p>
+<div class="note">Context, KV cache and the default model apply the next time the server starts. So do models added or deleted while it runs: the Server page and the menu say when a restart is needed.</div>
+
+<h2 id="using">Choosing a model in a request</h2>
+<p>Clients pick a model by its id, which is its name on the Models page — send it as <code>"model"</code>. Copy it from the model's settings. With <span class="path">Server → Models loaded at once</span> above 1, several stay loaded; each keeps its weights in memory, and the least recently used is unloaded when there's no room.</p>
+
+<h2 id="storage">Storage</h2>
+<p>Models live in <code>~/Library/Application Support/Quail/Models</code> unless you move them. From <span class="path">Models → Storage and downloads</span>:</p>
+<ul>
+  <li><strong>Show in Finder.</strong> Models you add or delete there show up in Quail by themselves.</li>
+  <li><strong>⋯ → Move Folder…</strong> moves the whole store, to an external disk for example (with the server stopped).</li>
+  <li><strong>⋯ → Clean Up…</strong> removes unfinished downloads and leftovers.</li>
+  <li><strong>Hugging Face token:</strong> only needed for gated models. It's kept in your Keychain.</li>
+</ul>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="index.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail/issues/new/choose">Report an issue</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

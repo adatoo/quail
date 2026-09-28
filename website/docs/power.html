@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Power — Quail</title>
+  <meta name="description" content="Keeping the Mac awake while the server runs, even with a laptop&#x27;s lid closed.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="getting-started.html" aria-current="page">Docs</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <nav class="docs-nav" aria-label="Documentation">
+        <h2>Get started</h2>
+        <ul>
+          <li><a href="getting-started.html">Getting started</a></li>
+        </ul>
+        <h2>Using Quail</h2>
+        <ul>
+          <li><a href="models.html">Models</a></li>
+          <li><a href="connect.html">Connect a tool</a></li>
+          <li><a href="network.html">Network and API key</a></li>
+          <li><a href="power.html" aria-current="page">Power</a></li>
+          <li><a href="benchmark.html">Benchmark</a></li>
+        </ul>
+        <h2>Reference</h2>
+        <ul>
+          <li><a href="cli.html">The quail command</a></li>
+          <li><a href="troubleshooting.html">Troubleshooting</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+    </nav>
+    <main class="prose">
+<h1>Power</h1>
+<p class="lede">A Mac that goes to sleep takes the server with it. Quail can keep it awake while the server runs.</p>
+
+<h2 id="awake">Keep this Mac awake while the server runs</h2>
+<p><span class="path">Server → Power</span>, or <span class="path">Keep Mac Awake While Serving</span> in the menu. It stops idle sleep, as <code>caffeinate</code> does, so a long download, benchmark or agent session isn't cut off. The display can still turn off.</p>
+
+<h2 id="lid">Also with the lid closed, when plugged in</h2>
+<p>macOS puts a laptop to sleep when its lid closes, whatever an app asks. With this on, Quail turns sleep off for the whole Mac while the server runs on power. It asks for your password the first time the server starts.</p>
+<p>Sleep comes back as soon as you unplug, stop the server or quit Quail.</p>
+<div class="note">A closed laptop running a model gets warm. Keep it out of a bag.</div>
+
+<h2 id="always-on">Always on</h2>
+<p>To have the server there whenever the Mac is, turn on <span class="path">General → Open Quail at login</span> and <span class="path">Server → Start the server when Quail opens</span>, or run <code>quail service enable</code>.</p>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="index.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail/issues/new/choose">Report an issue</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
