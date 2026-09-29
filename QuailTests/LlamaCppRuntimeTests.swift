@@ -127,6 +127,36 @@ struct LlamaCppRuntimeTests {
         }
     }
 
+    @Test("unload posts the model id to /models/unload with the key")
+    func unloadPostsModel() async throws {
+        let captured = CapturedBody()
+        let path = CapturedBody()
+        let session = Self.makeSession { request in
+            captured.set(request.httpBodyStreamData() ?? Data())
+            path
+                .set(
+                    Data(
+                        "\(request.httpMethod ?? "") \(request.url?.path ?? "") \(request.value(forHTTPHeaderField: "Authorization") ?? "")"
+                            .utf8
+                    )
+                )
+            return StubResponse(statusCode: 200, body: #"{"success":true}"#.data(using: .utf8)!)
+        }
+        let runtime = LlamaCppRuntime(executableURL: Self.executable, urlSession: session)
+        try await runtime.unload(model: ModelRef(id: "Qwen3-8B-Q4_K_M"), base: Self.base, apiKey: "k")
+        #expect(String(data: path.data ?? Data(), encoding: .utf8) == "POST /models/unload Bearer k")
+        let body = try JSONSerialization.jsonObject(with: captured.data ?? Data()) as? [String: String]
+        #expect(body?["model"] == "Qwen3-8B-Q4_K_M")
+
+        let failing = LlamaCppRuntime(
+            executableURL: Self.executable,
+            urlSession: Self.makeSession { _ in StubResponse(statusCode: 404, body: Data()) }
+        )
+        await #expect(throws: RuntimeError.httpStatus(404)) {
+            try await failing.unload(model: ModelRef(id: "nope"), base: Self.base, apiKey: nil)
+        }
+    }
+
     // MARK: - Authorization header
 
     //

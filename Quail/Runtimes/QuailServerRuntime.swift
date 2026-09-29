@@ -66,6 +66,10 @@ struct QuailServerRuntime: Runtime {
         try await http.select(model: model, base: base, apiKey: apiKey)
     }
 
+    func unload(model: ModelRef, base: URL, apiKey: String?) async throws {
+        try await http.unload(model: model, base: base, apiKey: apiKey)
+    }
+
     /// Its own chat page at `/` (ADR D-042).
     func webUIURL(base: URL) -> URL? {
         base

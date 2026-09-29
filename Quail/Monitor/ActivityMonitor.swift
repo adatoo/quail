@@ -267,6 +267,8 @@ final class ActivityMonitor {
     /// For previews and snapshot tests.
     func show(system: SystemSample, server: ServerActivity, history: [ActivityPoint], running: Bool = true) {
         frozen = true
+        task?.cancel()
+        task = nil
         self.system = system
         self.server = server
         self.history = history

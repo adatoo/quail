@@ -926,6 +926,15 @@ final class AppState {
         _ = try await runtime.select(model: ModelRef(id: id), base: base, apiKey: apiKey)
     }
 
+    /// Asks the running server to unload `id` (after its requests in flight finish), then re-reads what's loaded.
+    func unloadModel(id: String) async throws {
+        guard let base = baseURL, serverController.phase == .ready else {
+            throw ModelSelectionError.serverNotRunning
+        }
+        try await runtime.unload(model: ModelRef(id: id), base: base, apiKey: apiKey)
+        await refreshServedModels()
+    }
+
     enum ModelSelectionError: Error, Equatable, CustomStringConvertible {
         case serverNotRunning
         case notInstalled

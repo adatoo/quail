@@ -18,6 +18,8 @@ actor FakeRuntime: Runtime {
     private var healthCallIndex = 0
     private var listModelsResult: Result<[ServedModel], Error> = .success([])
     private var selectResult: Result<SelectAction, Error> = .success(.hotSwapped)
+    /// The models `unload` was asked for, in order.
+    private(set) var unloaded: [String] = []
     /// How many times `listModels` has been called — lets a test prove a
     /// poll really stopped, not just that it produced the right result.
     private(set) var listModelsCallCount = 0
@@ -61,6 +63,10 @@ actor FakeRuntime: Runtime {
 
     func select(model _: ModelRef, base _: URL, apiKey _: String?) async throws -> SelectAction {
         try selectResult.get()
+    }
+
+    func unload(model: ModelRef, base _: URL, apiKey _: String?) async throws {
+        unloaded.append(model.id)
     }
 
     nonisolated func webUIURL(base: URL) -> URL? {

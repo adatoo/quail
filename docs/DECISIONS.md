@@ -226,6 +226,16 @@ Settings had no server status and no Start/Stop, though Endpoint's runtime picke
   - links: Release Notes, Report an Issue, Source Code, plus Website and Documentation when there is a website
   - an MLX row: the mlx-swift-lm and mlx-swift pins, read from the notices file. `quail-server`'s version is the app's own, so it needs no row of its own (Phase 4 step 6).
 
+**Amended 2026-09-29 (issue #134): loaded models at the top of the Models page.** A loaded model used to show only as a small "loaded" badge among every installed row.
+- **A Loaded section:** while the server is ready, it heads the page with every loaded or loading model. It comes from the same app-wide `GET /models` poll as the menu's "Loaded: …" line, and each row shows:
+  - the model's format and context;
+  - its memory: MLX's own figure from `/slots`, or the server's footprint for GGUF;
+  - what it's doing: "Loading 6 s", "Idle", or "1 request · 43 tok/s".
+- **Actions:** **Unload** (`POST /models/unload` through a new `Runtime.unload`, finishing the model's requests in flight first) and the default star.
+- **With nothing loaded,** one line says what will load and when.
+- **Installed still lists every model,** loaded ones included, so it doesn't reshuffle as models load and unload.
+- **Layout:** the rows share one Form row. As separate rows, the grouped Form drew only the first inside the section's card.
+
 ## D-060 · 2026-09-28 · Live activity: `GET /slots`, the menu bar and an Activity window
 
 **Situation:** a 30,000-token prompt takes a minute and a half on Qwen3-8B, and a model load takes seconds. The whole time, Quail's menu says "Running" and the client waits in silence. The app knew the server's phase and each model's load state, from a 2 s `GET /models` poll, and nothing else: no request state, no progress, no memory, CPU or GPU figures.

@@ -793,6 +793,34 @@ struct AppStateTests {
         await appState.stop()
     }
 
+    @Test("unloadModel: refused while stopped; asks the runtime and re-reads what's loaded while running")
+    func unloadModelAsksTheRuntime() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let runtime = FakeRuntime(launchSpec: LaunchSpec(
+            executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["30"], environment: [:],
+            currentDirectoryURL: nil
+        ))
+        let appState = makeAppState(scratchDir: scratch, runtime: runtime)
+        await #expect(throws: AppState.ModelSelectionError.serverNotRunning) {
+            try await appState.unloadModel(id: "Big-Q8_0")
+        }
+
+        try writeFixtureGGUF(named: "Big-Q8_0", to: appState.modelStore)
+        await runtime.setListModelsResult(.success([ServedModel(id: "Big-Q8_0", status: .init(
+            value: "loaded", failed: nil, exitCode: nil
+        ))]))
+        await appState.start()
+        #expect(appState.servedModels.first?.status.value == "loaded")
+        await runtime.setListModelsResult(.success([ServedModel(id: "Big-Q8_0", status: .init(
+            value: "unloaded", failed: nil, exitCode: nil
+        ))]))
+        try await appState.unloadModel(id: "Big-Q8_0")
+        #expect(await runtime.unloaded == ["Big-Q8_0"])
+        #expect(appState.servedModels.first?.status.value == "unloaded")
+        await appState.stop()
+    }
+
     @Test("setModelsMax persists; rejects 0 and unchanged values")
     func setModelsMaxPersists() {
         let scratch = scratchDirectory()
