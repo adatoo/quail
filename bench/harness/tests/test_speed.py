@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 
 from harness import config, speed
-from harness.monitor import parse_power, summarise as summarise_resources
+from harness.monitor import parse_footprint, parse_power, summarise as summarise_resources
 
 
 class SpeedTests(unittest.TestCase):
@@ -71,14 +71,24 @@ class SpeedTests(unittest.TestCase):
 
 
 class MonitorTests(unittest.TestCase):
+    def test_footprint_table(self):
+        text = ("llama-server [41148]: 64-bit    Footprint: 2000 B (16384 bytes per page)\n"
+                "      Dirty         Clean   Reclaimable    Regions    Category\n"
+                "        ---           ---           ---        ---    ---\n"
+                "     1500 B           0 B           0 B       1339    IOAccelerator (graphics)\n"
+                "      500 B        9000 B           0 B          3    mapped file\n")
+        self.assertEqual(parse_footprint(text), (2000, 11000))
+        self.assertIsNone(parse_footprint("nothing"))
+
     def test_power_lines(self):
         text = "CPU Power: 1058 mW\nGPU Power: 5 mW\nCombined Power (CPU + GPU + ANE): 1063 mW\n"
         self.assertEqual(parse_power(text), [1.063])
 
     def test_summary(self):
-        summary = summarise_resources([(0.0, 10), (1.0, 30), (2.0, 20)], [10.0, 20.0], 2.04)
+        summary = summarise_resources([(0.0, 10, 50), (1.0, 30, 70), (2.0, 20, 60)], [10.0, 20.0], 2.04)
         self.assertEqual(summary["peak_footprint_bytes"], 30)
         self.assertEqual(summary["median_footprint_bytes"], 20)
+        self.assertEqual(summary["peak_resident_bytes"], 70)
         self.assertEqual(summary["mean_watts"], 15.0)
         self.assertEqual(summarise_resources([], [], 1.0)["mean_watts"], None)
 

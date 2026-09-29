@@ -58,5 +58,30 @@ class EngineSettingsTests(unittest.TestCase):
             engines.select("nope")
 
 
+
+class DiscardTests(unittest.TestCase):
+    def test_caches_go_logs_stay_and_links_are_never_followed(self):
+        import tempfile
+        from pathlib import Path
+        from harness.engines import discard_caches
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Path(tmp) / "store"
+            (store / "model").mkdir(parents=True)
+            (store / "model" / "weights.safetensors").write_text("precious")
+            work = Path(tmp) / "work"
+            (work / "home" / ".cache").mkdir(parents=True)
+            (work / "home" / ".cache" / "prefix.bin").write_text("x" * 100)
+            (work / "omlx-ssd").mkdir()
+            (work / "server.log").write_text("log")
+            (work / "launch.json").write_text("{}")
+            (work / "models").mkdir()
+            (work / "models" / "link").symlink_to(store / "model")
+            (work / "direct-link").symlink_to(store / "model")
+            discard_caches(work)
+            self.assertEqual(sorted(p.name for p in work.iterdir()), ["launch.json", "server.log"])
+            self.assertEqual((store / "model" / "weights.safetensors").read_text(), "precious")
+
+
 if __name__ == "__main__":
     unittest.main()

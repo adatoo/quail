@@ -7,6 +7,14 @@
                                                 the speed benchmark (GuideLLM), on a quieted Mac
     python -m harness native [--budget …] [--models …]
                                                 the engine-native baselines (llama-bench, mlx_lm.benchmark)
+    python -m harness quality [--budget …] [--engines …] [--models …]
+                                                GSM8K and MMLU-Pro with lm-eval, through the request shim
+    python -m harness tools [--budget …] [--engines …] [--models …]
+                                                BFCL's function-calling categories, through the request shim
+    python -m harness compare [--budget …] [--engines …] [--models …] [--resume RUN]
+                                                all four, in one run folder; --resume carries on a stopped one
+    python -m harness report RUN [--smoke RUN] [--out DIR]
+                                                the report: docs/benchmarks/<date>/ from a compare run
     python -m harness restore                   resume anything a killed run left paused
 """
 
@@ -18,10 +26,14 @@ import json
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 from . import config, engines, machine
 from .smoke import smoke
 from .native import native
+from .quality import quality
+from .report import report
+from .tools import tool_calling
 from .speed import speed
 
 
@@ -106,7 +118,7 @@ def run_smoke(args) -> int:
     return 0 if ok else 1
 
 
-def timed(kind: str, args, body) -> int:
+def timed(kind: str, args, body, run_dir=None) -> int:
     """A timed run: refuses a noisy Mac (unless --allow-others, which the run records), keeps it awake, pauses
     Spotlight and the analysis daemons, and always puts them back."""
     others = machine.competing_servers()
@@ -124,7 +136,7 @@ def timed(kind: str, args, body) -> int:
         print("Not a quiet Mac, so no timed run:\n  " + "\n  ".join(problems)
               + "\n(--allow-others runs anyway, for a dry run; the run records why its numbers don't count.)")
         return 1
-    run_dir = new_run(kind)
+    run_dir = run_dir or new_run(kind)
     (run_dir / "conditions.json").write_text(json.dumps({"budget": args.budget, "not_quiet": problems}, indent=2))
     print(f"{kind.capitalize()} benchmark ({args.budget}) → {run_dir}")
     if problems:
@@ -147,6 +159,50 @@ def run_speed(args) -> int:
 def run_native(args) -> int:
     return timed("native", args, lambda run_dir: print(
         f"\nresults: {native(pick_models(args.models), args.budget, run_dir)}"))
+
+
+def run_quality(args) -> int:
+    return timed("quality", args, lambda run_dir: print(
+        f"\nresults: {quality(engines.select(args.engines), pick_models(args.models), args.budget, run_dir)}"))
+
+
+def run_tools(args) -> int:
+    return timed("tools", args, lambda run_dir: print(
+        f"\nresults: {tool_calling(engines.select(args.engines), pick_models(args.models), args.budget, run_dir)}"))
+
+
+def run_compare(args) -> int:
+    chosen, models = engines.select(args.engines), pick_models(args.models)
+
+    def body(run_dir):
+        speed(chosen, models, args.budget, run_dir)
+        native(models, args.budget, run_dir)
+        quality(chosen, models, args.budget, run_dir)
+        tool_calling(chosen, models, args.budget, run_dir)
+        print(f"\nresults: {run_dir}")
+
+    run_dir = None
+    if args.resume:
+        run_dir = config.RUNS / args.resume if not args.resume.startswith("/") else Path(args.resume)
+        if not run_dir.is_dir():
+            raise SystemExit(f"no run folder {run_dir}")
+    return timed("compare", args, body, run_dir)
+
+
+def run_report(args) -> int:
+    def folder(name: str | None) -> Path | None:
+        if not name:
+            return None
+        path = Path(name) if name.startswith("/") else config.RUNS / name
+        if not path.is_dir():
+            raise SystemExit(f"no run folder {path}")
+        return path
+
+    run_dir = folder(args.run)
+    out = Path(args.out) if args.out else config.REPO / "docs" / "benchmarks" / (
+        f"{run_dir.name[:4]}-{run_dir.name[4:6]}-{run_dir.name[6:8]}")
+    report(run_dir, folder(args.smoke), out)
+    return 0
 
 
 def restore(_args) -> int:
@@ -176,6 +232,33 @@ def main(argv: list[str] | None = None) -> int:
     native_parser.add_argument("--allow-others", action="store_true",
                                help="run even though the Mac isn't quiet (a dry run; recorded as such)")
     native_parser.set_defaults(fn=run_native)
+    quality_parser = sub.add_parser("quality", help="GSM8K and MMLU-Pro (lm-eval)")
+    quality_parser.add_argument("--budget", default="quick", help="quick, night or full (config/fairness.toml)")
+    quality_parser.add_argument("--engines", help=f"comma-separated, from: {', '.join(engines.ENGINES)}")
+    quality_parser.add_argument("--models", help="comma-separated model ids from config/models.toml")
+    quality_parser.add_argument("--allow-others", action="store_true",
+                                help="run even though the Mac isn't quiet (a dry run; recorded as such)")
+    quality_parser.set_defaults(fn=run_quality)
+    tools_parser = sub.add_parser("tools", help="BFCL function calling")
+    tools_parser.add_argument("--budget", default="quick", help="quick, night or full (config/fairness.toml)")
+    tools_parser.add_argument("--engines", help=f"comma-separated, from: {', '.join(engines.ENGINES)}")
+    tools_parser.add_argument("--models", help="comma-separated model ids from config/models.toml")
+    tools_parser.add_argument("--allow-others", action="store_true",
+                              help="run even though the Mac isn't quiet (a dry run; recorded as such)")
+    tools_parser.set_defaults(fn=run_tools)
+    compare_parser = sub.add_parser("compare", help="speed, native, quality and tools in one run")
+    compare_parser.add_argument("--budget", default="quick", help="quick, night or full (config/fairness.toml)")
+    compare_parser.add_argument("--engines", help=f"comma-separated, from: {', '.join(engines.ENGINES)}")
+    compare_parser.add_argument("--models", help="comma-separated model ids from config/models.toml")
+    compare_parser.add_argument("--resume", help="a run folder name under bench/runs to carry on")
+    compare_parser.add_argument("--allow-others", action="store_true",
+                                help="run even though the Mac isn't quiet (a dry run; recorded as such)")
+    compare_parser.set_defaults(fn=run_compare)
+    report_parser = sub.add_parser("report", help="write the report for a compare run")
+    report_parser.add_argument("run", help="the compare run's folder name under bench/runs")
+    report_parser.add_argument("--smoke", help="the smoke run whose capabilities.json gives the caveats")
+    report_parser.add_argument("--out", help="where to write it (default docs/benchmarks/<date>)")
+    report_parser.set_defaults(fn=run_report)
     sub.add_parser("restore", help="resume anything a killed run left paused").set_defaults(fn=restore)
     args = parser.parse_args(argv)
     return args.fn(args)

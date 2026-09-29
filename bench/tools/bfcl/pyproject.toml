@@ -1,0 +1,12 @@
+# The Berkeley Function-Calling Leaderboard's evaluator for the comparison harness's tool-calling runs (ADR D-063),
+# pinned. It talks to the harness's request shim (harness/shim.py) as an OpenAI-compatible endpoint.
+# `task bench:setup` makes the environment.
+[project]
+name = "bench-bfcl"
+version = "0"
+requires-python = "==3.12.*"
+# soundfile: qwen-agent, which bfcl-eval imports at start-up, needs it but doesn't declare it.
+dependencies = ["bfcl-eval==2026.3.23", "soundfile"]
+
+[tool.uv]
+package = false

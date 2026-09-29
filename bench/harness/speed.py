@@ -23,7 +23,7 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from . import config, httpc, machine
+from . import config, httpc, machine, records
 from .config import Model
 from .engines import Engine, EngineUnavailable, Server
 from .monitor import Monitor
@@ -224,6 +224,7 @@ def speed(engines: list[Engine], models: list[Model], budget_name: str, run_dir:
     budget = config.budget(budget_name)
     rounds = budget["speed_rounds"]
     results = run_dir / "speed.jsonl"
+    finished = records.done(results, ("model", "engine", "round"), need="level", count=len(levels(fairness)))
     for model in models:
         available = []
         for engine in engines:
@@ -244,6 +245,9 @@ def speed(engines: list[Engine], models: list[Model], budget_name: str, run_dir:
         for round_index in range(rounds):
             order = available if round_index % 2 == 0 else list(reversed(available))
             for engine in order:
+                if (model.id, engine.name, round_index + 1) in finished:
+                    log(f"    {engine.title}: round {round_index + 1} already done")
+                    continue
                 record = {"model": model.id, "engine": engine.name, "lane": engine.lane, "round": round_index + 1,
                           "version": engine.version()}
                 round_dir = run_dir / f"round-{round_index + 1}"
@@ -258,23 +262,19 @@ def speed(engines: list[Engine], models: list[Model], budget_name: str, run_dir:
                         if machine.hotter(result.get("thermal_after"), fairness["thermal"]["rerun_above"]):
                             log(f"    {level.name}: ended {result['thermal_after']}; running it again")
                             result["discarded"] = True
-                            append(results, {**record, **result})
+                            records.append(results, {**record, **result})
                             result = run_level(server, level, paths[(round_index, level.name + "-rerun")], budget,
                                                fairness, out.with_name(level.name + "-rerun"), log=log)
-                        append(results, {**record, **result})
+                        records.append(results, {**record, **result})
                         log(f"    {engine.title:<16} {level.name:<14} " + describe(result))
                 except Exception as error:  # an engine failing is a result, not the end of the run
-                    append(results, {**record, "error": f"{type(error).__name__}: {error}"})
+                    records.append(results, {**record, "error": f"{type(error).__name__}: {error}"})
                     log(f"    {engine.title}: {error}")
                 finally:
                     if server:
                         engine.stop(server)
     return results
 
-
-def append(path: Path, record: dict) -> None:
-    with path.open("a") as f:
-        f.write(json.dumps(record) + "\n")
 
 
 def describe(result: dict) -> str:
@@ -289,8 +289,9 @@ def describe(result: dict) -> str:
              f"ITL {itl:.1f} ms" if itl else "ITL ?"]
     if short:
         parts.append(f"{short} short")
-    if result.get("peak_footprint_bytes"):
-        parts.append(f"{result['peak_footprint_bytes'] / 2**30:.1f} GB")
+    memory = result.get("peak_resident_bytes") or result.get("peak_footprint_bytes")
+    if memory:
+        parts.append(f"{memory / 2**30:.1f} GB")
     if result.get("mean_watts"):
         parts.append(f"{result['mean_watts']:.0f} W")
     return ", ".join(parts)
