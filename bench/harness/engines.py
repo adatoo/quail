@@ -132,7 +132,8 @@ class Engine:
             "env": {k: redact(v, key) for k, v in env.items()},
             "port": port,
         }, indent=2))
-        log(f"  starting {self.title} with {model.name} on port {port}")
+        switches = " ".join(f"{k}={v}" for k, v in launch.env.items() if k.startswith("QUAIL_"))
+        log(f"  starting {self.title} with {model.name} on port {port}" + (f", with {switches}" if switches else ""))
         process = subprocess.Popen(
             launch.argv, env=env, cwd=workdir, stdin=subprocess.DEVNULL,
             stdout=open(log_path, "ab"), stderr=subprocess.STDOUT, start_new_session=True,
@@ -194,6 +195,12 @@ def quail_app() -> Path:
     raise EngineUnavailable("no Release Quail.app found; `task install`, or set QUAIL_BENCH_APP")
 
 
+def quail_switches() -> dict[str, str]:
+    """Quail's own switches set where the harness runs (`QUAIL_MLX_BATCH=0`, `QUAIL_PROMPT_LOOKUP=0`, …), passed
+    to its server for an A/B run; the harness's own settings (QUAIL_BENCH_*) aren't. launch.json records them."""
+    return {k: v for k, v in os.environ.items() if k.startswith("QUAIL_") and not k.startswith("QUAIL_BENCH_")}
+
+
 def presets(model: Model, lane: str, served: str, fairness: dict, *, llama_server: bool = False) -> str:
     """The `--models-preset` section both Quail's server and llama-server read (ModelStore.regeneratePresets'
     format). For GGUF the context is one pool shared by every slot, as llama-server's unified KV cache is; for
@@ -236,7 +243,7 @@ class QuailEngine(Engine):
                 "--parallel", str(fairness["slots"]), "--no-prompt-cache-disk", "--no-webui",
                 "--log-file", str(workdir / "quail-server.log"), "--api-key", key,
             ],
-            env={},
+            env=quail_switches(),
             served=served,
             files={
                 "presets.ini": presets(model, self.lane, served, fairness),

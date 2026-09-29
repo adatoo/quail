@@ -10,6 +10,17 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.61.2] - 2026-09-29
+
+### Fixed
+
+- **MLX models no longer make Quail's memory grow with every conversation.** (#137) MLX keeps the GPU buffers it frees for reuse, and by default it could keep almost all of memory. Serving several requests at once frees large buffers of ever-changing sizes, so Qwen3 8B reached 30 GB and stayed there.
+  - The cache is now capped at 2 GB, or less on a smaller Mac.
+  - It's cleared as requests run, and when nothing is running.
+  - On a 64 GB Mac mini, Qwen3 8B serving eight requests at once peaked at 11 GB instead of 21 GB.
+  - `QUAIL_MLX_CLEAR_CACHE=0` turns this off.
+- The memory shown for a loaded MLX model now includes that cache, since macOS counts it against Quail.
+
 ## [0.61.1] - 2026-09-29
 
 ### Documentation

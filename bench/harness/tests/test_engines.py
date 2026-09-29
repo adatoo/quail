@@ -50,6 +50,11 @@ class EngineSettingsTests(unittest.TestCase):
     def test_keys_never_reach_the_recorded_command(self):
         self.assertEqual(engines.redact("--api-key=abc123", "abc123"), "--api-key=<key>")
 
+    def test_quails_switches_reach_its_server_but_the_harness_settings_dont(self):
+        environment = {"QUAIL_MLX_CLEAR_CACHE": "0", "QUAIL_BENCH_APP": "/Applications/Quail.app", "PATH": "/bin"}
+        with mock.patch.dict("os.environ", environment, clear=True):
+            self.assertEqual(engines.quail_switches(), {"QUAIL_MLX_CLEAR_CACHE": "0"})
+
     def test_the_roster_covers_both_lanes(self):
         lanes = {engine.lane for engine in engines.ENGINES.values()}
         self.assertEqual(lanes, {"gguf", "mlx"})

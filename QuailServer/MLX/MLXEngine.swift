@@ -46,6 +46,16 @@ final class MLXEngine: Engine, @unchecked Sendable {
     /// `model_type`s whose batched text was checked against the same requests run alone.
     static let batchedFamilies: Set<String> = ["qwen3", "qwen3_5", "qwen3_5_moe"]
 
+    /// Whether MLX's buffer cache is limited and cleared while serving (`BufferCachePolicy`, #137); off with
+    /// `QUAIL_MLX_CLEAR_CACHE=0`, which leaves MLX's defaults (a cache up to about the whole of memory).
+    static let managesBufferCache = ProcessInfo.processInfo.environment["QUAIL_MLX_CLEAR_CACHE"] != "0"
+
+    /// Gives MLX's cached buffers back to macOS, once the GPU has finished with the work queued so far.
+    static func clearBufferCache() {
+        Stream.defaultStream(.gpu).synchronize()
+        Memory.clearCache()
+    }
+
     /// Everything a request needs from the loaded model; replaced whole on load.
     final class Loaded: @unchecked Sendable {
         let container: ModelContainer
@@ -241,6 +251,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
     func load(_ entry: ModelEntry) async throws {
         await unload()
         lock.withLock { self.entry = entry }
+        if Self.managesBufferCache, let workingSet = GPU.maxRecommendedWorkingSetBytes() {
+            Memory.cacheLimit = BufferCachePolicy.limit(workingSet: workingSet)
+        }
         do {
             try await load(entry, vision: false)
         } catch where entry.mlxVision {
@@ -342,9 +355,10 @@ final class MLXEngine: Engine, @unchecked Sendable {
         Memory.clearCache()
     }
 
-    /// What MLX's allocator holds in live arrays: weights, caches and work in progress (`GET /slots`).
+    /// What MLX's allocator holds (`GET /slots`): live arrays (weights, caches and work in progress) and the freed
+    /// buffers it keeps for reuse, which macOS counts against the process until they're given back.
     func memoryBytes() async -> Int? {
-        Memory.activeMemory
+        Memory.activeMemory + Memory.cacheMemory
     }
 
     func info() async -> EngineInfo {
@@ -442,6 +456,19 @@ final class MLXEngine: Engine, @unchecked Sendable {
         var current: MLXArray?
         var joining: MLXSequence?
         var bytesPerToken = 0
+        var clearing = BufferCachePolicy()
+        defer {
+            if Self.managesBufferCache {
+                Self.clearBufferCache()
+            }
+        }
+
+        /// Counts a decode step, and clears the buffer cache when it's due.
+        func stepped() {
+            if Self.managesBufferCache, clearing.step() {
+                Memory.clearCache()
+            }
+        }
 
         /// Whether a waiting request can start now.
         func admissible(_ job: MLXJob) -> Bool {
@@ -469,6 +496,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
                 }
                 sequence.finish(in: loaded)
                 sequence.job.done()
+                clearing.finished()
             }
             if let rows = batch {
                 if staying.count >= 2 {
@@ -513,6 +541,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             if !leaving.isEmpty {
                 leave(leaving)
             }
+            stepped()
         }
 
         /// A sequence whose prompt is fed joins the active ones.
@@ -574,11 +603,13 @@ final class MLXEngine: Engine, @unchecked Sendable {
                     current = nil
                 }
                 let finished = sequence.decodeAlone(context: context) {
-                    queue.first.map(admissible) ?? false
+                    stepped()
+                    return queue.first.map(admissible) ?? false
                 }
                 if finished {
                     sequence.finish(in: loaded)
                     sequence.job.done()
+                    clearing.finished()
                     active = []
                 }
                 continue
