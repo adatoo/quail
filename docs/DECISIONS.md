@@ -541,6 +541,30 @@ The fit formula had `b` fixed at 2, and nothing set anything else.
   - **Two at once was slower in total** (48.9 against 58.8 tokens/s), though its first token came sooner (2.3 against 5.1 s). Each row sends its tokens to different experts, so two rows read about twice the expert weights: 31 ms a step against 13.5 ms alone.
   - **Peak memory at eight at once was 23.9 GB, against 16.9 GB,** for eight sequences' caches.
 
+**Amended 2026-09-29 (where the time goes with eight at once, #139):**
+- **A trace of the serving loop.** `QUAIL_MLX_TRACE=<file>` writes one JSON line per slice, first token, join, step and solo decode, each with its wall time and batch size. It's for tuning; nothing reads it otherwise.
+- **Eight streams of 512-token prompts and 256-token replies**, on the M1 Max:
+
+  | Model | Steps at eight | Their share of the time | Native mlx-lm step at eight | Reading each newcomer | Its share |
+  |---|---:|---:|---:|---:|---:|
+  | Qwen3 8B | 141 ms | 70% | 124 ms | 1.7 s | 30% |
+  | Qwen3.6 35B-A3B | 72 ms | 63% | 61 ms | 1.1 s | 23% |
+  | Gemma 4 26B-A4B | 97 ms | 66% | 79 ms | 1.2 s | 21% |
+
+- **Reading the steps and the newcomers:**
+  - **The steps take 13–24% longer than mlx-lm's own batched step.** Building a step's graph takes about 1 ms of CPU; the rest is waiting on the GPU. So the gap is in the GPU work Quail asks for, not in Swift. Two leads to profile: a cache update that can't write in place while the step before it is still pending, and sampling one row at a time.
+  - **Reading prompts together wouldn't help much here.** mlx-lm reads 512-token prompts at 318–331 tokens/s on Qwen3 8B whether one or eight at a time. Mixture-of-experts models gain more (Qwen3.6: 504 → 670 tokens/s). But newcomers arrive about one at a time once a batch is running, so a wave would mean holding requests back. Rapid-MLX does hold them back: 10.6 s to first token at eight at once, against Quail's 3.6 s.
+- **Changed: a prompt read with nothing else in progress goes in 2,048-token slices,** as mlx-lm reads it, instead of 512. The larger slices stop at 8,192 tokens. Past that, a slice's attention scores (Qwen3.5 and Gemma 4 heads are too wide for MLX's fused prefill kernel) would pass a gigabyte, so it's 512 again. A newcomer read between the others' steps stays at 512, so it holds them up less at a time.
+- **Measured** on the M1 Max, a 4,096-token prompt, cooled before each, two runs of three:
+
+  | Model | 512-token slices | 2,048-token slices |
+  |---|---:|---:|
+  | Qwen3.6 35B-A3B | 8.3 s | 7.0 s |
+  | Gemma 4 26B-A4B | 9.1–9.9 s | 8.4–8.6 s |
+  | Qwen3 8B | 13.6 s | 13.4 s |
+
+  The Qwen3 8B runs varied by more than the difference between them.
+
 ## D-055 · 2026-09-27 · MLX engine performance: catch up to mlx-swift-lm `main`, then per-conversation caching, before batching
 
 **Situation:** Reviewed oMLX and Rapid-MLX in depth (both deferred, D-027) to see what performance work they actually do on top of stock MLX. Neither forks MLX core or `mlx-lm`; both pin stock versions and build orchestration above them, plus a handful of model-family-specific Metal kernels reached through `mx.fast.metal_kernel`, not a patched MLX. Verified in their source: continuous batching on `mlx-lm`'s own `BatchGenerator`; a block-hashed prefix cache (despite the "paged" name, this is storage and hashing around `mlx-lm`'s ordinary contiguous `KVCache`, not GPU paged attention); an SSD tier for that cache (safetensors, survives restarts); MTP and prompt-lookup speculative decoding; a wired-memory and buffer-cache limit set at startup; and narrow wins — a fused sampler (Rapid-MLX claims ~4.3ms/token removed), fused MoE gate+up (+7%), and compiled decode for specific models. `MLXEngine` (D-044) today has none of the orchestration layer: it serves one request at a time (`concurrentRequests: false`), keeps exactly one prompt-prefix cache for the whole server (`ReusableCache` — a second conversation evicts the first's, so agent + chat-page use thrashes it), sets no wired-memory or MLX cache limit, and `SeededSampler` sorts the full vocabulary for top-p/min-p/top-k on every token even at request defaults (temperature 0.8, top-k 40, top-p 0.95, min-p 0.05 — all three run). `mlx-swift-lm` is pinned to 3.31.3 (`project.yml`); 3.31.4 and `main` already carry MTP speculative decoding, compiled decode for Qwen3.5/3.6, `TurboQuantKVCache`, and prompt-cache saves that include SSM/hybrid-model state.

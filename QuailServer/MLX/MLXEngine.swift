@@ -224,6 +224,14 @@ final class MLXEngine: Engine, @unchecked Sendable {
     static let checkpointInterval = 4096
     /// Prefill slices queued ahead of the one the loop waits for.
     static let slicesInFlight = 2
+    /// Prompt tokens read at a time with nothing else in progress, after `fed` of them (#139): 2,048, as mlx-lm reads
+    /// them (Qwen3.6's 4,096-token prompt took 7.0 s instead of 8.3 s on the M1 Max), while the prompt so far is
+    /// short enough for a slice's attention scores to stay near a gigabyte. Qwen3.5's and Gemma 4's attention heads
+    /// are too wide for MLX's fused kernel, which then materialises the scores; past 8,192 tokens, the library's 512.
+    /// A newcomer read between the others' steps always goes in 512, so it holds them up less at a time.
+    static func aloneSliceTokens(after fed: Int) -> Int {
+        fed < 8192 ? 2048 : 512
+    }
 
     /// Copies of the layers that can't be cut back. References, not data: the model replaces these arrays
     /// rather than writing into them.
@@ -587,14 +595,21 @@ final class MLXEngine: Engine, @unchecked Sendable {
                 // Nothing else in progress: the whole prompt, pipelined.
                 joining = nil
                 while !sequence.prefilled, !sequence.cancelled {
-                    sequence.prefillSlice(context: context)
+                    MLXTrace.time("slice", ["batch": 0]) {
+                        sequence.prefillSlice(
+                            context: context,
+                            tokens: Self.aloneSliceTokens(after: sequence.fedTokens)
+                        )
+                    }
                 }
                 if sequence.cancelled {
                     sequence.abandonPrefill(in: loaded)
                     sequence.job.done()
                     continue
                 }
-                sequence.startDecoding(context: context)
+                MLXTrace.time("first", ["batch": 0, "prompt": sequence.prompt.count - sequence.reused]) {
+                    sequence.startDecoding(context: context)
+                }
                 if bytesPerToken == 0 {
                     bytesPerToken = BatchedLayers.bytesPerToken(sequence.layers)
                 }
@@ -607,10 +622,14 @@ final class MLXEngine: Engine, @unchecked Sendable {
                     sequence.pending = tokens.item(Int.self)
                     current = nil
                 }
-                let finished = sequence.decodeAlone(context: context) {
-                    stepped()
-                    return queue.first.map(admissible) ?? false
+                let before = sequence.generated.count
+                let finished = MLXTrace.time("alone") {
+                    sequence.decodeAlone(context: context) {
+                        stepped()
+                        return queue.first.map(admissible) ?? false
+                    }
                 }
+                MLXTrace.note("alone-tokens", ["tokens": sequence.generated.count - before])
                 if finished {
                     sequence.finish(in: loaded)
                     sequence.job.done()
@@ -628,15 +647,17 @@ final class MLXEngine: Engine, @unchecked Sendable {
                     sequence.abandonPrefill(in: loaded)
                     sequence.job.done()
                 } else if !sequence.prefilled {
-                    sequence.prefillSlice(context: context)
+                    MLXTrace.time("slice", ["batch": active.count]) { sequence.prefillSlice(context: context) }
                 } else {
                     joining = nil
-                    sequence.startDecoding(context: context)
-                    join(sequence)
+                    MLXTrace.time("first", ["batch": active.count, "prompt": sequence.prompt.count - sequence.reused]) {
+                        sequence.startDecoding(context: context)
+                    }
+                    MLXTrace.time("join", ["batch": active.count]) { join(sequence) }
                 }
             }
             if !active.isEmpty {
-                step()
+                MLXTrace.time("step", ["batch": active.count]) { step() }
             }
         }
     }

@@ -115,6 +115,11 @@ final class MLXSequence {
         job.cancelled.isSet
     }
 
+    /// Prompt tokens in the cache so far.
+    var fedTokens: Int {
+        fed
+    }
+
     var prefilled: Bool {
         fed >= feedTo
     }
@@ -187,9 +192,9 @@ final class MLXSequence {
     /// back is waited for, so the GPU always has work queued while the CPU builds the next graph (mlx-swift-lm
     /// 3.31.4 pipelines its own prefill the same way; with one slice in flight Gemma 4's prompts ran 3–5% slower
     /// than the library's). A hang-up is still noticed within two or three slices.
-    func prefillSlice(context: ModelContext) {
+    func prefillSlice(context: ModelContext, tokens: Int? = nil) {
         guard fed < feedTo else { return }
-        let count = min(step, feedTo - fed)
+        let count = min(tokens ?? step, feedTo - fed)
         let slice = MLXArray(prompt[fed ..< fed + count].map { Int32(truncatingIfNeeded: $0) })
         _ = context.model(.init(tokens: slice.expandedDimensions(axis: 0)), cache: layers, state: nil)
         let queued = layers.flatMap { $0.innerState() }
