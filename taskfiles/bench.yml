@@ -10,6 +10,7 @@
 #   task bench:tools      BFCL's function-calling categories through the request shim
 #   task bench:compare    all four in one run folder (RESUME=<run> carries on a stopped one)
 #   task bench:report     the report for a compare run: docs/benchmarks/<date>/ (RUN=…, SMOKE=…, NOTES=…)
+#   task bench:site       website/compare.html from config/features.toml (and REPORT=<report folder>)
 #   task bench:restore    resume anything a killed run left paused (Spotlight, analysis daemons)
 #   task bench:test       the harness's own tests (in `task ci`)
 #
@@ -150,6 +151,17 @@ tasks:
         [ -n "${SMOKE:-}" ] && args+=(--smoke "$SMOKE")
         [ -n "${NOTES:-}" ] && args+=(--notes "$(cd "{{.USER_WORKING_DIR}}" && realpath "$NOTES")")
         uv run --quiet python -m harness report "${args[@]}"
+
+  site:
+    desc: Write website/compare.html — the sourced feature table (config/features.toml) and, with REPORT=…, its results
+    dir: bench
+    env:
+      REPORT: '{{.REPORT}}'
+    cmds:
+      - |
+        args=()
+        [ -n "${REPORT:-}" ] && args+=(--report "$REPORT")
+        uv run --quiet python -m harness site "${args[@]}"
 
   restore:
     desc: Resume whatever a killed benchmark run left paused (Spotlight indexing, analysis daemons)

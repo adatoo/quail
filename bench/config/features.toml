@@ -1,0 +1,109 @@
+# The feature table on the website's comparison page (website/compare.html), written into it by `task site:compare`.
+# Every competitor cell links its own project's docs, source or release notes, at the version named here (ADR D-063):
+# no third-party pages, and "not documented" where a primary source doesn't say. Check again when a version changes.
+
+checked = "2026-09-29"
+
+[versions]
+quail = "0.61"
+ollama = "0.34.4"
+omlx = "0.6.4"
+rapid-mlx = "0.15.2"
+
+[[row]]
+feature = "How you install it"
+quail = { text = "Signed, notarized Mac app (DMG or Homebrew cask); no Python", source = "https://quail-ai.app/docs/getting-started.html" }
+ollama = { text = "Signed, notarized Mac app or install script; no Python", source = "https://github.com/ollama/ollama/blob/v0.34.4/README.md?plain=1#L13" }
+omlx = { text = "Signed, notarized Mac app with Python inside, or pip", source = "https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L53-L94" }
+rapid-mlx = { text = "Homebrew or pip (Python); a separate signed desktop app", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/README.md?plain=1#L71-L85" }
+
+[[row]]
+feature = "Model formats"
+quail = { text = "GGUF and MLX, from one server", source = "https://quail-ai.app/docs/models.html#formats" }
+ollama = { text = "GGUF and MLX (imported into its own store)", source = "https://github.com/ollama/ollama/blob/v0.34.4/docs/import.mdx?plain=1#L11-L46" }
+omlx = { text = "MLX only", source = "https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L301" }
+rapid-mlx = { text = "MLX only", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/README.md?plain=1#L360" }
+
+[[row]]
+feature = "OpenAI Chat Completions and Responses"
+quail = { text = "Both", source = "https://quail-ai.app/" }
+ollama = { text = "Both (Responses without stored state)", source = "https://github.com/ollama/ollama/blob/v0.34.4/docs/api/openai-compatibility.mdx?plain=1#L318" }
+omlx = { text = "Both", source = "https://github.com/jundot/omlx/blob/v0.6.4/omlx/server.py#L6083" }
+rapid-mlx = { text = "Both", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/guides/server.md?plain=1#L104-L106" }
+
+[[row]]
+feature = "Anthropic Messages (Claude Code)"
+quail = { text = "Yes, with count_tokens", source = "https://github.com/adatoo/quail/blob/main/QuailServer/Core/AnthropicRoutes.swift" }
+ollama = { text = "Yes, without count_tokens", source = "https://github.com/ollama/ollama/blob/v0.34.4/docs/api/anthropic-compatibility.mdx?plain=1#L274-L394" }
+omlx = { text = "Yes, with count_tokens", source = "https://github.com/jundot/omlx/blob/v0.6.4/omlx/server.py#L5568" }
+rapid-mlx = { text = "Yes, with count_tokens", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/guides/server.md?plain=1#L107-L108" }
+
+[[row]]
+feature = "API key"
+quail = { text = "On from the start", source = "https://quail-ai.app/docs/network.html#key" }
+ollama = { text = "None for the local server", source = "https://github.com/ollama/ollama/blob/v0.34.4/docs/api/authentication.mdx?plain=1#L5" }
+omlx = { text = "Asked for by the app's setup; off for the plain server", source = "https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L354-L356" }
+rapid-mlx = { text = "Off unless set (the desktop app makes one)", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/reference/cli.md?plain=1#L231" }
+
+[[row]]
+feature = "Requests from web pages"
+quail = { text = "Refused unless you allow an origin", source = "https://quail-ai.app/docs/network.html#browsers" }
+ollama = { text = "Only from this Mac's own pages and apps", source = "https://github.com/ollama/ollama/blob/v0.34.4/envconfig/config.go#L86-L109" }
+omlx = { text = "Any site (CORS *), changed only in settings.json", source = "https://github.com/jundot/omlx/blob/v0.6.4/omlx/settings.py#L169-L172" }
+rapid-mlx = { text = "Any site (CORS *) unless --cors-origins", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/reference/cli.md?plain=1#L232" }
+
+[[row]]
+feature = "Several requests at once"
+quail = { text = "Yes: llama.cpp slots, and batched decoding on MLX (not yet for Gemma 4)", source = "https://quail-ai.app/" }
+ollama = { text = "One at a time by default (OLLAMA_NUM_PARALLEL); always one for some model families", source = "https://github.com/ollama/ollama/blob/v0.34.4/server/sched.go#L502-L514" }
+omlx = { text = "Yes, continuous batching (8 by default)", source = "https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L198-L200" }
+rapid-mlx = { text = "Yes, continuous batching", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/reference/cli.md?plain=1#L238-L250" }
+
+[[row]]
+feature = "Prompt cache"
+quail = { text = "Per conversation; MLX's also kept on disk", source = "https://quail-ai.app/" }
+ollama = { text = "In memory (MLX runner)", source = "https://github.com/ollama/ollama/blob/v0.34.4/mlxrunner/prefix_cache.go" }
+omlx = { text = "In memory plus an SSD tier that survives restarts", source = "https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L187-L196" }
+rapid-mlx = { text = "In memory, saved at shutdown", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/rapid_mlx/server.py#L411-L450" }
+
+[[row]]
+feature = "Speculative decoding"
+quail = { text = "Prompt lookup (fast when a reply repeats its prompt)", source = "https://quail-ai.app/" }
+ollama = { text = "MTP and DFlash on MLX", source = "https://github.com/ollama/ollama/releases/tag/v0.32.7" }
+omlx = { text = "DFlash and MTP, per model, off by default", source = "https://github.com/jundot/omlx/blob/v0.6.4/omlx/model_settings.py#L262-L317" }
+rapid-mlx = { text = "MTP, DFlash and more; on by default for some models", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/reference/cli.md?plain=1#L331-L352" }
+
+[[row]]
+feature = "Embeddings"
+quail = { text = "No", source = "https://github.com/adatoo/quail/blob/main/QuailServer/Core/InferenceRoutes.swift" }
+ollama = { text = "Yes", source = "https://github.com/ollama/ollama/blob/v0.34.4/docs/api/openai-compatibility.mdx?plain=1#L304" }
+omlx = { text = "Yes, and reranking", source = "https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L276" }
+rapid-mlx = { text = "With an optional extra", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/guides/embeddings.md" }
+
+[[row]]
+feature = "Starting coding tools"
+quail = { text = "quail launch, and set-up snippets with a Test button", source = "https://quail-ai.app/docs/connect.html#launch" }
+ollama = { text = "ollama launch (about 25 tools)", source = "https://github.com/ollama/ollama/blob/v0.34.4/docs/cli.mdx?plain=1#L11-L50" }
+omlx = { text = "omlx launch, and one-click setup in its admin page", source = "https://github.com/jundot/omlx/blob/v0.6.4/omlx/cli.py#L1224-L1240" }
+rapid-mlx = { text = "rapid-mlx launch and agent setup", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/README.md?plain=1#L152-L160" }
+
+[[row]]
+feature = "Usage data sent"
+quail = { text = "None (the update check says which version is asking)", source = "https://quail-ai.app/docs/privacy.html#network" }
+ollama = { text = "None found (update checks send OS and version)", source = "https://github.com/ollama/ollama/blob/v0.34.4/docs/faq.mdx?plain=1#L159-L181" }
+omlx = { text = "Its benchmark uploads results with a hashed device ID", source = "https://github.com/jundot/omlx/blob/v0.6.4/omlx/admin/benchmark.py#L2076-L2079" }
+rapid-mlx = { text = "On by default since 0.15.0 (can be turned off)", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/README.md?plain=1#L648-L655" }
+
+[[row]]
+feature = "Platforms"
+quail = { text = "macOS 14+, Apple silicon", source = "https://quail-ai.app/docs/getting-started.html" }
+ollama = { text = "macOS, Windows, Linux", source = "https://github.com/ollama/ollama/blob/v0.34.4/docs/macos.mdx?plain=1#L5-L8" }
+omlx = { text = "macOS 15+", source = "https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L94" }
+rapid-mlx = { text = "macOS", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/getting-started/installation.md?plain=1#L3-L5" }
+
+[[row]]
+feature = "Licence"
+quail = { text = "MIT", source = "https://github.com/adatoo/quail/blob/main/LICENSE" }
+ollama = { text = "MIT", source = "https://github.com/ollama/ollama/blob/v0.34.4/LICENSE" }
+omlx = { text = "Apache-2.0", source = "https://github.com/jundot/omlx/blob/v0.6.4/LICENSE" }
+rapid-mlx = { text = "Apache-2.0", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/LICENSE" }

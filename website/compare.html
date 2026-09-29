@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Compare — Quail</title>
+  <meta name="description" content="Quail side by side with Ollama, oMLX and Rapid-MLX: what each does, with sources, and how they measure on the same Mac with the same weights, including where Quail is slower.">
+  <link rel="icon" href="assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="assets/img/icon-256.png">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="docs/getting-started.html">Docs</a>
+        <a href="compare.html" aria-current="page">Compare</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap prose wide">
+    <h1>Quail, Ollama, oMLX and Rapid-MLX</h1>
+    <p class="lede">Four ways to run AI models on a Mac and give your tools an API. Here's what each does, with a source for every claim, and how they compare when measured on the same Mac with the same weights.</p>
+
+    <h2 id="features">What each one does</h2>
+<!-- bench:features -->
+<table class="compare-table">
+<thead><tr><th scope="col">Feature</th><th scope="col">Quail<span class="ver">0.61</span></th><th scope="col">Ollama<span class="ver">0.34.4</span></th><th scope="col">oMLX<span class="ver">0.6.4</span></th><th scope="col">Rapid-MLX<span class="ver">0.15.2</span></th></tr></thead>
+<tbody>
+<tr><th scope="row">How you install it</th><td>Signed, notarized Mac app (DMG or Homebrew cask); no Python <a class="src" href="https://quail-ai.app/docs/getting-started.html" title="Source">source</a></td><td>Signed, notarized Mac app or install script; no Python <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/README.md?plain=1#L13" title="Source">source</a></td><td>Signed, notarized Mac app with Python inside, or pip <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L53-L94" title="Source">source</a></td><td>Homebrew or pip (Python); a separate signed desktop app <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/README.md?plain=1#L71-L85" title="Source">source</a></td></tr>
+<tr><th scope="row">Model formats</th><td>GGUF and MLX, from one server <a class="src" href="https://quail-ai.app/docs/models.html#formats" title="Source">source</a></td><td>GGUF and MLX (imported into its own store) <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/docs/import.mdx?plain=1#L11-L46" title="Source">source</a></td><td>MLX only <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L301" title="Source">source</a></td><td>MLX only <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/README.md?plain=1#L360" title="Source">source</a></td></tr>
+<tr><th scope="row">OpenAI Chat Completions and Responses</th><td>Both <a class="src" href="https://quail-ai.app/" title="Source">source</a></td><td>Both (Responses without stored state) <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/docs/api/openai-compatibility.mdx?plain=1#L318" title="Source">source</a></td><td>Both <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/omlx/server.py#L6083" title="Source">source</a></td><td>Both <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/guides/server.md?plain=1#L104-L106" title="Source">source</a></td></tr>
+<tr><th scope="row">Anthropic Messages (Claude Code)</th><td>Yes, with count_tokens <a class="src" href="https://github.com/adatoo/quail/blob/main/QuailServer/Core/AnthropicRoutes.swift" title="Source">source</a></td><td>Yes, without count_tokens <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/docs/api/anthropic-compatibility.mdx?plain=1#L274-L394" title="Source">source</a></td><td>Yes, with count_tokens <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/omlx/server.py#L5568" title="Source">source</a></td><td>Yes, with count_tokens <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/guides/server.md?plain=1#L107-L108" title="Source">source</a></td></tr>
+<tr><th scope="row">API key</th><td>On from the start <a class="src" href="https://quail-ai.app/docs/network.html#key" title="Source">source</a></td><td>None for the local server <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/docs/api/authentication.mdx?plain=1#L5" title="Source">source</a></td><td>Asked for by the app&#x27;s setup; off for the plain server <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L354-L356" title="Source">source</a></td><td>Off unless set (the desktop app makes one) <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/reference/cli.md?plain=1#L231" title="Source">source</a></td></tr>
+<tr><th scope="row">Requests from web pages</th><td>Refused unless you allow an origin <a class="src" href="https://quail-ai.app/docs/network.html#browsers" title="Source">source</a></td><td>Only from this Mac&#x27;s own pages and apps <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/envconfig/config.go#L86-L109" title="Source">source</a></td><td>Any site (CORS *), changed only in settings.json <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/omlx/settings.py#L169-L172" title="Source">source</a></td><td>Any site (CORS *) unless --cors-origins <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/reference/cli.md?plain=1#L232" title="Source">source</a></td></tr>
+<tr><th scope="row">Several requests at once</th><td>Yes: llama.cpp slots, and batched decoding on MLX (not yet for Gemma 4) <a class="src" href="https://quail-ai.app/" title="Source">source</a></td><td>One at a time by default (OLLAMA_NUM_PARALLEL); always one for some model families <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/server/sched.go#L502-L514" title="Source">source</a></td><td>Yes, continuous batching (8 by default) <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L198-L200" title="Source">source</a></td><td>Yes, continuous batching <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/reference/cli.md?plain=1#L238-L250" title="Source">source</a></td></tr>
+<tr><th scope="row">Prompt cache</th><td>Per conversation; MLX&#x27;s also kept on disk <a class="src" href="https://quail-ai.app/" title="Source">source</a></td><td>In memory (MLX runner) <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/mlxrunner/prefix_cache.go" title="Source">source</a></td><td>In memory plus an SSD tier that survives restarts <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L187-L196" title="Source">source</a></td><td>In memory, saved at shutdown <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/rapid_mlx/server.py#L411-L450" title="Source">source</a></td></tr>
+<tr><th scope="row">Speculative decoding</th><td>Prompt lookup (fast when a reply repeats its prompt) <a class="src" href="https://quail-ai.app/" title="Source">source</a></td><td>MTP and DFlash on MLX <a class="src" href="https://github.com/ollama/ollama/releases/tag/v0.32.7" title="Source">source</a></td><td>DFlash and MTP, per model, off by default <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/omlx/model_settings.py#L262-L317" title="Source">source</a></td><td>MTP, DFlash and more; on by default for some models <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/reference/cli.md?plain=1#L331-L352" title="Source">source</a></td></tr>
+<tr><th scope="row">Embeddings</th><td>No <a class="src" href="https://github.com/adatoo/quail/blob/main/QuailServer/Core/InferenceRoutes.swift" title="Source">source</a></td><td>Yes <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/docs/api/openai-compatibility.mdx?plain=1#L304" title="Source">source</a></td><td>Yes, and reranking <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L276" title="Source">source</a></td><td>With an optional extra <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/guides/embeddings.md" title="Source">source</a></td></tr>
+<tr><th scope="row">Starting coding tools</th><td>quail launch, and set-up snippets with a Test button <a class="src" href="https://quail-ai.app/docs/connect.html#launch" title="Source">source</a></td><td>ollama launch (about 25 tools) <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/docs/cli.mdx?plain=1#L11-L50" title="Source">source</a></td><td>omlx launch, and one-click setup in its admin page <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/omlx/cli.py#L1224-L1240" title="Source">source</a></td><td>rapid-mlx launch and agent setup <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/README.md?plain=1#L152-L160" title="Source">source</a></td></tr>
+<tr><th scope="row">Usage data sent</th><td>None (the update check says which version is asking) <a class="src" href="https://quail-ai.app/docs/privacy.html#network" title="Source">source</a></td><td>None found (update checks send OS and version) <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/docs/faq.mdx?plain=1#L159-L181" title="Source">source</a></td><td>Its benchmark uploads results with a hashed device ID <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/omlx/admin/benchmark.py#L2076-L2079" title="Source">source</a></td><td>On by default since 0.15.0 (can be turned off) <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/README.md?plain=1#L648-L655" title="Source">source</a></td></tr>
+<tr><th scope="row">Platforms</th><td>macOS 14+, Apple silicon <a class="src" href="https://quail-ai.app/docs/getting-started.html" title="Source">source</a></td><td>macOS, Windows, Linux <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/docs/macos.mdx?plain=1#L5-L8" title="Source">source</a></td><td>macOS 15+ <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L94" title="Source">source</a></td><td>macOS <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/getting-started/installation.md?plain=1#L3-L5" title="Source">source</a></td></tr>
+<tr><th scope="row">Licence</th><td>MIT <a class="src" href="https://github.com/adatoo/quail/blob/main/LICENSE" title="Source">source</a></td><td>MIT <a class="src" href="https://github.com/ollama/ollama/blob/v0.34.4/LICENSE" title="Source">source</a></td><td>Apache-2.0 <a class="src" href="https://github.com/jundot/omlx/blob/v0.6.4/LICENSE" title="Source">source</a></td><td>Apache-2.0 <a class="src" href="https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/LICENSE" title="Source">source</a></td></tr>
+</tbody>
+</table>
+<p class="sub">Checked 2026-09-29 against each project's own docs, source or release notes at the version shown. Something wrong or out of date? <a href="https://github.com/adatoo/quail/issues/new/choose">Tell us</a>.</p>
+<!-- /bench:features -->
+
+    <h2 id="measured">Measured</h2>
+    <p>Quail runs both formats, so it's compared in two lanes, each on identical weights: the same <code>.gguf</code> file against llama.cpp's own server and Ollama, and the same MLX folder against oMLX and Rapid-MLX. Every engine gets the same prompts, the same settings and the same number of requests, one server at a time, on a Mac that's cooled down first.</p>
+<!-- bench:results -->
+<p class="note">Measured results (speed, quality and tool calling on the same weights, including where Quail is slower or worse) will appear here with the full report.</p>
+<!-- /bench:results -->
+
+    <h2 id="method">How it's measured</h2>
+    <ul>
+      <li><strong>Speed:</strong> <a href="https://github.com/vllm-project/guidellm">GuideLLM</a>, at 1, 2, 4 and 8 requests at once, with prompts of exactly the same length for every engine. Each engine's own benchmark tool is run too, so a server isn't blamed for its engine.</li>
+      <li><strong>Quality:</strong> <a href="https://github.com/EleutherAI/lm-evaluation-harness">EleutherAI's lm-evaluation-harness</a> on GSM8K and MMLU-Pro, the same questions for every engine.</li>
+      <li><strong>Tool calling:</strong> the <a href="https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard">Berkeley Function-Calling Leaderboard</a>'s own checker, which scores what an agent actually receives.</li>
+      <li><strong>Fair settings:</strong> the same context and number of slots, a full-precision KV cache, temperature 0 and thinking off everywhere. A speed difference only counts if it's over 5% and bigger than the spread between runs.</li>
+    </ul>
+    <p>The harness, its settings and every raw result are in the repository: <a href="https://github.com/adatoo/quail/tree/main/bench">bench/</a>, with the reasoning in <a href="https://github.com/adatoo/quail/blob/main/docs/DECISIONS.md">ADR D-063</a>. You can run it yourself.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="docs/getting-started.html">Docs</a>
+        <a href="compare.html">Compare</a>
+        <a href="docs/privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Added
+
+- **The website has a comparison page,** [quail-ai.app/compare.html](https://quail-ai.app/compare.html). It compares Quail, Ollama, oMLX and Rapid-MLX feature by feature: installing, model formats, APIs, the key, browser access, several requests at once, prompt caching, speculative decoding, embeddings, coding tools, usage data, platforms and licence.
+  - Every claim links to its project's own docs, source or release notes at the version named.
+  - The measured results of the 2026-09-30 comparison sit beside it, with a link to the full report.
+  - The table and results are written from `bench/config/features.toml` and the report by `task bench:site`.
+- The site's header links to the comparison page.
+
 ## [0.62.1] - 2026-09-30
 
 ### Added
