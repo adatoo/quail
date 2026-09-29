@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.61.5] - 2026-09-29
+
+### Changed
+
+- **A long prompt on an MLX model reaches its first token sooner when nothing else is running.** (#139) It's now read 2,048 tokens at a time, as mlx-lm reads it, instead of 512, up to 8,192 tokens. On the M1 Max, a 4,096-token prompt took 7.0 s instead of 8.3 s on Qwen3.6 35B-A3B, and 8.4–8.6 s instead of 9.1–9.9 s on Gemma 4 26B-A4B.
+- `QUAIL_MLX_TRACE=<file>` writes where the MLX serving loop spends its time, for tuning.
+
 ## [0.61.4] - 2026-09-29
 
 ### Changed
