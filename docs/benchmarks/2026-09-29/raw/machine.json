@@ -1,0 +1,14 @@
+{
+  "chip": "Apple M1 Max",
+  "model": "MacBookPro18,2",
+  "memory_bytes": 68719476736,
+  "performance_cores": 8,
+  "efficiency_cores": 2,
+  "macos": "27.0",
+  "power": {
+    "ac": true,
+    "battery": true,
+    "low_power_mode": false
+  },
+  "thermal": "Nominal"
+}

@@ -10,6 +10,18 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.61.1] - 2026-09-29
+
+### Documentation
+
+- **The first comparison with llama-server, Ollama, oMLX and Rapid-MLX:** [docs/benchmarks/2026-09-29/](docs/benchmarks/2026-09-29/README.md).
+  - It ran on an M1 Max with Quail 0.58.1, on the same weights in every engine.
+  - **GGUF:** Quail is level with llama-server and Ollama, except on 4,096-token prompts.
+  - **MLX:** Quail is behind oMLX and Rapid-MLX on Gemma 4 concurrency, on Qwen3.6 speed, on throughput with several requests at once, and on memory.
+  - **Quality and tool calling:** no significant difference.
+  - The fixes are tracked in #137–#141.
+- The benchmark report opens with a hand-written summary. It shows where Quail is slower as a table per model and lane, and says how to reproduce it.
+
 ## [0.61.0] - 2026-09-29
 
 ### Added

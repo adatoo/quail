@@ -1,7 +1,8 @@
 """The report: a run folder's results as docs/benchmarks/<date>/ (ADR D-063).
 
-README.md has the method, the versions, the results by lane (speed with the native baselines beside it, quality,
-tool calling), a generated "Where Quail is slower or worse" section, and the caveats the smoke test found.
+README.md has the hand-written summary (the notes file's `found`), the method, the versions, the results by lane
+(speed with the native baselines beside it, quality, tool calling), a generated "Where Quail is slower or worse"
+section, the caveats the smoke test and the engines' logs found (and the notes add), and how to reproduce it.
 summary.json has the same numbers for the website; raw/ keeps the results files the numbers came from; charts/
 has the SVGs. Speed numbers are medians across rounds; a difference is only called one when D-063 allows it (more
 than 5% and more than the spread between rounds; for accuracies, an exact McNemar test on the same items).
@@ -200,7 +201,9 @@ def counts(record: dict) -> tuple[int, int]:
 # --- Losses and caveats -----------------------------------------------------------------------------------------------
 
 
-def speed_losses(rows: list[dict], model: config.Model) -> list[str]:
+def speed_losses(rows: list[dict], model: config.Model) -> list[dict]:
+    """Each level where another engine in Quail's lane beats Quail by a margin D-063 lets the report claim: one
+    record per model, lane, level, metric and engine, with the gap as a fraction."""
     cells = speed_cells(rows)
     out = []
     for lane, quail in QUAIL.items():
@@ -212,17 +215,52 @@ def speed_losses(rows: list[dict], model: config.Model) -> list[str]:
                 if m != model.id or lvl != level or engine == quail or ENGINES.get(engine) is None \
                         or ENGINES[engine].lane != lane:
                     continue
-                metrics = [("tps", "throughput", True), ("ttft", "time to first token", False)]
+                metrics = [("tps", True), ("ttft", False)]
                 # With several requests at once, an engine that serves them one after another has short gaps
                 # between tokens and long waits for the first: only throughput and first token compare fairly.
                 if level.endswith("-c1"):
-                    metrics.append(("itl", "time between tokens", False))
-                for metric, label, higher in metrics:
+                    metrics.append(("itl", False))
+                for metric, higher in metrics:
                     gap = stats.meaningful_speed_gap(ours.get(metric, []), theirs.get(metric, []), higher)
                     if gap is not None:
-                        out.append(f"{model.name}, {lane.upper()}, {level}: {title(engine)}'s {label} is "
-                                   f"{gap:.0%} better than {title(quail)}'s.")
+                        out.append({"model": model.id, "model_name": model.name, "lane": lane, "level": level,
+                                    "metric": metric, "engine": engine, "gap": gap})
     return out
+
+
+LOSS_METRICS = {"tps": "Throughput", "ttft": "Time to first token", "itl": "Time between tokens"}
+
+
+def losses_lines(speed: list[dict], accuracy: list[str]) -> list[str]:
+    """The speed losses as a table per model and lane (a row per level, a column per metric, each cell naming the
+    engines ahead and by how much), then the accuracy losses as a list."""
+    out = []
+    groups: dict[tuple[str, str], list[dict]] = {}
+    for loss in speed:
+        groups.setdefault((loss["model_name"], loss["lane"]), []).append(loss)
+    if groups:
+        out += ["Each cell names the engines that did better than Quail at that level, and by how much, as a share "
+                "of Quail's figure: higher throughput, or shorter times. Only gaps of more than 5% and more than the "
+                "spread between rounds count (D-063). Time between tokens is only compared with one request at a "
+                "time.", ""]
+    for (model_name, lane), losses in groups.items():
+        levels = levels_of(losses)
+        metrics = [m for m in LOSS_METRICS if any(loss["metric"] == m for loss in losses)]
+        out += [f"#### {model_name}, {lane.upper()} lane", "",
+                "| Level | " + " | ".join(LOSS_METRICS[m] for m in metrics) + " |",
+                "|---|" + "---|" * len(metrics)]
+        for level in levels:
+            cells = []
+            for metric in metrics:
+                ahead = sorted((loss for loss in losses if loss["level"] == level and loss["metric"] == metric),
+                               key=lambda loss: -loss["gap"])
+                cells.append(", ".join(f"{title(loss['engine'])} {loss['gap']:.0%}" for loss in ahead) or "—")
+            out.append(f"| {level} | " + " | ".join(cells) + " |")
+        out.append("")
+    out += [f"- {text}" for text in accuracy]
+    if accuracy:
+        out.append("")
+    return out or ["Nowhere by a margin D-063 lets this report claim.", ""]
 
 
 def accuracy_losses(per_item: dict, model: config.Model, titles: dict) -> list[str]:
@@ -246,6 +284,13 @@ PROBE_CAVEATS = {
     "stream_usage": "doesn't report usage on a stream",
     "tools_chat": "didn't return a parsed tool call on /v1/chat/completions",
     "tools_messages": "didn't return a tool_use block on /v1/messages",
+}
+
+# What an engine's own log says about how it served a model, where that shapes its numbers.
+LOG_CAVEATS = {
+    "does not currently support parallel requests":
+        "served one request at a time; its log says the \"model architecture does not currently support parallel "
+        "requests\"",
 }
 
 
@@ -272,6 +317,14 @@ def caveats(capabilities: dict, models: list[config.Model], run_dir: Path) -> li
                     note(engine, text, model_id)
             if (result.get("chat") or {}).get("thinking_off") is False:
                 note(engine, "couldn't have thinking switched off", model_id)
+    for log in sorted(run_dir.glob("round-*/servers/*/server.log")):
+        engine, _, model_id = log.parent.name.partition("--")
+        if model_id not in names:
+            continue
+        text = log.read_text(errors="replace")
+        for needle, caveat in LOG_CAVEATS.items():
+            if needle in text:
+                note(engine, caveat, model_id)
     for phase, label in (("quality", "quality"), ("tools", "BFCL")):
         for log in sorted((run_dir / phase).glob("*/requests.jsonl")):
             engine, _, model_id = log.parent.name.partition("--")
@@ -312,7 +365,53 @@ def versions(*row_sets: list[dict]) -> dict:
     return found
 
 
-def report(run_dir: Path, smoke_dir: Path | None, out: Path, log=print) -> Path:
+def budget_text(budget: str, fairness: dict) -> str:
+    """What a budget does, in words: `night` is 2 speed rounds, …"""
+    b = fairness["budgets"][budget]
+
+    def first(limit: int, noun: str, per: str = "") -> str:
+        return f"every {noun}" if not limit else f"the first {limit} {noun}s{per}"
+
+    return (f"{b['speed_rounds']} speed round{'s' if b['speed_rounds'] != 1 else ''} of {b['requests_per_stream']} "
+            f"requests per stream at each level; {first(b['gsm8k_limit'], 'GSM8K item')}, "
+            f"{first(b['mmlu_pro_limit'], 'MMLU-Pro item', ' per subject')} and "
+            f"{first(b['bfcl_per_category'], 'BFCL case', ' per category')}")
+
+
+def reproduce_lines(run_dir: Path, smoke_dir: Path | None, budget: str, fairness: dict,
+                    quail: str | None) -> list[str]:
+    commit = (run_dir / "repo.txt").read_text().split()[0][:7] if (run_dir / "repo.txt").exists() else None
+    made = f"This report is the run `{run_dir.name}`" + (f" with the smoke test `{smoke_dir.name}`" if smoke_dir else "")
+    made += ", by the harness at commit `" + commit + "`" if commit else ""
+    made += f", with Quail {quail}." if quail else "."
+    report_args = "RUN=<the compare run's folder>" + (" SMOKE=<the smoke run's folder>" if smoke_dir else "")
+    return ["## Reproducing it", "", made + " A run on another Mac gets folders named for the time it started.", "",
+            "What it needs (`bench/README.md` has the details):", "",
+            "- A Release build of Quail, in `/Applications` or from `task install`. The harness runs the app's own "
+            "`quail-server` and `llama-server`, not the app.",
+            "- The models in Quail's store, as a GGUF file and an MLX folder each (`bench/config/models.toml`). "
+            "`task bench:doctor` says which are missing.",
+            "- `uv` and Rapid-MLX (`brew install uv rapid-mlx`). `task bench:setup` fetches the rest: oMLX, Ollama, "
+            "llama.cpp's tools, GuideLLM, mlx-lm, lm-eval and BFCL, at pinned versions.",
+            "- Passwordless `sudo` for `/usr/bin/powermetrics` and `/usr/bin/mdutil`: the thermal gate and pausing "
+            "Spotlight. Without it the run goes on, and records that it couldn't.",
+            "- Mains power, about 100 GB free, and no other LLM server running. A timed run refuses to start "
+            "otherwise.", "",
+            "```", "task bench:setup", "task bench:smoke", f"task bench:compare BUDGET={budget}",
+            f"task bench:report {report_args}", "```", "",
+            f"`BUDGET={budget}` is {budget_text(budget, fairness)}.", ""]
+
+
+def read_notes(path: Path | None) -> dict:
+    """A report's hand-written part: `found` (Markdown, the summary at the top) and `caveats` (a list of
+    sentences, added to the ones the run found by itself)."""
+    if path is None:
+        return {}
+    with path.open("rb") as f:
+        return tomllib.load(f)
+
+
+def report(run_dir: Path, smoke_dir: Path | None, out: Path, notes: Path | None = None, log=print) -> Path:
     speed_rows = records.read(run_dir / "speed.jsonl")
     native_rows = records.read(run_dir / "native.jsonl")
     quality_rows = records.read(run_dir / "quality.jsonl")
@@ -322,6 +421,7 @@ def report(run_dir: Path, smoke_dir: Path | None, out: Path, log=print) -> Path:
     capabilities = json.loads((smoke_dir / "capabilities.json").read_text()) if smoke_dir else {}
     fairness_text = (config.CONFIG / "fairness.toml").read_text()
     fairness = tomllib.loads(fairness_text)
+    written = read_notes(notes)
 
     out.mkdir(parents=True, exist_ok=True)
     charts = out / "charts"
@@ -335,6 +435,8 @@ def report(run_dir: Path, smoke_dir: Path | None, out: Path, log=print) -> Path:
              "the same prompts, the same settings, one server at a time.", ""]
     if conditions.get("not_quiet"):
         lines += ["> **Not a clean run:** " + "; ".join(conditions["not_quiet"]) + ". These numbers don't count.", ""]
+    if written.get("found"):
+        lines += ["## What we found", "", written["found"].strip(), ""]
     lines += ["## The Mac", "",
               f"{machine.get('chip')} ({machine.get('model')}), {machine.get('memory_bytes', 0) // 2**30} GB, "
               f"macOS {machine.get('macos')}, on {'AC power' if (machine.get('power') or {}).get('ac') else 'battery'}. "
@@ -345,9 +447,12 @@ def report(run_dir: Path, smoke_dir: Path | None, out: Path, log=print) -> Path:
     lines += ["", "## Settings every engine is held to", "",
               f"{fairness['slots']} slots of {fairness['context_per_slot']:,} tokens; full-precision KV cache; "
               f"temperature {fairness['sampling']['temperature']}, seed {fairness['sampling']['seed']}, penalties 0; "
-              "thinking off. The whole file is in `raw/fairness.toml`.", ""]
+              "thinking off. The whole file is in `raw/fairness.toml`.", "",
+              "Speed levels are named for their prompt and reply lengths and how many requests are sent at once: "
+              "`512x256-c8` is 512-token prompts, 256-token replies, 8 at once.", ""]
 
-    losses: list[str] = []
+    losses: list[dict] = []
+    accuracy: list[str] = []
     summary: dict = {"run": run_dir.name, "machine": machine, "models": {}}
     for model in models:
         lines += [f"## {model.name}", "", "### Speed", ""]
@@ -357,14 +462,14 @@ def report(run_dir: Path, smoke_dir: Path | None, out: Path, log=print) -> Path:
         quality_lines, quality_items = accuracy_section(quality_rows, model, "task", TASK_TITLES, lm_eval_items,
                                                         charts, "quality", run_dir)
         lines += quality_lines or ["No results.", ""]
-        losses += accuracy_losses(quality_items, model, TASK_TITLES)
+        accuracy += accuracy_losses(quality_items, model, TASK_TITLES)
         lines += ["### Tool calling (BFCL)", ""]
         categories = {c: c.replace("_", " ") for c in
                       ["simple_python", "multiple", "parallel", "parallel_multiple", "irrelevance"]}
         tool_lines, tool_items = accuracy_section(tool_rows, model, "category", categories, bfcl_items, charts,
                                                   "tool-calling", run_dir)
         lines += tool_lines or ["No results.", ""]
-        losses += accuracy_losses(tool_items, model, categories)
+        accuracy += accuracy_losses(tool_items, model, categories)
         summary["models"][model.id] = {
             "speed": {f"{e}|{lvl}": {k: stats.median(v) for k, v in cell.items()}
                       for (m, e, lvl), cell in speed_cells(speed_rows).items() if m == model.id},
@@ -373,13 +478,15 @@ def report(run_dir: Path, smoke_dir: Path | None, out: Path, log=print) -> Path:
         }
 
     lines += ["## Where Quail is slower or worse", ""]
-    lines += [f"- {text}" for text in losses] or ["Nowhere by a margin D-063 lets this report claim."]
-    lines += ["", "## Caveats", ""]
-    notes = caveats(capabilities, models, run_dir)
-    lines += [f"- {text}" for text in notes] or ["None found by the smoke test."]
-    lines += ["", "## Reproducing it", "",
-              "```", "task bench:setup && task bench:smoke", f"task bench:compare BUDGET={conditions.get('budget', 'night')}",
-              f"task bench:report RUN=<the run folder> SMOKE=<the smoke folder>", "```", ""]
+    lines += losses_lines(losses, accuracy)
+    lines += ["## Caveats", ""]
+    found = caveats(capabilities, models, run_dir) + list(written.get("caveats", []))
+    lines += [f"- {text}" for text in found] or ["None found by the smoke test."]
+    lines += [""]
+    engine_versions = versions(speed_rows, quality_rows, tool_rows)
+    lines += reproduce_lines(run_dir, smoke_dir, conditions.get("budget", "night"), fairness,
+                             engine_versions.get(QUAIL["gguf"]) or engine_versions.get(QUAIL["mlx"]))
+    summary["losses"] = losses
 
     (out / "README.md").write_text("\n".join(lines))
     (out / "summary.json").write_text(json.dumps(summary, indent=1, default=str))

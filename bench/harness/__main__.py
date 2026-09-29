@@ -13,7 +13,7 @@
                                                 BFCL's function-calling categories, through the request shim
     python -m harness compare [--budget …] [--engines …] [--models …] [--resume RUN]
                                                 all four, in one run folder; --resume carries on a stopped one
-    python -m harness report RUN [--smoke RUN] [--out DIR]
+    python -m harness report RUN [--smoke RUN] [--out DIR] [--notes FILE]
                                                 the report: docs/benchmarks/<date>/ from a compare run
     python -m harness restore                   resume anything a killed run left paused
 """
@@ -199,9 +199,13 @@ def run_report(args) -> int:
         return path
 
     run_dir = folder(args.run)
-    out = Path(args.out) if args.out else config.REPO / "docs" / "benchmarks" / (
-        f"{run_dir.name[:4]}-{run_dir.name[4:6]}-{run_dir.name[6:8]}")
-    report(run_dir, folder(args.smoke), out)
+    day = f"{run_dir.name[:4]}-{run_dir.name[4:6]}-{run_dir.name[6:8]}"
+    out = Path(args.out) if args.out else config.REPO / "docs" / "benchmarks" / day
+    # The hand-written part: --notes, or bench/config/notes/<day>.toml when there is one.
+    notes = Path(args.notes).resolve() if args.notes else config.CONFIG / "notes" / f"{day}.toml"
+    if args.notes and not notes.is_file():
+        raise SystemExit(f"no notes file {notes}")
+    report(run_dir, folder(args.smoke), out, notes if notes.is_file() else None)
     return 0
 
 
@@ -258,6 +262,8 @@ def main(argv: list[str] | None = None) -> int:
     report_parser.add_argument("run", help="the compare run's folder name under bench/runs")
     report_parser.add_argument("--smoke", help="the smoke run whose capabilities.json gives the caveats")
     report_parser.add_argument("--out", help="where to write it (default docs/benchmarks/<date>)")
+    report_parser.add_argument("--notes", help="the hand-written summary and caveats, a TOML file "
+                                               "(default bench/config/notes/<date>.toml, if there is one)")
     report_parser.set_defaults(fn=run_report)
     sub.add_parser("restore", help="resume anything a killed run left paused").set_defaults(fn=restore)
     args = parser.parse_args(argv)

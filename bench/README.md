@@ -79,7 +79,8 @@ request (a hash of the messages, not the text), its status, finish reason and to
 ## Layout
 
 ```
-config/       models, engines, fairness rules and budgets
+config/       models, engines, fairness rules and budgets; notes/<date>.toml, each report's hand-written
+              summary and caveats
 harness/      the driver (standard library only): engines, machine control, smoke, speed, native, quality,
               tools, the request shim, monitor, tests (make_prompts.py and run_bfcl.py run in their tools'
               environments)

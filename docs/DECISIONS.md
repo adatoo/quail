@@ -124,6 +124,28 @@ The report's caveats come from it.
   - `mlx_lm.benchmark` on the same Mac scales from 53 to 126 tokens/s at four sequences.
   - The report shows the native curves beside the servers', so a server isn't blamed for its engine.
 
+**Amended 2026-09-29 (the first run, and how it's published):**
+- **The first run** is `docs/benchmarks/2026-09-29/`: night budget, M1 Max laptop, Quail 0.58.1.
+  - **GGUF lane:** Quail is level with llama-server and Ollama, except on 4,096-token prompts.
+  - **MLX lane:** Quail is behind oMLX and Rapid-MLX on four counts:
+    - Gemma 4 isn't batched;
+    - new prompts stall decoding;
+    - Qwen3.6 is slower on a single request;
+    - the memory footprint keeps growing.
+  - **Quality and tool calling:** no significant difference.
+  - **Issues:** #137–#141.
+- **Published in the repo now; on the website after the fixes.** The owner chose this.
+  - `website/compare.html` keeps its "results coming" note until the fixes are released and the comparison is run again.
+  - The first report stays in the repo as history.
+- **The report gained a hand-written part:** `bench/config/notes/<date>.toml`, read by default or given with `NOTES=`.
+  - `found` is the summary at the top, in plain statements, including the losses and links to their issues.
+  - `caveats` adds what the run can't see by itself. Examples: a chat-template difference between engines; the kernels an engine switches on as it loads a model; which speed-ups were off.
+  - The numbers in the notes are the report's own.
+- **Other report changes:**
+  - **"Where Quail is slower or worse"** is now a table per model and lane: a row per level, a column per metric, and each cell naming the engines ahead and by how much. The first run's 59 findings didn't read as a list.
+  - **Caveats also come from the engines' own logs.** For example, Ollama's "model architecture does not currently support parallel requests" means it served that model one request at a time.
+  - **"Reproducing it"** names the run and smoke folders, the harness commit and the Quail version, the prerequisites, and what the budget does.
+
 ## D-062 · 2026-09-28 · A website: hand-written HTML in `website/`, on GitHub Pages
 
 **Situation:** Quail had no home page, only a README. The owner wants the app to link to one before 1.0, with docs the app's long captions can point at instead of explaining everything in place. They bought `quail-ai.app` and `quail-ai.com`, both on Cloudflare DNS.

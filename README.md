@@ -42,6 +42,7 @@ Beta, heading for 1.0: see the Road to 1.0 at the end of [docs/IMPLEMENTATION_PL
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The design: distribution, app shell, runtime adapters, model store, device fit, packaging |
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Phases, tasks, acceptance criteria, build/verify loop |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Decision records with the trade-offs behind them |
+| [docs/benchmarks/](docs/benchmarks/2026-09-29/README.md) | Quail measured against llama-server, Ollama, oMLX and Rapid-MLX on the same weights, including where Quail is slower (D-063) |
 | [AGENTS.md](AGENTS.md) | Conventions for humans and coding agents working in this repo |
 | [website/](website/) | The website at [quail-ai.app](https://quail-ai.app): landing page and user docs, plain HTML (D-062) |
 
