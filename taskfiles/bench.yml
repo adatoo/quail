@@ -1,11 +1,15 @@
 # The comparison harness (bench/, ADR D-063): Quail against llama-server, Ollama, oMLX and Rapid-MLX on the same
 # weights, with standard benchmarks. Python tooling, run with uv, outside the app — nothing here ships.
 #
-#   task bench:setup      the tool environments (oMLX, GuideLLM, mlx-lm) and the vendored engines and tools
+#   task bench:setup      the tool environments (oMLX, GuideLLM, mlx-lm, lm-eval, BFCL), vendored engines and tools
 #   task bench:doctor     what's installed and missing, and how quiet the Mac is
 #   task bench:smoke      start each engine with each model and record what it can do (capabilities.json)
 #   task bench:speed      the speed benchmark (GuideLLM) on a quieted Mac; BUDGET=quick|night|full
 #   task bench:native     the engine-native baselines: llama-bench, llama-batched-bench, mlx_lm.benchmark
+#   task bench:quality    GSM8K and MMLU-Pro (lm-eval) through the request shim
+#   task bench:tools      BFCL's function-calling categories through the request shim
+#   task bench:compare    all four in one run folder (RESUME=<run> carries on a stopped one)
+#   task bench:report     the report for a compare run: docs/benchmarks/<date>/ (RUN=…, SMOKE=…)
 #   task bench:restore    resume anything a killed run left paused (Spotlight, analysis daemons)
 #   task bench:test       the harness's own tests (in `task ci`)
 #
@@ -27,6 +31,10 @@ tasks:
       - echo "==> GuideLLM $(bench/tools/guidellm/.venv/bin/guidellm --version | awk '{print $NF}') ready"
       - uv sync --locked --project bench/tools/mlxlm --quiet
       - echo "==> mlx-lm $(bench/tools/mlxlm/.venv/bin/python -c 'import importlib.metadata as m; print(m.version("mlx-lm"))') ready"
+      - uv sync --locked --project bench/tools/lmeval --quiet
+      - echo "==> lm-eval $(bench/tools/lmeval/.venv/bin/python -c 'import importlib.metadata as m; print(m.version("lm-eval"))') ready"
+      - uv sync --locked --project bench/tools/bfcl --quiet
+      - echo "==> BFCL $(bench/tools/bfcl/.venv/bin/python -c 'import importlib.metadata as m; print(m.version("bfcl-eval"))') ready"
 
   doctor:
     desc: What the comparison harness has and lacks, and how quiet the Mac is
@@ -76,6 +84,70 @@ tasks:
         [ -n "${MODELS:-}" ] && args+=(--models "$MODELS")
         [ -n "${ALLOW_OTHERS:-}" ] && args+=(--allow-others)
         PYTHONUNBUFFERED=1 uv run --quiet python -m harness native "${args[@]}"
+
+  quality:
+    desc: GSM8K and MMLU-Pro with lm-eval, through the request shim (bench/runs/<run>/quality.jsonl)
+    dir: bench
+    env:
+      ENGINES: '{{.ENGINES}}'
+      MODELS: '{{.MODELS}}'
+      BUDGET: '{{.BUDGET | default "quick"}}'
+      ALLOW_OTHERS: '{{.ALLOW_OTHERS}}'
+    cmds:
+      - |
+        args=(--budget "$BUDGET")
+        [ -n "${ENGINES:-}" ] && args+=(--engines "$ENGINES")
+        [ -n "${MODELS:-}" ] && args+=(--models "$MODELS")
+        [ -n "${ALLOW_OTHERS:-}" ] && args+=(--allow-others)
+        PYTHONUNBUFFERED=1 uv run --quiet python -m harness quality "${args[@]}"
+
+  tools:
+    desc: BFCL's function-calling categories, through the request shim (bench/runs/<run>/tools.jsonl)
+    dir: bench
+    env:
+      ENGINES: '{{.ENGINES}}'
+      MODELS: '{{.MODELS}}'
+      BUDGET: '{{.BUDGET | default "quick"}}'
+      ALLOW_OTHERS: '{{.ALLOW_OTHERS}}'
+    cmds:
+      - |
+        args=(--budget "$BUDGET")
+        [ -n "${ENGINES:-}" ] && args+=(--engines "$ENGINES")
+        [ -n "${MODELS:-}" ] && args+=(--models "$MODELS")
+        [ -n "${ALLOW_OTHERS:-}" ] && args+=(--allow-others)
+        PYTHONUNBUFFERED=1 uv run --quiet python -m harness tools "${args[@]}"
+
+  compare:
+    desc: Speed, native baselines, quality and tool calling in one run folder; RESUME=<run> carries on
+    dir: bench
+    env:
+      ENGINES: '{{.ENGINES}}'
+      MODELS: '{{.MODELS}}'
+      BUDGET: '{{.BUDGET | default "quick"}}'
+      ALLOW_OTHERS: '{{.ALLOW_OTHERS}}'
+      RESUME: '{{.RESUME}}'
+    cmds:
+      - |
+        args=(--budget "$BUDGET")
+        [ -n "${ENGINES:-}" ] && args+=(--engines "$ENGINES")
+        [ -n "${MODELS:-}" ] && args+=(--models "$MODELS")
+        [ -n "${ALLOW_OTHERS:-}" ] && args+=(--allow-others)
+        [ -n "${RESUME:-}" ] && args+=(--resume "$RESUME")
+        PYTHONUNBUFFERED=1 uv run --quiet python -m harness compare "${args[@]}"
+
+  report:
+    desc: The report for a compare run — docs/benchmarks/<date>/ (RUN=<run folder>, SMOKE=<smoke folder>)
+    dir: bench
+    requires:
+      vars: [RUN]
+    env:
+      RUN: '{{.RUN}}'
+      SMOKE: '{{.SMOKE}}'
+    cmds:
+      - |
+        args=("$RUN")
+        [ -n "${SMOKE:-}" ] && args+=(--smoke "$SMOKE")
+        uv run --quiet python -m harness report "${args[@]}"
 
   restore:
     desc: Resume whatever a killed benchmark run left paused (Spotlight indexing, analysis daemons)

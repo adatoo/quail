@@ -16,7 +16,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from . import config, machine
+from . import config, machine, records
 from .config import Model
 
 MLX_PYTHON = config.TOOLS / "mlxlm" / ".venv" / "bin" / "python"
@@ -85,7 +85,11 @@ def native(models: list[Model], budget_name: str, run_dir: Path, log=print) -> P
         with results.open("a") as f:
             f.write(json.dumps(entry) + "\n")
 
+    finished = {key[0] for key in records.done(results, ("model",))}
     for model in models:
+        if model.id in finished:
+            log(f"  {model.name}: native baselines already done")
+            continue
         if model.gguf.exists() and (tools / "llama-bench").exists():
             machine.wait_until_cool(fairness["thermal"], log=log)
             try:

@@ -88,7 +88,7 @@ The report's caveats come from it.
 - **What's reported per level:**
   - from GuideLLM's own statistics: TTFT, ITL and TPOT (median and p95)
   - output tokens per second over the measured window
-  - peak memory footprint of the server's whole process group, from `footprint`, which counts Metal's GPU buffers where resident size doesn't
+  - peak memory of the server's whole process group, from `footprint`, which counts Metal's GPU buffers. It's recorded twice: as the footprint, and as resident memory, which adds the clean pages of files the server maps. The report uses resident memory, because an engine that maps its weights (llama.cpp) shows almost none of them in its footprint, while one that copies them into GPU buffers (MLX) shows all of them. The first laptop run showed Qwen3.6 35B-A3B at 2.2 GB of footprint on Quail's GGUF engine.
   - mean power, from powermetrics
 - **Thermal re-runs:** a level that ends hotter than "Moderate" is run once more, on prompts of its own (the server has seen the first set, and the first dry run's re-run was served from its cache). Both results are kept, the first marked `discarded`. The first dry run on the Mac mini needed this at concurrency 8.
 - **Refusal:** a timed run refuses to start while another LLM server runs, on battery, in Low Power Mode, or during a Time Machine backup. `--allow-others` runs anyway for a dry run, and records why its numbers don't count.
@@ -100,6 +100,29 @@ The report's caveats come from it.
   - Quail parsed none of Gemma 4's tool calls. This was fixed in 0.57.1; see D-040's amendment.
   - Rapid-MLX 0.14.3 needs `--no-mllm` to load Gemma 4 without mlx-vlm. Loaded text-only, it generates Gemma 4's tool call but returns an empty reply with no `tool_calls`, on both routes.
   - Ollama 0.34.4 can't import mlx-community's MLX folders ("Invalid quantization mode ''"), so its MLX lane is empty for now.
+
+**Amended 2026-09-28 (quality, tool calling, and the whole run):**
+- **A request shim between each tool and the engine** (`harness/shim.py`). lm-eval and BFCL send ordinary chat-completions requests. The shim applies the fairness rules: the served id, neutral sampling, thinking off in each engine's own words, and the key. The tool's prompt, stop strings, length limit and tools pass through untouched. Without it, each tool would need patching per engine; lm-eval, for example, sends its own seed and knows nothing of `reasoning_effort`. The shim logs each request by a hash of its messages, never the text.
+- **Quality:** lm-eval 0.4.13, `local-chat-completions`, on two tasks.
+  - `gsm8k_cot_llama`: 8-shot chain of thought as chat turns, 512 tokens.
+  - `mmlu_pro`: 5-shot chain of thought, 14 subjects.
+  - `--limit` takes the first items, per subject for MMLU-Pro, so every engine answers the same ones. `--log_samples` keeps per-item scores for paired comparisons.
+- **Tool calling:** BFCL 2026.3.23 in function-calling mode, on five categories: `simple_python`, `multiple`, `parallel`, `parallel_multiple` and `irrelevance`.
+  - These don't need executable backends or several turns.
+  - Each engine runs the first `bfcl_per_category` cases of each, and BFCL's AST checker scores them.
+  - The served id is registered in BFCL's model table as an OpenAI-compatible function-calling model, through `OpenAICompletionsHandler`, as BFCL's own OpenAI-compatible entries are.
+- **`task bench:compare`** runs speed, native, quality and tools into one run folder. `RESUME=<run>` carries on a stopped one, skipping every engine and model, or round, that's already complete.
+- **`task bench:report`** writes `docs/benchmarks/<date>/` from a compare run and a smoke run:
+  - `README.md` with tables and SVG charts (light and dark), `summary.json` for the website, and `raw/` with the results files and `fairness.toml`
+  - speed as medians across rounds, with the native curve beside each lane
+  - accuracies with 95% Wilson intervals
+  - a generated "Where Quail is slower or worse" list, using D-063's rules: more than 5% and more than the spread between rounds for speed, and an exact McNemar test (p < 0.05) on the same items for quality and tool calling
+  - the smoke test's findings as caveats
+- **Found by the first dry runs:** on both Macs, llama.cpp b11081 barely gains throughput from batching Qwen3 8B.
+  - `llama-batched-bench` on the Mac mini: 46 tokens/s generated with one sequence, 59 with two, and 51 with eight.
+  - Quail's GGUF engine and llama-server follow the same curve.
+  - `mlx_lm.benchmark` on the same Mac scales from 53 to 126 tokens/s at four sequences.
+  - The report shows the native curves beside the servers', so a server isn't blamed for its engine.
 
 ## D-062 · 2026-09-28 · A website: hand-written HTML in `website/`, on GitHub Pages
 

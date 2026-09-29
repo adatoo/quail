@@ -1,0 +1,11 @@
+# EleutherAI's lm-evaluation-harness for the comparison harness's quality runs (ADR D-063), pinned. Its
+# local-chat-completions model talks to the harness's request shim (harness/shim.py), never to an engine directly.
+# `task bench:setup` makes the environment.
+[project]
+name = "bench-lmeval"
+version = "0"
+requires-python = "==3.12.*"
+dependencies = ["lm-eval[api]==0.4.13"]
+
+[tool.uv]
+package = false

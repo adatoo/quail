@@ -164,6 +164,18 @@ class Engine:
     def stop(self, server: Server) -> None:
         stop_group(server.process)
         wait_port_closed(server.port)
+        discard_caches(server.workdir)
+
+
+def discard_caches(workdir: Path) -> None:
+    """Once a server has stopped, its scratch HOME, caches and model links go; its launch record, logs and settings
+    files stay. oMLX's SSD cache and Rapid-MLX's saved prefix cache came to several GB per server, 45 GB in one
+    trial run. A link is only unlinked, never followed: they point into the model store."""
+    for child in workdir.iterdir():
+        if child.is_symlink():
+            child.unlink()
+        elif child.is_dir():
+            shutil.rmtree(child, ignore_errors=True)
 
 
 # --- Quail and the llama-server it bundles --------------------------------------------------------------------------

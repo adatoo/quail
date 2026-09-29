@@ -10,6 +10,26 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-09-29
+
+### Added
+
+- **The comparison harness now covers quality and tool calling** (ADR D-063):
+  - `task bench:quality` runs GSM8K and MMLU-Pro with EleutherAI's lm-evaluation-harness.
+  - `task bench:tools` runs five function-calling categories from the Berkeley Function-Calling Leaderboard.
+  - Both go through a small request shim, which holds every engine to the same settings: neutral sampling, thinking off, the same model id. It sends a request again when the engine asks it to wait and retry, as a real client would.
+  - Every engine answers the same items, and each item's result is kept, so two engines can be compared item by item.
+- `task bench:compare` runs speed, the native baselines, quality and tool calling in one run folder, for a night. `RESUME=<run>` carries on a run that stopped.
+- `task bench:report` turns a run into `docs/benchmarks/<date>/`:
+  - tables and light and dark charts, and the versions tested
+  - caveats from the smoke test, and every request an engine refused
+  - a generated section on where Quail is slower or worse, counting only differences the method allows
+
+### Changed
+
+- Speed runs record memory as resident memory, which includes the model file pages an engine maps. Before, llama.cpp's mapped weights weren't counted, which flattered it by up to 20 GB.
+- Each engine's scratch caches are deleted when it stops. A trial run had left 45 GB behind.
+
 ## [0.58.1] - 2026-09-29
 
 ### Fixed
