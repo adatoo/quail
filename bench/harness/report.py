@@ -45,7 +45,7 @@ def speed_cells(rows: list[dict]) -> dict:
         for metric, value in (("tps", r.get("output_tokens_per_second")),
                               ("ttft", (r.get("ttft_ms") or {}).get("p50")),
                               ("itl", (r.get("itl_ms") or {}).get("p50")),
-                              ("memory", r.get("peak_resident_bytes") or r.get("peak_footprint_bytes")),
+                              ("memory", r.get("peak_footprint_bytes")),
                               ("watts", r.get("mean_watts")),
                               ("short", r.get("short_requests"))):
             cell.setdefault(metric, []).append(value)
@@ -75,7 +75,9 @@ def speed_section(rows: list[dict], native_rows: list[dict], model: config.Model
             continue
         out += [f"#### {LANES[lane]}", "",
                 "Output tokens per second over each level (median across rounds), and time to first token (p50). "
-                "Peak memory is resident memory: the server's own plus the model file pages it maps.", "",
+                "Peak memory is the memory footprint macOS charges the server (Activity Monitor's Memory), "
+                "GPU buffers included. A model file that an engine maps rather than loads isn't in it, so the "
+                "llama.cpp engines read low by up to the file's size.", "",
                 "| Engine | " + " | ".join(levels) + " | Peak memory |",
                 "|---|" + "---:|" * len(levels) + "---:|"]
         for engine in engines:

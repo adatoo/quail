@@ -289,7 +289,7 @@ def describe(result: dict) -> str:
              f"ITL {itl:.1f} ms" if itl else "ITL ?"]
     if short:
         parts.append(f"{short} short")
-    memory = result.get("peak_resident_bytes") or result.get("peak_footprint_bytes")
+    memory = result.get("peak_footprint_bytes")
     if memory:
         parts.append(f"{memory / 2**30:.1f} GB")
     if result.get("mean_watts"):

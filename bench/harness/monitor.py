@@ -4,8 +4,9 @@ second (ADR D-063).
 Memory comes from `footprint`, for every process in the server's process group, summed, as two figures:
 - the footprint (the dirty memory macOS charges to the process), which counts the GPU buffers Metal holds but
   not model weights read through mmap, since those are clean file pages;
-- resident memory: the footprint plus those clean pages, so an engine that maps its weights and one that copies
-  them into GPU buffers are compared on the same terms. The report uses this one.
+- the footprint plus every category's clean pages. This over-counts, since a mapped model file shows up both as a
+  mapped file and inside the Metal buffer wrapped around it: 29 GB for llama-server with an 8B model. It's kept
+  for reference only; the report uses the footprint.
 Power is powermetrics' combined CPU, GPU and ANE figure, so it needs the same passwordless sudo as the thermal gate;
 without it the run records none.
 """

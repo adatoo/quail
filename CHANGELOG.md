@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.59.1] - 2026-09-29
+
+### Fixed
+
+- The benchmark report's memory column is the memory footprint again, as Activity Monitor shows it. The resident figure that replaced it in 0.59.0 counted a mapped model file twice, giving 29 GB for llama-server with an 8B model. The report now says that memory-mapped model files aren't in the footprint.
+
 ## [0.59.0] - 2026-09-29
 
 ### Added
