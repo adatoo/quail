@@ -49,6 +49,72 @@ struct ActivityMonitorTests {
         #expect(activity.isBusy)
     }
 
+    @Test("history: kept for 15 minutes, placed by time in the chosen window, broken where sampling paused")
+    @MainActor
+    func historyWindows() {
+        let monitor = ActivityMonitor()
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        for second in stride(from: 0, through: 20 * 60, by: 2) {
+            monitor.record(SystemSample(cpuPercent: 50, gpuPercent: 10), at: start.addingTimeInterval(Double(second)))
+        }
+        let end = start.addingTimeInterval(20 * 60)
+        #expect(monitor.history.first?.date == end.addingTimeInterval(-ActivityMonitor.historySpan))
+        #expect(monitor.history.last?.date == end)
+
+        let minute = ActivityMonitor.series(monitor.history, window: 60, now: end) { $0.cpu.map { $0 / 100 } }
+        #expect(minute.count == 31) // one every 2 s over 60 s, both ends included
+        #expect(minute.first?.x == 0 && minute.last?.x == 1)
+        #expect(minute.allSatisfy { $0.y == 0.5 })
+        let fifteen = ActivityMonitor.series(monitor.history, window: 900, now: end) { $0.cpu.map { $0 / 100 } }
+        #expect(fifteen.count == 451)
+
+        // A pause longer than `maxGap` breaks the line; a missing figure is a break too.
+        let paused = [
+            ActivityPoint(date: end.addingTimeInterval(-50), cpu: 20),
+            ActivityPoint(date: end.addingTimeInterval(-48), cpu: 30),
+            ActivityPoint(date: end.addingTimeInterval(-10), cpu: 40),
+            ActivityPoint(date: end.addingTimeInterval(-8), cpu: nil),
+            ActivityPoint(date: end, cpu: 60),
+        ]
+        let series = ActivityMonitor.series(paused, window: 60, now: end) { $0.cpu.map { $0 / 100 } }
+        #expect(series.map(\.y) == [0.2, 0.3, nil, 0.4, nil, 0.6])
+        #expect(HistoryChart.runs(series).map(\.count) == [2, 1, 1])
+    }
+
+    @Test("the Mac is sampled while the window watches, with the server stopped; stopping the server keeps it")
+    @MainActor
+    func watchingWhileStopped() async throws {
+        let monitor = ActivityMonitor()
+        #expect(!monitor.sampling)
+        monitor.watch(true)
+        #expect(monitor.sampling)
+        for _ in 0 ..< 60 where monitor.history.count < 2 {
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        #expect(monitor.history.count >= 2)
+        #expect(monitor.system.memoryTotalBytes != nil)
+        #expect(!monitor.running)
+
+        // A server starting and stopping doesn't end the window's sampling, or its history.
+        try monitor.start(
+            base: #require(URL(string: "http://127.0.0.1:9")),
+            apiKey: nil,
+            processIDs: { [] },
+            fallbackLoading: { false }
+        )
+        #expect(monitor.running)
+        monitor.stop()
+        #expect(!monitor.running && monitor.sampling)
+        #expect(monitor.history.count >= 2)
+        #expect(monitor.system.serverMemoryBytes == nil)
+
+        monitor.watch(false)
+        #expect(!monitor.sampling)
+        let count = monitor.history.count
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(monitor.history.count == count)
+    }
+
     @Test("the Mac's readings: CPU as a share of ticks, memory within the total, this process measurable")
     func systemReadings() throws {
         #expect(SystemMonitor.percent(busy: 25, total: 100) == 25)

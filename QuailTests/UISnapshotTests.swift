@@ -133,7 +133,7 @@ struct UISnapshotTests {
     func activityWindow() async throws {
         let (appState, scratch) = try await makeAppState()
         defer { try? FileManager.default.removeItem(at: scratch) }
-        let history = (0 ..< 60).map { i -> Double? in 40 + 35 * sin(Double(i) / 6) }
+        let history = Self.activityHistory(minutes: 1, serverMemory: 20_400_000_000)
         appState.activity.show(
             system: SystemSample(
                 cpuPercent: 14, serverCPUPercent: 9, gpuPercent: 78, memoryUsedBytes: 33_500_000_000,
@@ -185,17 +185,57 @@ struct UISnapshotTests {
                     ),
                 ]
             ),
-            cpuHistory: history.map { $0.map { $0 / 4 } }, gpuHistory: history
+            history: history
         )
         try await render(
             ActivityWindow(appState: appState),
-            size: CGSize(width: 340, height: 360),
+            size: CGSize(width: 340, height: 420),
             name: "activity-window"
         )
         try await render(
             MenuBarActivityPreview(label: appState.activity.busyLabel ?? ""), size: CGSize(width: 200, height: 30),
             name: "menu-status"
         )
+    }
+
+    @Test("Activity window, server stopped: the Mac's figures and charts, over 1 and 15 minutes")
+    func activityWindowStopped() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer {
+            try? FileManager.default.removeItem(at: scratch)
+            UserDefaults.standard.removeObject(forKey: "activityHistoryMinutes")
+        }
+        for minutes in [1, 15] {
+            UserDefaults.standard.set(minutes, forKey: "activityHistoryMinutes")
+            appState.activity.show(
+                system: SystemSample(
+                    cpuPercent: 9, gpuPercent: 3, memoryUsedBytes: 41_200_000_000, memoryTotalBytes: 68_719_476_736
+                ),
+                server: ServerActivity(),
+                history: Self.activityHistory(minutes: minutes, serverMemory: nil),
+                running: false
+            )
+            try await render(
+                ActivityWindow(appState: appState), size: CGSize(width: 340, height: 420),
+                name: "activity-stopped-\(minutes)min"
+            )
+        }
+    }
+
+    /// `minutes` of readings two seconds apart, ending now: waves for CPU and GPU, and memory that climbs.
+    private static func activityHistory(minutes: Int, serverMemory: Int64?) -> [ActivityPoint] {
+        let count = minutes * 30
+        let end = Date()
+        return (0 ..< count).map { i in
+            let wave = 40 + 35 * sin(Double(i) / 6)
+            let climb = Double(i) / Double(max(1, count - 1))
+            return ActivityPoint(
+                date: end.addingTimeInterval(-2 * Double(count - 1 - i)),
+                cpu: wave / 4, gpu: wave,
+                memoryUsed: Int64(30_000_000_000 + 12_000_000_000 * climb), memoryTotal: 68_719_476_736,
+                serverMemory: serverMemory.map { Int64(Double($0) * (0.6 + 0.4 * climb)) }
+            )
+        }
     }
 
     @Test("Models pane, before the store has been read")

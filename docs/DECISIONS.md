@@ -249,6 +249,20 @@ Settings had no server status and no Start/Stop, though Endpoint's runtime picke
 - **Menu bar:** the label is the bird plus the busiest thing happening: "Loading…", then "Reading n%" for the longest prompt being read, then the total tokens a second, with "+n" for other requests. Nothing when idle, and `Config.menuBarActivity` turns it off. The menu repeats the line.
 - **Activity… window:** a minute's GPU and CPU sparklines, memory, models, and a row per request. It floats above other windows unless "Keep on top" is unchecked.
 - **With llama.cpp** (no `/slots`), only loading and the Mac's figures are shown.
+
+**Amended 2026-09-29 (issue #133):** the Activity window now shows the Mac with the server stopped, and charts memory.
+- **When it samples:** the Mac is sampled while the server runs **or** the window is open. The window's appear and disappear events count watchers, and `/slots` is still polled only while the server runs.
+  - Stopping the server clears only the server's figures. The Mac's history goes on while the window is open.
+  - Nothing is sampled with the window closed and the server stopped.
+  - The first reading after the window opens is followed half a second later by a second, so CPU (a rate between two readings) shows at once.
+- **History:** kept as timestamped readings for 15 minutes, and drawn by time rather than by index. The window shows the last 1, 5 or 15 minutes, chosen in the window and remembered between launches.
+  - Before, "a minute" was 60 readings taken 1 or 2 s apart.
+  - A pause of more than 10 s breaks the line rather than joining across it.
+- **Memory chart:** memory is a chart like CPU and GPU, replacing the single bar.
+  - The y-axis runs from 0 to the Mac's total memory, so the chart shows how full the Mac is.
+  - The area is green, orange above 80% and red above 90%.
+  - While the server runs, its share is drawn inside in indigo, with a matching dot in its caption.
+  - All three charts share one `HistoryChart`, drawn with Canvas. Swift Charts would bring axis chrome that doesn't suit a 340 pt window.
 ## D-059 · 2026-09-28 · Moving in models other apps downloaded (Phase 4 step 2)
 
 **Situation:** people arrive with models already downloaded by llama.cpp (`-hf`), LM Studio, the Hugging Face cache (mlx-lm and others) or oMLX. Re-downloading tens of gigabytes is slow, and keeping two copies wastes disk space. ARCHITECTURE §6 said to offer to move them on first run, never symlink.
