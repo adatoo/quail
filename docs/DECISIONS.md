@@ -704,6 +704,33 @@ One request alone, `-np 1` vs `-np 4`: 44.7 vs 40.8 tok/s (8B), 157.6 vs 228.7 (
   - Checkpointing a 15,000-token prompt cost nothing measurable (23.2 s against 22.6–23.1).
   - A model-gated test (`QUAIL_TEST_HYBRID_MODEL`) checks the next turn resumes near the end, and a prompt that parts at 5,000 tokens resumes from the checkpoint at 4,096.
 
+**Amended 2026-09-29 (long prompts after a busy spell, #138):** idle conversations now leave the shared cache, and sliding-window models no longer take checkpoints.
+- **The problem.** The first comparison (D-063) had Quail slower to first token than llama-server on 4,096-token prompts: 7.8 s against 6.1 s on Gemma 4, and about 10% on Qwen3 8B and Qwen3.6. That level runs right after eight requests at once.
+- **Measured on the Mac mini:**
+  - Timing a 4,096-token prompt on a fresh server and again after a round of eight requests, cooled before each, showed where the time went. Quail matched llama-server fresh but not afterwards: 11.5–12.0 s against 10.3–10.6 s on Qwen3 8B.
+  - Emptying the idle slots closed the gap. Their conversations, left in the pool for their next turn, sit in the cells every chunk of the new prompt attends over. llama-server moves idle slots out on every new request (`--cache-idle-slots`, on by default, into its `--cache-ram` prompt cache).
+  - `swa_full = false`, llama-server's setting, made Gemma 4 slower here: 7.3 s against 6.9 s after the round.
+  - Quail's own thread pool made no measurable difference.
+- **Idle sequences are parked (`ParkedSequences` in QuailServerCore, tested):**
+  - **When:** a text request starts on a model with several slots.
+  - **What:** every other idle slot's sequence is copied out with `llama_state_seq_get_data_ext`, with its checkpoints, into ordinary memory, and the slot is emptied.
+  - **Restoring:** a prompt that shares more of its start with a parked sequence than with any slot (at least 32 tokens) gets it copied back into its slot first. What that slot held is parked in turn.
+  - **Budget:** llama-server's 8 GB, or an eighth of a smaller Mac's memory. The least recently parked go first.
+  - `QUAIL_LLAMA_PARK=0` turns it off.
+  - This costs memory for parked conversations, where before they sat in the preallocated pool. In exchange, one conversation's prompt no longer pays for every other one's history.
+- **No checkpoints for sliding-window models.** libllama's default full-size window cache (`swa_full`, which Quail keeps) cuts back like a plain one.
+  - Checked on Gemma 4: a prompt sharing half of an earlier 4,109-token prompt reused 2,051 tokens without checkpoints. The reply was identical to one with no cache.
+  - The two state copies of up to 800 MB per long prompt are gone.
+  - Recurrent and hybrid models (Qwen3.5 and 3.6) still checkpoint. No interval checkpoint is taken within 64 tokens of the last one: a 4,109-token prompt had stopped at 4,045 and again at 4,096. A checkpoint's buffer is no longer zeroed before libllama fills it.
+- **Result** on the Mac mini, a 4,096-token prompt after eight requests at once, cooled before each, two runs each:
+
+  | | Before | Now | llama-server |
+  |---|---:|---:|---:|
+  | Qwen3 8B | 11.5–12.0 s | 10.2–10.9 s | 10.3–10.6 s |
+  | Gemma 4 26B-A4B | 6.8–6.9 s | 5.8–6.2 s | 6.0–6.3 s |
+
+  The M1 Max's gap was larger than the mini's. Its re-run after the fixes (D-063) is the check that it's closed there too.
+
 **Revisit if:** the benchmark shows a single-stream regression, libllama's unified-cache behaviour under memory pressure is worse than described, or MLX gets batched generation.
 
 ## D-047 · 2026-09-25 · Images: `data:` URLs only, a marker in the prompt, the bytes beside it

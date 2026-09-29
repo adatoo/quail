@@ -458,6 +458,15 @@ struct LlamaEngineTests {
         await engine.unload()
     }
 
+    @Test("checkpoints fall every 4,096 tokens and 64 short of the end, never two within 64 of each other")
+    func checkpointPositions() {
+        #expect(LlamaRuntime.checkpointPositions(promptCount: 4109, reused: 0) == [4045])
+        #expect(LlamaRuntime.checkpointPositions(promptCount: 9000, reused: 0) == [4096, 8192, 8936])
+        #expect(LlamaRuntime.checkpointPositions(promptCount: 8250, reused: 0) == [4096, 8186])
+        #expect(LlamaRuntime.checkpointPositions(promptCount: 9000, reused: 5000) == [8192, 8936])
+        #expect(LlamaRuntime.checkpointPositions(promptCount: 40, reused: 0).isEmpty)
+    }
+
     @Test(
         "a hybrid model resumes from its checkpoints: the next turn, and a prompt that parts midway",
         .enabled(if: hybridExists), .timeLimit(.minutes(10))

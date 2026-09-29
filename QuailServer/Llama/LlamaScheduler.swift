@@ -17,6 +17,13 @@ struct PendingRequest {
     let finish: (Error?) -> Void
 }
 
+/// A sequence moved out of the shared cache: its state as `llama_state_seq_get_data_ext` wrote it, and its
+/// checkpoints.
+struct ParkedState {
+    let state: [UInt8]
+    let checkpoints: [(count: Int, state: [UInt8])]
+}
+
 /// One sequence of the context.
 final class Slot {
     let id: llama_seq_id
@@ -104,6 +111,11 @@ extension LlamaRuntime {
     static let maxCheckpoints = 8
     /// How long one block of the runtime's queue keeps stepping before letting other work run.
     static let stepSliceMilliseconds = 50
+    /// Memory for idle sequences moved out of the shared cache (`ParkedSequences`): llama-server's `--cache-ram`
+    /// default of 8 GB, or an eighth of a smaller Mac's memory.
+    static let parkingBudget = min(8 << 30, Int(ProcessInfo.processInfo.physicalMemory) / 8)
+    /// Whether idle sequences leave the shared cache when a request starts; off with `QUAIL_LLAMA_PARK=0`.
+    static let parksIdleSequences = ProcessInfo.processInfo.environment["QUAIL_LLAMA_PARK"] != "0"
 
     // MARK: Entry
 
@@ -329,6 +341,21 @@ extension LlamaRuntime {
             }!
             reused = keepPrefix(of: slot, upTo: request.cachePrompt ? prefix(of: slot) : 0)
         }
+        if slotCount > 1, Self.parksIdleSequences {
+            // A conversation parked earlier that holds more of this prompt goes back into the slot (what the slot
+            // held is parked in turn), and every other idle sequence leaves the cache, as llama-server's
+            // `--cache-idle-slots` does.
+            if request.cachePrompt, let best = parked.best(for: prompt), best.shared > reused,
+               best.shared >= Self.minimumSharedPrefix
+            {
+                let entry = parked.take(best.index)
+                park(slot)
+                reused = unpark(entry, into: slot) ? keepPrefix(of: slot, upTo: best.shared) : 0
+            }
+            for other in slots where other !== slot && other.job == nil {
+                park(other)
+            }
+        }
         let job = Job(
             pending: pending, sampler: sampler, grammar: grammar, prompt: prompt, fed: reused,
             promptCount: prompt.count, maxTokens: request.maxTokens, started: started
@@ -336,12 +363,21 @@ extension LlamaRuntime {
         // Checkpoints that no longer describe this sequence (past what it keeps) go; new ones are planned.
         slot.checkpoints.removeAll { $0.count > reused }
         if partialMemory, request.cachePrompt {
-            var at = Set(stride(from: Self.checkpointInterval, to: prompt.count, by: Self.checkpointInterval))
-            at.insert(prompt.count - Self.checkpointMargin)
-            job.checkpointAt = at.filter { $0 > reused && $0 < prompt.count }.sorted()
+            job.checkpointAt = Self.checkpointPositions(promptCount: prompt.count, reused: reused)
         }
         slot.job = job
         pending.emit(.promptProgress(done: reused, total: prompt.count, cached: reused))
+    }
+
+    /// Where a prompt's chunks stop for its state to be saved: every `checkpointInterval` tokens, and
+    /// `checkpointMargin` short of its end, where the next turn resumes; after what's already cached, and with no
+    /// interval checkpoint within `checkpointMargin` of the last (a 4,109-token prompt stopped at 4,045 and again at
+    /// 4,096, a second copy of the state for nothing).
+    static func checkpointPositions(promptCount: Int, reused: Int) -> [Int] {
+        let last = promptCount - checkpointMargin
+        let positions = Array(stride(from: checkpointInterval, to: last - checkpointMargin, by: checkpointInterval))
+            + [last]
+        return positions.filter { $0 > reused && $0 < promptCount }
     }
 
     /// Makes a slot's sequence hold the first `count` of its cached tokens and no more; returns how many it does.
@@ -378,9 +414,11 @@ extension LlamaRuntime {
         let flags = llama_state_seq_flags(LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY)
         let size = llama_state_seq_get_size_ext(context, slot.id, flags)
         guard size > 0 else { return }
-        var state = [UInt8](repeating: 0, count: size)
-        let written = state.withUnsafeMutableBufferPointer { buffer in
-            llama_state_seq_get_data_ext(context, buffer.baseAddress, size, slot.id, flags)
+        var written = 0
+        // Not zeroed first: libllama writes every byte (a Gemma 4 or Qwen3.6 state runs to hundreds of MB).
+        let state = [UInt8](unsafeUninitializedCapacity: size) { buffer, count in
+            written = llama_state_seq_get_data_ext(context, buffer.baseAddress, size, slot.id, flags)
+            count = written == size ? size : 0
         }
         guard written == size else { return }
         slot.checkpoints.removeAll { $0.count >= slot.cached.count }
@@ -388,6 +426,46 @@ extension LlamaRuntime {
         if slot.checkpoints.count > Self.maxCheckpoints {
             slot.checkpoints.removeFirst()
         }
+    }
+
+    /// Moves an idle slot's sequence out of the shared cache into `parked`, and empties the slot.
+    private func park(_ slot: Slot) {
+        guard let context, !slot.cached.isEmpty else { return }
+        let flags = llama_state_seq_flags(LLAMA_STATE_SEQ_FLAGS_NONE)
+        let size = llama_state_seq_get_size_ext(context, slot.id, flags)
+        if size > 0, size <= parked.budget {
+            var written = 0
+            let state = [UInt8](unsafeUninitializedCapacity: size) { buffer, count in
+                written = llama_state_seq_get_data_ext(context, buffer.baseAddress, size, slot.id, flags)
+                count = written == size ? size : 0
+            }
+            if written == size {
+                let checkpoints = slot.checkpoints.reduce(0) { $0 + $1.state.count }
+                parked.park(
+                    tokens: slot.cached, state: ParkedState(state: state, checkpoints: slot.checkpoints),
+                    size: size + checkpoints
+                )
+            }
+        }
+        reset(slot)
+    }
+
+    /// Puts a parked sequence back into `slot`, emptied first; false (the slot left empty) if libllama refuses it.
+    private func unpark(_ entry: ParkedSequences<ParkedState>.Entry, into slot: Slot) -> Bool {
+        guard let context else { return false }
+        reset(slot)
+        let restored = entry.state.state.withUnsafeBufferPointer { buffer in
+            llama_state_seq_set_data_ext(
+                context, buffer.baseAddress, buffer.count, slot.id, llama_state_seq_flags(LLAMA_STATE_SEQ_FLAGS_NONE)
+            ) == buffer.count
+        }
+        guard restored else {
+            reset(slot)
+            return false
+        }
+        slot.cached = entry.tokens
+        slot.checkpoints = entry.state.checkpoints
+        return true
     }
 
     /// Empties one sequence.
