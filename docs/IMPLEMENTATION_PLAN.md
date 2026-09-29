@@ -276,12 +276,23 @@ with a speed-only confirmation run on the M4 Pro Mac mini.
    - Ollama, oMLX and Rapid-MLX ignore `ignore_eos`.
    - oMLX showed no prefix-cache hit on a repeated prompt.
    - Ollama 0.34.4's MLX runner can't load mlx-community's 4-bit folders ("Invalid quantization mode").
-2. [ ] Speed (GuideLLM) and engine-native baselines (`llama-bench`, `mlx_lm.benchmark`).
-3. [ ] Quality (lm-eval: GSM8K, MMLU-Pro) and tool calling (BFCL).
-4. [ ] The report generator and `website/compare.html` with a sourced feature table.
+2. [x] Speed (GuideLLM) and engine-native baselines (`llama-bench`, `llama-batched-bench`, `mlx_lm.benchmark`).
+3. [x] Quality (lm-eval: GSM8K, MMLU-Pro) and tool calling (BFCL).
+4. [x] The report generator (`task bench:report`, with a hand-written summary and caveats from `bench/config/notes/<date>.toml`). `website/compare.html` with a sourced feature table is PR #131; it shows results only after step 8.
 5. [ ] `quail bench --url` (D-064).
 6. [ ] `quail eval tools` (D-065).
-7. [ ] The runs, and the published report.
+7. [x] **The first run** (night budget, on the M1 Max, Quail 0.58.1): [docs/benchmarks/2026-09-29/](benchmarks/2026-09-29/README.md), published in the repo only.
+   - **GGUF lane:** level with llama-server and Ollama, except on 4,096-token prompts.
+   - **MLX lane:** behind oMLX and Rapid-MLX.
+   - **Quality and tool calling:** no significant difference.
+8. [ ] **Fix what it found,** one issue and PR each, in this order:
+   - #137: MLX buffer-cache limit.
+   - #138: GGUF long prompts.
+   - #139: MLX prompt reading and prefill waves.
+   - #140: Gemma 4 batching on MLX.
+   - #141: Qwen3.6 kernels on MLX.
+
+   #140 and #141 use Quail's own copies of mlx-swift-lm's model files (D-066). Then run the comparison again, publish it as a new dated report, and put its results on `website/compare.html`.
 
 **After 1.0:**
 - Phase 4 step 4, measured-speed calibration

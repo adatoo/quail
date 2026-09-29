@@ -1,0 +1,1516 @@
+{
+  "quail-gguf": {
+    "qwen3-8b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 21
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.17
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "completion_tokens": 21,
+          "prompt_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 41
+        },
+        "chunks": 23,
+        "ttft_ms": 88.1,
+        "seconds": 0.51
+      },
+      "ignore_eos": {
+        "ok": true,
+        "asked": 64,
+        "completion_tokens": 64,
+        "seconds": 1.42
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "function": {
+              "arguments": "{\"city\": \"Paris\"}",
+              "name": "get_weather"
+            },
+            "id": "AKxXjXAwxzc2TO301kp6krERKHUIgRZJ",
+            "type": "function"
+          }
+        ],
+        "content": "",
+        "seconds": 0.8
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "id": "toolu_2m5E2uVMLKQ2SK4duLFyyl4C",
+            "input": {
+              "city": "Paris"
+            },
+            "name": "get_weather",
+            "type": "tool_use"
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 2.05
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1453,
+        "seconds": 3.01
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1459,
+        "first_ttft_ms": 3020.3,
+        "second_ttft_ms": 29.4,
+        "hit": true,
+        "seconds": 3.05
+      },
+      "load_seconds": 2.6,
+      "version": "0.58.1"
+    },
+    "qwen3.6-35b-a3b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 21
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.18
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "completion_tokens": 48,
+          "prompt_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 68
+        },
+        "chunks": 51,
+        "ttft_ms": 114.0,
+        "seconds": 0.87
+      },
+      "ignore_eos": {
+        "ok": true,
+        "asked": 64,
+        "completion_tokens": 64,
+        "seconds": 1.1
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "function": {
+              "arguments": "{\"city\":\"Paris\"}",
+              "name": "get_weather"
+            },
+            "id": "UgpYFOaOzxLfcBPqS2Von2PCroMZ4keh",
+            "type": "function"
+          }
+        ],
+        "content": "",
+        "seconds": 0.93
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "id": "toolu_HTByfXsYqL97mW8qW7If5fnI",
+            "input": {
+              "city": "Paris"
+            },
+            "name": "get_weather",
+            "type": "tool_use"
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 2.2
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1422,
+        "seconds": 1.7
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1365,
+        "first_ttft_ms": 1711.5,
+        "second_ttft_ms": 176.9,
+        "hit": true,
+        "seconds": 1.89
+      },
+      "load_seconds": 10.2,
+      "version": "0.58.1"
+    },
+    "gemma-4-26b-a4b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 22
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.28
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "completion_tokens": 21,
+          "prompt_tokens": 21,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 42
+        },
+        "chunks": 23,
+        "ttft_ms": 129.6,
+        "seconds": 0.46
+      },
+      "ignore_eos": {
+        "ok": true,
+        "asked": 64,
+        "completion_tokens": 64,
+        "seconds": 1.14
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "function": {
+              "arguments": "{\"city\":\"Paris\"}",
+              "name": "get_weather"
+            },
+            "id": "cmu1Jsfwz5QbdKYb5DMWpweJwJEte3lx",
+            "type": "function"
+          }
+        ],
+        "content": "",
+        "seconds": 0.53
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "id": "toolu_Y688HulDwaacMvUjpKC6uExG",
+            "input": {
+              "city": "Paris"
+            },
+            "name": "get_weather",
+            "type": "tool_use"
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 0.25
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1333,
+        "seconds": 1.76
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1338,
+        "first_ttft_ms": 1809.2,
+        "second_ttft_ms": 28.2,
+        "hit": true,
+        "seconds": 1.84
+      },
+      "load_seconds": 8.2,
+      "version": "0.58.1"
+    }
+  },
+  "llama-server": {
+    "qwen3-8b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 19,
+          "total_tokens": 21,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.15
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "completion_tokens": 21,
+          "prompt_tokens": 20,
+          "total_tokens": 41,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          }
+        },
+        "chunks": 23,
+        "ttft_ms": 96.4,
+        "seconds": 0.54
+      },
+      "ignore_eos": {
+        "ok": true,
+        "asked": 64,
+        "completion_tokens": 64,
+        "seconds": 1.48
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\": \"Paris\"}"
+            },
+            "id": "I2tXn0svs0s5GQzq8fZZWvqFqW4uj5Fp"
+          }
+        ],
+        "content": "",
+        "seconds": 0.82
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "tf0VL6HE9LzuBgZTVwLaqzxwIaLasmTJ",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 2.19
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1453,
+        "seconds": 3.04
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1459,
+        "first_ttft_ms": 3052.7,
+        "second_ttft_ms": 31.0,
+        "hit": true,
+        "seconds": 3.08
+      },
+      "load_seconds": 1.5,
+      "version": "0.4.1-dev (build 11081, commit 161755f29)"
+    },
+    "qwen3.6-35b-a3b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 19,
+          "total_tokens": 21,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.19
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "completion_tokens": 48,
+          "prompt_tokens": 20,
+          "total_tokens": 68,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "chunks": 51,
+        "ttft_ms": 148.9,
+        "seconds": 0.9
+      },
+      "ignore_eos": {
+        "ok": true,
+        "asked": 64,
+        "completion_tokens": 64,
+        "seconds": 1.13
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}"
+            },
+            "id": "CcSTU6hsKdccMQsjWurFjJnABBiKvjSl"
+          }
+        ],
+        "content": "",
+        "seconds": 0.94
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "dY0jH96QS9mg66f73s7cfGnrDetcgHRC",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 1.7
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1422,
+        "seconds": 1.63
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1425,
+        "first_ttft_ms": 1633.8,
+        "second_ttft_ms": 39.3,
+        "hit": true,
+        "seconds": 1.67
+      },
+      "load_seconds": 2.0,
+      "version": "0.4.1-dev (build 11081, commit 161755f29)"
+    },
+    "gemma-4-26b-a4b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 20,
+          "total_tokens": 22,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.21
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "completion_tokens": 21,
+          "prompt_tokens": 21,
+          "total_tokens": 42,
+          "prompt_tokens_details": {
+            "cached_tokens": 1
+          }
+        },
+        "chunks": 23,
+        "ttft_ms": 155.0,
+        "seconds": 0.49
+      },
+      "ignore_eos": {
+        "ok": true,
+        "asked": 64,
+        "completion_tokens": 64,
+        "seconds": 1.17
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}"
+            },
+            "id": "pItAMeZLa2diK6eG8OcIAcLQyug1Eqn1"
+          }
+        ],
+        "content": "",
+        "seconds": 0.56
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "HAy7VqTTHqJ4qtBAp5qxkUWm8kzCZji1",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 1.7
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1333,
+        "seconds": 1.75
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1338,
+        "first_ttft_ms": 1790.3,
+        "second_ttft_ms": 40.9,
+        "hit": true,
+        "seconds": 1.83
+      },
+      "load_seconds": 2.0,
+      "version": "0.4.1-dev (build 11081, commit 161755f29)"
+    }
+  },
+  "ollama-gguf": {
+    "qwen3-8b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "prompt_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens": 2,
+          "total_tokens": 21
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.17
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "prompt_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "completion_tokens": 21,
+          "total_tokens": 41
+        },
+        "chunks": 22,
+        "ttft_ms": 116.2,
+        "seconds": 0.56
+      },
+      "ignore_eos": {
+        "ok": false,
+        "asked": 64,
+        "completion_tokens": 3,
+        "seconds": 0.15
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "id": "u4wI75dGp5sdNsTg9CQ8g5HlOL67svM8",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}"
+            }
+          }
+        ],
+        "content": "",
+        "seconds": 0.83
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "2oIN5oecZUUZhgNRCXKjr59GqHqtPmOj",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 2.26
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1453,
+        "seconds": 3.47
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1459,
+        "first_ttft_ms": 3479.4,
+        "second_ttft_ms": 41.5,
+        "hit": true,
+        "seconds": 3.52
+      },
+      "load_seconds": 3.6,
+      "version": "0.34.4"
+    },
+    "qwen3.6-35b-a3b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "prompt_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens": 2,
+          "total_tokens": 21
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.16
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "prompt_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens": 48,
+          "total_tokens": 68
+        },
+        "chunks": 50,
+        "ttft_ms": 155.4,
+        "seconds": 0.9
+      },
+      "ignore_eos": {
+        "ok": false,
+        "asked": 64,
+        "completion_tokens": 3,
+        "seconds": 0.17
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "id": "iIck96CDHM2ZcipeR2hMFXxechBdXqas",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}"
+            }
+          }
+        ],
+        "content": "",
+        "seconds": 0.96
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "iI1TmqHWzixpN48JERnZqr62HUrhvbmf",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 2.24
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1422,
+        "seconds": 1.55
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1425,
+        "first_ttft_ms": 1550.3,
+        "second_ttft_ms": 49.3,
+        "hit": true,
+        "seconds": 1.6
+      },
+      "load_seconds": 10.9,
+      "version": "0.34.4"
+    },
+    "gemma-4-26b-a4b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "prompt_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens": 2,
+          "total_tokens": 22
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.2
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "prompt_tokens": 21,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens": 21,
+          "total_tokens": 42
+        },
+        "chunks": 22,
+        "ttft_ms": 168.3,
+        "seconds": 0.5
+      },
+      "ignore_eos": {
+        "ok": false,
+        "asked": 64,
+        "completion_tokens": 3,
+        "seconds": 0.18
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "id": "call_udsaf6eo",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}"
+            }
+          }
+        ],
+        "content": "",
+        "seconds": 0.46
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "call_3urcji94",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 1.64
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1333,
+        "seconds": 1.61
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1338,
+        "first_ttft_ms": 1641.6,
+        "second_ttft_ms": 55.4,
+        "hit": true,
+        "seconds": 1.7
+      },
+      "load_seconds": 8.9,
+      "version": "0.34.4"
+    }
+  },
+  "quail-mlx": {
+    "qwen3-8b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 20
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.33
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "completion_tokens": 20,
+          "prompt_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 40
+        },
+        "chunks": 23,
+        "ttft_ms": 157.3,
+        "seconds": 0.49
+      },
+      "ignore_eos": {
+        "ok": true,
+        "asked": 64,
+        "completion_tokens": 64,
+        "seconds": 0.99
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "function": {
+              "arguments": "{\"city\": \"Paris\"}",
+              "name": "get_weather"
+            },
+            "id": "EhXzFGXtReopVYe1sRtiHynr45nLNAUr",
+            "type": "function"
+          }
+        ],
+        "content": "",
+        "seconds": 1.04
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "id": "toolu_H10uZHBBvCYoD80oJ3DCHmCW",
+            "input": {
+              "city": "Paris"
+            },
+            "name": "get_weather",
+            "type": "tool_use"
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 1.77
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1453,
+        "seconds": 4.62
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1459,
+        "first_ttft_ms": 4593.8,
+        "second_ttft_ms": 44.3,
+        "hit": true,
+        "seconds": 4.65
+      },
+      "load_seconds": 0.5,
+      "version": "0.58.1"
+    },
+    "qwen3.6-35b-a3b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 20
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.49
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "completion_tokens": 20,
+          "prompt_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 40
+        },
+        "chunks": 23,
+        "ttft_ms": 139.5,
+        "seconds": 0.45
+      },
+      "ignore_eos": {
+        "ok": true,
+        "asked": 64,
+        "completion_tokens": 64,
+        "seconds": 0.76
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "function": {
+              "arguments": "{\"city\":\"Paris\"}",
+              "name": "get_weather"
+            },
+            "id": "4mtxwdNjnOKHPJQv5DoMiywTARldCuWa",
+            "type": "function"
+          }
+        ],
+        "content": "",
+        "seconds": 1.31
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "id": "toolu_PXxOmJUK0bBj4uBijTER1Naw",
+            "input": {
+              "city": "Paris"
+            },
+            "name": "get_weather",
+            "type": "tool_use"
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 2.57
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1422,
+        "seconds": 2.95
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1365,
+        "first_ttft_ms": 2957.4,
+        "second_ttft_ms": 263.1,
+        "hit": true,
+        "seconds": 3.23
+      },
+      "load_seconds": 3.1,
+      "version": "0.58.1"
+    },
+    "gemma-4-26b-a4b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 21
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.45
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "completion_tokens": 20,
+          "prompt_tokens": 21,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 41
+        },
+        "chunks": 23,
+        "ttft_ms": 162.0,
+        "seconds": 0.51
+      },
+      "ignore_eos": {
+        "ok": true,
+        "asked": 64,
+        "completion_tokens": 64,
+        "seconds": 1.17
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "function": {
+              "arguments": "{\"city\":\"Paris\"}",
+              "name": "get_weather"
+            },
+            "id": "1i5ydXcv9MS4QLXQFGS6w5BbS6Eparg1",
+            "type": "function"
+          }
+        ],
+        "content": "",
+        "seconds": 0.74
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "id": "toolu_jiGu4DQOz7RnLnKVr846h9NM",
+            "input": {
+              "city": "Paris"
+            },
+            "name": "get_weather",
+            "type": "tool_use"
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 0.63
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1333,
+        "seconds": 3.07
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1275,
+        "first_ttft_ms": 3054.0,
+        "second_ttft_ms": 336.1,
+        "hit": true,
+        "seconds": 3.4
+      },
+      "load_seconds": 3.6,
+      "version": "0.58.1"
+    }
+  },
+  "omlx": {
+    "qwen3-8b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "prompt_tokens": 19,
+          "completion_tokens": 1,
+          "total_tokens": 20,
+          "input_tokens": 19,
+          "output_tokens": 1,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_time": 0.25
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.26
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "prompt_tokens": 20,
+          "completion_tokens": 20,
+          "total_tokens": 40,
+          "input_tokens": 20,
+          "output_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "time_to_first_token": 0.32,
+          "total_time": 0.56,
+          "prompt_eval_duration": 0.32,
+          "generation_duration": 0.24,
+          "prompt_tokens_per_second": 62.99,
+          "generation_tokens_per_second": 83.21
+        },
+        "chunks": 7,
+        "ttft_ms": 329.8,
+        "seconds": 0.57
+      },
+      "ignore_eos": {
+        "ok": false,
+        "asked": 64,
+        "completion_tokens": 2,
+        "seconds": 0.29
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "id": "call_33ea16de",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ],
+        "content": "",
+        "seconds": 1.04
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "call_7817b7c8",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 1.05
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1453,
+        "seconds": 4.62
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 0,
+        "first_ttft_ms": 4719.1,
+        "second_ttft_ms": 4711.3,
+        "hit": false,
+        "seconds": 9.43
+      },
+      "load_seconds": 0.3,
+      "version": "0.6.4"
+    },
+    "qwen3.6-35b-a3b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "prompt_tokens": 19,
+          "completion_tokens": 1,
+          "total_tokens": 20,
+          "input_tokens": 19,
+          "output_tokens": 1,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_time": 0.28
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.28
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "prompt_tokens": 20,
+          "completion_tokens": 20,
+          "total_tokens": 40,
+          "input_tokens": 20,
+          "output_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "time_to_first_token": 0.34,
+          "total_time": 0.52,
+          "prompt_eval_duration": 0.34,
+          "generation_duration": 0.18,
+          "prompt_tokens_per_second": 58.58,
+          "generation_tokens_per_second": 112.92
+        },
+        "chunks": 7,
+        "ttft_ms": 359.1,
+        "seconds": 0.53
+      },
+      "ignore_eos": {
+        "ok": false,
+        "asked": 64,
+        "completion_tokens": 2,
+        "seconds": 0.27
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "id": "call_666aa3aa",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ],
+        "content": "",
+        "seconds": 1.22
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "call_35a97065",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 1.25
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1422,
+        "seconds": 2.42
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 0,
+        "first_ttft_ms": 2427.8,
+        "second_ttft_ms": 2431.6,
+        "hit": false,
+        "seconds": 4.86
+      },
+      "load_seconds": 4.0,
+      "version": "0.6.4"
+    },
+    "gemma-4-26b-a4b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "prompt_tokens": 20,
+          "completion_tokens": 1,
+          "total_tokens": 21,
+          "input_tokens": 20,
+          "output_tokens": 1,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_time": 0.35
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.35
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "prompt_tokens": 21,
+          "completion_tokens": 20,
+          "total_tokens": 41,
+          "input_tokens": 21,
+          "output_tokens": 20,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "time_to_first_token": 0.4,
+          "total_time": 0.65,
+          "prompt_eval_duration": 0.4,
+          "generation_duration": 0.25,
+          "prompt_tokens_per_second": 52.83,
+          "generation_tokens_per_second": 80.21
+        },
+        "chunks": 7,
+        "ttft_ms": 410.0,
+        "seconds": 0.66
+      },
+      "ignore_eos": {
+        "ok": false,
+        "asked": 64,
+        "completion_tokens": 2,
+        "seconds": 0.33
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "id": "call_c76bfee1",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ],
+        "content": "",
+        "seconds": 0.77
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "call_c033f7fa",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 0.77
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1333,
+        "seconds": 2.93
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 0,
+        "first_ttft_ms": 2950.6,
+        "second_ttft_ms": 2944.6,
+        "hit": false,
+        "seconds": 5.9
+      },
+      "load_seconds": 4.6,
+      "version": "0.6.4"
+    }
+  },
+  "rapid-mlx": {
+    "qwen3-8b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "prompt_tokens": 19,
+          "completion_tokens": 2,
+          "total_tokens": 21,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          }
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.23
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "prompt_tokens": 20,
+          "completion_tokens": 21,
+          "total_tokens": 41,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          }
+        },
+        "chunks": 23,
+        "ttft_ms": 161.7,
+        "seconds": 0.48
+      },
+      "ignore_eos": {
+        "ok": false,
+        "asked": 64,
+        "completion_tokens": 3,
+        "seconds": 0.27
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "id": "call_6172e6fc",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ],
+        "content": "",
+        "seconds": 1.2
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "toolu_14a5d909",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 0.85
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1453,
+        "seconds": 3.75
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1460,
+        "first_ttft_ms": 3713.4,
+        "second_ttft_ms": 100.9,
+        "hit": true,
+        "seconds": 3.82
+      },
+      "load_seconds": 0.3,
+      "version": "0.15.2"
+    },
+    "qwen3.6-35b-a3b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "prompt_tokens": 19,
+          "completion_tokens": 2,
+          "total_tokens": 21
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.18
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "prompt_tokens": 20,
+          "completion_tokens": 21,
+          "total_tokens": 41
+        },
+        "chunks": 23,
+        "ttft_ms": 156.6,
+        "seconds": 0.4
+      },
+      "ignore_eos": {
+        "ok": false,
+        "asked": 64,
+        "completion_tokens": 3,
+        "seconds": 0.22
+      },
+      "tools_chat": {
+        "ok": true,
+        "calls": [
+          {
+            "id": "call_73a945fd",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ],
+        "content": "",
+        "seconds": 1.14
+      },
+      "tools_messages": {
+        "ok": true,
+        "tool_use": [
+          {
+            "type": "tool_use",
+            "id": "toolu_60e7be77",
+            "name": "get_weather",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "seconds": 0.93
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1422,
+        "seconds": 1.86
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1408,
+        "first_ttft_ms": 1823.3,
+        "second_ttft_ms": 193.8,
+        "hit": true,
+        "seconds": 2.02
+      },
+      "load_seconds": 0.1,
+      "version": "0.15.2"
+    },
+    "gemma-4-26b-a4b": {
+      "chat": {
+        "ok": true,
+        "content": "ready",
+        "usage": {
+          "prompt_tokens": 20,
+          "completion_tokens": 2,
+          "total_tokens": 22,
+          "prompt_tokens_details": {
+            "cached_tokens": 4
+          }
+        },
+        "thinking_off": true,
+        "reasoning_chars": 0,
+        "seconds": 0.2
+      },
+      "stream_usage": {
+        "ok": true,
+        "usage": {
+          "prompt_tokens": 21,
+          "completion_tokens": 21,
+          "total_tokens": 42,
+          "prompt_tokens_details": {
+            "cached_tokens": 4
+          }
+        },
+        "chunks": 23,
+        "ttft_ms": 158.0,
+        "seconds": 0.45
+      },
+      "ignore_eos": {
+        "ok": false,
+        "asked": 64,
+        "completion_tokens": 3,
+        "seconds": 0.23
+      },
+      "tools_chat": {
+        "ok": false,
+        "calls": [],
+        "content": "",
+        "seconds": 0.8
+      },
+      "tools_messages": {
+        "ok": false,
+        "tool_use": [],
+        "stop_reason": "end_turn",
+        "seconds": 0.55
+      },
+      "prompt_tokens": {
+        "ok": true,
+        "prompt_tokens": 1333,
+        "seconds": 2.02
+      },
+      "prefix_cache": {
+        "ok": true,
+        "cached_tokens": 1316,
+        "first_ttft_ms": 2005.0,
+        "second_ttft_ms": 226.3,
+        "hit": true,
+        "seconds": 2.23
+      },
+      "load_seconds": 0.3,
+      "version": "0.15.2"
+    }
+  },
+  "ollama-mlx": {
+    "qwen3-8b": {
+      "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [dequantize] Invalid quantization mode ''. at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/mlx/c/ops.cpp:1258 (exit: exit status 2)\"}",
+      "trace": "Traceback (most recent call last):\n  File \"/Users/adatoo/code/quail/bench/harness/smoke.py\", line 156, in smoke\n    server = engine.start(model, run_dir, log=log)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/adatoo/code/quail/bench/harness/engines.py\", line 146, in start\n    self.load(server)\n  File \"/Users/adatoo/code/quail/bench/harness/engines.py\", line 376, in load\n    httpc.post(f\"{server.base}/api/generate\", {\"model\": server.served, \"keep_alive\": -1}, timeout=900)\n  File \"/Users/adatoo/code/quail/bench/harness/httpc.py\", line 46, in post\n    return call(\"POST\", url, body, key=key, timeout=timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/adatoo/code/quail/bench/harness/httpc.py\", line 37, in call\n    raise HTTPError(error.code, error.read().decode(errors=\"replace\")) from None\nharness.httpc.HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [dequantize] Invalid quantization mode ''. at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/mlx/c/ops.cpp:1258 (exit: exit status 2)\"}\n"
+    },
+    "qwen3.6-35b-a3b": {
+      "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [quantized_matmul] The shapes of the weight and scales are incompatible based on bits and group_size. w.shape() == (256,512) and scales.shape() == (256,32) with group_size=64 and bits=4 at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/",
+      "trace": "Traceback (most recent call last):\n  File \"/Users/adatoo/code/quail/bench/harness/smoke.py\", line 156, in smoke\n    server = engine.start(model, run_dir, log=log)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/adatoo/code/quail/bench/harness/engines.py\", line 146, in start\n    self.load(server)\n  File \"/Users/adatoo/code/quail/bench/harness/engines.py\", line 376, in load\n    httpc.post(f\"{server.base}/api/generate\", {\"model\": server.served, \"keep_alive\": -1}, timeout=900)\n  File \"/Users/adatoo/code/quail/bench/harness/httpc.py\", line 46, in post\n    return call(\"POST\", url, body, key=key, timeout=timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/adatoo/code/quail/bench/harness/httpc.py\", line 37, in call\n    raise HTTPError(error.code, error.read().decode(errors=\"replace\")) from None\nharness.httpc.HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [quantized_matmul] The shapes of the weight and scales are incompatible based on bits and group_size. w.shape() == (256,512) and scales.shape() == (256,32) with group_size=64 and bits=4 at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/\n"
+    },
+    "gemma-4-26b-a4b": {
+      "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: Error: layer 0: missing MoE expert weights (exit: exit status 1)\"}",
+      "trace": "Traceback (most recent call last):\n  File \"/Users/adatoo/code/quail/bench/harness/smoke.py\", line 156, in smoke\n    server = engine.start(model, run_dir, log=log)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/adatoo/code/quail/bench/harness/engines.py\", line 146, in start\n    self.load(server)\n  File \"/Users/adatoo/code/quail/bench/harness/engines.py\", line 376, in load\n    httpc.post(f\"{server.base}/api/generate\", {\"model\": server.served, \"keep_alive\": -1}, timeout=900)\n  File \"/Users/adatoo/code/quail/bench/harness/httpc.py\", line 46, in post\n    return call(\"POST\", url, body, key=key, timeout=timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/adatoo/code/quail/bench/harness/httpc.py\", line 37, in call\n    raise HTTPError(error.code, error.read().decode(errors=\"replace\")) from None\nharness.httpc.HTTPError: HTTP 500: {\"error\":\"mlx runner failed: Error: layer 0: missing MoE expert weights (exit: exit status 1)\"}\n"
+    }
+  }
+}

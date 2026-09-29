@@ -9,7 +9,7 @@
 #   task bench:quality    GSM8K and MMLU-Pro (lm-eval) through the request shim
 #   task bench:tools      BFCL's function-calling categories through the request shim
 #   task bench:compare    all four in one run folder (RESUME=<run> carries on a stopped one)
-#   task bench:report     the report for a compare run: docs/benchmarks/<date>/ (RUN=…, SMOKE=…)
+#   task bench:report     the report for a compare run: docs/benchmarks/<date>/ (RUN=…, SMOKE=…, NOTES=…)
 #   task bench:restore    resume anything a killed run left paused (Spotlight, analysis daemons)
 #   task bench:test       the harness's own tests (in `task ci`)
 #
@@ -136,17 +136,19 @@ tasks:
         PYTHONUNBUFFERED=1 uv run --quiet python -m harness compare "${args[@]}"
 
   report:
-    desc: The report for a compare run — docs/benchmarks/<date>/ (RUN=<run folder>, SMOKE=<smoke folder>)
+    desc: The report for a compare run — docs/benchmarks/<date>/ (RUN=<run folder>, SMOKE=<smoke folder>, NOTES=<toml>)
     dir: bench
     requires:
       vars: [RUN]
     env:
       RUN: '{{.RUN}}'
       SMOKE: '{{.SMOKE}}'
+      NOTES: '{{.NOTES}}'
     cmds:
       - |
         args=("$RUN")
         [ -n "${SMOKE:-}" ] && args+=(--smoke "$SMOKE")
+        [ -n "${NOTES:-}" ] && args+=(--notes "$(cd "{{.USER_WORKING_DIR}}" && realpath "$NOTES")")
         uv run --quiet python -m harness report "${args[@]}"
 
   restore:
