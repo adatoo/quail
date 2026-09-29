@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.60.0] - 2026-09-29
+
+### Added
+
+- **The Activity window shows the Mac's CPU, GPU and memory while the server is stopped.** It samples them for as long as the window is open. The server's own figures appear once it's running. (#133)
+- **Memory is a chart,** like CPU and GPU, instead of a single bar:
+  - It's drawn against the Mac's total memory, and turns orange, then red, as memory runs short.
+  - While the server runs, its share is shown inside.
+- **The charts cover the last 1, 5 or 15 minutes,** chosen in the window. They're drawn by time, and a pause in sampling shows as a break in the line.
+
 ## [0.59.1] - 2026-09-29
 
 ### Fixed

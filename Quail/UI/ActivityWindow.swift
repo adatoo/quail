@@ -2,22 +2,49 @@ import AppKit
 import SwiftUI
 
 /// Live CPU, GPU and memory, and what the server is doing, request by request (ADR D-060). A small window that
-/// can stay above other windows while a long prompt is read.
+/// can stay above other windows while a long prompt is read. The Mac's figures are sampled while it's open, whether
+/// or not the server runs, and charted over the last 1, 5 or 15 minutes.
 struct ActivityWindow: View {
     let appState: AppState
     @AppStorage("activityWindowOnTop") private var onTop = true
+    @AppStorage("activityHistoryMinutes") private var minutes = 1
 
     private var monitor: ActivityMonitor {
         appState.activity
     }
 
+    private var window: TimeInterval {
+        TimeInterval((ActivityMonitor.windowMinutes.contains(minutes) ? minutes : 1) * 60)
+    }
+
+    /// The charts end at the latest reading, so they don't creep between readings.
+    private var now: Date {
+        monitor.history.last?.date ?? Date()
+    }
+
+    private func series(_ value: (ActivityPoint) -> Double?) -> [ChartPoint] {
+        ActivityMonitor.series(monitor.history, window: window, now: now, value: value)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 16) {
-                Meter(title: "GPU", percent: monitor.system.gpuPercent, history: monitor.gpuHistory, tint: .purple)
-                Meter(title: "CPU", percent: monitor.system.cpuPercent, history: monitor.cpuHistory, tint: .blue)
+            Picker("History", selection: $minutes) {
+                ForEach(ActivityMonitor.windowMinutes, id: \.self) { Text("\($0) min").tag($0) }
             }
-            memoryLine
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .controlSize(.small)
+            HStack(spacing: 16) {
+                Meter(
+                    title: "GPU", percent: monitor.system.gpuPercent,
+                    layers: [.init(points: series { $0.gpu.map { $0 / 100 } }, tint: .purple)]
+                )
+                Meter(
+                    title: "CPU", percent: monitor.system.cpuPercent,
+                    layers: [.init(points: series { $0.cpu.map { $0 / 100 } }, tint: .blue)]
+                )
+            }
+            memoryChart
             Divider()
             activitySection
             Spacer(minLength: 0)
@@ -28,23 +55,45 @@ struct ActivityWindow: View {
         }
         .padding(14)
         .frame(width: 340)
-        .frame(minHeight: 300, alignment: .top)
+        .frame(minHeight: 340, alignment: .top)
         .background(WindowLevel(floating: onTop).frame(width: 0, height: 0))
+        .onAppear { monitor.watch(true) }
+        .onDisappear { monitor.watch(false) }
     }
 
-    @ViewBuilder private var memoryLine: some View {
+    /// Memory in use against the Mac's total, with the server's share inside it while it runs.
+    private var memoryChart: some View {
         let system = monitor.system
-        if let used = system.memoryUsedBytes, let total = system.memoryTotalBytes {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Memory").font(.caption.weight(.semibold))
-                    Spacer()
-                    Text("\(Self.gigabytes(used)) of \(Self.gigabytes(total))")
+        let fraction = system.memoryUsedBytes.flatMap { used in
+            system.memoryTotalBytes.map { Double(used) / Double(max($0, 1)) }
+        }
+        let tint: Color = (fraction ?? 0) > 0.9 ? .red : (fraction ?? 0) > 0.8 ? .orange : .green
+        let used = series { point in
+            point.memoryUsed.flatMap { used in point.memoryTotal.map { Double(used) / Double(max($0, 1)) } }
+        }
+        let server = series { point in
+            point.serverMemory.flatMap { mine in point.memoryTotal.map { Double(mine) / Double(max($0, 1)) } }
+        }
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Memory").font(.caption.weight(.semibold))
+                Spacer()
+                if let usedBytes = system.memoryUsedBytes, let total = system.memoryTotalBytes {
+                    Text("\(Self.gigabytes(usedBytes)) of \(Self.gigabytes(total))")
                         .font(.caption.monospacedDigit())
+                } else {
+                    Text("—").font(.caption.monospacedDigit())
                 }
-                ProgressView(value: Double(used), total: Double(max(total, 1)))
-                    .tint(Double(used) / Double(max(total, 1)) > 0.9 ? .red : .green)
-                if let server = system.serverMemoryBytes {
+            }
+            HistoryChart(layers: [
+                .init(points: used, tint: tint),
+                .init(points: server, tint: .indigo, fillOpacity: 0.45),
+            ])
+            .frame(height: 48)
+            .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 4))
+            if let server = system.serverMemoryBytes {
+                HStack(spacing: 4) {
+                    Circle().fill(.indigo).frame(width: 7, height: 7)
                     Text("Server \(Self.gigabytes(server))"
                         + (system.serverCPUPercent.map { " · CPU \(Int($0.rounded()))%" } ?? ""))
                         .font(.caption2.monospacedDigit())
@@ -162,12 +211,11 @@ private struct RequestRow: View {
     }
 }
 
-/// A percentage with a minute's history under it.
+/// A percentage with its history under it.
 private struct Meter: View {
     let title: String
     let percent: Double?
-    let history: [Double?]
-    let tint: Color
+    let layers: [HistoryChart.Layer]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -176,7 +224,7 @@ private struct Meter: View {
                 Spacer()
                 Text(percent.map { "\(Int($0.rounded()))%" } ?? "—").font(.caption.monospacedDigit())
             }
-            Sparkline(values: history, tint: tint)
+            HistoryChart(layers: layers)
                 .frame(height: 34)
                 .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 4))
         }
@@ -184,40 +232,46 @@ private struct Meter: View {
     }
 }
 
-/// The last minute of a 0–100 figure, oldest on the left.
-private struct Sparkline: View {
-    let values: [Double?]
-    let tint: Color
+/// Figures over time, 0–1 on the y-axis and the chosen window on the x-axis, oldest on the left. Each layer is an
+/// area under a line; a nil point breaks it (no reading, or sampling paused).
+struct HistoryChart: View {
+    struct Layer {
+        var points: [ChartPoint]
+        var tint: Color
+        var fillOpacity = 0.25
+    }
+
+    let layers: [Layer]
 
     var body: some View {
         Canvas { context, size in
-            let slots = ActivityMonitor.historyLength
-            let step = size.width / CGFloat(max(1, slots - 1))
-            let offset = slots - values.count
-            var line = Path()
-            var area = Path()
-            var started = false
-            for (index, value) in values.enumerated() {
-                guard let value else { continue }
-                let point = CGPoint(
-                    x: CGFloat(offset + index) * step, y: size.height * (1 - CGFloat(min(100, max(0, value)) / 100))
-                )
-                if started {
-                    line.addLine(to: point)
-                    area.addLine(to: point)
-                } else {
-                    line.move(to: point)
-                    area.move(to: CGPoint(x: point.x, y: size.height))
-                    area.addLine(to: point)
-                    started = true
+            for layer in layers {
+                for run in Self.runs(layer.points) where !run.isEmpty {
+                    let points = run.map { CGPoint(x: $0.x * size.width, y: size.height * (1 - $0.y)) }
+                    var line = Path()
+                    line.addLines(points)
+                    var area = line
+                    area.addLine(to: CGPoint(x: points[points.count - 1].x, y: size.height))
+                    area.addLine(to: CGPoint(x: points[0].x, y: size.height))
+                    area.closeSubpath()
+                    context.fill(area, with: .color(layer.tint.opacity(layer.fillOpacity)))
+                    context.stroke(line, with: .color(layer.tint), lineWidth: 1.5)
                 }
             }
-            guard started, let last = line.currentPoint else { return }
-            area.addLine(to: CGPoint(x: last.x, y: size.height))
-            area.closeSubpath()
-            context.fill(area, with: .color(tint.opacity(0.25)))
-            context.stroke(line, with: .color(tint), lineWidth: 1.5)
         }
+    }
+
+    /// The unbroken stretches of `points`: split wherever y is nil.
+    static func runs(_ points: [ChartPoint]) -> [[(x: Double, y: Double)]] {
+        var runs: [[(x: Double, y: Double)]] = [[]]
+        for point in points {
+            if let y = point.y {
+                runs[runs.count - 1].append((point.x, y))
+            } else if !runs[runs.count - 1].isEmpty {
+                runs.append([])
+            }
+        }
+        return runs.filter { !$0.isEmpty }
     }
 }
 
