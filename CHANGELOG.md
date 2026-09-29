@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.58.1] - 2026-09-29
+
+### Fixed
+
+- Qwen3.6's tool calls with a true/false argument work. When Qwen writes Python's `True` or `False` for such an argument, Quail used to pass it on as the text "True"; it now reads it as a real true or false, as llama-server does. Found by the Berkeley Function-Calling Leaderboard run in the comparison harness.
+
 ## [0.58.0] - 2026-09-28
 
 ### Added

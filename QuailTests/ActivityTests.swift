@@ -97,7 +97,10 @@ struct ActivityTests {
         var reading: [String: Any]?
         for _ in 0 ..< 300 {
             let requests = await Self.slots(harness).json["requests"] as? [[String: Any]] ?? []
-            if let request = requests.first, request["phase"] as? String == "reading_prompt" {
+            // The phase can show before the engine's first progress report lands: wait for that too.
+            if let request = requests.first, request["phase"] as? String == "reading_prompt",
+               (request["prompt_done"] as? Int ?? 0) > 0
+            {
                 reading = request
                 break
             }
