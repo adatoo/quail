@@ -275,6 +275,54 @@ struct UISnapshotTests {
         )
     }
 
+    @Test("Models pane with the server running: a model loaded and busy, one loading, and none")
+    func modelsPaneLoaded() async throws {
+        let runtime = Self.fakeRuntime()
+        let (appState, scratch) = try await makeAppState(fakeRuntime: runtime)
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        appState.setDefaultModel("Qwen3-8B-Q4_K_M")
+        func served(_ states: [(String, String)]) -> Result<[ServedModel], Error> {
+            .success(states.map { ServedModel(id: $0.0, status: .init(value: $0.1, failed: nil, exitCode: nil)) })
+        }
+        await runtime.setListModelsResult(served([
+            ("Qwen3-8B-Q4_K_M", "loaded"), ("mlx-community--Qwen3-8B-4bit", "loading"),
+            ("Qwen3.6-35B-A3B-UD-Q4_K_M", "unloaded"),
+        ]))
+        await appState.start()
+        let generating = ServerActivity.Request(
+            id: 1, model: "Qwen3-8B-Q4_K_M", phase: .generating, promptTotal: 800, promptDone: 800, cached: 0,
+            generated: 120, promptPerSecond: 900, predictedPerSecond: 43, seconds: 4
+        )
+        appState.activity.show(
+            system: SystemSample(serverMemoryBytes: 9_800_000_000),
+            server: ServerActivity(
+                models: [
+                    .init(id: "Qwen3-8B-Q4_K_M", state: "loaded", leases: 1),
+                    .init(id: "mlx-community--Qwen3-8B-4bit", state: "loading", loadingSeconds: 6, leases: 0),
+                ],
+                requests: [generating]
+            ),
+            history: []
+        )
+        for width in [820.0, 480] {
+            try await render(
+                ModelsPane(appState: appState), size: CGSize(width: width, height: 640),
+                name: "models-loaded-\(Int(width))"
+            )
+        }
+        await runtime.setListModelsResult(served([
+            ("Qwen3-8B-Q4_K_M", "unloaded"), ("mlx-community--Qwen3-8B-4bit", "unloaded"),
+            ("Qwen3.6-35B-A3B-UD-Q4_K_M", "unloaded"),
+        ]))
+        await appState.refreshServedModels()
+        try await render(
+            ModelsPane(appState: appState),
+            size: CGSize(width: 820, height: 520),
+            name: "models-none-loaded"
+        )
+        await appState.stop()
+    }
+
     @Test("llama.cpp chosen: MLX models are said to be unavailable")
     func llamaCppWarnings() async throws {
         let (appState, scratch) = try await makeAppState(runtime: .llamaCpp)

@@ -35,6 +35,8 @@ struct ModelsPane: View {
     @State private var showDeleteConfirm = false
     @State private var relocationError: String?
     @State private var loadError: String?
+    /// Models asked to unload that the server still lists, so their row says so until they go.
+    @State private var unloading: Set<String> = []
     @State private var tokenDraft = ""
     /// Carried from `ContentUnavailable`'s recommendation button into the
     /// sheet it opens, so the empty-state nudge (§7's own top pick for
@@ -84,6 +86,7 @@ struct ModelsPane: View {
                     ImportOfferBanner(appState: appState, review: { showImport = true })
                 }
             }
+            loadedSection
             Section {
                 installedList
             } header: {
@@ -182,6 +185,10 @@ struct ModelsPane: View {
             await refresh()
             await appState.pollLoadedStates { loadedStates = $0 }
         }
+        // An unloaded model leaves the Loaded section; forget that it was being unloaded.
+        .onChange(of: appState.servedModels.filter { $0.status.value != "unloaded" }.map(\.id)) { _, ids in
+            unloading.formIntersection(ids)
+        }
         .onChange(of: appState.storeRevision) { _, _ in
             Task { await refresh() }
         }
@@ -236,6 +243,69 @@ struct ModelsPane: View {
 
     private var measuredSpeeds: [String: Double] {
         appState.benchmarks.measuredSpeeds(chip: chip)
+    }
+
+    /// What the server has loaded or is loading, at the top where it can't be missed (issue #134): each with what
+    /// it's doing, and Unload. Only while the server is ready; the Installed list below still shows every model.
+    @ViewBuilder private var loadedSection: some View {
+        if appState.serverController.phase == .ready {
+            let served = appState.servedModels.filter { ["loaded", "loading"].contains($0.status.value) }
+            Section("Loaded") {
+                if served.isEmpty {
+                    Label(noneLoadedText, systemImage: "moon.zzz")
+                        .foregroundStyle(.secondary)
+                } else {
+                    // One Form row holding them all: as separate rows, a grouped Form drew only the first inside
+                    // the section's card.
+                    VStack(spacing: 6) {
+                        ForEach(Array(served.enumerated()), id: \.element.id) { index, model in
+                            if index > 0 {
+                                Divider()
+                            }
+                            loadedRow(model)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var noneLoadedText: String {
+        if let id = appState.config.defaultModelID {
+            return "No model loaded — the default, \(id), loads on the first request"
+        }
+        return "No model loaded — a request loads the model it names, or choose one below and Load"
+    }
+
+    private func loadedRow(_ model: ServedModel) -> some View {
+        let activity = appState.activity.server
+        let entry = rows.first { $0.id == model.id }
+        return LoadedModelRow(
+            id: model.id,
+            entry: entry,
+            loading: model.status.value == "loading",
+            unloading: unloading.contains(model.id),
+            live: activity.models.first { $0.id == model.id },
+            requests: activity.requests.filter { $0.model == model.id },
+            serverMemoryBytes: appState.activity.system.serverMemoryBytes,
+            isDefault: appState.config.defaultModelID == model.id,
+            onUnload: {
+                unloading.insert(model.id)
+                Task {
+                    do {
+                        try await appState.unloadModel(id: model.id)
+                        loadError = nil
+                        loadedStates = await appState.loadedModelStates()
+                    } catch {
+                        unloading.remove(model.id)
+                        loadError = String(describing: error)
+                    }
+                }
+            },
+            onToggleDefault: {
+                appState.setDefaultModel(appState.config.defaultModelID == model.id ? nil : model.id)
+            }
+        )
     }
 
     @ViewBuilder private var installedList: some View {
@@ -704,6 +774,110 @@ private struct ModelRow: View {
     private var contextLabel: String {
         let size = "\(RemoteFitBadge.contextLabel(entry.effectiveContextSize)) context"
         return entry.effectiveKVCache == .full ? size : "\(size) · \(entry.effectiveKVCache.label) KV"
+    }
+}
+
+/// A model the server has loaded or is loading: its name, format and context, its memory, what it's doing, and
+/// Unload (issue #134).
+private struct LoadedModelRow: View {
+    let id: String
+    /// The store's entry for it, when it's one of the installed models (it always should be).
+    let entry: InstalledModel?
+    let loading: Bool
+    let unloading: Bool
+    /// What `/slots` says about it: load time and, for MLX, its memory.
+    let live: ServerActivity.Model?
+    let requests: [ServerActivity.Request]
+    /// The server's whole footprint, for a GGUF model (llama.cpp doesn't say per model).
+    let serverMemoryBytes: Int64?
+    let isDefault: Bool
+    let onUnload: () -> Void
+    let onToggleDefault: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Circle().fill(dotColor).frame(width: 9, height: 9)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(id)
+                    .font(.body.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .help("Send \"model\": \"\(id)\" in requests to use this one")
+                HStack(spacing: 10) {
+                    if let entry {
+                        Badge(
+                            text: entry.format == .gguf ? "GGUF" : "MLX",
+                            color: entry.format == .gguf ? .blue : .purple
+                        )
+                        Text("\(RemoteFitBadge.contextLabel(entry.effectiveContextSize)) context")
+                    }
+                    if let memory = memoryText {
+                        Text(memory)
+                    }
+                    Text(activityText).foregroundStyle(activityColor)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+                .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            // Nothing to press while it loads or unloads; the line under the name says which.
+            if !loading, !unloading {
+                Button("Unload", action: onUnload)
+                    .controlSize(.small)
+                    .help(requests.isEmpty
+                        ? "Free this model's memory; it loads again on its next request"
+                        : "Free this model's memory once its requests in progress finish")
+            }
+            Button(action: onToggleDefault) {
+                Image(systemName: isDefault ? "star.fill" : "star")
+                    .foregroundStyle(isDefault ? .yellow : .secondary)
+            }
+            .buttonStyle(.borderless)
+            .help(isDefault ? "Default — loads automatically on Start" : "Load automatically on Start")
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var dotColor: Color {
+        if loading || unloading {
+            return .orange
+        }
+        return requests.isEmpty ? .green : .blue
+    }
+
+    /// MLX reports each model's memory; for GGUF, the server's footprint is the closest there is.
+    private var memoryText: String? {
+        if let bytes = live?.memoryBytes {
+            return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .memory)
+        }
+        if entry?.format == .gguf, let serverMemoryBytes {
+            return "server \(ByteCountFormatter.string(fromByteCount: serverMemoryBytes, countStyle: .memory))"
+        }
+        return nil
+    }
+
+    private var activityText: String {
+        if loading {
+            return live?.loadingSeconds.map { "Loading \(Int($0)) s" } ?? "Loading…"
+        }
+        if unloading {
+            return requests.isEmpty ? "Unloading…" : "Unloading after \(requests.count) request\(requests.count == 1 ? "" : "s")"
+        }
+        if requests.isEmpty {
+            return "Idle"
+        }
+        let count = "\(requests.count) request\(requests.count == 1 ? "" : "s")"
+        if let reading = requests.filter({ $0.phase == .readingPrompt }).max(by: { $0.promptTotal < $1.promptTotal }) {
+            return "\(count) · reading a prompt \(Int((reading.promptFraction * 100).rounded(.down)))%"
+        }
+        let speed = requests.compactMap(\.predictedPerSecond).reduce(0, +)
+        return speed > 0 ? "\(count) · \(Int(speed.rounded())) tok/s" : count
+    }
+
+    private var activityColor: Color {
+        loading || unloading ? .orange : requests.isEmpty ? .secondary : .blue
     }
 }
 

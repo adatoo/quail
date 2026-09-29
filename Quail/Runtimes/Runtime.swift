@@ -138,6 +138,9 @@ protocol Runtime: Sendable {
     func health(base: URL, apiKey: String?) async throws -> Health
     func listModels(base: URL, apiKey: String?) async throws -> [ServedModel]
     func select(model: ModelRef, base: URL, apiKey: String?) async throws -> SelectAction
+    /// Asks the running router to unload `model` (`POST /models/unload`). The server finishes the model's requests
+    /// in flight first.
+    func unload(model: ModelRef, base: URL, apiKey: String?) async throws
 
     /// The runtime's own web UI at this base URL, if it has one (llama.cpp's
     /// built-in chat/model UI, oMLX's `/admin`). `nil` for Rapid-MLX.

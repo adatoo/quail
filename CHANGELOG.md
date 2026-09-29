@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-09-29
+
+### Added
+
+- **The Models page shows loaded models at the top, in their own Loaded section, while the server runs.** (#134) Each row has the model's format, context and memory, and what it's doing: loading, idle, or its requests and speed. Each has an **Unload** button (which waits for requests in progress to finish) and the default star. The Installed list below still shows every model.
+
 ## [0.60.0] - 2026-09-29
 
 ### Added

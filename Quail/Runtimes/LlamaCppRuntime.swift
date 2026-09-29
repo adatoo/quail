@@ -79,6 +79,15 @@ struct LlamaCppRuntime: Runtime {
         return .hotSwapped
     }
 
+    func unload(model: ModelRef, base: URL, apiKey: String?) async throws {
+        var request = Self.authorized(URLRequest(url: base.appending(path: "models/unload")), apiKey: apiKey)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["model": model.id])
+        let (data, response) = try await urlSession.data(for: request)
+        try Self.checkStatus(response, data: data)
+    }
+
     func webUIURL(base: URL) -> URL? {
         base
     }
