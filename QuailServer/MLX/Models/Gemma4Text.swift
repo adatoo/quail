@@ -20,28 +20,6 @@ import MLXLMCommon
 import MLXNN
 import MLXVLM
 
-// MARK: - Registration
-
-enum QuailModels {
-    /// Puts Quail's own model files in front of mlx-swift-lm's for the `model_type`s they cover (ADR D-066).
-    static func register() async {
-        await LLMTypeRegistry.shared.registerModelType("gemma4") { data in
-            // A vision checkpoint's language model is its `text_config`.
-            struct Wrapped: Decodable {
-                let textConfig: MLXVLM.Gemma4TextConfiguration
-
-                enum CodingKeys: String, CodingKey {
-                    case textConfig = "text_config"
-                }
-            }
-            let decoder = JSONDecoder()
-            let config = try (try? decoder.decode(Wrapped.self, from: data))?.textConfig
-                ?? decoder.decode(MLXVLM.Gemma4TextConfiguration.self, from: data)
-            return QGemma4Model(config)
-        }
-    }
-}
-
 // MARK: - Model
 
 /// Gemma 4's language model as an `LLMModel`, from a checkpoint that holds the vision model's weights too.

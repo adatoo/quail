@@ -35,6 +35,21 @@ D-055 had decided on mlx-swift-lm's public API only, with no custom Metal and no
 
 **Revisit if:** upstream takes a change (delete that copy), or the copies grow past a handful of files.
 
+**Amended 2026-09-29 (the second copy: Qwen3.5 and 3.6, #141):** `QuailServer/MLX/Models/Qwen35.swift` is copied from mlx-swift-lm's Qwen35.swift and Qwen35MoE.swift, with the parts of Qwen3Next.swift and GatedDelta.swift they use.
+- **What it covers:** it's registered for `model_type` qwen3_5, qwen3_5_moe and qwen3_5_text. The configuration types are copied too, since their fields are internal to mlx-swift-lm.
+- **Changes, following mlx-lm:**
+  - The small element-wise functions mlx-lm compiles are compiled here: the decay `g`, the gated norm's float32 SwiGLU, and the MLPs' SwiGLU. The attention output gate is compiled as well.
+  - `beta` stays in the activations' type, as mlx-lm keeps it.
+- **Output:** replies at temperature 0 were byte-identical to mlx-swift-lm's on four prompts, including a 1,500-token one. Batched replies behave as D-056 describes.
+- **Measured** on the M1 Max, Qwen3.6 35B-A3B, cooled before each request, two runs of three:
+  - **Time between tokens:** 15.5–15.9 ms before, 14.2–14.5 ms now. That's mlx-lm's own speed on the same Mac (70.5 tokens/s is 14.2 ms). MLX core 0.32 against 0.31.2 made about 2% difference in mlx-lm.
+  - **First token on a 4,096-token prompt,** read in 512-token slices: 8.2 s before, 7.9 s now. With #139's 2,048-token slices it's 7.0 s.
+- **What's still behind:**
+  - Rapid-MLX (12.2 ms) replaces the whole single-request decode step with a compiled one and fuses the GatedDeltaNet decode.
+  - oMLX (12.7 ms) patches the expert routing and weighted sum.
+  - Both are larger ports: #141 stays open for them.
+- **Tried and not kept:** Rapid-MLX's blocked GatedDeltaNet prefill kernel (adapted from oMLX's, Apache-2.0), ported through `MLXFast.metalKernel`. It saved 1–2% of a 4,096- or 7,000-token prompt's first-token time. That's too little to carry the kernel and its licences, since the recurrence is a small part of a prompt's reading at these lengths. Revisit for prompts well past 8,000 tokens, which oMLX measured at about 2× per layer at 16,000.
+
 ## D-063 · 2026-09-28 · Comparing Quail with Ollama, oMLX and Rapid-MLX: method and harness
 
 **Situation:** the owner wants to know how Quail compares with Ollama, oMLX and Rapid-MLX, measured with standard benchmarks. The results go in the repo and on the website, including where Quail loses. Until now only `quail bench` existed. It depends on llama-server's `/tokenize` and server-side `timings`, so it can't measure the others.
