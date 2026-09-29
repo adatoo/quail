@@ -552,6 +552,29 @@ The fit formula had `b` fixed at 2, and nothing set anything else.
 - The code stays on the unmerged branch `perf/mlx-draft-model`. Revisit with a better-matched draft, such as a distilled drafter or Gemma 4's MTP heads (mlx-swift-lm 3.31.4 has MTP for Gemma 4), or with measured acceptance above about 60%.
 - The machine was also re-indexing Spotlight at the time, which slowed every run about a third alike; only the with/without comparison counts from this session.
 
+**Amended 2026-09-29 (step 4's cache limit, #137):** MLX's buffer cache is now limited and cleared while serving.
+- **The problem.** The first comparison (D-063) found `quail-server`'s footprint growing with every conversation and never coming back down: Qwen3 8B reached 30 GB on the M1 Max, where oMLX peaked at 9 GB.
+  - MLX keeps freed GPU buffers for reuse, by default up to about the whole of memory.
+  - A batch drops large buffers of ever-different sizes: its caches as they grow by 256 columns, and as sequences join and leave.
+  - The prompt caches weren't the cause: they're capped at four and an eighth of RAM.
+- **What's done now** (`BufferCachePolicy` in QuailServerCore, with tests):
+  - **A cache limit on load:** 2 GB, or a sixteenth of the GPU's working set on a Mac where that's less, and at least 512 MB.
+  - **Clearing while serving:** every 512 decode steps, and 8 steps after a request ends. Not at once: oMLX saw kernel panics when it cleared the moment a request completed.
+  - **Clearing when idle:** once the serving loop has nothing to run, after waiting for the GPU.
+  - `GET /slots` reports the cache with the model's memory, since macOS charges it to the process.
+  - `QUAIL_MLX_CLEAR_CACHE=0` restores MLX's defaults.
+- **Measured** on the Mac mini (M4 Pro, 64 GB), Qwen3 8B, GuideLLM at the quick budget. Quail's own app was running alongside, so only memory counts from this session.
+
+  | Buffer cache | Peak, 8 at once | Peak, 4,096-token prompt after it |
+  |---|---:|---:|
+  | MLX's default | 21.0 GB | 23.3 GB |
+  | Rapid-MLX's rule (a quarter of the working set) | 16.0 GB | 9.4 GB |
+  | 2 GB (chosen) | 11.0 GB | 9.0 GB |
+  | 512 MB | 9.5 GB | 7.7 GB |
+
+  Speed on the mini moved by more than the differences between settings from run to run, in both directions. The M1 Max run after the fixes (D-063) is the speed check.
+- **The harness** passes Quail's own switches (`QUAIL_*`, but not `QUAIL_BENCH_*`) through to its server, for A/B runs like these, and logs them when it starts it.
+
 **Revisit if:** Phase 3c step 8's batching port needs more than the public `mlx-swift-lm` API exposes (paged attention on the GPU, specifically, needs a gather-SDPA kernel neither project's own comments claim to have solved cleanly), or a fresh cross-runtime benchmark (Phase 3 step 8/12) shows oMLX or Rapid-MLX still meaningfully ahead once steps 1–8 land — then D-027's deferral is reopened with real numbers instead of an assumption.
 
 ## D-053 · 2026-09-26 · Developer distribution through Homebrew and a signed DMG
