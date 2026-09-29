@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.61.6] - 2026-09-29
+
+### Changed
+
+- **Qwen3.5 and Qwen3.6 (MLX) generate about 8% faster.** (#141) On the M1 Max, Qwen3.6 35B-A3B now takes 14.2–14.5 ms per token instead of 15.5–15.9 ms, level with mlx-lm itself.
+  - Quail now has its own copy of these models' code, adapted from mlx-swift-lm (ADR D-066). The small element-wise functions that mlx-lm compiles into single GPU kernels are compiled here too.
+  - Replies are unchanged.
+
 ## [0.61.5] - 2026-09-29
 
 ### Changed
