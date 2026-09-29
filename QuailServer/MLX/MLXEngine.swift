@@ -44,7 +44,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
     /// off with `QUAIL_MLX_BATCH=0`, and on for any model whose caches can batch with `QUAIL_MLX_BATCH=1`.
     static let batchSetting = ProcessInfo.processInfo.environment["QUAIL_MLX_BATCH"]
     /// `model_type`s whose batched text was checked against the same requests run alone.
-    static let batchedFamilies: Set<String> = ["qwen3", "qwen3_5", "qwen3_5_moe"]
+    static let batchedFamilies: Set<String> = ["qwen3", "qwen3_5", "qwen3_5_moe", "gemma4"]
 
     /// Whether MLX's buffer cache is limited and cleared while serving (`BufferCachePolicy`, #137); off with
     /// `QUAIL_MLX_CLEAR_CACHE=0`, which leaves MLX's defaults (a cache up to about the whole of memory).
@@ -250,6 +250,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
     /// request without one (a reload of a few seconds from the page cache).
     func load(_ entry: ModelEntry) async throws {
         await unload()
+        await QuailModels.register()
         lock.withLock { self.entry = entry }
         if Self.managesBufferCache, let workingSet = GPU.maxRecommendedWorkingSetBytes() {
             Memory.cacheLimit = BufferCachePolicy.limit(workingSet: workingSet)
@@ -257,6 +258,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
         do {
             try await load(entry, vision: false)
         } catch where entry.mlxVision {
+            FileHandle.standardError.write(Data(
+                "\(entry.id): the text-only load failed, so it's served by its vision model (\(error))\n".utf8
+            ))
             try await load(entry, vision: true)
             lock.withLock { visionOnly = true }
         }
@@ -286,6 +290,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             let contextSize = entry.contextSize ?? files.contextLength ?? Self.defaultContext
             let canBatch = await container.perform { context in
                 BatchedLayers.canBatch(context.model.newCache(parameters: nil))
+                    && (context.model as? QGemma4Model)?.ownsEveryCache ?? true
             }
             let batched = switch Self.batchSetting {
             case "0": false

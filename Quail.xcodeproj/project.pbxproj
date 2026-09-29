@@ -20,6 +20,7 @@
 		154CE8608C3CCEFED98C2A17 /* WebUIStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5D55B74D0F0DEE9D8487696 /* WebUIStyle.swift */; };
 		1610EC76223052FC860F7AB8 /* ModelShapeCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AEAD8426C451AC44DB9D563 /* ModelShapeCache.swift */; };
 		16B308D34717DAA081C8505B /* BenchmarkRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22C7273EA670E9C7F59B72CB /* BenchmarkRunner.swift */; };
+		1868CB2BCD99852F6C695A39 /* Gemma4Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13DE418731F6FDA225381A9C /* Gemma4Text.swift */; };
 		199790E272D93E6B733BA9E2 /* Website.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0532EA6870674FB9963AFA18 /* Website.swift */; };
 		1C0A347D50CBE8CF35EDAFA7 /* ReasoningSplitterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC782D7212CF4B9320E16A8 /* ReasoningSplitterTests.swift */; };
 		1DD7BB4B93C8668B0D95CD31 /* HTTPParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 128020C405C93E924A1BD81A /* HTTPParserTests.swift */; };
@@ -258,6 +259,7 @@
 		F5F1627431AF9E772BD5AF5C /* ModelsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 351669FD912B75E519CAAF15 /* ModelsPane.swift */; };
 		F776FD285CA12050FB52D748 /* UISnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60DBCD25631515D95F070E94 /* UISnapshotTests.swift */; };
 		F86D6D882D60A0CEAFA7240D /* libQuailServerLlama.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D660F1A52A0F7FB2BE791117 /* libQuailServerLlama.a */; };
+		F87A6804F5FE769DA65FAF73 /* MLXModelCopiesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E69C016B914765E6C80CE44D /* MLXModelCopiesTests.swift */; };
 		F8F2BC616F78A5CD751E0EB6 /* ControlProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4279E9EF2E774CD49728C388 /* ControlProtocol.swift */; };
 		F96A9D87B8D11203CA621C5B /* libQuailServerLlama.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D660F1A52A0F7FB2BE791117 /* libQuailServerLlama.a */; };
 		FAA1A9A119A8B0F8C1CDCB8C /* AppLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DD4E2DDDB747A1DC4476B84 /* AppLink.swift */; };
@@ -359,6 +361,7 @@
 		11EF96D4F00F64BCEE9E13B3 /* FakeSecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeSecretStore.swift; sourceTree = "<group>"; };
 		128020C405C93E924A1BD81A /* HTTPParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPParserTests.swift; sourceTree = "<group>"; };
 		12DE6B42A661984D99734823 /* AddModelSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddModelSheet.swift; sourceTree = "<group>"; };
+		13DE418731F6FDA225381A9C /* Gemma4Text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gemma4Text.swift; sourceTree = "<group>"; };
 		144D30C5D82C846DB278DA21 /* BenchmarkClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkClient.swift; sourceTree = "<group>"; };
 		148D086199BA9229F896DFDA /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
 		14B9109BAA6AC2A10860B699 /* llama.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = llama.xcframework; path = Vendor/llama.xcframework; sourceTree = "<group>"; };
@@ -571,6 +574,7 @@
 		E17B7BB6A9F4635FCFBEAF00 /* QuailServer */ = {isa = PBXFileReference; includeInIndex = 0; path = QuailServer; sourceTree = BUILT_PRODUCTS_DIR; };
 		E3E413E301C8E22E733C0745 /* BatchKVCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchKVCache.swift; sourceTree = "<group>"; };
 		E5340652668A6D7507752E82 /* QuailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailApp.swift; sourceTree = "<group>"; };
+		E69C016B914765E6C80CE44D /* MLXModelCopiesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXModelCopiesTests.swift; sourceTree = "<group>"; };
 		E6C963E56B0BBF37500A934F /* BufferCachePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BufferCachePolicy.swift; sourceTree = "<group>"; };
 		E8059F0B47239B370EF82EED /* libQuailServerCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libQuailServerCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB314ECE48376274FD399DD1 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -718,6 +722,7 @@
 				119FB312FDFF3682386E1537 /* MessagesFixtureTests.swift */,
 				D905EB57D799D0C674BB8BF3 /* MessagesRoutesTests.swift */,
 				5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */,
+				E69C016B914765E6C80CE44D /* MLXModelCopiesTests.swift */,
 				9AF1B2E86DB92103B9484453 /* MLXVisionTests.swift */,
 				B83D2B3E8DD5780934B2E1C5 /* ModelAddPlanTests.swift */,
 				41C16B729E5C0BDC386E3FB0 /* ModelCommandTests.swift */,
@@ -952,6 +957,14 @@
 			path = Quail;
 			sourceTree = "<group>";
 		};
+		6A2BA91D3BAFB2D852726F4E /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				13DE418731F6FDA225381A9C /* Gemma4Text.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		6DFA21A02848F166615DD3DD /* Llama */ = {
 			isa = PBXGroup;
 			children = (
@@ -1064,6 +1077,7 @@
 				5387DA7B4353A32FCA3C9C3E /* MLXEngine.swift */,
 				2CE6A53CB5847F4E7D333545 /* MLXSequence.swift */,
 				3B84E2F4B1A7E81E152F00E3 /* PromptDiskCache.swift */,
+				6A2BA91D3BAFB2D852726F4E /* Models */,
 			);
 			path = MLX;
 			sourceTree = "<group>";
@@ -1399,6 +1413,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				35F2D94F2909B60470AF9EF0 /* BatchKVCache.swift in Sources */,
+				1868CB2BCD99852F6C695A39 /* Gemma4Text.swift in Sources */,
 				3EFAF922BCFA71E54298A2CF /* MLXEngine.swift in Sources */,
 				B4FC3F3EFA939C38E9EA6F4B /* MLXSequence.swift in Sources */,
 				2B7F298250EA270D19E64F0E /* PromptDiskCache.swift in Sources */,
@@ -1574,6 +1589,7 @@
 				B1AB48A3C7C86F1FA16FF1DB /* LlamaEngineTests.swift in Sources */,
 				845C332E6D75F8E7D4CF3E1A /* LogStoreTests.swift in Sources */,
 				4A67F045D85B57F300F618D5 /* MLXMetadataTests.swift in Sources */,
+				F87A6804F5FE769DA65FAF73 /* MLXModelCopiesTests.swift in Sources */,
 				7458FF3722FA64AE1A60878B /* MLXVisionTests.swift in Sources */,
 				458E4FEE1410BD8E0191393E /* MessagesFixtureTests.swift in Sources */,
 				5322AB3BD1C7AFC48387FFDC /* MessagesRoutesTests.swift in Sources */,
@@ -1788,7 +1804,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 109;
+				CURRENT_PROJECT_VERSION = 110;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1813,7 +1829,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.61.3;
+				MARKETING_VERSION = 0.61.4;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1969,7 +1985,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 109;
+				CURRENT_PROJECT_VERSION = 110;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1988,7 +2004,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.61.3;
+				MARKETING_VERSION = 0.61.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

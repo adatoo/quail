@@ -10,6 +10,15 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.61.4] - 2026-09-29
+
+### Changed
+
+- **Gemma 4 26B-A4B (MLX) now serves several requests at once.** (#140) Before, they waited in line: on a Mac mini, eight at once took 38.9 s to the first token and 45.5 tokens/s in total. Now it's 2.2 s and 88.7 tokens/s.
+  - Quail now has its own copy of Gemma 4's language model, adapted from mlx-swift-lm (ADR D-066). mlx-swift-lm's text-only Gemma 4 lacks this model's mixture-of-experts layers, so it could only load through the vision model, which can't batch.
+  - A text turn gives exactly the same reply as before, a little faster. An image turn still loads the vision model.
+- A new batched cache for sliding-window layers lets Gemma 4's decoding run in a batch.
+
 ## [0.61.3] - 2026-09-29
 
 ### Changed
