@@ -10,6 +10,18 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.61.3] - 2026-09-29
+
+### Changed
+
+- **Long prompts on GGUF models are no longer slowed by other, idle conversations.** (#138)
+  - When a request starts, each other idle slot's conversation now moves out of the shared KV cache into memory, as llama-server does. A later prompt that continues one of them copies it back.
+  - On a Mac mini, a 4,096-token prompt after eight requests at once took 10.2–10.9 s on Qwen3 8B instead of 11.5–12.0 s, level with llama-server. Gemma 4 26B-A4B took 5.8–6.2 s instead of 6.8–6.9 s.
+  - Parked conversations use up to 8 GB of memory, or an eighth of a smaller Mac's.
+  - `QUAIL_LLAMA_PARK=0` turns this off.
+- **Sliding-window GGUF models (Gemma 4) no longer save checkpoints of long prompts.** Their cache can be cut back without them, so the copies of up to 800 MB each were wasted work.
+- Hybrid models (Qwen3.5, 3.6) no longer save two checkpoints within 64 tokens of each other.
+
 ## [0.61.2] - 2026-09-29
 
 ### Fixed
