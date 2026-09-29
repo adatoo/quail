@@ -241,6 +241,20 @@ struct ToolCallTests {
         #expect(parse(["<tool_call><function=nope></function></tool_call>"], format: .qwenXML).calls.isEmpty)
     }
 
+    @Test("Qwen XML: Python's True, False and None are read as the schema's boolean or null")
+    func qwenXMLPythonLiterals() {
+        let tools: [Value] = (try? OrderedJSON.parse(#"""
+        [{"type":"function","function":{"name":"get","parameters":{"type":"object","properties":{
+          "flag":{"type":"boolean"},"other":{"type":"boolean"},"limit":{"type":"integer"},"label":{"type":"string"}}}}}]
+        """#).arrayValue) ?? []
+        let raw = "<tool_call>\n<function=get>\n<parameter=flag>\nTrue\n</parameter>\n<parameter=other>\nFalse\n</parameter>\n<parameter=limit>\nNone\n</parameter>\n<parameter=label>\nTrue\n</parameter>\n</function>\n</tool_call>"
+        #expect(parse([raw], format: .qwenXML, tools: tools).calls.first?.arguments
+            == #"{"flag":true,"other":false,"limit":null,"label":"True"}"#)
+        // A value that's neither JSON nor one of those stays text, as before.
+        let odd = "<tool_call><function=get><parameter=flag>yes</parameter></function></tool_call>"
+        #expect(parse([odd], format: .qwenXML, tools: tools).calls.first?.arguments == #"{"flag":"yes"}"#)
+    }
+
     // MARK: Gemma 4
 
     @Test("Gemma 4: its notation becomes JSON, nested values and all")

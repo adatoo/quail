@@ -296,7 +296,17 @@ struct ToolCallParser: Sendable {
         if type == "string" || type == nil {
             return .string(raw)
         }
-        return (try? OrderedJSON.parse(raw)) ?? .string(raw)
+        if let value = try? OrderedJSON.parse(raw) {
+            return value
+        }
+        // Qwen writes Python's True, False and None as often as JSON's. llama-server never sees them: its grammar
+        // holds a typed parameter to JSON. The schema says what was meant, so read them as it does.
+        switch (raw.trimmingCharacters(in: .whitespacesAndNewlines), type) {
+        case ("True", "boolean"): return .boolean(true)
+        case ("False", "boolean"): return .boolean(false)
+        case ("None", _): return .null
+        default: return .string(raw)
+        }
     }
 
     private static func partialSuffixLength(of text: String, for tag: String) -> Int {
