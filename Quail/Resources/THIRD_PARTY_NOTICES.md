@@ -11,7 +11,7 @@ Quail includes the software below. Each project's licence text, and any notice i
 | mlx (inside mlx-swift) | 0.31.6 | MIT | quail-server (through mlx-swift-lm) |
 | mlx-c (inside mlx-swift) | 0.31.6 | MIT | quail-server (through mlx-swift-lm) |
 | mlx-swift | 0.31.6 | MIT | quail-server (through mlx-swift-lm) |
-| mlx-swift-lm | 3.31.4 | MIT | quail-server |
+| mlx-swift-lm | 3.31.4 | MIT | quail-server, which also carries adapted copies of some of its model files (QuailServer/MLX/Models, ADR D-066) |
 | nlohmann/json (inside mlx-swift) | 0.31.6 | MIT | quail-server (through mlx-swift-lm) |
 | Rapid-MLX model catalog | 0.14.3 | Apache-2.0 | Quail (the MLX model list in Add Model, data only; scripts/import-rapid-mlx, ADR D-058) |
 | Sparkle | 2.10.0 | MIT and the licences of its bundled components (text below) | Quail (the direct-download build only) |

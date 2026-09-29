@@ -2,6 +2,39 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-066 · 2026-09-29 · Quail's own copies of mlx-swift-lm model files
+
+**Situation:** the first comparison (D-063) found two MLX gaps whose cause is mlx-swift-lm's model code, not Quail's.
+- **Gemma 4 26B-A4B was served one request at a time (#140).** mlx-swift-lm's text-only Gemma 4 has no mixture-of-experts layers, so the model loaded only through the vision model, whose attention takes one position for the whole batch.
+- **Qwen3.5 and 3.6 decode and read prompts slower than oMLX and Rapid-MLX (#141).** Those two compile small functions and add Metal kernels for this family.
+
+D-055 had decided on mlx-swift-lm's public API only, with no custom Metal and no fork.
+
+**Decision (the owner's, 2026-09-29):** Quail may keep its own copies of mlx-swift-lm model files, changed where it needs.
+- **Where:** `QuailServer/MLX/Models/`.
+- **How they're used:** registered through mlx-swift-lm's public `LLMTypeRegistry.shared.registerModelType`, in place of the library's own model for the same `model_type` (`QuailModels.register()`, called before every load).
+- **Custom Metal kernels** (`MLXFast.metalKernel`) are allowed in them.
+- **Downloads don't change:** the copies read the same checkpoints.
+
+**Rules:**
+- **Header:** each copy starts "Adapted from mlx-swift-lm <release>, <path>", with the source's licence line, and lists what it changes.
+- **Keeping up with upstream:** `MLXModelCopiesTests` fails when the mlx-swift-lm pin moves, until every copy has been compared with its source in the new release and names it.
+- **Licences:**
+  - `Config/third-party.json`'s mlx-swift-lm entry says Quail carries adapted copies (the MIT notice already ships).
+  - A kernel adapted from another project gets its own entry and licence text.
+- **Upstream:** changes worth having there are offered there.
+
+**First copy:** Gemma 4's language model, from `MLXVLM/Models/Gemma4.swift`. It's text only, and its attention takes positions from the cache's `ropeOffset`, so it batches (D-056 amendment, #140).
+
+**Alternatives:**
+- **Fork mlx-swift-lm and pin to the fork.** That means the whole library to keep current, not a few files.
+- **Offer the changes upstream and wait.** The timing wouldn't be ours.
+- **Leave both gaps.**
+
+**Supersedes** D-055's "public API only, no custom Metal" for model code. Its other rules stand, such as no fork of MLX core.
+
+**Revisit if:** upstream takes a change (delete that copy), or the copies grow past a handful of files.
+
 ## D-063 · 2026-09-28 · Comparing Quail with Ollama, oMLX and Rapid-MLX: method and harness
 
 **Situation:** the owner wants to know how Quail compares with Ollama, oMLX and Rapid-MLX, measured with standard benchmarks. The results go in the repo and on the website, including where Quail loses. Until now only `quail bench` existed. It depends on llama-server's `/tokenize` and server-side `timings`, so it can't measure the others.
@@ -455,7 +488,7 @@ The fit formula had `b` fixed at 2, and nothing set anything else.
 - **Where it lives.** Requests queue for one serving task per engine (`MLXQueue`, `MLXEngine.serve`); text requests on a load that feeds prompts in slices go through `MLXEngine.serveText`, and each request's state is an `MLXSequence`. `BatchKVCache` is as designed; a hybrid model's recurrent layers use mlx-swift-lm's `MambaCache` batching (`extend`, `filter`) unchanged. `BatchedLayers` merges, extends, filters and slices a model's caches.
 - **Prompts are still fed alone, but between the others' steps:** one slice (512 tokens) of the newcomer's prompt, then one token for everyone already decoding, so a 4,400-token prompt arriving mid-reply slows the others instead of stopping them. One newcomer is fed at a time. With nothing else in progress a request runs exactly the old path: pipelined slices, then decoding alone with prompt-lookup speculation. It hands over to the batch when another request can join, and a sequence left alone goes back to it.
 - **Memory rule, by bytes instead of lengths:** a request waits if the padding it would add to the batch costs more than a quarter of the model's weights to read each step.
-- **Scope.** Gemma 4 still serves one at a time. Its sliding-window layers have no batched cache yet. Its vision model, which is how Gemma 4 26B-A4B loads, also takes positions from `cache.offset` rather than `ropeOffset`: that is the "Revisit if" case below, so batching it needs a change upstream as well. Batching is on for `model_type` qwen3, qwen3_5 and qwen3_5_moe. `QUAIL_MLX_BATCH=0` turns it off; `=1` turns it on for any model whose caches can batch. Images and whole-prompt vision loads queue as before.
+- **Scope.** Gemma 4 still serves one at a time (batched since 2026-09-29, amendment below). Its sliding-window layers have no batched cache yet. Its vision model, which is how Gemma 4 26B-A4B loads, also takes positions from `cache.offset` rather than `ropeOffset`: that is the "Revisit if" case below, so batching it needs a change upstream as well. Batching is on for `model_type` qwen3, qwen3_5 and qwen3_5_moe. `QUAIL_MLX_BATCH=0` turns it off; `=1` turns it on for any model whose caches can batch. Images and whole-prompt vision loads queue as before.
 - **One decode loop.** Penalty processors run per row. mlx-swift-lm's `TokenIterator` is now used only for image turns and the text turns of vision loads other than Gemma 4's. `QUAIL_PROMPT_LOOKUP=0` now means the same loop without guessing, as `nodraft` did.
 
 **Measured** on the M4 Pro Mac mini, Release builds, cooled A-B-A-B, four and two greedy requests of 128 tokens each (tokens a second, total):
@@ -478,6 +511,35 @@ The fit formula had `b` fixed at 2, and nothing set anything else.
   - an image turn among text requests kept its place in the queue;
   - Gemma 4 unchanged.
 - **Not done:** reading several short prompts in one pass, batching sliding-window layers (Gemma 4), and speculation while batched.
+
+**Amended 2026-09-29 (Gemma 4 batches, #140):** Gemma 4 26B-A4B is now decoded in a batch like the Qwen families. Before, eight requests at once waited in line: 41 s to the first token on the M1 Max in the first comparison (D-063), where oMLX took 3 s.
+- **Quail's own Gemma 4 language model** (`QuailServer/MLX/Models/Gemma4Text.swift`, D-066):
+  - It's copied from mlx-swift-lm's vision model, so it has the mixture-of-experts layers the library's text-only Gemma 4 lacks.
+  - Its attention takes positions from the cache's `ropeOffset`.
+  - It's registered for `model_type` gemma4. Text turns now load it instead of the vision model, and image turns still swap to the vision model.
+  - A text-only load that fails still falls back to the vision model, and now says why on stderr.
+  - Alone, it gives the same text as the vision model did, and is a little faster: 13.5 against 14.5 ms a token on the mini.
+- **`BatchSlidingKVCache`** holds a sliding-window layer's cache for the batch:
+  - Rows are left-padded and right-aligned, as in `BatchKVCache`.
+  - Only the window is kept. Columns stay in order, and the oldest are dropped 256 at a time.
+  - Each sequence keeps its own position.
+  - A rotating cache joins in time order, and a finished row leaves as a rotating cache again.
+- **The gate:**
+  - `gemma4` is added to the batched families.
+  - A Gemma 4 whose later layers share earlier layers' keys and values (E2B, E4B) isn't batched yet: that path hasn't been checked.
+- **Checked** on Gemma 4 26B-A4B (4-bit) on the Mac mini:
+  - **Four at once, staggered:** each reply matched its solo run for a first stretch, and two of four copies of one prompt matched it to the end. Some then took a different word, all still coherent, as D-056 found for Qwen.
+  - **A code word** at the start of a 3,000-token prompt was recalled while three other requests were decoding beside it. That prompt is well past the 1,024-token window, so it depends on the full-attention layers.
+- **Measured** on the Mac mini, GuideLLM at the quick budget. The owner's own Quail was running alongside.
+
+  | Requests at once | Before: tokens/s, first token | Now: tokens/s, first token |
+  |---|---|---|
+  | 1 | 54.5, 1.0 s | 59.0, 0.8 s |
+  | 4 | 55.1, 13.7 s | 82.0, 1.8 s |
+  | 8 | 45.5, 38.9 s | 88.7, 2.2 s |
+
+  - **Two at once was slower in total** (48.9 against 58.8 tokens/s), though its first token came sooner (2.3 against 5.1 s). Each row sends its tokens to different experts, so two rows read about twice the expert weights: 31 ms a step against 13.5 ms alone.
+  - **Peak memory at eight at once was 23.9 GB, against 16.9 GB,** for eight sequences' caches.
 
 ## D-055 · 2026-09-27 · MLX engine performance: catch up to mlx-swift-lm `main`, then per-conversation caching, before batching
 
