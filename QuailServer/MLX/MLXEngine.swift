@@ -143,8 +143,10 @@ final class MLXEngine: Engine, @unchecked Sendable {
             /// Back to the checkpoint `count` tokens in: its copies in place of the untrimmable layers, the
             /// others cut back to match.
             mutating func restore(to count: Int) {
+                // Copies, so the checkpoint stays as it was taken. Put in place itself, it would take in every
+                // token fed after it, and the next prompt that went back to it would read those too (#152).
                 for (index, layer) in checkpoints[count] ?? [:] {
-                    layers[index] = layer
+                    layers[index] = layer.copy()
                 }
                 for layer in layers where layer.isTrimmable && layer.offset > count {
                     layer.trim(layer.offset - count)

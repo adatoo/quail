@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.63.1] - 2026-09-30
+
+### Fixed
+
+- **MLX: a prompt that went back to an earlier point in a cached prompt could read another request's text** (#152). Models with sliding-window layers (Gemma 3 and 4) or recurrent layers (Qwen3.5 and 3.6) keep checkpoints on the way through a prompt, since those layers can't be cut back. Going back to one put the checkpoint itself in service, so the tokens that followed were written into it. The next prompt that went back to the same point then read the previous request's text in those layers.
+  - In the 2026-09-30 comparison, this made 8 of Gemma 4's 150 GSM8K replies make up a new question instead of answering. That was almost all of the gap on the MLX lane.
+  - It also hit agents whose sub-tasks share a long system prompt with the main conversation.
+  - The checkpoint is now copied when it's used, so it stays as it was taken.
+- **The benchmark's smoke test now checks that a reply doesn't depend on the request before it** (`cache_replay`). It asks one prompt twice, each time after a different request sharing a long opening, and expects the same reply. Quail before this fix fails it on Gemma 4 and Qwen3.6 (MLX). A failure is listed among the report's caveats.
+
 ## [0.63.0] - 2026-09-30
 
 ### Added
