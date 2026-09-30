@@ -231,6 +231,14 @@ The report's caveats come from it.
   - **Caveats also come from the engines' own logs.** For example, Ollama's "model architecture does not currently support parallel requests" means it served that model one request at a time.
   - **"Reproducing it"** names the run and smoke folders, the harness commit and the Quail version, the prerequisites, and what the budget does.
 
+**Amended 2026-09-30 (the second run):** `docs/benchmarks/2026-09-30/`, on the same M1 Max, after the fixes for #137–#141.
+- **How it was run:** the GGUF lane and every engine's quality and tool calling ran overnight with Quail 0.61.6. The MLX fixes (0.61.7 and 0.62.0, MLX 0.32.2) landed while it ran, so the MLX lane's speed was measured again that afternoon, for all four MLX engines in one session, and Quail MLX's quality and tool calling with it. The run folder is a copy of the night run with the MLX lane's rows replaced; the versions table gives each engine's version.
+- **Found:**
+  - **GGUF:** level with llama-server, long prompts included.
+  - **MLX:** Quail's first token is the fastest of the three with 4 and 8 requests at once, and on 4,096-token Qwen3.6 prompts. Rapid-MLX makes 10–20% more tokens a second with 2 to 8 at once, and is 7–10% faster alone on Qwen3.6 and Gemma 4.
+  - **Quality:** Gemma 4 scores a few points lower on Quail on both lanes, in both runs (#152). The other models show no significant difference.
+- **The website** gets these results through PR #131, after the owner has seen the page.
+
 ## D-062 · 2026-09-28 · A website: hand-written HTML in `website/`, on GitHub Pages
 
 **Situation:** Quail had no home page, only a README. The owner wants the app to link to one before 1.0, with docs the app's long captions can point at instead of explaining everything in place. They bought `quail-ai.app` and `quail-ai.com`, both on Cloudflare DNS.

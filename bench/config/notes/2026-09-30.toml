@@ -1,0 +1,60 @@
+# The hand-written part of docs/benchmarks/2026-09-30/: the summary at the top and the caveats the run couldn't find
+# by itself. Plain statements, including where Quail loses; the numbers are the report's own. The first run is
+# docs/benchmarks/2026-09-29/.
+
+found = """
+**What changed since the [2026-09-29 run](../2026-09-29/).** The same Mac, models and harness. Quail went from 0.58.1 to 0.61.6 on the GGUF lane and 0.62.0 on the MLX lane. Six fixes landed in between, each from that run's findings.
+
+| Where | Before | Now | Fix |
+|---|---:|---:|---|
+| Gemma 4, MLX, 8 at once: first token | 41.0 s | **1.6 s** | Batched decoding for Gemma 4, [#140](https://github.com/adatoo/quail/issues/140) |
+| Gemma 4, MLX, 8 at once: throughput | 44.9 tok/s | **68.1 tok/s** | [#140](https://github.com/adatoo/quail/issues/140) |
+| Qwen3 8B, MLX, 8 at once: throughput | 43.8 tok/s | **49.8 tok/s** | MLX 0.32, prompt slicing, [#139](https://github.com/adatoo/quail/issues/139) |
+| Qwen3.6, MLX, 8 at once: throughput | 76.7 tok/s | **88.0 tok/s** | [#139](https://github.com/adatoo/quail/issues/139) |
+| Qwen3.6, MLX, one request: time between tokens | 15.8 ms | **13.1 ms** | Quail's own model code and a fused GPU kernel, [#141](https://github.com/adatoo/quail/issues/141) |
+| Qwen3.6, MLX, 4,096-token prompt: first token | 8.0 s | **5.2 s** | [#139](https://github.com/adatoo/quail/issues/139), [#141](https://github.com/adatoo/quail/issues/141) |
+| Qwen3 8B, MLX: peak memory at 4,096 tokens | 32.5 GB | **10.4 GB** | MLX's buffer cache capped, [#137](https://github.com/adatoo/quail/issues/137) |
+| Gemma 4, GGUF, 4,096-token prompt: first token | 7.8 s | **6.0 s** (llama-server 6.1 s) | Idle requests' caches moved out of the way, [#138](https://github.com/adatoo/quail/issues/138) |
+
+The other engines measured within 8% of their first run, most within 2%, so the changes are Quail's.
+
+**GGUF lane (llama.cpp): level with llama-server.**
+- Long prompts no longer lag. On 4,096-token prompts, Quail's first token takes 10.0 s against llama-server's 9.5 s on Qwen3 8B, 4.8 s against 4.8 s on Qwen3.6, and 6.0 s against 6.1 s on Gemma 4.
+- From 4 requests at once, Quail's first token still comes sooner than llama-server's on every model.
+
+**MLX lane: Quail now leads on first tokens, and trails Rapid-MLX on throughput with several requests at once.**
+- **First token, with 4 and 8 requests at once:** Quail is fastest of the three on every model. At 8 at once:
+
+  | Model | Quail | oMLX | Rapid-MLX |
+  |---|---:|---:|---:|
+  | Qwen3 8B | 3.0 s | 3.6 s | 10.7 s |
+  | Qwen3.6 | 1.3 s | 2.5 s | 5.7 s |
+  | Gemma 4 | 1.6 s | 3.0 s | 6.0 s |
+- **4,096-token prompts:** Quail is fastest on Qwen3.6, at 5.2 s. It's within about 2% of Rapid-MLX on Qwen3 8B and Gemma 4, and ahead of oMLX on all three.
+- **Throughput with 2 to 8 at once:** Rapid-MLX makes 10–20% more tokens a second. At 8 at once:
+  - Qwen3 8B: 49.8 against 54.7;
+  - Qwen3.6: 88.0 against 101.3;
+  - Gemma 4: 68.1 against 81.6.
+
+  Quail is ahead of oMLX at 8 at once on all three.
+- **One request:** Rapid-MLX is 7–10% faster on Qwen3.6 and Gemma 4. Rapid-MLX compiles its whole single-request step and fuses more of the model's work into single GPU kernels. [#141](https://github.com/adatoo/quail/issues/141) stays open for that.
+- **Memory:** Quail's peak is now below Rapid-MLX's on every model, for example 11.7 GB against 20.7 GB on Qwen3 8B. oMLX uses less than Quail on Qwen3 8B and Gemma 4.
+
+**Quality and tool calling: the same as the other engines, except Gemma 4.**
+- On Gemma 4, Quail scored a few points lower in both runs and on both lanes: MMLU-Pro on GGUF (85.7% against 90.2% and 91.1%) and GSM8K on MLX (84.7% against 89.3% and 90.0%). Only one comparison is significant on its own: Ollama (GGUF) on MMLU-Pro, 6 items to 0, p = 0.031. Because it shows on both lanes and only for Gemma 4, the likely cause is Quail's own rendering of Gemma 4's chat template. It's being checked in [#152](https://github.com/adatoo/quail/issues/152).
+- Qwen3 8B and Qwen3.6 show no significant difference on either lane.
+
+**Where the others fell short:**
+- Rapid-MLX refused 133 of Qwen3.6's 200 tool-calling requests with HTTP 400. It rejected the model's arguments as the wrong type: a string where the schema wanted a number.
+- Rapid-MLX returned no Gemma 4 tool calls at all.
+- Ollama's MLX runner couldn't load any of the three models.
+- Ollama serves Qwen3.6 one request at a time.
+"""
+
+caveats = [
+  "This run has two parts. The GGUF lane, and every engine's accuracy and tool calling except Quail MLX's, ran overnight on 2026-09-30 with Quail 0.61.6. The MLX lane's speed was measured again that afternoon for all four MLX engines, with Quail 0.62.0 (MLX 0.32.2), because the MLX fixes landed after the night run had started. Quail MLX's accuracy and tool calling were re-run with it. The versions table gives each engine's version.",
+  "Quail's GGUF footprint now grows by up to about 8 GB while it serves. It keeps idle requests' caches in memory to reuse them, as llama-server does with --cache-ram (#138). That's the rise in Quail (GGUF)'s peak memory since the first run.",
+  "Qwen3.6's chat template: llama-server and Ollama render each earlier assistant turn with 4 more tokens than Quail, oMLX and Rapid-MLX, which agree with each other. It only touches the few-shot quality prompts.",
+  "Rapid-MLX turns on its own GPU kernels as it loads a model: for Qwen3.6, a blocked GatedDeltaNet prefill kernel, a fused GatedDeltaNet decode and a compiled single-request decode. It also caps MLX's buffer cache (12.5 GB on this Mac). oMLX applies its own patches for the Qwen3.5 family, including a GatedDeltaNet prefill kernel and quantized-MLP prefill. They're part of each engine as shipped, so they were left on.",
+  "Neither oMLX nor Rapid-MLX used speculative decoding here. Rapid-MLX's log says \"spec decode OFF\" for Qwen3.6, and oMLX skipped MTP because the checkpoint has no MTP weights. Rapid-MLX's TurboQuant KV cache and prompt compression, and oMLX's TurboQuant KV, were switched off to hold every engine to a full-precision cache.",
+]

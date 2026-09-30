@@ -1,0 +1,39 @@
+{"model": "qwen3-8b", "tool": "llama-bench", "prompt_tokens": 512, "generated_tokens": 0, "tokens_per_second": 506.817796, "stddev": 0.075865}
+{"model": "qwen3-8b", "tool": "llama-bench", "prompt_tokens": 4096, "generated_tokens": 0, "tokens_per_second": 455.821293, "stddev": 0.371792}
+{"model": "qwen3-8b", "tool": "llama-bench", "prompt_tokens": 0, "generated_tokens": 256, "tokens_per_second": 47.747472, "stddev": 0.012891}
+{"model": "qwen3-8b", "tool": "llama-bench", "prompt_tokens": 0, "generated_tokens": 128, "tokens_per_second": 47.753019, "stddev": 0.016396}
+{"model": "qwen3-8b", "tool": "llama-batched-bench", "sequences": 1, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 504.328674, "generated_tokens_per_second": 46.427292}
+{"model": "qwen3-8b", "tool": "llama-batched-bench", "sequences": 2, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 505.474091, "generated_tokens_per_second": 50.645451}
+{"model": "qwen3-8b", "tool": "llama-batched-bench", "sequences": 4, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 508.463379, "generated_tokens_per_second": 85.076698}
+{"model": "qwen3-8b", "tool": "llama-batched-bench", "sequences": 8, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 508.755432, "generated_tokens_per_second": 92.773941}
+{"model": "qwen3-8b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 1, "prompt_tokens_per_second": 317.893, "generated_tokens_per_second": 62.256, "peak_memory_gb": 5.217}
+{"model": "qwen3-8b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 2, "prompt_tokens_per_second": 327.228, "generated_tokens_per_second": 70.429, "peak_memory_gb": 5.421}
+{"model": "qwen3-8b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 4, "prompt_tokens_per_second": 329.824, "generated_tokens_per_second": 75.241, "peak_memory_gb": 5.61}
+{"model": "qwen3-8b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 8, "prompt_tokens_per_second": 330.545, "generated_tokens_per_second": 65.028, "peak_memory_gb": 5.992}
+{"model": "qwen3-8b", "tool": "mlx_lm.benchmark", "prompt_tokens": 4096, "generated_tokens": 128, "sequences": 1, "prompt_tokens_per_second": 312.947, "generated_tokens_per_second": 54.546, "peak_memory_gb": 5.963}
+{"model": "qwen3.6-35b-a3b", "tool": "llama-bench", "prompt_tokens": 512, "generated_tokens": 0, "tokens_per_second": 910.896941, "stddev": 5.020432}
+{"model": "qwen3.6-35b-a3b", "tool": "llama-bench", "prompt_tokens": 4096, "generated_tokens": 0, "tokens_per_second": 858.260861, "stddev": 0.446257}
+{"model": "qwen3.6-35b-a3b", "tool": "llama-bench", "prompt_tokens": 0, "generated_tokens": 256, "tokens_per_second": 63.973344, "stddev": 0.009581}
+{"model": "qwen3.6-35b-a3b", "tool": "llama-bench", "prompt_tokens": 0, "generated_tokens": 128, "tokens_per_second": 64.061473, "stddev": 0.038504}
+{"model": "qwen3.6-35b-a3b", "tool": "llama-batched-bench", "sequences": 1, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 893.474121, "generated_tokens_per_second": 60.935913}
+{"model": "qwen3.6-35b-a3b", "tool": "llama-batched-bench", "sequences": 2, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 910.758972, "generated_tokens_per_second": 82.23613}
+{"model": "qwen3.6-35b-a3b", "tool": "llama-batched-bench", "sequences": 4, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 908.090454, "generated_tokens_per_second": 106.283638}
+{"model": "qwen3.6-35b-a3b", "tool": "llama-batched-bench", "sequences": 8, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 910.291565, "generated_tokens_per_second": 117.071327}
+{"model": "qwen3.6-35b-a3b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 1, "prompt_tokens_per_second": 498.507, "generated_tokens_per_second": 72.253, "peak_memory_gb": 20.176}
+{"model": "qwen3.6-35b-a3b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 2, "prompt_tokens_per_second": 596.294, "generated_tokens_per_second": 95.445, "peak_memory_gb": 20.72}
+{"model": "qwen3.6-35b-a3b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 4, "prompt_tokens_per_second": 642.807, "generated_tokens_per_second": 117.983, "peak_memory_gb": 21.651}
+{"model": "qwen3.6-35b-a3b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 8, "prompt_tokens_per_second": 670.412, "generated_tokens_per_second": 133.9, "peak_memory_gb": 23.113}
+{"model": "qwen3.6-35b-a3b", "tool": "mlx_lm.benchmark", "prompt_tokens": 4096, "generated_tokens": 128, "sequences": 1, "prompt_tokens_per_second": 615.537, "generated_tokens_per_second": 68.795, "peak_memory_gb": 21.523}
+{"model": "gemma-4-26b-a4b", "tool": "llama-bench", "prompt_tokens": 512, "generated_tokens": 0, "tokens_per_second": 875.826723, "stddev": 0.731095}
+{"model": "gemma-4-26b-a4b", "tool": "llama-bench", "prompt_tokens": 4096, "generated_tokens": 0, "tokens_per_second": 653.303977, "stddev": 1.021953}
+{"model": "gemma-4-26b-a4b", "tool": "llama-bench", "prompt_tokens": 0, "generated_tokens": 256, "tokens_per_second": 56.378196, "stddev": 4.16448}
+{"model": "gemma-4-26b-a4b", "tool": "llama-bench", "prompt_tokens": 0, "generated_tokens": 128, "tokens_per_second": 55.836319, "stddev": 1.474783}
+{"model": "gemma-4-26b-a4b", "tool": "llama-batched-bench", "sequences": 1, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 879.430481, "generated_tokens_per_second": 59.050449}
+{"model": "gemma-4-26b-a4b", "tool": "llama-batched-bench", "sequences": 2, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 890.906555, "generated_tokens_per_second": 81.819809}
+{"model": "gemma-4-26b-a4b", "tool": "llama-batched-bench", "sequences": 4, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 826.645081, "generated_tokens_per_second": 107.47995}
+{"model": "gemma-4-26b-a4b", "tool": "llama-batched-bench", "sequences": 8, "prompt_tokens": 512, "generated_tokens": 256, "prompt_tokens_per_second": 837.038635, "generated_tokens_per_second": 115.59642}
+{"model": "gemma-4-26b-a4b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 1, "prompt_tokens_per_second": 473.565, "generated_tokens_per_second": 59.968, "peak_memory_gb": 14.757}
+{"model": "gemma-4-26b-a4b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 2, "prompt_tokens_per_second": 541.962, "generated_tokens_per_second": 78.084, "peak_memory_gb": 15.023}
+{"model": "gemma-4-26b-a4b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 4, "prompt_tokens_per_second": 569.478, "generated_tokens_per_second": 92.298, "peak_memory_gb": 15.488}
+{"model": "gemma-4-26b-a4b", "tool": "mlx_lm.benchmark", "prompt_tokens": 512, "generated_tokens": 256, "sequences": 8, "prompt_tokens_per_second": 583.67, "generated_tokens_per_second": 105.186, "peak_memory_gb": 16.289}
+{"model": "gemma-4-26b-a4b", "tool": "mlx_lm.benchmark", "prompt_tokens": 4096, "generated_tokens": 128, "sequences": 1, "prompt_tokens_per_second": 517.835, "generated_tokens_per_second": 57.556, "peak_memory_gb": 15.961}

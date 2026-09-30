@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.62.1] - 2026-09-30
+
+### Added
+
+- **The second comparison with llama-server, Ollama, oMLX and Rapid-MLX:** `docs/benchmarks/2026-09-30/`, after this week's fixes, on the same M1 Max. With 8 requests at once on MLX, Gemma 4's first token now takes 1.6 s instead of 41 s. Qwen3.6 writes a token every 13.1 ms instead of 15.8 ms. On GGUF, long prompts are level with llama-server.
+  - Rapid-MLX still makes 10–20% more tokens a second with several MLX requests at once (#139, #141).
+  - Gemma 4 scores a few points lower on Quail than on the other engines (#152). The report says both.
+
 ## [0.62.0] - 2026-09-30
 
 ### Added
