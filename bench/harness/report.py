@@ -284,6 +284,8 @@ PROBE_CAVEATS = {
     "stream_usage": "doesn't report usage on a stream",
     "tools_chat": "didn't return a parsed tool call on /v1/chat/completions",
     "tools_messages": "didn't return a tool_use block on /v1/messages",
+    "cache_replay": "answered the same prompt differently depending on the request before it (a prompt cache that "
+                    "kept what an earlier request left)",
 }
 
 # What an engine's own log says about how it served a model, where that shapes its numbers.

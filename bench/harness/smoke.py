@@ -3,7 +3,7 @@
 It records, in capabilities.json, the things the fairness rules depend on and the report's caveats come from:
 whether a request's length can be held (`ignore_eos`), whether usage arrives on a stream, whether thinking is
 really off, whether tool calls come back parsed (OpenAI and Anthropic routes), how many tokens the same prompt
-counts as, and whether a repeated prompt hits a prefix cache.
+counts as, whether a repeated prompt hits a prefix cache, and whether a reply depends on the request before it.
 """
 
 from __future__ import annotations
@@ -35,6 +35,23 @@ PASSAGE = (
     "The quail is a small ground-dwelling bird. It walks more often than it flies, and when it does fly it bursts "
     "up from cover with a whirr of short wings before gliding back down a little way off. "
 ) * 30
+
+# Questions about the passage for the cache-replay probe, each well over 64 tokens and each different from its first
+# word, so the prompts part where the passage ends.
+REPLAY_QUESTIONS = [
+    "Suppose a farmer keeps forty of these birds in a large pen beside an orchard, and every morning half of them "
+    "walk out into the long grass while the rest stay close to the hedge. If a fox appears at the far end of the "
+    "field, what would the birds in the grass most likely do first, and how far would they probably go before "
+    "landing again? Explain briefly, using only what the passage says.",
+    "Imagine you are writing a short guide for walkers who want to see these birds in the wild without disturbing "
+    "them. Based only on the passage, list the behaviours a walker should expect to notice, say whether the birds "
+    "are more likely to be seen on the ground or in the air, and describe the sound they make when they take off. "
+    "Keep each point to one sentence.",
+    "Compare the way this bird moves with the way a swallow or a swift moves through the air. Using only the "
+    "passage for the bird and general knowledge for the others, say which of them spends most of its time on the "
+    "ground, which one would be hardest to spot in thick cover, and why a short burst of flight followed by a "
+    "glide might suit a bird that lives near the ground.",
+]
 
 
 def request(server: Server, messages: list, **fields) -> dict:
@@ -128,9 +145,28 @@ def run_probes(server: Server) -> dict:
         return {"ok": True, "cached_tokens": cached, "first_ttft_ms": ttft(first), "second_ttft_ms": ttft(second),
                 "hit": (cached or 0) > 0 or ttft(second) < ttft(first) * 0.5}
 
+    def cache_replay():
+        # One prompt asked twice, each time after a different request that shares only the passage with it, must
+        # get the same reply: whatever the engine reuses of the passage must be as it was, not as the request before
+        # left it (#152). The passage is longer than a sliding window (Gemma 4's 1,024 tokens), so a model with one
+        # goes back to a checkpoint, and the first question is short, so Quail's checkpoint for it (just short of
+        # the prompt's end) falls inside the passage.
+        def ask(question: str, tokens: int) -> str:
+            body = request(server, [{"role": "user", "content": PASSAGE + "\n\nQuestion: " + question}],
+                           max_tokens=tokens)
+            return httpc.post(server.chat_url, body, key=server.key)["choices"][0]["message"].get("content") or ""
+
+        ask("Which bird?", 8)
+        ask(REPLAY_QUESTIONS[0], 8)
+        first = ask(REPLAY_QUESTIONS[1], 48)
+        ask(REPLAY_QUESTIONS[2], 8)
+        second = ask(REPLAY_QUESTIONS[1], 48)
+        return {"ok": first == second, "first": first[:200], "second": second[:200]}
+
     for name, fn in [("chat", chat), ("stream_usage", stream_usage), ("ignore_eos", ignore_eos),
                      ("tools_chat", tools_chat), ("tools_messages", tools_messages),
-                     ("prompt_tokens", prompt_tokens), ("prefix_cache", prefix_cache)]:
+                     ("prompt_tokens", prompt_tokens), ("prefix_cache", prefix_cache),
+                     ("cache_replay", cache_replay)]:
         probe(name, results, fn)
     return results
 
