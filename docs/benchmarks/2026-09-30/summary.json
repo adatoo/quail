@@ -1,0 +1,2820 @@
+{
+ "run": "20260930-000102-compare-mlx",
+ "machine": {
+  "chip": "Apple M1 Max",
+  "model": "MacBookPro18,2",
+  "memory_bytes": 68719476736,
+  "performance_cores": 8,
+  "efficiency_cores": 2,
+  "macos": "27.0.1",
+  "power": {
+   "ac": true,
+   "battery": true,
+   "low_power_mode": false
+  },
+  "thermal": "Nominal"
+ },
+ "models": {
+  "qwen3-8b": {
+   "speed": {
+    "quail-gguf|512x256-c1": {
+     "tps": 38.935,
+     "ttft": 1108.3555221557617,
+     "itl": 21.378482556810567,
+     "memory": 10617753408.0,
+     "watts": 39.870000000000005,
+     "short": 0.0
+    },
+    "quail-gguf|512x256-c2": {
+     "tps": 36.63,
+     "ttft": 2246.4979887008667,
+     "itl": 48.482269866793764,
+     "memory": 11886154448.0,
+     "watts": 34.62,
+     "short": 0.0
+    },
+    "quail-gguf|512x256-c4": {
+     "tps": 55.67,
+     "ttft": 3011.7955207824707,
+     "itl": 60.58665677612903,
+     "memory": 14423530004.0,
+     "watts": 37.845,
+     "short": 0.0
+    },
+    "quail-gguf|512x256-c8": {
+     "tps": 55.655,
+     "ttft": 6079.198479652405,
+     "itl": 121.78588848488005,
+     "memory": 18694825540.0,
+     "watts": 39.225,
+     "short": 0.0
+    },
+    "quail-gguf|4096x128-c1": {
+     "tps": 9.754999999999999,
+     "ttft": 9974.768877029419,
+     "itl": 24.477388915114517,
+     "memory": 21819698964.0,
+     "watts": 39.614999999999995,
+     "short": 0.0
+    },
+    "llama-server|512x256-c1": {
+     "tps": 34.53,
+     "ttft": 1355.1095724105835,
+     "itl": 23.5717586442536,
+     "memory": 10638512620.0,
+     "watts": 34.245000000000005,
+     "short": 0.0
+    },
+    "llama-server|512x256-c2": {
+     "tps": 38.59,
+     "ttft": 2301.8388748168945,
+     "itl": 42.99639253055348,
+     "memory": 11908863356.0,
+     "watts": 39.575,
+     "short": 0.0
+    },
+    "llama-server|512x256-c4": {
+     "tps": 57.095,
+     "ttft": 4495.530605316162,
+     "itl": 52.79156927968941,
+     "memory": 14441077940.0,
+     "watts": 39.935,
+     "short": 0.0
+    },
+    "llama-server|512x256-c8": {
+     "tps": 57.76,
+     "ttft": 7911.799073219299,
+     "itl": 108.2341334399055,
+     "memory": 18596759684.0,
+     "watts": 43.09,
+     "short": 0.0
+    },
+    "llama-server|4096x128-c1": {
+     "tps": 10.094999999999999,
+     "ttft": 9474.53248500824,
+     "itl": 24.6910354283851,
+     "memory": 21718511932.0,
+     "watts": 43.14,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c1": {
+     "tps": 37.41,
+     "ttft": 1139.546513557434,
+     "itl": 22.274996252620923,
+     "memory": 10619302584.0,
+     "watts": 39.010000000000005,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c2": {
+     "tps": 38.655,
+     "ttft": 2225.211024284363,
+     "itl": 41.53265298581591,
+     "memory": 11905824340.0,
+     "watts": 40.43,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c4": {
+     "tps": 43.435,
+     "ttft": 5089.545488357544,
+     "itl": 53.00387307709339,
+     "memory": 14471077272.0,
+     "watts": 36.605,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c8": {
+     "tps": 59.965,
+     "ttft": 8657.88996219635,
+     "itl": 100.83755278119854,
+     "memory": 18615863656.0,
+     "watts": 42.75,
+     "short": 0.0
+    },
+    "ollama-gguf|4096x128-c1": {
+     "tps": 9.36,
+     "ttft": 10465.117335319519,
+     "itl": 24.738000133844814,
+     "memory": 21775823392.0,
+     "watts": 40.114999999999995,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c1": {
+     "tps": 44.89,
+     "ttft": 1438.5336637496948,
+     "itl": 16.561168315363865,
+     "memory": 6018798128.0,
+     "watts": 31.805,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c2": {
+     "tps": 45.87,
+     "ttft": 2763.0040645599365,
+     "itl": 32.82326249515309,
+     "memory": 6717723184.0,
+     "watts": 36.315,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c4": {
+     "tps": 47.91,
+     "ttft": 2812.1509552001953,
+     "itl": 72.47184444876278,
+     "memory": 9234092616.0,
+     "watts": 40.144999999999996,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c8": {
+     "tps": 49.825,
+     "ttft": 2976.415514945984,
+     "itl": 149.0765043333465,
+     "memory": 12476101180.0,
+     "watts": 41.004999999999995,
+     "short": 0.0
+    },
+    "quail-mlx|4096x128-c1": {
+     "tps": 9.56,
+     "ttft": 10958.864569664001,
+     "itl": 18.75709736441064,
+     "memory": 10421801532.0,
+     "watts": 42.82,
+     "short": 0.0
+    },
+    "omlx|512x256-c1": {
+     "tps": 42.55,
+     "ttft": 1953.4884691238403,
+     "itl": 15.854385319878073,
+     "memory": 5839770100.0,
+     "watts": 32.489999999999995,
+     "short": 0.0
+    },
+    "omlx|512x256-c2": {
+     "tps": 43.875,
+     "ttft": 2836.760401725769,
+     "itl": 33.07784351648069,
+     "memory": 5868728916.0,
+     "watts": 38.15,
+     "short": 0.0
+    },
+    "omlx|512x256-c4": {
+     "tps": 47.88,
+     "ttft": 3075.8941173553467,
+     "itl": 71.29320537342744,
+     "memory": 6789878476.0,
+     "watts": 42.504999999999995,
+     "short": 0.0
+    },
+    "omlx|512x256-c8": {
+     "tps": 42.305,
+     "ttft": 3595.7709550857544,
+     "itl": 174.48519398184385,
+     "memory": 9731003396.0,
+     "watts": 41.739999999999995,
+     "short": 0.0
+    },
+    "omlx|4096x128-c1": {
+     "tps": 7.995,
+     "ttft": 13747.640013694763,
+     "itl": 17.794810880826216,
+     "memory": 7423390556.0,
+     "watts": 41.975,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c1": {
+     "tps": 45.935,
+     "ttft": 1434.3295097351074,
+     "itl": 16.211982334361355,
+     "memory": 7235170648.0,
+     "watts": 32.605,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c2": {
+     "tps": 51.16,
+     "ttft": 2740.987181663513,
+     "itl": 28.424876811457615,
+     "memory": 10826486104.0,
+     "watts": 39.745,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c4": {
+     "tps": 54.285,
+     "ttft": 5293.270945549011,
+     "itl": 53.123517597422875,
+     "memory": 17555386748.0,
+     "watts": 44.53,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c8": {
+     "tps": 54.655,
+     "ttft": 10672.481060028076,
+     "itl": 105.0118507123461,
+     "memory": 21718249852.0,
+     "watts": 44.02,
+     "short": 0.0
+    },
+    "rapid-mlx|4096x128-c1": {
+     "tps": 9.68,
+     "ttft": 10861.095547676086,
+     "itl": 18.477114166800433,
+     "memory": 21374284156.0,
+     "watts": 42.92,
+     "short": 0.0
+    }
+   },
+   "quality": [
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9066666666666666,
+     "stderr": 0.023831373802832925,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/gsm8k_cot_llama/qwen3-8b-gguf/results_2026-09-30T06-29-35.471701.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/gsm8k_cot_llama/qwen3-8b-gguf/samples_gsm8k_cot_llama_2026-09-30T06-29-35.471701.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.625,
+     "stderr": 0.04602453712415488,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/results_2026-09-30T06-36-06.822722.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_biology_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_business_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_chemistry_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_computer_science_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_economics_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_engineering_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_health_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_history_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_law_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_math_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_other_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_philosophy_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_physics_2026-09-30T06-36-06.822722.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_psychology_2026-09-30T06-36-06.822722.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9066666666666666,
+     "stderr": 0.023831373802832925,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/gsm8k_cot_llama/qwen3-8b-gguf/results_2026-09-30T06-41-09.059766.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/gsm8k_cot_llama/qwen3-8b-gguf/samples_gsm8k_cot_llama_2026-09-30T06-41-09.059766.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.6160714285714286,
+     "stderr": 0.04614809315083047,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/results_2026-09-30T06-50-29.850796.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_biology_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_business_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_chemistry_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_computer_science_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_economics_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_engineering_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_health_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_history_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_law_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_math_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_other_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_philosophy_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_physics_2026-09-30T06-50-29.850796.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_psychology_2026-09-30T06-50-29.850796.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9066666666666666,
+     "stderr": 0.023831373802832925,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/gsm8k_cot_llama/qwen3-8b-gguf/results_2026-09-30T06-55-24.791773.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/gsm8k_cot_llama/qwen3-8b-gguf/samples_gsm8k_cot_llama_2026-09-30T06-55-24.791773.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.6339285714285714,
+     "stderr": 0.04614809315083047,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/results_2026-09-30T07-04-23.898883.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_biology_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_business_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_chemistry_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_computer_science_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_economics_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_engineering_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_health_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_history_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_law_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_math_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_other_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_philosophy_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_physics_2026-09-30T07-04-23.898883.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3-8b/mmlu_pro/qwen3-8b-gguf/samples_mmlu_pro_psychology_2026-09-30T07-04-23.898883.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.8866666666666667,
+     "stderr": 0.02596963752307282,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/gsm8k_cot_llama/qwen3-8b-mlx/results_2026-09-30T07-32-02.475254.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/gsm8k_cot_llama/qwen3-8b-mlx/samples_gsm8k_cot_llama_2026-09-30T07-32-02.475254.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.6428571428571429,
+     "stderr": 0.0440004803843376,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/results_2026-09-30T07-43-30.428138.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_biology_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_business_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_chemistry_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_computer_science_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_economics_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_engineering_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_health_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_history_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_law_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_math_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_other_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_philosophy_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_physics_2026-09-30T07-43-30.428138.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_psychology_2026-09-30T07-43-30.428138.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9066666666666666,
+     "stderr": 0.023831373802832925,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/gsm8k_cot_llama/qwen3-8b-mlx/results_2026-09-30T07-49-50.551536.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/gsm8k_cot_llama/qwen3-8b-mlx/samples_gsm8k_cot_llama_2026-09-30T07-49-50.551536.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.6160714285714286,
+     "stderr": 0.04438702204414621,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/results_2026-09-30T07-58-09.475716.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_biology_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_business_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_chemistry_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_computer_science_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_economics_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_engineering_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_health_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_history_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_law_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_math_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_other_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_philosophy_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_physics_2026-09-30T07-58-09.475716.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_psychology_2026-09-30T07-58-09.475716.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [dequantize] Invalid quantization mode ''. at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/mlx/c/ops.cpp:1258 (exit: exit status 2)\"}"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.8933333333333333,
+     "stderr": 0.02528878692663471,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/gsm8k_cot_llama/qwen3-8b-mlx/results_2026-09-30T17-32-33.955528.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/gsm8k_cot_llama/qwen3-8b-mlx/samples_gsm8k_cot_llama_2026-09-30T17-32-33.955528.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.625,
+     "stderr": 0.0424191049701936,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/results_2026-09-30T17-43-01.497230.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_biology_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_business_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_chemistry_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_computer_science_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_economics_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_engineering_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_health_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_history_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_law_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_math_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_other_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_philosophy_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_physics_2026-09-30T17-43-01.497230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_psychology_2026-09-30T17-43-01.497230.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [dequantize] Invalid quantization mode ''. at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/mlx/c/ops.cpp:1258 (exit: exit status 2)\"}"
+    }
+   ],
+   "tools": [
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "simple_python",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "parallel",
+     "accuracy": 0.8,
+     "correct": 32,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "parallel_multiple",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "irrelevance",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "simple_python",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "parallel",
+     "accuracy": 0.8,
+     "correct": 32,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "parallel_multiple",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "irrelevance",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "simple_python",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "multiple",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "parallel",
+     "accuracy": 0.825,
+     "correct": 33,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "parallel_multiple",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "irrelevance",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--qwen3-8b/score/qwen3-8b-gguf/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "simple_python",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "parallel",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "parallel_multiple",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "irrelevance",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "simple_python",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "parallel",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "parallel_multiple",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "irrelevance",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [dequantize] Invalid quantization mode ''. at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/mlx/c/ops.cpp:1258 (exit: exit status 2)\"}"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "simple_python",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "parallel",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "parallel_multiple",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "irrelevance",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [dequantize] Invalid quantization mode ''. at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/mlx/c/ops.cpp:1258 (exit: exit status 2)\"}"
+    }
+   ]
+  },
+  "qwen3.6-35b-a3b": {
+   "speed": {
+    "quail-gguf|512x256-c1": {
+     "tps": 53.785,
+     "ttft": 689.9763345718384,
+     "itl": 15.888299661524155,
+     "memory": 3300608624.0,
+     "watts": 33.825,
+     "short": 0.0
+    },
+    "quail-gguf|512x256-c2": {
+     "tps": 67.35,
+     "ttft": 1418.6984300613403,
+     "itl": 25.856858141282025,
+     "memory": 4997271376.0,
+     "watts": 36.935,
+     "short": 0.0
+    },
+    "quail-gguf|512x256-c4": {
+     "tps": 79.83500000000001,
+     "ttft": 2046.7007160186768,
+     "itl": 42.266149146884096,
+     "memory": 8397838584.0,
+     "watts": 38.42,
+     "short": 0.0
+    },
+    "quail-gguf|512x256-c8": {
+     "tps": 84.3,
+     "ttft": 4599.605202674866,
+     "itl": 77.26857054467294,
+     "memory": 11454390704.0,
+     "watts": 41.075,
+     "short": 0.0
+    },
+    "quail-gguf|4096x128-c1": {
+     "tps": 18.34,
+     "ttft": 4795.163989067078,
+     "itl": 16.86008614817942,
+     "memory": 12219352024.0,
+     "watts": 37.39,
+     "short": 0.0
+    },
+    "llama-server|512x256-c1": {
+     "tps": 53.96,
+     "ttft": 667.2221422195435,
+     "itl": 15.914217631022135,
+     "memory": 3921694448.0,
+     "watts": 33.46,
+     "short": 0.0
+    },
+    "llama-server|512x256-c2": {
+     "tps": 68.495,
+     "ttft": 1301.4605045318604,
+     "itl": 24.173390164094812,
+     "memory": 6406215172.0,
+     "watts": 36.505,
+     "short": 0.0
+    },
+    "llama-server|512x256-c4": {
+     "tps": 82.88499999999999,
+     "ttft": 2475.7416248321533,
+     "itl": 38.70040201673321,
+     "memory": 11177345984.0,
+     "watts": 38.92,
+     "short": 0.0
+    },
+    "llama-server|512x256-c8": {
+     "tps": 85.555,
+     "ttft": 4808.835506439209,
+     "itl": 74.43589416204715,
+     "memory": 11849409976.0,
+     "watts": 41.79,
+     "short": 0.0
+    },
+    "llama-server|4096x128-c1": {
+     "tps": 18.52,
+     "ttft": 4777.849912643433,
+     "itl": 16.64626786089319,
+     "memory": 12613617644.0,
+     "watts": 37.525,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c1": {
+     "tps": 54.735,
+     "ttft": 634.1499090194702,
+     "itl": 15.795184584224925,
+     "memory": 1667344732.0,
+     "watts": 33.30500000000001,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c2": {
+     "tps": 54.93,
+     "ttft": 5278.716444969177,
+     "itl": 15.809219958735447,
+     "memory": 3440651884.0,
+     "watts": 38.78,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c4": {
+     "tps": 54.205,
+     "ttft": 14592.82898902893,
+     "itl": 15.827367352504357,
+     "memory": 6990452876.0,
+     "watts": 41.55,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c8": {
+     "tps": 54.510000000000005,
+     "ttft": 33259.955406188965,
+     "itl": 15.854511541478775,
+     "memory": 9310609204.0,
+     "watts": 43.595,
+     "short": 0.0
+    },
+    "ollama-gguf|4096x128-c1": {
+     "tps": 19.785,
+     "ttft": 4346.002101898193,
+     "itl": 16.595762545668236,
+     "memory": 10098696552.0,
+     "watts": 37.385000000000005,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c1": {
+     "tps": 59.834999999999994,
+     "ttft": 883.9114904403687,
+     "itl": 13.114024611080396,
+     "memory": 21223407108.0,
+     "watts": 21.815,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c2": {
+     "tps": 64.06,
+     "ttft": 1751.2556314468384,
+     "itl": 25.001854990042894,
+     "memory": 21650292240.0,
+     "watts": 25.509999999999998,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c4": {
+     "tps": 76.16499999999999,
+     "ttft": 1185.2225065231323,
+     "itl": 47.80567907819561,
+     "memory": 22985465360.0,
+     "watts": 32.06,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c8": {
+     "tps": 88.025,
+     "ttft": 1297.5164651870728,
+     "itl": 85.83365748910342,
+     "memory": 25333227060.0,
+     "watts": 35.879999999999995,
+     "short": 0.0
+    },
+    "quail-mlx|4096x128-c1": {
+     "tps": 18.41,
+     "ttft": 5156.921625137329,
+     "itl": 13.613751554113673,
+     "memory": 24690589224.0,
+     "watts": 34.825,
+     "short": 0.0
+    },
+    "omlx|512x256-c1": {
+     "tps": 56.739999999999995,
+     "ttft": 1247.9479312896729,
+     "itl": 12.67850960002226,
+     "memory": 22358475092.0,
+     "watts": 21.59,
+     "short": 0.0
+    },
+    "omlx|512x256-c2": {
+     "tps": 60.629999999999995,
+     "ttft": 2246.3043928146362,
+     "itl": 24.422503920162427,
+     "memory": 22397714796.0,
+     "watts": 26.715,
+     "short": 0.0
+    },
+    "omlx|512x256-c4": {
+     "tps": 71.7,
+     "ttft": 2354.461431503296,
+     "itl": 45.224691839779126,
+     "memory": 22823322120.0,
+     "watts": 33.555,
+     "short": 0.0
+    },
+    "omlx|512x256-c8": {
+     "tps": 72.22,
+     "ttft": 2461.1860513687134,
+     "itl": 99.5406520132925,
+     "memory": 24898298700.0,
+     "watts": 35.61,
+     "short": 0.0
+    },
+    "omlx|4096x128-c1": {
+     "tps": 16.03,
+     "ttft": 6301.676034927368,
+     "itl": 12.8780988257701,
+     "memory": 25808921456.0,
+     "watts": 31.395000000000003,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c1": {
+     "tps": 63.735,
+     "ttft": 869.810938835144,
+     "itl": 12.175376275006462,
+     "memory": 21434695192.0,
+     "watts": 21.18,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c2": {
+     "tps": 76.31,
+     "ttft": 1506.4226388931274,
+     "itl": 20.217548632154276,
+     "memory": 21774884376.0,
+     "watts": 28.295,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c4": {
+     "tps": 91.66499999999999,
+     "ttft": 2787.6075506210327,
+     "itl": 32.665763181798596,
+     "memory": 22959668712.0,
+     "watts": 34.685,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c8": {
+     "tps": 101.315,
+     "ttft": 5662.873983383179,
+     "itl": 57.72222350625431,
+     "memory": 24984493544.0,
+     "watts": 36.095,
+     "short": 0.0
+    },
+    "rapid-mlx|4096x128-c1": {
+     "tps": 17.975,
+     "ttft": 5354.980945587158,
+     "itl": 13.45767749576118,
+     "memory": 25497460200.0,
+     "watts": 31.595,
+     "short": 0.0
+    }
+   },
+   "quality": [
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.96,
+     "stderr": 0.016053601490175616,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-gguf/results_2026-09-30T08-05-25.321505.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-gguf/samples_gsm8k_cot_llama_2026-09-30T08-05-25.321505.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.8214285714285714,
+     "stderr": 0.03696779782191183,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/results_2026-09-30T08-19-45.643778.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_biology_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_business_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_chemistry_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_computer_science_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_economics_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_engineering_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_health_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_history_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_law_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_math_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_other_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_philosophy_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_physics_2026-09-30T08-19-45.643778.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_psychology_2026-09-30T08-19-45.643778.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9533333333333334,
+     "stderr": 0.017279558643243608,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-gguf/results_2026-09-30T08-24-38.786338.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-gguf/samples_gsm8k_cot_llama_2026-09-30T08-24-38.786338.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.8035714285714286,
+     "stderr": 0.03847730390050601,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/results_2026-09-30T08-34-06.323542.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_biology_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_business_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_chemistry_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_computer_science_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_economics_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_engineering_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_health_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_history_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_law_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_math_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_other_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_philosophy_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_physics_2026-09-30T08-34-06.323542.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_psychology_2026-09-30T08-34-06.323542.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9466666666666667,
+     "stderr": 0.018407922296694253,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-gguf/results_2026-09-30T08-41-32.779139.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-gguf/samples_gsm8k_cot_llama_2026-09-30T08-41-32.779139.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.8214285714285714,
+     "stderr": 0.03757887720065366,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/results_2026-09-30T08-52-42.468041.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_biology_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_business_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_chemistry_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_computer_science_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_economics_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_engineering_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_health_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_history_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_law_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_math_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_other_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_philosophy_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_physics_2026-09-30T08-52-42.468041.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-gguf/samples_mmlu_pro_psychology_2026-09-30T08-52-42.468041.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.94,
+     "stderr": 0.01945568014572829,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-mlx/results_2026-09-30T09-28-34.880076.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-mlx/samples_gsm8k_cot_llama_2026-09-30T09-28-34.880076.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.8214285714285714,
+     "stderr": 0.03727458978623076,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/results_2026-09-30T09-46-59.746702.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_biology_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_business_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_chemistry_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_computer_science_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_economics_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_engineering_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_health_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_history_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_law_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_math_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_other_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_philosophy_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_physics_2026-09-30T09-46-59.746702.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_psychology_2026-09-30T09-46-59.746702.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9533333333333334,
+     "stderr": 0.017279558643243608,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-mlx/results_2026-09-30T09-55-32.789357.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-mlx/samples_gsm8k_cot_llama_2026-09-30T09-55-32.789357.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.7857142857142857,
+     "stderr": 0.038180177416060626,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/results_2026-09-30T10-10-13.970192.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_biology_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_business_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_chemistry_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_computer_science_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_economics_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_engineering_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_health_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_history_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_law_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_math_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_other_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_philosophy_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_physics_2026-09-30T10-10-13.970192.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_psychology_2026-09-30T10-10-13.970192.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [quantized_matmul] The shapes of the weight and scales are incompatible based on bits and group_size. w.shape() == (256,512) and scales.shape() == (256,32) with group_size=64 and bits=4 at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.96,
+     "stderr": 0.016053601490175602,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-mlx/results_2026-09-30T17-49-58.372380.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-mlx/samples_gsm8k_cot_llama_2026-09-30T17-49-58.372380.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.7946428571428571,
+     "stderr": 0.039786923368577094,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/results_2026-09-30T18-04-58.233561.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_biology_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_business_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_chemistry_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_computer_science_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_economics_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_engineering_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_health_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_history_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_law_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_math_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_other_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_philosophy_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_physics_2026-09-30T18-04-58.233561.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_psychology_2026-09-30T18-04-58.233561.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [quantized_matmul] The shapes of the weight and scales are incompatible based on bits and group_size. w.shape() == (256,512) and scales.shape() == (256,32) with group_size=64 and bits=4 at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/"
+    }
+   ],
+   "tools": [
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "simple_python",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "multiple",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "parallel",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "parallel_multiple",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "irrelevance",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "simple_python",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "multiple",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "parallel",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "parallel_multiple",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "irrelevance",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "simple_python",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "multiple",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "parallel",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "parallel_multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "irrelevance",
+     "accuracy": 0.95,
+     "correct": 38,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-gguf/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "simple_python",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "multiple",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "parallel",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "parallel_multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "irrelevance",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "simple_python",
+     "accuracy": 0.075,
+     "correct": 3,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "multiple",
+     "accuracy": 0.225,
+     "correct": 9,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "parallel",
+     "accuracy": 0.15,
+     "correct": 6,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "parallel_multiple",
+     "accuracy": 0.2,
+     "correct": 8,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "irrelevance",
+     "accuracy": 0.975,
+     "correct": 39,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [quantized_matmul] The shapes of the weight and scales are incompatible based on bits and group_size. w.shape() == (256,512) and scales.shape() == (256,32) with group_size=64 and bits=4 at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "simple_python",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "multiple",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "parallel",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "parallel_multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "irrelevance",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [quantized_matmul] The shapes of the weight and scales are incompatible based on bits and group_size. w.shape() == (256,512) and scales.shape() == (256,32) with group_size=64 and bits=4 at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/"
+    }
+   ]
+  },
+  "gemma-4-26b-a4b": {
+   "speed": {
+    "quail-gguf|512x256-c1": {
+     "tps": 52.265,
+     "ttft": 692.4989223480225,
+     "itl": 16.410472346287147,
+     "memory": 16237985888.0,
+     "watts": 32.21,
+     "short": 0.0
+    },
+    "quail-gguf|512x256-c2": {
+     "tps": 67.71000000000001,
+     "ttft": 1413.9444828033447,
+     "itl": 26.673445514604154,
+     "memory": 18179868112.0,
+     "watts": 36.545,
+     "short": 0.0
+    },
+    "quail-gguf|512x256-c4": {
+     "tps": 81.41499999999999,
+     "ttft": 1989.8765087127686,
+     "itl": 41.12698424096201,
+     "memory": 22061068476.0,
+     "watts": 39.53,
+     "short": 0.0
+    },
+    "quail-gguf|512x256-c8": {
+     "tps": 82.88,
+     "ttft": 4140.860438346863,
+     "itl": 80.46353097055473,
+     "memory": 24018335276.0,
+     "watts": 41.565,
+     "short": 0.0
+    },
+    "quail-gguf|4096x128-c1": {
+     "tps": 15.465,
+     "ttft": 5981.819033622742,
+     "itl": 17.902319825540374,
+     "memory": 25503963724.0,
+     "watts": 35.695,
+     "short": 0.0
+    },
+    "llama-server|512x256-c1": {
+     "tps": 50.239999999999995,
+     "ttft": 776.5700817108154,
+     "itl": 16.86347278894163,
+     "memory": 5568423228.0,
+     "watts": 32.67,
+     "short": 0.0
+    },
+    "llama-server|512x256-c2": {
+     "tps": 65.815,
+     "ttft": 1440.661907196045,
+     "itl": 24.823746961705822,
+     "memory": 8812047884.0,
+     "watts": 36.260000000000005,
+     "short": 0.0
+    },
+    "llama-server|512x256-c4": {
+     "tps": 79.445,
+     "ttft": 2730.304479598999,
+     "itl": 39.81764503553802,
+     "memory": 12709837132.0,
+     "watts": 38.66,
+     "short": 0.0
+    },
+    "llama-server|512x256-c8": {
+     "tps": 78.80000000000001,
+     "ttft": 4839.268922805786,
+     "itl": 83.06592445747526,
+     "memory": 12955867684.0,
+     "watts": 39.795,
+     "short": 0.0
+    },
+    "llama-server|4096x128-c1": {
+     "tps": 15.170000000000002,
+     "ttft": 6104.782938957214,
+     "itl": 18.135603957288847,
+     "memory": 16239862636.0,
+     "watts": 35.425,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c1": {
+     "tps": 50.260000000000005,
+     "ttft": 725.6896495819092,
+     "itl": 17.007082583857517,
+     "memory": 9532862768.0,
+     "watts": 31.995,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c2": {
+     "tps": 60.269999999999996,
+     "ttft": 1320.6441402435303,
+     "itl": 24.914133314992867,
+     "memory": 12657973736.0,
+     "watts": 32.715,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c4": {
+     "tps": 70.065,
+     "ttft": 2555.5670261383057,
+     "itl": 38.923470179239914,
+     "memory": 16555967712.0,
+     "watts": 34.835,
+     "short": 0.0
+    },
+    "ollama-gguf|512x256-c8": {
+     "tps": 81.275,
+     "ttft": 5386.307954788208,
+     "itl": 78.69819426069073,
+     "memory": 16566273248.0,
+     "watts": 36.525,
+     "short": 0.0
+    },
+    "ollama-gguf|4096x128-c1": {
+     "tps": 15.265,
+     "ttft": 6081.2965631484985,
+     "itl": 17.83747278799222,
+     "memory": 22717929040.0,
+     "watts": 33.4,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c1": {
+     "tps": 47.269999999999996,
+     "ttft": 1021.5901136398315,
+     "itl": 17.0244857376697,
+     "memory": 16563572772.0,
+     "watts": 24.6,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c2": {
+     "tps": 53.36,
+     "ttft": 2031.8840742111206,
+     "itl": 30.42904348934398,
+     "memory": 18249084952.0,
+     "watts": 29.96,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c4": {
+     "tps": 60.754999999999995,
+     "ttft": 1453.3734321594238,
+     "itl": 60.15893524768306,
+     "memory": 21203775512.0,
+     "watts": 36.14,
+     "short": 0.0
+    },
+    "quail-mlx|512x256-c8": {
+     "tps": 68.08500000000001,
+     "ttft": 1637.8579139709473,
+     "itl": 111.23528480529785,
+     "memory": 26262589464.0,
+     "watts": 39.015,
+     "short": 0.0
+    },
+    "quail-mlx|4096x128-c1": {
+     "tps": 14.835,
+     "ttft": 6321.362137794495,
+     "itl": 17.8026599208201,
+     "memory": 21737607192.0,
+     "watts": 36.94499999999999,
+     "short": 0.0
+    },
+    "omlx|512x256-c1": {
+     "tps": 45.235,
+     "ttft": 1395.3659534454346,
+     "itl": 16.58759397618911,
+     "memory": 17016836864.0,
+     "watts": 24.0,
+     "short": 0.0
+    },
+    "omlx|512x256-c2": {
+     "tps": 51.595,
+     "ttft": 2428.556442260742,
+     "itl": 29.603686052210193,
+     "memory": 17464923036.0,
+     "watts": 30.799999999999997,
+     "short": 0.0
+    },
+    "omlx|512x256-c4": {
+     "tps": 58.175,
+     "ttft": 2366.852045059204,
+     "itl": 59.30414667316512,
+     "memory": 18546267180.0,
+     "watts": 36.94,
+     "short": 0.0
+    },
+    "omlx|512x256-c8": {
+     "tps": 60.96,
+     "ttft": 2951.601028442383,
+     "itl": 118.03143959419401,
+     "memory": 20613100732.0,
+     "watts": 39.445,
+     "short": 0.0
+    },
+    "omlx|4096x128-c1": {
+     "tps": 11.715,
+     "ttft": 8724.36010837555,
+     "itl": 17.179138078464298,
+     "memory": 18076226844.0,
+     "watts": 35.760000000000005,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c1": {
+     "tps": 51.765,
+     "ttft": 939.2538070678711,
+     "itl": 15.592437164456236,
+     "memory": 19521312792.0,
+     "watts": 24.744999999999997,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c2": {
+     "tps": 63.519999999999996,
+     "ttft": 1660.3295803070068,
+     "itl": 25.01855317284079,
+     "memory": 25743996964.0,
+     "watts": 32.989999999999995,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c4": {
+     "tps": 72.83500000000001,
+     "ttft": 3106.852889060974,
+     "itl": 42.79271621330112,
+     "memory": 28023216164.0,
+     "watts": 39.815,
+     "short": 0.0
+    },
+    "rapid-mlx|512x256-c8": {
+     "tps": 81.565,
+     "ttft": 6025.8629322052,
+     "itl": 74.81800013897467,
+     "memory": 30711380004.0,
+     "watts": 40.76,
+     "short": 0.0
+    },
+    "rapid-mlx|4096x128-c1": {
+     "tps": 15.3,
+     "ttft": 6186.195969581604,
+     "itl": 16.66417272072139,
+     "memory": 28333135908.0,
+     "watts": 36.905,
+     "short": 0.0
+    }
+   },
+   "quality": [
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.96,
+     "stderr": 0.016053601490175616,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-gguf/results_2026-09-30T10-17-24.929557.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-gguf/samples_gsm8k_cot_llama_2026-09-30T10-17-24.929557.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.8571428571428571,
+     "stderr": 0.0344151468449797,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/results_2026-09-30T10-28-52.807252.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_biology_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_business_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_chemistry_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_computer_science_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_economics_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_engineering_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_health_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_history_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_law_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_math_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_other_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_philosophy_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_physics_2026-09-30T10-28-52.807252.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_psychology_2026-09-30T10-28-52.807252.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9533333333333334,
+     "stderr": 0.017279558643243605,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-gguf/results_2026-09-30T10-36-28.738482.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-gguf/samples_gsm8k_cot_llama_2026-09-30T10-36-28.738482.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.9017857142857143,
+     "stderr": 0.029612721342458927,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/results_2026-09-30T10-52-43.097656.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_biology_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_business_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_chemistry_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_computer_science_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_economics_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_engineering_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_health_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_history_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_law_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_math_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_other_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_philosophy_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_physics_2026-09-30T10-52-43.097656.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/llama-server--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_psychology_2026-09-30T10-52-43.097656.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9533333333333334,
+     "stderr": 0.017279558643243605,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-gguf/results_2026-09-30T10-59-39.290812.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-gguf/samples_gsm8k_cot_llama_2026-09-30T10-59-39.290812.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.9107142857142857,
+     "stderr": 0.02782834723121356,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/results_2026-09-30T11-11-55.834613.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_biology_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_business_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_chemistry_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_computer_science_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_economics_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_engineering_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_health_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_history_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_law_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_math_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_other_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_philosophy_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_physics_2026-09-30T11-11-55.834613.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/ollama-gguf--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-gguf/samples_mmlu_pro_psychology_2026-09-30T11-11-55.834613.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.8933333333333333,
+     "stderr": 0.02528878692663471,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-mlx/results_2026-09-30T11-52-05.073135.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-mlx/samples_gsm8k_cot_llama_2026-09-30T11-52-05.073135.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.8482142857142857,
+     "stderr": 0.035554489450934576,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/results_2026-09-30T12-10-42.714287.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_biology_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_business_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_chemistry_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_computer_science_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_economics_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_engineering_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_health_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_history_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_law_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_math_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_other_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_philosophy_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_physics_2026-09-30T12-10-42.714287.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/omlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_psychology_2026-09-30T12-10-42.714287.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9,
+     "stderr": 0.024576957615571195,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-mlx/results_2026-09-30T12-23-22.616491.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-mlx/samples_gsm8k_cot_llama_2026-09-30T12-23-22.616491.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.8482142857142857,
+     "stderr": 0.0352327227472784,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/results_2026-09-30T12-40-34.075016.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_biology_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_business_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_chemistry_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_computer_science_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_economics_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_engineering_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_health_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_history_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_law_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_math_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_other_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_philosophy_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_physics_2026-09-30T12-40-34.075016.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/rapid-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_psychology_2026-09-30T12-40-34.075016.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: Error: layer 0: missing MoE expert weights (exit: exit status 1)\"}"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.8466666666666667,
+     "stderr": 0.029517623244908076,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-mlx/results_2026-09-30T18-16-29.909178.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-mlx/samples_gsm8k_cot_llama_2026-09-30T18-16-29.909178.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.8392857142857143,
+     "stderr": 0.03603175227506514,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/results_2026-09-30T18-34-08.441007.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_biology_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_business_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_chemistry_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_computer_science_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_economics_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_engineering_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_health_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_history_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_law_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_math_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_other_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_philosophy_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_physics_2026-09-30T18-34-08.441007.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_psychology_2026-09-30T18-34-08.441007.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: Error: layer 0: missing MoE expert weights (exit: exit status 1)\"}"
+    }
+   ],
+   "tools": [
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "simple_python",
+     "accuracy": 0.975,
+     "correct": 39,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "parallel",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "parallel_multiple",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-gguf",
+     "lane": "gguf",
+     "version": "0.61.6",
+     "category": "irrelevance",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-gguf--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "simple_python",
+     "accuracy": 0.975,
+     "correct": 39,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "parallel",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "parallel_multiple",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "llama-server",
+     "lane": "gguf",
+     "version": "0.4.1-dev (build 11081, commit 161755f29)",
+     "category": "irrelevance",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/llama-server--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "simple_python",
+     "accuracy": 0.975,
+     "correct": 39,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "parallel",
+     "accuracy": 0.825,
+     "correct": 33,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "parallel_multiple",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-gguf",
+     "lane": "gguf",
+     "version": "0.34.4",
+     "category": "irrelevance",
+     "accuracy": 0.9,
+     "correct": 36,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/ollama-gguf--gemma-4-26b-a4b/score/gemma-4-26b-a4b-gguf/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "simple_python",
+     "accuracy": 0.975,
+     "correct": 39,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "parallel",
+     "accuracy": 0.825,
+     "correct": 33,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "parallel_multiple",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "omlx",
+     "lane": "mlx",
+     "version": "0.6.4",
+     "category": "irrelevance",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/omlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "simple_python",
+     "accuracy": 0.0,
+     "correct": 0,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "multiple",
+     "accuracy": 0.0,
+     "correct": 0,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "parallel",
+     "accuracy": 0.0,
+     "correct": 0,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "parallel_multiple",
+     "accuracy": 0.0,
+     "correct": 0,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "rapid-mlx",
+     "lane": "mlx",
+     "version": "0.15.2",
+     "category": "irrelevance",
+     "accuracy": 1.0,
+     "correct": 40,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/rapid-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: Error: layer 0: missing MoE expert weights (exit: exit status 1)\"}"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "simple_python",
+     "accuracy": 0.975,
+     "correct": 39,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_simple_python_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "multiple",
+     "accuracy": 0.925,
+     "correct": 37,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "parallel",
+     "accuracy": 0.85,
+     "correct": 34,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_parallel_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "parallel_multiple",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_parallel_multiple_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.62.0",
+     "category": "irrelevance",
+     "accuracy": 0.875,
+     "correct": 35,
+     "total": 40,
+     "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_irrelevance_score.json"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: Error: layer 0: missing MoE expert weights (exit: exit status 1)\"}"
+    }
+   ]
+  }
+ },
+ "losses": [
+  {
+   "model": "qwen3-8b",
+   "model_name": "Qwen3 8B",
+   "lane": "mlx",
+   "level": "512x256-c2",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.11532592108131676
+  },
+  {
+   "model": "qwen3-8b",
+   "model_name": "Qwen3 8B",
+   "lane": "mlx",
+   "level": "512x256-c4",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.13306199123356294
+  },
+  {
+   "model": "qwen3-8b",
+   "model_name": "Qwen3 8B",
+   "lane": "mlx",
+   "level": "512x256-c8",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.09693928750627191
+  },
+  {
+   "model": "qwen3-8b",
+   "model_name": "Qwen3 8B",
+   "lane": "mlx",
+   "level": "4096x128-c1",
+   "metric": "itl",
+   "engine": "omlx",
+   "gap": 0.05130252644581612
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "gguf",
+   "level": "512x256-c1",
+   "metric": "ttft",
+   "engine": "ollama-gguf",
+   "gap": 0.08091063816994679
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "gguf",
+   "level": "512x256-c2",
+   "metric": "ttft",
+   "engine": "llama-server",
+   "gap": 0.08263766495069072
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "gguf",
+   "level": "4096x128-c1",
+   "metric": "tps",
+   "engine": "ollama-gguf",
+   "gap": 0.07878953107960743
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "gguf",
+   "level": "4096x128-c1",
+   "metric": "ttft",
+   "engine": "ollama-gguf",
+   "gap": 0.09366976566244002
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "mlx",
+   "level": "512x256-c1",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.06517924291802467
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "mlx",
+   "level": "512x256-c1",
+   "metric": "itl",
+   "engine": "rapid-mlx",
+   "gap": 0.07157591692186122
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "mlx",
+   "level": "512x256-c2",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.19122697471120823
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "mlx",
+   "level": "512x256-c2",
+   "metric": "ttft",
+   "engine": "rapid-mlx",
+   "gap": 0.13980425710405098
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "mlx",
+   "level": "512x256-c4",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.2035055471673341
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "mlx",
+   "level": "512x256-c8",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.15097983527406977
+  },
+  {
+   "model": "qwen3.6-35b-a3b",
+   "model_name": "Qwen3.6 35B-A3B",
+   "lane": "mlx",
+   "level": "4096x128-c1",
+   "metric": "itl",
+   "engine": "omlx",
+   "gap": 0.05403747272890988
+  },
+  {
+   "model": "gemma-4-26b-a4b",
+   "model_name": "Gemma 4 26B-A4B",
+   "lane": "mlx",
+   "level": "512x256-c1",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.0950920245398774
+  },
+  {
+   "model": "gemma-4-26b-a4b",
+   "model_name": "Gemma 4 26B-A4B",
+   "lane": "mlx",
+   "level": "512x256-c1",
+   "metric": "ttft",
+   "engine": "rapid-mlx",
+   "gap": 0.08059622491705971
+  },
+  {
+   "model": "gemma-4-26b-a4b",
+   "model_name": "Gemma 4 26B-A4B",
+   "lane": "mlx",
+   "level": "512x256-c1",
+   "metric": "itl",
+   "engine": "rapid-mlx",
+   "gap": 0.08411699450308811
+  },
+  {
+   "model": "gemma-4-26b-a4b",
+   "model_name": "Gemma 4 26B-A4B",
+   "lane": "mlx",
+   "level": "512x256-c2",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.19040479760119933
+  },
+  {
+   "model": "gemma-4-26b-a4b",
+   "model_name": "Gemma 4 26B-A4B",
+   "lane": "mlx",
+   "level": "512x256-c2",
+   "metric": "ttft",
+   "engine": "rapid-mlx",
+   "gap": 0.182862053312943
+  },
+  {
+   "model": "gemma-4-26b-a4b",
+   "model_name": "Gemma 4 26B-A4B",
+   "lane": "mlx",
+   "level": "512x256-c4",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.19883137190354724
+  },
+  {
+   "model": "gemma-4-26b-a4b",
+   "model_name": "Gemma 4 26B-A4B",
+   "lane": "mlx",
+   "level": "512x256-c8",
+   "metric": "tps",
+   "engine": "rapid-mlx",
+   "gap": 0.19798780935595195
+  },
+  {
+   "model": "gemma-4-26b-a4b",
+   "model_name": "Gemma 4 26B-A4B",
+   "lane": "mlx",
+   "level": "4096x128-c1",
+   "metric": "itl",
+   "engine": "rapid-mlx",
+   "gap": 0.06395039871357978
+  }
+ ]
+}
