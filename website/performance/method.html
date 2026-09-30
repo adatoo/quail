@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How the comparison works — Quail</title>
+  <meta name="description" content="How Quail is compared with llama.cpp's server, Ollama, oMLX and Rapid-MLX: same Mac, same weights, same prompts, one server at a time, and what counts as a gap.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="../docs/getting-started.html">Docs</a>
+        <a href="../compare.html">Compare</a>
+        <a class="hide-narrow" href="../how-it-works.html">How it works</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap prose page">
+    <p class="path"><a href="../how-it-works.html#changes">How it works</a></p>
+    <h1>How the comparison works</h1>
+    <p class="lede">Quail is measured against the other ways to run models on a Mac by a harness in its repository, the same way every time, so a gap is Quail's and not the test's.</p>
+
+    <h2 id="fair">The same work for every engine</h2>
+    <ul>
+      <li><strong>Two lanes, never mixed.</strong> The same <code>.gguf</code> file runs in Quail, llama.cpp's own server and Ollama. The same MLX folder runs in Quail, oMLX, Rapid-MLX and Ollama's MLX runner.</li>
+      <li><strong>The same settings:</strong> 8 slots of 8,192 tokens, a full-precision KV cache, temperature 0, one seed, and thinking off.</li>
+      <li><strong>One server at a time,</strong> on a quiet Mac. The run refuses to start on battery, in Low Power Mode, during a backup, or with another model server running. It pauses Spotlight and the photo-analysis daemons while it runs.</li>
+      <li><strong>Cool before every measurement.</strong> Each level waits until the Mac's thermal state is Nominal, and a level that ends hotter than Moderate is run again. Two rounds alternate which engine goes first.</li>
+    </ul>
+
+    <h2 id="what">What's measured</h2>
+    <ul>
+      <li><strong>Speed</strong>, with <a href="https://github.com/vllm-project/guidellm">GuideLLM</a>: 512-token prompts with 256-token replies at 1, 2, 4 and 8 requests at once, and 4,096-token prompts with 128-token replies at one. That gives throughput, time to the first token, time between tokens, peak memory and power.</li>
+      <li><strong>The engine's own ceiling</strong>, with no server in the way (llama.cpp's <code>llama-batched-bench</code>, <code>mlx_lm.benchmark</code>). A server isn't blamed for its engine.</li>
+      <li><strong>Quality</strong>, with <a href="https://github.com/EleutherAI/lm-evaluation-harness">lm-eval</a>: 150 GSM8K problems and 112 MMLU-Pro questions, compared item by item (McNemar's test), so two engines are judged on the same questions.</li>
+      <li><strong>Tool calling</strong>, with <a href="https://github.com/ShishirPatil/gorilla">BFCL</a>: 40 cases in each of five categories.</li>
+    </ul>
+
+    <h2 id="gaps">What counts as a gap</h2>
+    <p>The report lists every level where another engine did better than Quail by more than 5%, and by more than the spread between rounds. Each gap becomes an issue, and is fixed only once its cause is known.</p>
+
+    <h2 id="cause">Finding the cause</h2>
+    <ul>
+      <li><strong>Trace it.</strong> <code>QUAIL_MLX_TRACE</code> records how long the MLX serving loop spends on each step, prompt slice and join. It showed that 8 requests' decoding steps took most of the time.</li>
+      <li><strong>Check against the engine's own reference</strong> on the same Mac, such as mlx-lm or llama-server with the same settings. It shows whether the gap is Quail's code or the engine underneath.</li>
+      <li><strong>Change one thing at a time,</strong> with alternating builds on a cooled Mac, and check that the replies at temperature 0 are unchanged.</li>
+    </ul>
+
+    <h2 id="source">The harness and the reports</h2>
+    <p>It's all in the repository: <a href="https://github.com/adatoo/quail/tree/main/bench">the harness</a>, its design (<a href="https://github.com/adatoo/quail/blob/main/docs/DECISIONS.md">ADR D-063</a>), and every report, with its raw results, under <a href="https://github.com/adatoo/quail/tree/main/docs/benchmarks">docs/benchmarks</a>. <code>task bench:compare</code> runs it on any Apple silicon Mac.</p>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="../docs/getting-started.html">Docs</a>
+        <a href="../compare.html">Compare</a>
+        <a href="../how-it-works.html">How it works</a>
+        <a href="../docs/privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

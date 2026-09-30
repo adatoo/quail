@@ -5,7 +5,7 @@
 checked = "2026-09-29"
 
 [versions]
-quail = "0.61"
+quail = "0.62"
 ollama = "0.34.4"
 omlx = "0.6.4"
 rapid-mlx = "0.15.2"
@@ -54,7 +54,7 @@ rapid-mlx = { text = "Any site (CORS *) unless --cors-origins", source = "https:
 
 [[row]]
 feature = "Several requests at once"
-quail = { text = "Yes: llama.cpp slots, and batched decoding on MLX (not yet for Gemma 4)", source = "https://quail-ai.app/" }
+quail = { text = "Yes: llama.cpp slots on GGUF, batched decoding on MLX", source = "https://quail-ai.app/" }
 ollama = { text = "One at a time by default (OLLAMA_NUM_PARALLEL); always one for some model families", source = "https://github.com/ollama/ollama/blob/v0.34.4/server/sched.go#L502-L514" }
 omlx = { text = "Yes, continuous batching (8 by default)", source = "https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L198-L200" }
 rapid-mlx = { text = "Yes, continuous batching", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/reference/cli.md?plain=1#L238-L250" }

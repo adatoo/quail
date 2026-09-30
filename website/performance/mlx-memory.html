@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MLX memory — Quail</title>
+  <meta name="description" content="Why Quail's MLX engine held on to 30 GB serving an 8B model, and how capping MLX's buffer cache brought it to about 10 GB with no loss of speed.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="../docs/getting-started.html">Docs</a>
+        <a href="../compare.html">Compare</a>
+        <a class="hide-narrow" href="../how-it-works.html">How it works</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap prose page">
+    <p class="path"><a href="../how-it-works.html#changes">How it works</a></p>
+    <h1>MLX memory</h1>
+    <p class="lede">Serving Qwen3 8B, Quail's MLX engine grew to 30 GB and never gave it back, where oMLX peaked at 9 GB.</p>
+
+    <h2 id="why">Why</h2>
+    <p>MLX keeps the GPU memory a finished calculation frees, so it can hand it out again without asking macOS. Quail never limited that cache. MLX's default lets it grow to nearly all of the Mac's memory, and Quail emptied it only when it unloaded a model.</p>
+
+    <h2 id="changed">What changed</h2>
+    <ul>
+      <li><strong>The cache is capped</strong> at a sixteenth of the memory the GPU is recommended to use, between 512 MB and 2 GB.</li>
+      <li><strong>It's emptied every 512 decoding steps,</strong> and eight steps after each request finishes.</li>
+      <li><strong>Not at once:</strong> it waits those eight steps because oMLX found that emptying it the moment a request finished could make macOS panic.</li>
+    </ul>
+
+    <h2 id="result">Result</h2>
+    <p>Qwen3 8B's peak fell from 32.5 GB to 10.4 GB on 4,096-token prompts, and from 28.2 GB to 12.5 GB with 8 requests at once, with no loss of speed. Quail's MLX engine now peaks below Rapid-MLX's on every model measured. (<a href="https://github.com/adatoo/quail/issues/137">#137</a>, <a href="https://github.com/adatoo/quail/pull/143">#143</a>)</p>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="../docs/getting-started.html">Docs</a>
+        <a href="../compare.html">Compare</a>
+        <a href="../how-it-works.html">How it works</a>
+        <a href="../docs/privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

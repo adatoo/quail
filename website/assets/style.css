@@ -583,3 +583,58 @@ a.card {
 a.card:hover {
   border-color: var(--link);
 }
+
+/* A page of prose on its own (How it works and its detail pages), spaced like the comparison page. */
+.prose.page {
+  padding-top: 32px;
+  padding-bottom: 64px;
+}
+
+.prose .card h3 {
+  margin-top: 0;
+}
+
+/* How it works: the architecture as stacked layers, each a row of boxes. */
+.stack {
+  display: grid;
+  gap: 8px;
+  margin: 20px 0;
+}
+
+.stack .layer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.stack .box {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 15px;
+}
+
+.stack .box strong {
+  display: block;
+}
+
+.stack .box span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.stack .box.accent {
+  background: var(--surface-2);
+  border-color: var(--accent);
+}
+
+.stack .arrow {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.stack .arrow::before {
+  content: "↓ ";
+}

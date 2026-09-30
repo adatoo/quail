@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Qwen3.5 and 3.6 on MLX — Quail</title>
+  <meta name="description" content="How Quail's MLX engine went from 15.8 to 13.1 ms a token on Qwen3.6: its own copy of the model code, compiled helpers, and a fused GPU kernel checked byte for byte.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="../docs/getting-started.html">Docs</a>
+        <a href="../compare.html">Compare</a>
+        <a class="hide-narrow" href="../how-it-works.html">How it works</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap prose page">
+    <p class="path"><a href="../how-it-works.html#changes">How it works</a></p>
+    <h1>Qwen3.5 and 3.6 on MLX</h1>
+    <p class="lede">Alone, Qwen3.6 35B-A3B took 15.8 ms a token on Quail against 12.2 ms on Rapid-MLX. On Qwen3 8B the engines were level, so the gap was in this model family's code.</p>
+
+    <h2 id="copy">Quail's own model code</h2>
+    <p><strong>Why:</strong> Python's mlx-lm compiles several small calculations in this model into single GPU kernels, and the Swift library ran them step by step. mlx-lm also kept one value at a lower precision.</p>
+    <p><strong>Changed:</strong> Quail now keeps its own copy of the model code (MIT, adapted from mlx-swift-lm) and compiles the same calculations. Weights and downloads are unchanged. Replies at temperature 0 were byte-identical to before. <a href="https://github.com/adatoo/quail/blob/main/docs/DECISIONS.md">ADR D-066</a> sets the rules for keeping such copies.</p>
+    <p><strong>Result:</strong> 14.2 ms a token instead of 15.6 on the M1 Max, the same as mlx-lm itself. (<a href="https://github.com/adatoo/quail/issues/141">#141</a>, <a href="https://github.com/adatoo/quail/pull/147">#147</a>)</p>
+
+    <h2 id="fused">One kernel for each GatedDeltaNet layer</h2>
+    <p><strong>Why:</strong> for each new token, three of every four layers in these models ran about a dozen small GPU kernels between their input and output: a convolution, two normalisations, a gate, the recurrence and a final normalisation.</p>
+    <p><strong>Changed:</strong> they now run as one kernel, adapted from Rapid-MLX (Apache-2.0). The kernel repeats the same steps in the same order. The first time a model loads, Quail runs a random layer both ways and uses the kernel only if its output matches byte for byte. The server's log says which way it went.</p>
+    <p><strong>Result:</strong> 10.79 ms a token instead of 11.22 on a Mac mini (M4 Pro), with identical replies. (<a href="https://github.com/adatoo/quail/pull/148">#148</a>)</p>
+
+    <h2 id="together">Together</h2>
+    <p>On the comparison's M1 Max, Qwen3.6 now takes 13.1 ms a token instead of 15.8. A 4,096-token prompt's first token takes 5.2 s instead of 8.0 s, the fastest of the three engines.</p>
+
+    <h2 id="tried">Tried and not kept</h2>
+    <ul>
+      <li><strong>A special kernel for reading long prompts,</strong> from oMLX and Rapid-MLX. It saved 1–2% at these lengths.</li>
+      <li><strong>The Swift library's newer version of this model,</strong> which fuses and compiles other parts. It measured 10.99 ms a token against Quail's 10.79 ms.</li>
+    </ul>
+
+    <h2 id="left">Still to do</h2>
+    <p>Rapid-MLX compiles its whole single-request step and fuses more of the model's work. It's still about 7% faster alone on Qwen3.6. <a href="https://github.com/adatoo/quail/issues/141">#141</a> stays open for it.</p>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="../docs/getting-started.html">Docs</a>
+        <a href="../compare.html">Compare</a>
+        <a href="../how-it-works.html">How it works</a>
+        <a href="../docs/privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

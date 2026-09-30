@@ -264,6 +264,16 @@ The report's caveats come from it.
 
 **Revisit if:** the docs grow past what one person keeps consistent by hand (about 20 pages), or need search. Then a generator earns its keep.
 
+**Amended 2026-09-30 (the comparison's results, and "How it works"):**
+- `compare.html` shows the 2026-09-30 comparison's headline results (`task bench:site`), beside the sourced feature table.
+- **A new `how-it-works.html`,** kept brief, covers:
+  - what Quail is for;
+  - how it's built, as a diagram in HTML;
+  - how speed is measured and improved;
+  - what the first comparison changed, as a card for each change.
+- **The details go on their own pages** under `website/performance/`: the comparison's method, several requests at once on MLX, Qwen3.5 and 3.6 on MLX, MLX memory, and long prompts on GGUF. Each is found → why → changed → result, with its issue and PR, and what's still to do. The owner asked for this layout: a short page, with callouts for readers who want more.
+- **Linked from:** every page's header ("How it works", hidden on narrow screens), and the footers of the top-level pages.
+
 ## D-061 · 2026-09-28 · One Quail window with a sidebar, instead of six Settings tabs
 
 **Situation:** Settings had six tabs holding three kinds of thing:
