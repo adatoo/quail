@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How it works — Quail</title>
+  <meta name="description" content="What Quail is for, how it's built, and how its speed is measured against other Mac engines and improved, with the changes each comparison led to.">
+  <link rel="icon" href="assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="assets/img/icon-256.png">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="docs/getting-started.html">Docs</a>
+        <a href="compare.html">Compare</a>
+        <a class="hide-narrow" href="how-it-works.html" aria-current="page">How it works</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap prose page">
+    <h1>How Quail works</h1>
+    <p class="lede">What Quail is for, how it's built, and how we measure it against the other ways to run models on a Mac, and act on what we find.</p>
+
+    <h2 id="vision">What it's for</h2>
+    <p>Quail runs AI models on your Mac and gives your tools an API they already speak: OpenAI's Chat Completions and Responses, and Anthropic's Messages. Its aims:</p>
+    <ul>
+      <li><strong>One app for both model formats.</strong> GGUF and MLX run from one server and one model folder.</li>
+      <li><strong>Safe by default.</strong> It answers only this Mac, needs a key from the start, refuses other web pages, and sends no usage data.</li>
+      <li><strong>Nothing to install around it.</strong> It's a signed Mac app, with no Python.</li>
+      <li><strong>As fast as the best engine for each format,</strong> measured in the open, including where it isn't yet.</li>
+    </ul>
+
+    <h2 id="architecture">How it's built</h2>
+    <div class="stack" role="img" aria-label="Quail's layers: your tools call Quail server, which runs llama.cpp for GGUF and MLX for MLX models; the Quail app and the quail command manage it.">
+      <div class="layer">
+        <div class="box"><strong>Your tools</strong><span>Claude Code, Codex, editors, chat apps, scripts</span></div>
+      </div>
+      <div class="arrow">OpenAI and Anthropic APIs, with a key</div>
+      <div class="layer">
+        <div class="box accent"><strong>Quail server</strong><span>routes requests, loads and unloads models, batches several at once, caches prompts, reports its activity</span></div>
+      </div>
+      <div class="layer">
+        <div class="box"><strong>llama.cpp</strong><span>GGUF models, in the server's process</span></div>
+        <div class="box"><strong>MLX</strong><span>MLX models, with Quail's own code for Gemma 4 and Qwen3.5/3.6</span></div>
+      </div>
+      <div class="arrow">managed by</div>
+      <div class="layer">
+        <div class="box"><strong>The Quail app</strong><span>menu bar, models, Connect, Activity</span></div>
+        <div class="box"><strong>The <code>quail</code> command</strong><span>pull, chat, launch, bench, ps, logs</span></div>
+      </div>
+    </div>
+    <p>The design and every decision behind it are in the repository: <a href="https://github.com/adatoo/quail/blob/main/docs/ARCHITECTURE.md">the architecture</a> and <a href="https://github.com/adatoo/quail/blob/main/docs/DECISIONS.md">the decision records</a>.</p>
+
+    <h2 id="performance">How we measure and improve speed</h2>
+    <ol>
+      <li><strong>Measure against the others</strong> on the same Mac, with the same weights, prompts and settings, one server at a time: Quail against llama.cpp's server and Ollama for GGUF, and against oMLX and Rapid-MLX for MLX. <a href="performance/method.html">How the comparison works</a>.</li>
+      <li><strong>List every gap</strong> larger than 5% and larger than the spread between rounds. Each becomes an issue.</li>
+      <li><strong>Find the cause</strong> before changing anything. We trace where Quail spends its time, and check it against the engine's own reference (mlx-lm, llama-server) on the same Mac. Then we try one change at a time, alternating builds on a cooled Mac.</li>
+      <li><strong>Fix it in its own change,</strong> with before-and-after numbers and a test that the replies are unchanged.</li>
+      <li><strong>Run the whole comparison again</strong> and publish it, losses included.</li>
+    </ol>
+
+    <h2 id="changes">What the first comparison changed</h2>
+    <p>The <a href="https://github.com/adatoo/quail/tree/main/docs/benchmarks/2026-09-29">first comparison</a> found Quail level with llama.cpp on GGUF, except on long prompts, and behind oMLX and Rapid-MLX on MLX in four ways. What changed as a result, measured in the <a href="compare.html#measured">second</a> on the same M1 Max:</p>
+    <div class="grid">
+      <a class="card" href="performance/mlx-batching.html">
+        <h3>Several requests at once on MLX</h3>
+        <p>Gemma 4 now batches: with 8 requests at once, its first token takes 1.6 s instead of 41 s. MLX 0.32 made every batched step about a quarter faster.</p>
+      </a>
+      <a class="card" href="performance/qwen-decode.html">
+        <h3>Qwen3.5 and 3.6 on MLX</h3>
+        <p>Quail's own model code and a fused GPU kernel: 13.1 ms a token instead of 15.8 ms, and a 4,096-token prompt's first token in 5.2 s instead of 8.0 s.</p>
+      </a>
+      <a class="card" href="performance/mlx-memory.html">
+        <h3>MLX memory</h3>
+        <p>Freed GPU memory is no longer kept without limit: Qwen3 8B's peak fell from 32.5 GB to 10.4 GB.</p>
+      </a>
+      <a class="card" href="performance/gguf-long-prompts.html">
+        <h3>Long prompts on GGUF</h3>
+        <p>Earlier requests' caches move out of the way: a 4,096-token prompt now reaches its first token as fast as on llama.cpp's own server.</p>
+      </a>
+    </div>
+
+    <h2 id="next">What's next</h2>
+    <ul>
+      <li><strong>Throughput with several MLX requests at once.</strong> Rapid-MLX still makes 10–20% more tokens a second (<a href="https://github.com/adatoo/quail/issues/139">#139</a>).</li>
+      <li><strong>One request on MLX.</strong> Rapid-MLX compiles its whole step and fuses more of the model; it's still 7–10% faster alone on Qwen3.6 and Gemma 4 (<a href="https://github.com/adatoo/quail/issues/141">#141</a>).</li>
+      <li><strong>Gemma 4's scores.</strong> They're a few points lower on Quail than on the other engines, likely from how Quail renders its chat template (<a href="https://github.com/adatoo/quail/issues/152">#152</a>).</li>
+    </ul>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="docs/getting-started.html">Docs</a>
+        <a href="compare.html">Compare</a>
+        <a href="how-it-works.html">How it works</a>
+        <a href="docs/privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

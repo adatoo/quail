@@ -10,6 +10,22 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-09-30
+
+### Added
+
+- **The website has a comparison page,** [quail-ai.app/compare.html](https://quail-ai.app/compare.html). It compares Quail, Ollama, oMLX and Rapid-MLX feature by feature: installing, model formats, APIs, the key, browser access, several requests at once, prompt caching, speculative decoding, embeddings, coding tools, usage data, platforms and licence.
+  - Every claim links to its project's own docs, source or release notes at the version named.
+  - The measured results of the 2026-09-30 comparison sit beside it, with a link to the full report.
+  - The table and results are written from `bench/config/features.toml` and the report by `task bench:site`.
+- **A "How it works" page,** [quail-ai.app/how-it-works.html](https://quail-ai.app/how-it-works.html), briefly covers:
+  - what Quail is for and how it's built;
+  - how its speed is measured against the other engines and improved;
+  - what the first comparison changed.
+
+  A short page for each change gives the detail: several requests at once on MLX, Qwen3.5 and 3.6 on MLX, MLX memory, long prompts on GGUF, and how the comparison works.
+- The site's header links to the comparison page and the "How it works" page.
+
 ## [0.62.1] - 2026-09-30
 
 ### Added

@@ -15,6 +15,8 @@
       <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
       <nav class="site-nav" aria-label="Main">
         <a href="getting-started.html" aria-current="page">Docs</a>
+        <a href="../compare.html">Compare</a>
+        <a class="hide-narrow" href="../how-it-works.html">How it works</a>
         <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
         <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
         <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
@@ -49,6 +51,8 @@
 
 <h2 id="run">Run one</h2>
 <p>Start the server, open <span class="path">Benchmark</span> (in the menu or the Quail window), choose a model and click <span class="path">Run Benchmark</span>. A small model takes about a minute. Whatever was loaded before is loaded again afterwards. From the terminal: <code>quail bench &lt;model&gt;</code>.</p>
+
+<p>To see how Quail compares with Ollama, oMLX and Rapid-MLX, measured on the same Mac with the same weights, see <a href="../compare.html">Compare</a>.</p>
 
 <h2 id="measures">What it measures</h2>
 <p>The fixed <code>quail-bench-1</code> suite: one warm-up, then three runs of each, reporting the median with the lowest and highest.</p>

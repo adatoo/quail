@@ -15,6 +15,7 @@
                                                 all four, in one run folder; --resume carries on a stopped one
     python -m harness report RUN [--smoke RUN] [--out DIR] [--notes FILE]
                                                 the report: docs/benchmarks/<date>/ from a compare run
+    python -m harness site [--report DIR]      website/compare.html: the feature table, and a report's results
     python -m harness restore                   resume anything a killed run left paused
 """
 
@@ -209,6 +210,14 @@ def run_report(args) -> int:
     return 0
 
 
+def run_site(args) -> int:
+    from . import site
+
+    report_dir = Path(args.report).resolve() if args.report else None
+    print(f"wrote {site.write(report_dir)}")
+    return 0
+
+
 def restore(_args) -> int:
     machine.restore()
     return 0
@@ -265,6 +274,9 @@ def main(argv: list[str] | None = None) -> int:
     report_parser.add_argument("--notes", help="the hand-written summary and caveats, a TOML file "
                                                "(default bench/config/notes/<date>.toml, if there is one)")
     report_parser.set_defaults(fn=run_report)
+    site_parser = sub.add_parser("site", help="write the website's comparison page")
+    site_parser.add_argument("--report", help="a report folder (docs/benchmarks/<date>) whose results to show")
+    site_parser.set_defaults(fn=run_site)
     sub.add_parser("restore", help="resume anything a killed run left paused").set_defaults(fn=restore)
     args = parser.parse_args(argv)
     return args.fn(args)

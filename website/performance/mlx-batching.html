@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Several requests at once on MLX — Quail</title>
+  <meta name="description" content="How Quail's MLX engine came to serve several requests at once well: Gemma 4 batching, faster prompt reading, and MLX 0.32.">
+  <link rel="icon" href="../assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon-256.png">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/img/icon-64.png" alt="">Quail</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="../docs/getting-started.html">Docs</a>
+        <a href="../compare.html">Compare</a>
+        <a class="hide-narrow" href="../how-it-works.html">How it works</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a class="hide-narrow" href="https://github.com/adatoo/quail">GitHub</a>
+        <a class="button" href="https://github.com/adatoo/quail/releases/latest">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap prose page">
+    <p class="path"><a href="../how-it-works.html#changes">How it works</a></p>
+    <h1>Several requests at once on MLX</h1>
+    <p class="lede">The first comparison found that more requests at once added little on Quail's MLX engine, and nothing at all on Gemma 4. Three changes followed.</p>
+
+    <h2 id="gemma">Gemma 4 now batches</h2>
+    <p><strong>Found:</strong> with 8 requests at once, Gemma 4 26B-A4B took 41 s to the first token, against 3.1 s for oMLX. Its requests were served one after another.</p>
+    <p><strong>Why:</strong> the library Quail builds on had no text-only version of this model with its mixture-of-experts layers. So it loaded through the vision model, whose attention takes one position for the whole batch.</p>
+    <p><strong>Changed:</strong> Quail now keeps its own copy of Gemma 4's language model. Each sequence reads its own position from the cache, so sequences of different lengths decode together. A new cache handles the model's sliding-window layers in a batch. A request gives the same reply alone as before.</p>
+    <p><strong>Result:</strong> with 8 at once, the first token in 1.6 s instead of 41 s, and 68.1 tokens a second instead of 44.9. That's the fastest first token of the three engines. (<a href="https://github.com/adatoo/quail/issues/140">#140</a>, <a href="https://github.com/adatoo/quail/pull/145">#145</a>)</p>
+
+    <h2 id="slices">Prompts read in bigger slices</h2>
+    <p><strong>Found:</strong> a lone long prompt was read 512 tokens at a time, where mlx-lm reads 2,048.</p>
+    <p><strong>Changed:</strong> a prompt read with nothing else running now goes in 2,048-token slices, up to 8,192 tokens. A prompt read while others decode stays at 512, so it holds them up less at a time.</p>
+    <p><strong>Result:</strong> on Qwen3.6, a 4,096-token prompt's first token in 7.0 s instead of 8.3 s, and the model changes in <a href="qwen-decode.html">Qwen3.5 and 3.6 on MLX</a> then took it to 5.2 s. (<a href="https://github.com/adatoo/quail/issues/139">#139</a>, <a href="https://github.com/adatoo/quail/pull/146">#146</a>)</p>
+
+    <h2 id="mlx032">MLX 0.32</h2>
+    <p><strong>Found:</strong> a trace of the serving loop showed that the steps decoding 8 requests together took 61–65% of the time. On a Mac mini (M4 Pro), each took about 80 ms, where mlx-lm took 57 ms.</p>
+    <p><strong>Why:</strong> four causes in Quail were ruled out one at a time: memory handling, how each row is sampled, reading tokens back, and building the graph. Then mlx-lm itself was run on the MLX version Quail used, 0.31.1. It was just as slow, 75–85 ms. The difference was MLX, not Quail.</p>
+    <p><strong>Changed:</strong> Quail moved to MLX 0.32.2. No release of mlx-swift-lm, the Swift library Quail builds on, takes that version yet, so Quail uses a pinned commit of it until one does. A weekly check flags that release when it comes (<a href="https://github.com/adatoo/quail/issues/149">#149</a>).</p>
+    <p><strong>Result:</strong> a step of 8 fell from about 80 ms to 61 ms on the mini. On the comparison's M1 Max, 8 requests at once made 49.8 tokens a second on Qwen3 8B instead of 43.8, and 88.0 on Qwen3.6 instead of 76.7. (<a href="https://github.com/adatoo/quail/pull/150">#150</a>)</p>
+
+    <h2 id="left">Still to do</h2>
+    <p>With 2 to 8 requests at once, Rapid-MLX still makes 10–20% more tokens a second. <a href="https://github.com/adatoo/quail/issues/139">#139</a> stays open for it.</p>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2026 Arif Datoo · MIT Licence</span>
+      <nav aria-label="Footer">
+        <a href="../docs/getting-started.html">Docs</a>
+        <a href="../compare.html">Compare</a>
+        <a href="../how-it-works.html">How it works</a>
+        <a href="../docs/privacy.html">Privacy</a>
+        <a href="https://github.com/adatoo/quail/releases">Releases</a>
+        <a href="https://github.com/adatoo/quail/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/adatoo/quail">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

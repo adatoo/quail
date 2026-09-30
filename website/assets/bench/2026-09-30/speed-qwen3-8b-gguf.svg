@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="320" viewBox="0 0 640 320" role="img" aria-label="Qwen3 8B, GGUF: output tokens/s by requests at once">
+<style>
+  text { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #1f2328; }
+  .muted { fill: #57606a; } .grid { stroke: #d0d7de; stroke-width: 1; } .axis { stroke: #8c959f; }
+  .bg { fill: #ffffff; }
+  @media (prefers-color-scheme: dark) {
+    text { fill: #e6edf3; } .muted { fill: #8d96a0; } .grid { stroke: #30363d; } .axis { stroke: #6e7681; }
+    .bg { fill: #0d1117; }
+  }
+</style>
+<rect class="bg" width="640" height="320"/>
+<text x="56" y="20" font-weight="600">Qwen3 8B, GGUF: output tokens/s by requests at once</text>
+<line class="grid" x1="56" x2="490" y1="276.0" y2="276.0"/>
+<text class="muted" x="50" y="280.0" text-anchor="end">0</text>
+<line class="grid" x1="56" x2="490" y1="216.0" y2="216.0"/>
+<text class="muted" x="50" y="220.0" text-anchor="end">25</text>
+<line class="grid" x1="56" x2="490" y1="156.0" y2="156.0"/>
+<text class="muted" x="50" y="160.0" text-anchor="end">50</text>
+<line class="grid" x1="56" x2="490" y1="96.0" y2="96.0"/>
+<text class="muted" x="50" y="100.0" text-anchor="end">75</text>
+<line class="grid" x1="56" x2="490" y1="36.0" y2="36.0"/>
+<text class="muted" x="50" y="40.0" text-anchor="end">100</text>
+<text class="muted" x="56.0" y="294" text-anchor="middle">1</text>
+<text class="muted" x="200.7" y="294" text-anchor="middle">2</text>
+<text class="muted" x="345.3" y="294" text-anchor="middle">4</text>
+<text class="muted" x="490.0" y="294" text-anchor="middle">8</text>
+<text class="muted" x="56" y="314">tokens/s</text>
+<path d="M56.0,182.6 L200.7,188.1 L345.3,142.4 L490.0,142.4" fill="none" stroke="#d9730d" stroke-width="2.5"/>
+<circle cx="56.0" cy="182.6" r="3.5" fill="#d9730d"/>
+<circle cx="200.7" cy="188.1" r="3.5" fill="#d9730d"/>
+<circle cx="345.3" cy="142.4" r="3.5" fill="#d9730d"/>
+<circle cx="490.0" cy="142.4" r="3.5" fill="#d9730d"/>
+<rect x="506" y="35" width="12" height="12" rx="2" fill="#d9730d"/>
+<text x="524" y="45">Quail (GGUF)</text>
+<path d="M56.0,193.1 L200.7,183.4 L345.3,139.0 L490.0,137.4" fill="none" stroke="#2f6fdb" stroke-width="2.5"/>
+<circle cx="56.0" cy="193.1" r="3.5" fill="#2f6fdb"/>
+<circle cx="200.7" cy="183.4" r="3.5" fill="#2f6fdb"/>
+<circle cx="345.3" cy="139.0" r="3.5" fill="#2f6fdb"/>
+<circle cx="490.0" cy="137.4" r="3.5" fill="#2f6fdb"/>
+<rect x="506" y="55" width="12" height="12" rx="2" fill="#2f6fdb"/>
+<text x="524" y="65">llama-server</text>
+<path d="M56.0,186.2 L200.7,183.2 L345.3,171.8 L490.0,132.1" fill="none" stroke="#2f9e6e" stroke-width="2.5"/>
+<circle cx="56.0" cy="186.2" r="3.5" fill="#2f9e6e"/>
+<circle cx="200.7" cy="183.2" r="3.5" fill="#2f9e6e"/>
+<circle cx="345.3" cy="171.8" r="3.5" fill="#2f9e6e"/>
+<circle cx="490.0" cy="132.1" r="3.5" fill="#2f9e6e"/>
+<rect x="506" y="75" width="12" height="12" rx="2" fill="#2f9e6e"/>
+<text x="524" y="85">Ollama (GGUF)</text>
+</svg>
