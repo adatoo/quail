@@ -1,0 +1,49 @@
+name: MLX release watch
+
+# While no mlx-swift-lm release takes mlx-swift 0.32, Quail pins mlx-swift-lm to
+# a commit on its main branch (ADR D-044 amendment, #149). Every Monday this
+# reads the latest release's Package.swift. Once that release takes mlx-swift
+# 0.32 or later, it comments on #149 (once per release) and fails, so GitHub
+# emails the owner to move the pin. With the pin back on a release
+# (`exactVersion`), it does nothing.
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    name: mlx-release-watch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Look for a release to move to
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: "149"
+        run: |
+          if ! grep -A3 'url: https://github.com/ml-explore/mlx-swift-lm' project.yml | grep -q 'revision:'; then
+            echo "mlx-swift-lm is pinned to a release: nothing to watch."
+            exit 0
+          fi
+          tag=$(gh api repos/ml-explore/mlx-swift-lm/releases/latest --jq .tag_name)
+          requirement=$(gh api "repos/ml-explore/mlx-swift-lm/contents/Package.swift?ref=$tag" --jq .content \
+            | base64 -d | grep -o 'github.com/ml-explore/mlx-swift"[^)]*' | head -1)
+          version=$(echo "$requirement" | grep -oE '"[0-9]+\.[0-9]+' | head -1 | tr -d '"')
+          major=${version%%.*}
+          minor=${version#*.}
+          echo "mlx-swift-lm $tag asks for mlx-swift: $requirement"
+          if [ -z "$version" ] || { [ "$major" -eq 0 ] && [ "$minor" -lt 32 ]; }; then
+            echo "mlx-swift-lm $tag still takes mlx-swift below 0.32: keep the commit pin."
+            exit 0
+          fi
+          if ! gh issue view "$ISSUE" --json comments --jq '.comments[].body' | grep -qF "mlx-swift-lm $tag "; then
+            gh issue comment "$ISSUE" --body "mlx-swift-lm $tag is out and takes mlx-swift $version or later. Time to move the pin off the main-branch commit; the steps are in this issue's description."
+          fi
+          echo "::error::mlx-swift-lm $tag takes mlx-swift $version or later: move the pin to it (#$ISSUE)."
+          exit 1

@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.61.8] - 2026-09-30
+
+### Changed
+
+- **Several requests at once on an MLX model make up to a fifth more tokens a second.** (#139) Quail now uses MLX 0.32.2. On the Mac mini (M4 Pro), each step of eight requests decoding together takes 61–63 ms instead of about 80 ms on Qwen3 8B.
+  - Eight streams of requests made 78.6 tokens/s instead of 65.1 on Qwen3 8B, 97.9 instead of 88.5 on Gemma 4 26B-A4B, and 128.1 instead of 118.6 on Qwen3.6 35B-A3B. A request on its own runs at the same speed.
+  - MLX 0.32 comes with mlx-swift 0.32.2. No mlx-swift-lm release takes it yet, so Quail pins a commit on mlx-swift-lm's main branch until one does (ADR D-044 amendment). #149 tracks moving to that release, and a weekly check (`mlx-release-watch`) flags it as soon as there is one.
+  - Replies at temperature 0 can differ slightly from before on some prompts, because MLX 0.32 rounds some sums differently.
+- **Gemma 4 (MLX) sees images in their own shape.** Each image is sized to fit the model's budget without being squashed, so a small or wide image takes fewer tokens than before.
+
 ## [0.61.7] - 2026-09-30
 
 ### Changed
