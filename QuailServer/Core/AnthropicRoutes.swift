@@ -11,7 +11,7 @@ extension InferenceRoutes {
         let settings = try GenerationSettings(translated)
         let chat = try ChatRequest(translated)
         let id = try await modelID(body: body, request: request)
-        let run = try await startChat(chat, settings: settings, model: id)
+        let run = try await startChat(chat, settings: settings, model: id, client: RequestClient(request))
         let messageID = InferenceJSON.randomID(prefix: "msg_", length: 24)
 
         if !settings.stream {

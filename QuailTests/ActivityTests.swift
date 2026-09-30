@@ -33,6 +33,45 @@ struct ActivityTests {
         #expect(registry.snapshot().isEmpty)
     }
 
+    @Test("a client's totals: requests, tokens, and busy time while any of its requests is in progress")
+    func clientTotals() throws {
+        let start = Date(timeIntervalSince1970: 1000)
+        let registry = ActivityRegistry(now: start)
+        let claude = RequestClient(agent: "claude-cli", userAgent: "claude-cli/2.1.3", address: "local")
+        let curl = RequestClient(agent: "curl", userAgent: "curl/8.7.1", address: "192.168.1.20")
+        // Two overlapping requests from one client: busy from 0 s to 5 s, once.
+        let first = registry.begin(model: "m", client: claude, now: start)
+        let second = registry.begin(model: "m", client: claude, now: start.addingTimeInterval(1))
+        first.accepted(promptTokens: 300)
+        first.promptProgress(done: 300, total: 300, cached: 100, now: start.addingTimeInterval(1))
+        first.token(now: start.addingTimeInterval(2))
+        first.token(now: start.addingTimeInterval(2.5))
+
+        let during = try #require(registry.clients(now: start.addingTimeInterval(2)).first { $0.client == claude })
+        #expect(during.requests == 2)
+        #expect(during.active == 2)
+        #expect(during.promptTokens == 200)
+        #expect(during.generated == 2)
+        #expect(during.busySeconds == 2)
+
+        first.end(now: start.addingTimeInterval(3))
+        second.end(now: start.addingTimeInterval(5))
+        second.end(now: start.addingTimeInterval(9)) // ending twice changes nothing
+        let other = registry.begin(model: "m", client: curl, now: start.addingTimeInterval(6))
+
+        let after = registry.clients(now: start.addingTimeInterval(8))
+        let done = try #require(after.first { $0.client == claude })
+        #expect(done.requests == 2)
+        #expect(done.active == 0)
+        #expect(done.promptTokens == 200)
+        #expect(done.generated == 2)
+        #expect(done.busySeconds == 5)
+        let running = try #require(after.first { $0.client == curl })
+        #expect(running.active == 1)
+        #expect(running.busySeconds == 2)
+        other.end(now: start.addingTimeInterval(8))
+    }
+
     private static func slots(_ harness: RouteHarness, headers: [String: String] = [:]) async
         -> (status: Int, json: [String: Any])
     {
@@ -114,6 +153,39 @@ struct ActivityTests {
         // The progress never reaches the client: the reply is just the text.
         #expect(content == "Hello!")
         #expect(await (Self.slots(harness).json["requests"] as? [Any])?.isEmpty == true)
+    }
+
+    @Test("GET /slots says who sent each request, and totals each client's work")
+    func slotsClients() async throws {
+        let harness = RouteHarness(promptProgress: true, firstTokenDelay: .milliseconds(300))
+        let body = #"{"model":"Alpha","messages":[{"role":"user","content":"hello there"}]}"#
+        let call = Task {
+            await harness.json(
+                "/v1/chat/completions", body, headers: ["user-agent": "curl/8.7.1"], peer: "::ffff:192.168.1.20"
+            ).status
+        }
+        var client: [String: String]?
+        for _ in 0 ..< 300 {
+            let requests = await Self.slots(harness).json["requests"] as? [[String: Any]] ?? []
+            if let found = requests.first?["client"] as? [String: String] {
+                client = found
+                break
+            }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(client == ["agent": "curl", "user_agent": "curl/8.7.1", "address": "192.168.1.20"])
+        #expect(await call.value == 200)
+
+        let json = await Self.slots(harness).json
+        let clients = try #require(json["clients"] as? [[String: Any]])
+        #expect(clients.count == 1)
+        #expect(clients.first?["agent"] as? String == "curl")
+        #expect(clients.first?["address"] as? String == "192.168.1.20")
+        #expect(clients.first?["requests"] as? Int == 1)
+        #expect(clients.first?["active"] as? Int == 0)
+        #expect((clients.first?["generated_tokens"] as? Int ?? 0) > 0)
+        #expect((clients.first?["busy_seconds"] as? Double ?? 0) > 0.2)
+        #expect((json["uptime_seconds"] as? Double ?? -1) >= 0)
     }
 
     @Test("GET /slots needs the API key, and never loads a model")

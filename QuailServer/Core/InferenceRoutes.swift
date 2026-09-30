@@ -170,7 +170,7 @@ struct InferenceRoutes: Sendable {
         let body = try jsonBody(request)
         let settings = try GenerationSettings(body)
         let id = try await modelID(body: body, request: request)
-        let activity = router.activity.begin(model: id)
+        let activity = router.activity.begin(model: id, client: RequestClient(request))
         let lease: ModelLease
         do {
             lease = try await router.acquire(id)
@@ -290,7 +290,7 @@ struct InferenceRoutes: Sendable {
         let settings = try GenerationSettings(body)
         let chat = try ChatRequest(body)
         let id = try await modelID(body: body, request: request)
-        let run = try await startChat(chat, settings: settings, model: id)
+        let run = try await startChat(chat, settings: settings, model: id, client: RequestClient(request))
 
         let responseID = InferenceJSON.newID()
         let created = Int(Date().timeIntervalSince1970)
@@ -368,8 +368,10 @@ struct InferenceRoutes: Sendable {
     static let noImagesMessage = ImageInput.unsupportedMessage
 
     /// Loads the model if need be, renders and tokenizes the prompt, and starts generating.
-    func startChat(_ chat: ChatRequest, settings: GenerationSettings, model id: String) async throws -> ChatRun {
-        let activity = router.activity.begin(model: id)
+    func startChat(
+        _ chat: ChatRequest, settings: GenerationSettings, model id: String, client: RequestClient
+    ) async throws -> ChatRun {
+        let activity = router.activity.begin(model: id, client: client)
         let lease: ModelLease
         do {
             lease = try await router.acquire(id)

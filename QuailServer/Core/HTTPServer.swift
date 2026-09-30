@@ -295,8 +295,21 @@ final class HTTPConnection: @unchecked Sendable {
         }
         let body = Data(buffer.prefix(head.contentLength))
         buffer.removeFirst(head.contentLength)
-        let request = HTTPRequest(method: head.method, target: head.target, headers: head.headers, body: body)
+        let request = HTTPRequest(
+            method: head.method, target: head.target, headers: head.headers, body: body, peer: peer
+        )
         return (request, head.keepAlive)
+    }
+
+    /// The client's IP address, for telling clients apart in `GET /slots` (ADR D-067).
+    private var peer: String? {
+        guard case let .hostPort(host, _) = connection.endpoint else { return nil }
+        switch host {
+        case let .ipv4(address): return "\(address)"
+        case let .ipv6(address): return "\(address)"
+        case let .name(name, _): return name
+        @unknown default: return nil
+        }
     }
 
     /// The next bytes, or `nil` when the peer has closed. Never empty.

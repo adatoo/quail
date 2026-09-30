@@ -7,6 +7,8 @@ struct HTTPRequest: Equatable, Sendable {
     /// Header names are lowercased; repeated headers are joined with ", ".
     var headers: [String: String]
     var body: Data
+    /// The client's IP address as the connection reports it (`::1`, `192.168.1.20`); nil when unknown.
+    var peer: String?
 
     var path: String {
         target.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? target
