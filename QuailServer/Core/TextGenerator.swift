@@ -11,11 +11,13 @@ enum TextGenerator {
     /// string matched — stops the engine.
     ///
     /// `activity`, if given, follows the request from here to its end (`GET /slots`) and is ended with the stream.
+    /// `interrupter`, if given, can stop it: the stream then ends with a 503 saying why (ADR D-068).
     static func stream(
         engine: any Engine,
         request: GenerationRequest,
         stop: [String],
-        activity: ActivityTicket? = nil
+        activity: ActivityTicket? = nil,
+        interrupter: RequestInterrupter? = nil
     ) -> AsyncThrowingStream<TextEvent, any Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
@@ -78,9 +80,19 @@ enum TextGenerator {
                     continuation.finish(throwing: error)
                 }
             }
+            // The error goes out before the cancellation, so the reader sees why rather than a cancellation.
+            let token = interrupter?.register { reason in
+                continuation.finish(throwing: RequestError(
+                    status: 503, type: "unavailable_error", message: "Stopped: \(reason)."
+                ))
+                task.cancel()
+            }
             continuation.onTermination = { _ in
                 task.cancel()
                 activity?.end()
+                if let token {
+                    interrupter?.remove(token)
+                }
             }
         }
     }

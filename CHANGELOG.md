@@ -10,6 +10,15 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.63.2] - 2026-09-30
+
+### Fixed
+
+- **Loading a model while another was busy looked stuck** (D-068). With one model loaded at a time, a model loaded while the chat page was still writing a reply stayed at "Loading…" until the reply ended, with nothing saying why. Unloading the busy model waited too.
+  - **Load and Unload now stop the busy model's requests,** in Quail and in its chat page. Each stopped reply ends with a message saying why: "Stopped: *A* was unloaded to load *B*."
+  - **A load that a request needs still waits,** so one client's request never cuts off another's reply. While it waits, the Models page, the Activity window, the menu and the chat page say which model it's waiting on. `GET /models` and `GET /slots` give it as `waiting_for`.
+  - **The chat page follows a model loaded elsewhere.** It refreshes its list when you come back to it. Before sending to a model that isn't loaded, if loading it would unload another, it offers the loaded one: "Use *B*" or "Load *A*". Before, its next message quietly reloaded its own model and pushed the new one out.
+
 ## [0.63.1] - 2026-09-30
 
 ### Fixed

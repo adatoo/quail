@@ -91,11 +91,14 @@ struct ServedModel: Sendable, Equatable, Identifiable, Decodable {
         let value: String
         let failed: Bool?
         let exitCode: Int?
+        /// quail-server's own (ADR D-068): while loading, the busy models it's waiting on to finish their requests.
+        var waitingFor: [String]?
 
         private enum CodingKeys: String, CodingKey {
             case value
             case failed
             case exitCode = "exit_code"
+            case waitingFor = "waiting_for"
         }
     }
 }

@@ -111,6 +111,111 @@ struct ModelRouterTests {
         #expect(await world.count("unload a") == 1)
     }
 
+    @Test("while a load waits for busy models, it says which (ADR D-068)")
+    func saysWhatItWaitsFor() async throws {
+        let world = FakeEngineWorld()
+        let router = Self.makeRouter(["a", "b"], max: 1, world: world)
+        let lease = try await router.acquire("a")
+
+        try await router.load("b")
+        #expect(await eventually { await router.snapshot("b")?.waitingFor == ["a"] })
+        #expect(await router.activeModels().first { $0.id == "b" }?.waitingFor == ["a"])
+        #expect(!lease.interrupter.interrupted)
+
+        await router.release(lease)
+        #expect(await eventually { await state(router, "b") == .loaded })
+        #expect(await router.snapshot("b")?.waitingFor == [])
+    }
+
+    @Test("a load asked for by hand stops the busy model's requests instead of waiting for them (ADR D-068)")
+    func handLoadInterrupts() async throws {
+        let world = FakeEngineWorld()
+        let router = Self.makeRouter(["a", "b"], max: 1, world: world)
+        let lease = try await router.acquire("a")
+        let reasons = Locked<[String]>([])
+        let token = lease.interrupter.register { reason in reasons.withState { $0.append(reason) } }
+        #expect(token != nil)
+
+        try await router.load("b", interrupting: true)
+        #expect(await eventually { reasons.withState { $0 } == ["a was unloaded to load b"] })
+        // The request still holds the model until it has stopped.
+        #expect(await state(router, "a") == .loaded)
+
+        await router.release(lease)
+        #expect(await eventually { await state(router, "b") == .loaded })
+        #expect(await state(router, "a") == .unloaded)
+    }
+
+    @Test("a request that starts on a model being stopped is stopped at once")
+    func lateRequestStops() async throws {
+        let world = FakeEngineWorld()
+        let router = Self.makeRouter(["a", "b"], max: 1, world: world)
+        let first = try await router.acquire("a")
+        try await router.load("b", interrupting: true)
+        #expect(await eventually { first.interrupter.interrupted })
+
+        // A request that got the model just before it went: its interrupter has already fired.
+        let second = try await router.acquire("a")
+        let reason = Locked<String?>(nil)
+        #expect(second.interrupter.register { value in reason.withState { $0 = value } } == nil)
+        #expect(reason.withState { $0 } == "a was unloaded to load b")
+
+        await router.release(first)
+        await router.release(second)
+        #expect(await eventually { await state(router, "b") == .loaded })
+    }
+
+    @Test("a model stopped for a load that another model made room for serves requests again")
+    func needlessInterruptionIsUndone() async throws {
+        let world = FakeEngineWorld()
+        let router = Self.makeRouter(["a", "b", "c"], max: 2, world: world)
+        let oldest = try await router.acquire("a")
+        let newer = try await router.acquire("b")
+
+        try await router.load("c", interrupting: true)
+        #expect(await eventually { oldest.interrupter.interrupted })
+        #expect(!newer.interrupter.interrupted)
+        // "b" finishes first, so it goes; "a" stays.
+        await router.release(newer)
+        #expect(await eventually { await state(router, "c") == .loaded })
+        #expect(await state(router, "b") == .unloaded)
+        #expect(await state(router, "a") == .loaded)
+
+        let next = try await router.acquire("a")
+        #expect(!next.interrupter.interrupted)
+        await router.release(oldest)
+        await router.release(next)
+    }
+
+    @Test("an unload asked for by hand stops the model's requests, then unloads it (ADR D-068)")
+    func handUnloadInterrupts() async throws {
+        let world = FakeEngineWorld()
+        let router = Self.makeRouter(["a"], world: world)
+        let lease = try await router.acquire("a")
+
+        try await router.unload("a", interrupting: true)
+        #expect(lease.interrupter.interrupted)
+        #expect(await state(router, "a") == .loaded)
+
+        await router.release(lease)
+        #expect(await state(router, "a") == .unloaded)
+    }
+
+    @Test("loading a model again while its unload waits keeps it, and its new requests run")
+    func loadCancelsUnload() async throws {
+        let world = FakeEngineWorld()
+        let router = Self.makeRouter(["a"], world: world)
+        let lease = try await router.acquire("a")
+        try await router.unload("a", interrupting: true)
+        try await router.load("a")
+
+        await router.release(lease)
+        #expect(await state(router, "a") == .loaded)
+        let next = try await router.acquire("a")
+        #expect(!next.interrupter.interrupted)
+        await router.release(next)
+    }
+
     @Test("loads run one at a time, in order")
     func loadsAreSerialized() async throws {
         let world = FakeEngineWorld()

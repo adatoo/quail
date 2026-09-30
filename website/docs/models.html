@@ -85,6 +85,7 @@
 
 <h2 id="using">Choosing a model in a request</h2>
 <p>Clients pick a model by its id, which is its name on the Models page — send it as <code>"model"</code>. Copy it from the model's settings. With <span class="path">Server → Models loaded at once</span> above 1, several stay loaded; each keeps its weights in memory, and the least recently used is unloaded when there's no room.</p>
+<p>A model that's busy is only unloaded when its requests end, so a request for another model waits, and the model it's waiting on shows beside it. Load or Unload, in Quail or its chat page, doesn't wait: it stops the busy model's requests, and each client is told why.</p>
 
 <h2 id="storage">Storage</h2>
 <p>Models live in <code>~/Library/Application Support/Quail/Models</code> unless you move them. From <span class="path">Models → Storage and downloads</span>:</p>

@@ -187,7 +187,8 @@ struct InferenceRoutes: Sendable {
             let tokens = try await promptTokens(body["prompt"], engine: lease.engine)
             let generation = try generationRequest(tokens: tokens, settings: settings, info: info)
             let pump = EventPump(TextGenerator.stream(
-                engine: lease.engine, request: generation, stop: settings.stop, activity: activity
+                engine: lease.engine, request: generation, stop: settings.stop, activity: activity,
+                interrupter: lease.interrupter
             ))
 
             @Sendable func envelope(
@@ -247,7 +248,10 @@ struct InferenceRoutes: Sendable {
         opening: Data? = nil,
         closing: Data? = InferenceJSON.done,
         failure: @escaping @Sendable (any Error) -> Data = { error in
-            InferenceJSON.sseError(message: error.localizedDescription, type: "server_error", code: 500)
+            if let error = error as? RequestError {
+                return InferenceJSON.sseError(message: error.message, type: error.type, code: error.status)
+            }
+            return InferenceJSON.sseError(message: error.localizedDescription, type: "server_error", code: 500)
         },
         encode: @escaping @Sendable (Event) -> Data
     ) -> HTTPResponse {
@@ -423,7 +427,8 @@ struct InferenceRoutes: Sendable {
                 images: tokens.media.isEmpty ? nil : (tokens.text, tokens.media)
             )
             let text = TextGenerator.stream(
-                engine: lease.engine, request: generation, stop: settings.stop, activity: activity
+                engine: lease.engine, request: generation, stop: settings.stop, activity: activity,
+                interrupter: lease.interrupter
             )
             let parser = ChatOutputParser(
                 format: tokens.toolFormat,

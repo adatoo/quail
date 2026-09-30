@@ -234,6 +234,13 @@ final class AppState {
             )
         }
         if let loading = models.first(where: { $0.status.value == "loading" }) {
+            if let waiting = loading.status.waitingFor, !waiting.isEmpty {
+                return ReadyStatus(
+                    label: "Loading model…",
+                    detail: "Loading \(loading.id) once \(waiting.joined(separator: ", ")) finishes its requests",
+                    color: .yellow
+                )
+            }
             return ReadyStatus(label: "Loading model…", detail: "Loading \(loading.id)…", color: .yellow)
         }
         let loaded = models.filter { $0.status.value == "loaded" }.map(\.id)
@@ -926,7 +933,8 @@ final class AppState {
         _ = try await runtime.select(model: ModelRef(id: id), base: base, apiKey: apiKey)
     }
 
-    /// Asks the running server to unload `id` (after its requests in flight finish), then re-reads what's loaded.
+    /// Asks the running server to unload `id`, then re-reads what's loaded. quail-server stops the model's requests in
+    /// flight rather than waiting for them (ADR D-068).
     func unloadModel(id: String) async throws {
         guard let base = baseURL, serverController.phase == .ready else {
             throw ModelSelectionError.serverNotRunning

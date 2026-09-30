@@ -56,11 +56,14 @@ struct ServerActivity: Equatable, Sendable, Decodable {
         var loadingSeconds: Double?
         var leases: Int
         var memoryBytes: Int?
+        /// While loading: the busy models it's waiting on to finish their requests (ADR D-068).
+        var waitingFor: [String]?
 
         enum CodingKeys: String, CodingKey {
             case id, state, leases
             case loadingSeconds = "loading_seconds"
             case memoryBytes = "memory_bytes"
+            case waitingFor = "waiting_for"
         }
     }
 
