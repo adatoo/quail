@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.61.7] - 2026-09-30
+
+### Changed
+
+- **Qwen3.5 and Qwen3.6 (MLX) generate about 4% faster with one request.** (#141) On the Mac mini (M4 Pro), Qwen3.6 35B-A3B now takes 10.8 ms per token instead of 11.2 ms.
+  - Each of the model's GatedDeltaNet layers now runs as one GPU kernel for the next token, instead of a dozen. The kernel is adapted from Rapid-MLX (Apache-2.0).
+  - Replies are unchanged. On each Mac, Quail first checks that the kernel gives exactly the same numbers as before, and keeps the old way if it doesn't. `QUAIL_MLX_FUSED_GDN=0` turns it off.
+
 ## [0.61.6] - 2026-09-29
 
 ### Changed

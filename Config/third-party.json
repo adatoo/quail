@@ -42,6 +42,23 @@
       "versionFile": "Config/licences/rapid-mlx/VERSION",
       "licenseFile": "Config/licences/rapid-mlx/LICENSE",
       "noticeFile": "Config/licences/rapid-mlx/NOTICE"
+    },
+    {
+      "name": "Rapid-MLX fused GatedDeltaNet decode kernel",
+      "license": "Apache-2.0",
+      "in": "quail-server (adapted, in QuailServer/MLX/Models/Qwen35.swift; ADR D-066)",
+      "url": "https://github.com/raullenchai/Rapid-MLX",
+      "versionFile": "Config/licences/rapid-mlx/KERNEL_VERSION",
+      "licenseFile": "Config/licences/rapid-mlx/LICENSE",
+      "noticeFile": "Config/licences/rapid-mlx/NOTICE"
+    },
+    {
+      "name": "mlx-vlm (the fused GatedDeltaNet kernel's reduction structure)",
+      "license": "MIT",
+      "in": "quail-server (adapted, through the Rapid-MLX fused GatedDeltaNet decode kernel)",
+      "url": "https://github.com/Blaizzy/mlx-vlm/pull/2105",
+      "versionFile": "Config/licences/mlx-vlm/VERSION",
+      "licenseFile": "Config/licences/mlx-vlm/LICENSE"
     }
   ]
 }
