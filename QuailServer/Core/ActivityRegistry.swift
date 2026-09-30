@@ -16,6 +16,8 @@ public final class ActivityRegistry: @unchecked Sendable {
     public struct Request: Sendable, Equatable {
         public let id: Int
         public let model: String
+        /// Who sent it (ADR D-067).
+        public let client: RequestClient
         public var phase: Phase = .waitingForModel
         public var promptTotal = 0
         /// Prompt tokens in the cache so far, `cached` included.
@@ -40,19 +42,55 @@ public final class ActivityRegistry: @unchecked Sendable {
             let elapsed = now.timeIntervalSince(generationStarted)
             return elapsed > 0 ? Double(generated - 1) / elapsed : nil
         }
+
+        /// Prompt tokens read so far, reused ones not counted.
+        var promptRead: Int {
+            max(0, promptDone - cached)
+        }
+    }
+
+    /// One client's work since the server started, finished requests and those in progress alike, so the app can
+    /// total any stretch of time by subtracting two readings (ADR D-067).
+    public struct ClientTotals: Sendable, Equatable {
+        /// The client, with the `User-Agent` of its latest request.
+        public var client: RequestClient
+        public var requests = 0
+        /// Prompt tokens read, reused ones not counted.
+        public var promptTokens = 0
+        public var generated = 0
+        /// Time with at least one of its requests in progress, waiting for a model included.
+        public var busySeconds: Double = 0
+        /// Its requests in progress now.
+        public var active = 0
     }
 
     private let lock = NSLock()
     private var requests: [Int: Request] = [:]
     private var nextID = 1
+    /// Each client's finished work, and its requests and busy time so far.
+    private var totals: [RequestClient.Key: ClientTotals] = [:]
+    /// When each client with a request in progress became busy.
+    private var busySince: [RequestClient.Key: Date] = [:]
+    /// When the server started counting.
+    public let started: Date
 
-    public init() {}
+    public init(now: Date = .init()) {
+        started = now
+    }
 
-    /// Records a request for `model`; end it with the ticket's `end()`.
-    public func begin(model: String, now: Date = .init()) -> ActivityTicket {
+    /// Records a request for `model` from `client`; end it with the ticket's `end()`.
+    public func begin(model: String, client: RequestClient = .unknown, now: Date = .init()) -> ActivityTicket {
         let id = lock.withLock {
             defer { nextID += 1 }
-            requests[nextID] = Request(id: nextID, model: model, started: now)
+            requests[nextID] = Request(id: nextID, model: model, client: client, started: now)
+            var entry = totals[client.key] ?? ClientTotals(client: client)
+            entry.client = client
+            entry.requests += 1
+            entry.active += 1
+            if entry.active == 1 {
+                busySince[client.key] = now
+            }
+            totals[client.key] = entry
             return nextID
         }
         return ActivityTicket(registry: self, id: id)
@@ -67,13 +105,43 @@ public final class ActivityRegistry: @unchecked Sendable {
         }
     }
 
-    func end(_ id: Int) {
-        _ = lock.withLock { requests.removeValue(forKey: id) }
+    func end(_ id: Int, now: Date = .init()) {
+        lock.withLock {
+            guard let request = requests.removeValue(forKey: id) else { return }
+            let key = request.client.key
+            guard var entry = totals[key] else { return }
+            entry.promptTokens += request.promptRead
+            entry.generated += request.generated
+            entry.active -= 1
+            if entry.active == 0, let since = busySince.removeValue(forKey: key) {
+                entry.busySeconds += max(0, now.timeIntervalSince(since))
+            }
+            totals[key] = entry
+        }
     }
 
     /// The requests in progress, oldest first.
     public func snapshot() -> [Request] {
         lock.withLock { requests.values.sorted { $0.id < $1.id } }
+    }
+
+    /// Every client seen since the server started, with the requests still in progress and any busy stretch not yet
+    /// over counted up to `now`.
+    public func clients(now: Date = .init()) -> [ClientTotals] {
+        lock.withLock {
+            var current = totals
+            for request in requests.values {
+                current[request.client.key]?.promptTokens += request.promptRead
+                current[request.client.key]?.generated += request.generated
+            }
+            for (key, since) in busySince {
+                current[key]?.busySeconds += max(0, now.timeIntervalSince(since))
+            }
+            return current.values.sorted { ($0.client.agent, $0.client.address ?? "") < (
+                $1.client.agent,
+                $1.client.address ?? ""
+            ) }
+        }
     }
 }
 
@@ -92,8 +160,8 @@ public final class ActivityTicket: Sendable {
         registry.update(id, change)
     }
 
-    public func end() {
-        registry.end(id)
+    public func end(now: Date = .init()) {
+        registry.end(id, now: now)
     }
 
     /// The engine has the request: queued until it reports prompt progress or a first token.

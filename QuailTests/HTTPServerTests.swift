@@ -44,6 +44,18 @@ struct HTTPServerTests {
         #expect(try JSONDecoder().decode([String: String].self, from: postData)["length"] == "1000000")
     }
 
+    @Test("a request knows the address it came from: a loopback connection reads as this Mac")
+    func peerAddress() async throws {
+        let (server, port) = try await Self.start { request in
+            .json(200, ["peer": request.peer ?? "", "address": RequestClient(request).address ?? ""])
+        }
+        defer { server.stop() }
+        let (data, _) = try await URLSession.shared.data(from: Self.url(port, "/peer"))
+        let decoded = try JSONDecoder().decode([String: String].self, from: data)
+        #expect(decoded["peer"]?.isEmpty == false)
+        #expect(decoded["address"] == "local")
+    }
+
     @Test("a connection serves several requests, including two sent back to back")
     func keepAliveAndPipelining() async throws {
         let (server, port) = try await Self.start()

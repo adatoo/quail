@@ -59,6 +59,7 @@
 
 <h2 id="server">The server</h2>
 <p>The model server runs on your Mac. It answers only this Mac unless you make it reachable from your network, and requires an API key from the start; Quail server, the default runtime, also refuses requests from other web pages. See <a href="network.html">Network and API key</a>.</p>
+<p>So the Activity window can show who is using it, Quail server notes each request's app, from its <code>User-Agent</code> header, and the address it came from, and keeps running totals for each. These stay in the server's memory: they aren't written to disk or to the log, only the API key's holder can read them, and they're gone when the server stops.</p>
 
 <h2 id="stored">What Quail stores, and where</h2>
 <table>

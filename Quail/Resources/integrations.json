@@ -1,9 +1,10 @@
 {
-  "_comment": "Connect tab tools (docs/IMPLEMENTATION_PLAN.md Phase 2b step 1). Placeholders: {{baseURL}} (no /v1), {{apiKey}}, {{model}}, {{host}}, {{port}}, {{contextSize}} (the model's context; 32768 when unknown), {{maxOutput}} (min(8192, context/4)). Verified against each tool's docs on 2026-09-23 — re-check docsURL when editing. minContext (optional): the smallest model context the tool works with — Claude Code's first request measured 15,114 tokens, Codex's about 7,000, opencode's about 9,500; Cline/Roo per their docs. launch (optional): how `quail launch <id|alias>` starts the tool pointed at Quail — command, args, env, and files written to a temp dir ({{tempDir}}), and trailingArgs placed after the user's own arguments; never the user's own config files.",
+  "_comment": "Connect tab tools (docs/IMPLEMENTATION_PLAN.md Phase 2b step 1). Placeholders: {{baseURL}} (no /v1), {{apiKey}}, {{model}}, {{host}}, {{port}}, {{contextSize}} (the model's context; 32768 when unknown), {{maxOutput}} (min(8192, context/4)). Verified against each tool's docs on 2026-09-23 — re-check docsURL when editing. minContext (optional): the smallest model context the tool works with — Claude Code's first request measured 15,114 tokens, Codex's about 7,000, opencode's about 9,500; Cline/Roo per their docs. launch (optional): how `quail launch <id|alias>` starts the tool pointed at Quail — command, args, env, and files written to a temp dir ({{tempDir}}), and trailingArgs placed after the user's own arguments; never the user's own config files. userAgents (optional): User-Agent prefixes that name this tool in the Activity window (ADR D-067), each seen on a real request on 2026-09-30: claude-cli/2.1.285 (external, sdk-cli), codex_exec/0.155.0 (codex_ covers codex_cli_rs too), curl/8.7.1, OpenAI/Python 3.22.1.",
   "integrations": [
     {
       "id": "claude-code",
       "name": "Claude Code",
+      "userAgents": ["claude-cli"],
       "category": "coding-agent",
       "api": "anthropic",
       "where": "Your shell (before running `claude`), or the \"env\" block of ~/.claude/settings.json",
@@ -34,6 +35,7 @@
     {
       "id": "codex-cli",
       "name": "OpenAI Codex CLI",
+      "userAgents": ["codex_"],
       "category": "coding-agent",
       "api": "openai-responses",
       "where": "~/.codex/config.toml, plus QUAIL_API_KEY in your shell",
@@ -239,6 +241,7 @@
     {
       "id": "curl",
       "name": "curl",
+      "userAgents": ["curl"],
       "category": "sdk",
       "api": "openai-chat",
       "where": "Terminal",
@@ -250,6 +253,7 @@
     {
       "id": "python-openai",
       "name": "Python",
+      "userAgents": ["OpenAI/Python"],
       "category": "sdk",
       "api": "openai-chat",
       "where": "Python (pip install openai)",

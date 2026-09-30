@@ -160,14 +160,18 @@ struct ServerRoutes: Sendable {
         }
         let requests = router.activity.snapshot().map { request in
             ActivityJSON.Request(
-                id: request.id, model: request.model, phase: request.phase.rawValue,
+                id: request.id, model: request.model, client: .init(request.client), phase: request.phase.rawValue,
                 promptTotal: request.promptTotal, promptDone: request.promptDone, cached: request.cached,
                 generated: request.generated, promptPerSecond: request.promptPerSecond(now: now),
                 predictedPerSecond: request.predictedPerSecond(now: now),
                 seconds: now.timeIntervalSince(request.started)
             )
         }
-        return .json(200, ActivityJSON(models: models, requests: requests))
+        return .json(200, ActivityJSON(
+            models: models, requests: requests,
+            clients: router.activity.clients(now: now).map(ActivityJSON.ClientTotals.init),
+            uptimeSeconds: now.timeIntervalSince(router.activity.started)
+        ))
     }
 
     private func loadModel(_ request: HTTPRequest) async -> HTTPResponse {
@@ -293,7 +297,7 @@ private struct ModelJSON: Encodable {
     }
 }
 
-/// `GET /slots` (ADR D-060).
+/// `GET /slots` (ADR D-060; who sent each request and each client's totals, D-067).
 struct ActivityJSON: Encodable {
     struct Model: Encodable {
         let id: String
@@ -309,9 +313,59 @@ struct ActivityJSON: Encodable {
         }
     }
 
+    /// Who sent a request (ADR D-067).
+    struct Client: Encodable {
+        let agent: String
+        let userAgent: String
+        let address: String?
+
+        init(_ client: RequestClient) {
+            agent = client.agent
+            userAgent = client.userAgent
+            address = client.address
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case agent, address
+            case userAgent = "user_agent"
+        }
+    }
+
+    /// A client's work since the server started; the app subtracts two readings to total a stretch of time.
+    struct ClientTotals: Encodable {
+        let agent: String
+        let userAgent: String
+        let address: String?
+        let requests: Int
+        let promptTokens: Int
+        let generatedTokens: Int
+        let busySeconds: Double
+        let active: Int
+
+        init(_ totals: ActivityRegistry.ClientTotals) {
+            agent = totals.client.agent
+            userAgent = totals.client.userAgent
+            address = totals.client.address
+            requests = totals.requests
+            promptTokens = totals.promptTokens
+            generatedTokens = totals.generated
+            busySeconds = totals.busySeconds
+            active = totals.active
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case agent, address, requests, active
+            case userAgent = "user_agent"
+            case promptTokens = "prompt_tokens"
+            case generatedTokens = "generated_tokens"
+            case busySeconds = "busy_seconds"
+        }
+    }
+
     struct Request: Encodable {
         let id: Int
         let model: String
+        let client: Client
         let phase: String
         let promptTotal: Int
         let promptDone: Int
@@ -322,7 +376,7 @@ struct ActivityJSON: Encodable {
         let seconds: Double
 
         enum CodingKeys: String, CodingKey {
-            case id, model, phase, cached, generated, seconds
+            case id, model, client, phase, cached, generated, seconds
             case promptTotal = "prompt_total"
             case promptDone = "prompt_done"
             case promptPerSecond = "prompt_per_second"
@@ -332,4 +386,11 @@ struct ActivityJSON: Encodable {
 
     let models: [Model]
     let requests: [Request]
+    let clients: [ClientTotals]
+    let uptimeSeconds: Double
+
+    enum CodingKeys: String, CodingKey {
+        case models, requests, clients
+        case uptimeSeconds = "uptime_seconds"
+    }
 }

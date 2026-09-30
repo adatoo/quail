@@ -10,7 +10,7 @@ extension InferenceRoutes {
         let settings = try GenerationSettings(translated)
         let chat = try ChatRequest(translated)
         let id = try await modelID(body: body, request: request)
-        let run = try await startChat(chat, settings: settings, model: id)
+        let run = try await startChat(chat, settings: settings, model: id, client: RequestClient(request))
         let created = Int(Date().timeIntervalSince1970)
         let responseID = InferenceJSON.randomID(prefix: "resp_")
 

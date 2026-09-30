@@ -157,7 +157,8 @@ struct UISnapshotTests {
                         generated: 0,
                         promptPerSecond: 2100,
                         predictedPerSecond: nil,
-                        seconds: 6
+                        seconds: 6,
+                        client: Self.claude
                     ),
                     .init(
                         id: 2,
@@ -169,7 +170,8 @@ struct UISnapshotTests {
                         generated: 312,
                         promptPerSecond: 900,
                         predictedPerSecond: 52,
-                        seconds: 9
+                        seconds: 9,
+                        client: Self.claude
                     ),
                     .init(
                         id: 3,
@@ -181,15 +183,27 @@ struct UISnapshotTests {
                         generated: 0,
                         promptPerSecond: nil,
                         predictedPerSecond: nil,
-                        seconds: 2
+                        seconds: 2,
+                        client: Self.webUI
                     ),
-                ]
+                ],
+                clients: [
+                    Self.clientTotals(Self.claude, requests: 14, busy: 400, active: 2),
+                    Self.clientTotals(Self.webUI, requests: 5, busy: 118, active: 1),
+                    Self.clientTotals(Self.curl, requests: 3, busy: 3, active: 0),
+                ],
+                uptimeSeconds: 5000
             ),
-            history: history
+            history: history,
+            clientReadings: [ClientReading(date: (history.last?.date ?? Date()).addingTimeInterval(-61), counters: [
+                Self.claude.key: .init(requests: 2, promptTokens: 400, generated: 60, busySeconds: 345),
+                Self.webUI.key: .init(requests: 2, promptTokens: 400, generated: 60, busySeconds: 98),
+                Self.curl.key: .init(requests: 1, promptTokens: 100, generated: 10, busySeconds: 1),
+            ]), ClientReading(date: history.last?.date ?? Date(), counters: [:])]
         )
         try await render(
             ActivityWindow(appState: appState),
-            size: CGSize(width: 340, height: 420),
+            size: CGSize(width: 340, height: 640),
             name: "activity-window"
         )
         try await render(
@@ -223,6 +237,23 @@ struct UISnapshotTests {
     }
 
     /// `minutes` of readings two seconds apart, ending now: waves for CPU and GPU, and memory that climbs.
+    private static let claude = ServerActivity.Client(
+        agent: "claude-cli", userAgent: "claude-cli/2.1.285 (external, sdk-cli)", address: "local"
+    )
+    private static let webUI = ServerActivity.Client(
+        agent: "python-httpx", userAgent: "python-httpx/0.28.1", address: "192.168.1.20"
+    )
+    private static let curl = ServerActivity.Client(agent: "curl", userAgent: "curl/8.7.1", address: "local")
+
+    private static func clientTotals(
+        _ client: ServerActivity.Client, requests: Int, busy: Double, active: Int
+    ) -> ServerActivity.ClientTotals {
+        .init(
+            agent: client.agent, userAgent: client.userAgent, address: client.address, requests: requests,
+            promptTokens: requests * 6000, generatedTokens: requests * 650, busySeconds: busy, active: active
+        )
+    }
+
     private static func activityHistory(minutes: Int, serverMemory: Int64?) -> [ActivityPoint] {
         let count = minutes * 30
         let end = Date()

@@ -56,8 +56,12 @@ struct RouteHarness {
         routes = ServerRoutes(router: router, apiKey: apiKey, log: log, buildLabel: "quail-server test", webUI: webUI)
     }
 
-    func send(_ path: String, _ body: String, headers: [String: String] = [:]) async -> HTTPResponse {
-        await routes.handle(HTTPRequest(method: "POST", target: path, headers: headers, body: Data(body.utf8)))
+    func send(_ path: String, _ body: String, headers: [String: String] = [:], peer: String? = nil) async
+        -> HTTPResponse
+    {
+        await routes.handle(HTTPRequest(
+            method: "POST", target: path, headers: headers, body: Data(body.utf8), peer: peer
+        ))
     }
 
     func get(_ path: String, headers: [String: String] = [:]) async -> HTTPResponse {
@@ -67,9 +71,10 @@ struct RouteHarness {
     func json(
         _ path: String,
         _ body: String,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        peer: String? = nil
     ) async -> (status: Int, json: [String: Any]) {
-        let response = await send(path, body, headers: headers)
+        let response = await send(path, body, headers: headers, peer: peer)
         guard case let .data(data) = response.body else { return (response.status, [:]) }
         return (response.status, ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any]) ?? [:])
     }

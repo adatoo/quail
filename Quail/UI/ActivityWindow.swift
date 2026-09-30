@@ -146,8 +146,37 @@ struct ActivityWindow: View {
             ForEach(server.requests.filter { request in !loaded.contains { $0.id == request.model } }) {
                 RequestRow(request: $0)
             }
+            clientsSection
         }
     }
+
+    /// Who's using the server (ADR D-067): each client busy now or in the chosen window, with how much of the window
+    /// it kept a request running, coloured by that share.
+    @ViewBuilder private var clientsSection: some View {
+        let loads = ActivityMonitor.clientLoads(
+            readings: monitor.clientReadings, activity: monitor.server, window: window,
+            now: monitor.clientReadings.last?.date ?? now
+        )
+        if !loads.isEmpty {
+            Divider()
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Clients").font(.caption.weight(.semibold))
+                    Spacer()
+                    Text("busy in the last \(Int(window / 60)) min").font(.caption2).foregroundStyle(.secondary)
+                }
+                ForEach(loads.prefix(Self.clientRows)) { ClientRow(load: $0) }
+                if loads.count > Self.clientRows {
+                    Text("and \(loads.count - Self.clientRows) more, less busy")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    /// The most clients listed, busiest first, so the window stays a sensible height.
+    static let clientRows = 6
 
     static func gigabytes(_ bytes: Int64) -> String {
         String(format: "%.1f GB", Double(bytes) / 1_073_741_824)
@@ -165,6 +194,15 @@ private struct RequestRow: View {
                 Text(title).font(.caption)
                 Spacer()
                 Text(detail).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            if let client = request.client {
+                Text(ClientNames.label(client.key, userAgent: client.userAgent))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .padding(.leading, 13)
+                    .help(client.userAgent)
             }
             if request.phase == .readingPrompt {
                 ProgressView(value: request.promptFraction)
@@ -208,6 +246,64 @@ private struct RequestRow: View {
     /// "812", "12.4K".
     static func count(_ value: Double) -> String {
         value >= 1000 ? String(format: "%.1fK", value / 1000) : String(Int(value.rounded()))
+    }
+}
+
+/// One client: who, how much of the window it kept busy (the bar, green under 25%, orange to 75%, red above), what
+/// it's running now, and what it did in the window.
+private struct ClientRow: View {
+    let load: ClientLoad
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Circle().fill(tint).frame(width: 7, height: 7)
+                Text(ClientNames.label(load.key, userAgent: load.userAgent))
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer()
+                Text("\(Int((load.busyFraction * 100).rounded()))%")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(tint)
+            }
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.quaternary)
+                    Capsule().fill(tint).frame(width: max(3, geometry.size.width * load.busyFraction))
+                }
+            }
+            .frame(height: 4)
+            Group {
+                Text(current)
+                Text(done)
+            }
+            .font(.caption2.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .padding(.leading, 13)
+        }
+        .help(load.userAgent.isEmpty ? "No User-Agent" : load.userAgent)
+    }
+
+    private var tint: Color {
+        switch load.level {
+        case .light: .green
+        case .moderate: .orange
+        case .heavy: .red
+        }
+    }
+
+    private var current: String {
+        guard load.running > 0 else { return "Idle" }
+        let speed = load.tokensPerSecond.map { " · \(Int($0.rounded())) tok/s" } ?? ""
+        return "\(load.running) running\(speed)"
+    }
+
+    private var done: String {
+        let totals = load.totals
+        let requests = totals.requests == 1 ? "1 request" : "\(totals.requests) requests"
+        return "\(requests) · \(RequestRow.count(Double(totals.promptTokens))) read · "
+            + "\(RequestRow.count(Double(totals.generated))) written"
     }
 }
 

@@ -35,6 +35,8 @@ struct Integration: Sendable, Equatable, Identifiable, Decodable {
 
     let id: String
     let name: String
+    /// `User-Agent` prefixes that name this tool in the Activity window (ADR D-067); nil for tools not yet seen.
+    let userAgents: [String]?
     let category: Category
     let api: API
     /// Where the snippet goes: a file path, "your shell profile", or a

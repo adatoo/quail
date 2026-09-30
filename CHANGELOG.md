@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-09-30
+
+### Added
+
+- **The Activity window shows who is using the server.** Each request says which app sent it and from where, such as "Claude Code · this Mac" or "python-httpx · 192.168.1.20". The app comes from the request's `User-Agent`, and the Connect list names the tools it knows.
+- **A Clients section shows each client's load.** For each app and machine, it shows what's running now, and its requests, tokens read and tokens written in the last 1, 5 or 15 minutes. A bar shows how much of that time it kept the server busy: green under 25%, orange up to 75%, red above.
+  - The server keeps these figures in memory only, behind the API key. They're never logged, and they go when it stops (ADR D-067).
+
 ## [0.61.8] - 2026-09-30
 
 ### Changed
