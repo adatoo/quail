@@ -50,6 +50,13 @@ D-055 had decided on mlx-swift-lm's public API only, with no custom Metal and no
   - Both are larger ports: #141 stays open for them.
 - **Tried and not kept:** Rapid-MLX's blocked GatedDeltaNet prefill kernel (adapted from oMLX's, Apache-2.0), ported through `MLXFast.metalKernel`. It saved 1–2% of a 4,096- or 7,000-token prompt's first-token time. That's too little to carry the kernel and its licences, since the recurrence is a small part of a prompt's reading at these lengths. Revisit for prompts well past 8,000 tokens, which oMLX measured at about 2× per layer at 16,000.
 
+**Amended 2026-09-30 (a fused GatedDeltaNet decode kernel, #141):** for one request's next token, each GatedDeltaNet layer of the Qwen3.5 copy now runs as one Metal kernel between its input and output projections. It covers the causal convolution and its cache shift, the SiLU, the q and k norms, the decay and `beta`, the recurrence and the gated norm, which were a dozen kernels.
+- **Source:** adapted from Rapid-MLX 0.15.2's `qwen4_fused_gdn_decode.py` (Apache-2.0), keeping its Qwen3.5 semantics only. Its reduction structure is itself from mlx-vlm pull request 2105 (MIT). Both are in `Config/third-party.json` with their licence texts.
+- **Same bytes, checked on the Mac it runs on:** the first time a layer shape loads, eight steps of a random layer run both ways. The kernel is used only if its output and both states match the separate kernels' byte for byte. Otherwise the separate kernels stay, and the server log says which. `QUAIL_MLX_FUSED_GDN=0` turns it off.
+- **Only where it's written for:** one sequence, one position, no mask, bfloat16 activations, a float32 state, and 128-wide heads. Prompts, batches and other shapes keep the separate kernels.
+- **Measured** on the Mac mini (M4 Pro), Qwen3.6 35B-A3B, prompt lookup off, cooled before each request: 11.22 ms a token with separate kernels, 10.79 ms fused (−3.8%). Replies at temperature 0 were identical.
+- **Still behind:** Rapid-MLX also compiles the whole single-request step. So does mlx-swift-lm's main branch, whose Qwen3.5 (four input projections fused into one, compiled decode segments, a fused router top-k) measured 10.99 ms against this copy's 10.79 ms on the same mini, so this copy stays.
+
 ## D-063 · 2026-09-28 · Comparing Quail with Ollama, oMLX and Rapid-MLX: method and harness
 
 **Situation:** the owner wants to know how Quail compares with Ollama, oMLX and Rapid-MLX, measured with standard benchmarks. The results go in the repo and on the website, including where Quail loses. Until now only `quail bench` existed. It depends on llama-server's `/tokenize` and server-side `timings`, so it can't measure the others.

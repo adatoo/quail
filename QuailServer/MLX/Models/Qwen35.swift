@@ -7,6 +7,9 @@
 // - The small element-wise functions mlx-lm compiles are compiled here too (`compile(shapeless:)`): the decay `g`,
 //   the gated norm's SwiGLU, the MLPs' SwiGLU and the attention output gate, so each is one GPU kernel, not several.
 // - `beta` stays in the activations' type, as in mlx-lm (mlx-swift-lm casts it to float32).
+// - One request's next token goes through each GatedDeltaNet layer's convolution, norms, recurrence and gated norm as
+//   one Metal kernel, adapted from Rapid-MLX (Apache-2.0; see "Fused single-token decode" below), where it gives the
+//   separate kernels' bytes.
 // - Types are prefixed `QQwen35` so they don't meet mlx-swift-lm's own; its configuration types are internal there,
 //   so they are copied too.
 //
@@ -542,6 +545,379 @@ func qGatedDeltaUpdate(
     return qGatedDeltaOps(q: q, k: k, v: v, g: g, beta: beta, state: state, mask: mask)
 }
 
+/// A GatedDeltaNet layer's work between its input and output projections, kernel by kernel: the output before
+/// `out_proj` (`[B, S, valueHeads, valueHeadDim]`) and the new convolution and recurrent states.
+func qGatedDeltaNetStep(
+    qkv: MLXArray, z: MLXArray, b: MLXArray, a: MLXArray, convState: MLXArray, state: MLXArray?,
+    convWeight: MLXArray, aLog: MLXArray, dtBias: MLXArray, normWeight: MLXArray, eps: Float,
+    keyHeads: Int, valueHeads: Int, keyHeadDim: Int, valueHeadDim: Int, convKernel: Int, mask: MLXArray?
+) -> (MLXArray, MLXArray, MLXArray) {
+    let B = qkv.dim(0)
+    let S = qkv.dim(1)
+    let keyDim = keyHeads * keyHeadDim
+    var qkv = qkv
+    if let mask {
+        qkv = MLX.where(mask[.ellipsis, .newAxis], qkv, 0)
+    }
+
+    let convInput = concatenated([convState, qkv], axis: 1)
+    let newConvState = contiguous(convInput[0..., (-(convKernel - 1))..., 0...])
+
+    let convOut = silu(conv1d(convInput, convWeight, groups: convWeight.dim(0)))
+
+    let convSplit = MLX.split(convOut, indices: [keyDim, 2 * keyDim], axis: -1)
+    let q = convSplit[0].reshaped(B, S, keyHeads, keyHeadDim)
+    let k = convSplit[1].reshaped(B, S, keyHeads, keyHeadDim)
+    let v = convSplit[2].reshaped(B, S, valueHeads, valueHeadDim)
+
+    let dtype = q.dtype
+    let invScale = pow(Float(keyHeadDim), -0.5)
+    let qNormed =
+        MLXArray(pow(invScale, 2)).asType(dtype)
+            * MLXFast.rmsNorm(q, weight: MLXArray.mlxNone, eps: 1e-6)
+    let kNormed =
+        MLXArray(invScale).asType(dtype)
+            * MLXFast.rmsNorm(k, weight: MLXArray.mlxNone, eps: 1e-6)
+
+    let (out, newState) = qGatedDeltaUpdate(
+        q: qNormed,
+        k: kNormed,
+        v: v,
+        a: a,
+        b: b,
+        aLog: aLog,
+        dtBias: dtBias,
+        state: state,
+        mask: mask
+    )
+
+    // The gated norm (`QQwen35RMSNormGated`).
+    let normed = MLXFast.rmsNorm(out, weight: normWeight, eps: eps)
+    return (qPreciseSwiGLU(out, z, normed), newConvState, newState)
+}
+
+// MARK: - Fused single-token decode
+
+// Adapted from Rapid-MLX 0.15.2, rapid_mlx/kernels/qwen4_fused_gdn_decode.py and qwen35_fused_gdn_decode.py
+// (Apache-2.0; Copyright 2025-2026 Rapid-MLX contributors), whose Metal reduction and precision structure is itself
+// adapted from mlx-vlm #2105 (MIT; Copyright (c) 2025 Prince Canuma). Only the Qwen3.5-family semantics are kept.
+//
+// One request's next token (B = 1, one position) through a GatedDeltaNet layer is a dozen small kernels between
+// the input projections and the output projection: the causal convolution and its cache shift, the SiLU, the two
+// RMSNorms and their scales, the decay and `beta`, the recurrence, and the gated norm. This does them in one launch,
+// in the same order and at the same rounding points, so it gives the same bytes; `QFusedGatedDeltaDecode.probe`
+// checks that on this GPU before the first use, and the layer keeps the separate kernels if it doesn't
+// (or with `QUAIL_MLX_FUSED_GDN=0`).
+
+private let qFusedGatedDeltaHeader = """
+template <typename U>
+inline U mlx_sigmoid_precise(U x) {
+  U e = static_cast<U>(metal::precise::exp(metal::abs(x)));
+  U y = static_cast<U>(1) / (static_cast<U>(1) + e);
+  return (x < 0) ? y : (static_cast<U>(1) - y);
+}
+
+template <typename U>
+inline U mlx_sigmoid_fast(U x) {
+  U e = static_cast<U>(metal::exp(metal::abs(x)));
+  U y = static_cast<U>(1) / (static_cast<U>(1) + e);
+  return (x < 0) ? y : (static_cast<U>(1) - y);
+}
+
+template <typename U>
+inline U mlx_log1p_fast(U x) {
+  float xf = float(x);
+  float xp1 = 1.0f + xf;
+  float out = xp1 == 1.0f ? xf : xf * (metal::log(xp1) / (xp1 - 1.0f));
+  return static_cast<U>(out);
+}
+
+template <typename U>
+inline U mlx_softplus_fast(U x) {
+  if (metal::isnan(x))
+    return metal::numeric_limits<U>::quiet_NaN();
+  constexpr U inf = metal::numeric_limits<U>::infinity();
+  U zero = static_cast<U>(0);
+  U hi = metal::max(x, zero);
+  U lo = metal::min(x, zero);
+  return (lo == -inf || hi == inf)
+      ? hi
+      : (hi + mlx_log1p_fast(static_cast<U>(metal::exp(lo - hi))));
+}
+"""
+
+private let qFusedGatedDeltaSource = """
+  const uint hv = threadgroup_position_in_grid.z;
+  const uint hk = hv / RATIO;
+  const uint lane = thread_position_in_threadgroup.x;
+  const uint ty = thread_position_in_threadgroup.y;
+  const uint tid = thread_index_in_threadgroup;
+
+  constexpr int NT = 32 * TY;
+  constexpr int NDK = DK / 32;
+  constexpr int NDV = DV / TY;
+  constexpr uint KD = (uint)(HK * DK);
+  constexpr uint VD = (uint)(HV * DV);
+  constexpr uint CD = 2u * KD + VD;
+
+  threadgroup float sq[DK];
+  threadgroup float sk[DK];
+  threadgroup float sv[DV];
+  threadgroup float sy[DV];
+  threadgroup float shr[4];
+
+  device const float* si = recurrent_state + (size_t)hv * DV * DK;
+  device float* so = recurrent_state_out + (size_t)hv * DV * DK;
+  float st[NDV][NDK];
+  for (int j = 0; j < NDV; ++j) {
+    uint dv = ty + (uint)TY * (uint)j;
+    for (int i = 0; i < NDK; ++i)
+      st[j][i] = si[(size_t)dv * DK + NDK * lane + i];
+  }
+
+  // The causal convolution and SiLU for this head's q, k and v columns, and the convolution cache shifted by
+  // one (each column written by one head).
+  for (uint idx = tid; idx < (uint)(2 * DK + DV); idx += NT) {
+    uint part = idx / (uint)DK;
+    uint d = idx - part * (uint)DK;
+    uint c = part == 0u ? hk * DK + d
+           : (part == 1u ? KD + hk * DK + d : 2u * KD + hv * DV + d);
+    device const T* wc = conv_weight + (size_t)c * K;
+    float acc = 0.0f;
+    for (uint tap = 0; tap + 1 < (uint)K; ++tap)
+      acc += float(conv_state[(size_t)tap * CD + c]) * float(wc[tap]);
+    acc += float(qkv[c]) * float(wc[K - 1]);
+    T xb = static_cast<T>(acc);
+    T sig = mlx_sigmoid_fast(xb);
+    T sl = xb * sig;
+    if (part == 0u) sq[d] = float(sl);
+    else if (part == 1u) sk[d] = float(sl);
+    else sv[d] = float(sl);
+    if (part == 2u || (hv % RATIO) == 0u) {
+      for (uint tap = 0; tap + 2 < (uint)K; ++tap)
+        conv_state_out[(size_t)tap * CD + c] =
+            conv_state[(size_t)(tap + 1) * CD + c];
+      conv_state_out[(size_t)(K - 2) * CD + c] = qkv[c];
+    }
+  }
+
+  // The decay and beta.
+  if (tid == 0u) {
+    T av = alpha[hv] + dt_bias[hv];
+    T sp = mlx_softplus_fast(av);
+    shr[2] = metal::precise::exp(
+        -metal::precise::exp(float(A_log[hv])) * float(sp));
+    shr[3] = float(mlx_sigmoid_precise(beta[hv]));
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+
+  // q and k RMS-normalized as mx.fast.rms_norm does (float32 mean of squares and reciprocal square root, cast
+  // back), then scaled in T.
+  if (simdgroup_index_in_threadgroup == 0u) {
+    float pq = 0.0f, pk = 0.0f;
+    uint base = 4u * lane;
+    for (int i = 0; i < 4; ++i) {
+      pq += sq[base + i] * sq[base + i];
+      pk += sk[base + i] * sk[base + i];
+    }
+    pq = simd_sum(pq);
+    pk = simd_sum(pk);
+    if (lane == 0u) {
+      shr[0] = metal::precise::rsqrt(pq / float(DK) + 1.0e-6f);
+      shr[1] = metal::precise::rsqrt(pk / float(DK) + 1.0e-6f);
+    }
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  T qscale = static_cast<T>(1.0f / float(DK));
+  T kscale = static_cast<T>(metal::precise::rsqrt(float(DK)));
+  for (uint d = tid; d < (uint)DK; d += NT) {
+    T q_normalized = static_cast<T>(sq[d] * shr[0]);
+    T k_normalized = static_cast<T>(sk[d] * shr[1]);
+    sq[d] = float(static_cast<T>(q_normalized * qscale));
+    sk[d] = float(static_cast<T>(k_normalized * kscale));
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+
+  // The recurrence.
+  for (int j = 0; j < NDV; ++j) {
+    uint dv = ty + (uint)TY * (uint)j;
+    float kv = 0.0f;
+    for (int i = 0; i < NDK; ++i) {
+      uint s = NDK * lane + i;
+      st[j][i] = st[j][i] * shr[2];
+      kv += st[j][i] * sk[s];
+    }
+    kv = simd_sum(kv);
+    float delta = (sv[dv] - kv) * shr[3];
+    float out = 0.0f;
+    for (int i = 0; i < NDK; ++i) {
+      uint s = NDK * lane + i;
+      st[j][i] = st[j][i] + sk[s] * delta;
+      out += st[j][i] * sq[s];
+    }
+    out = simd_sum(out);
+    if (thread_index_in_simdgroup == 0u)
+      sy[dv] = float(static_cast<T>(out));
+    for (int i = 0; i < NDK; ++i)
+      so[(size_t)dv * DK + NDK * lane + i] = st[j][i];
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+
+  // The gated norm: RMSNorm, then the float32 SiLU of the gate times the normalized value.
+  if (simdgroup_index_in_threadgroup == 0u) {
+    float po = 0.0f;
+    uint base = 4u * lane;
+    for (int i = 0; i < 4; ++i) po += sy[base + i] * sy[base + i];
+    po = simd_sum(po);
+    if (lane == 0u)
+      shr[0] = metal::precise::rsqrt(po / (float)DV + norm_eps);
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  for (uint d = tid; d < (uint)DV; d += NT) {
+    T normalized = static_cast<T>(sy[d] * shr[0]);
+    normalized = norm_weight[d] * normalized;
+    float zg = float(z[hv * DV + d]);
+    float gate = zg * mlx_sigmoid_precise<float>(zg);
+    float x = gate * float(normalized);
+    output[hv * DV + d] = static_cast<T>(x);
+  }
+"""
+
+/// A GatedDeltaNet layer's work between its input and output projections for one request's next token, as one
+/// Metal kernel (see above).
+enum QFusedGatedDeltaDecode {
+    /// A layer's shape: key heads, value heads, head width (keys' and values' alike), convolution taps.
+    struct Shape: Hashable {
+        let keyHeads: Int
+        let valueHeads: Int
+        let headDim: Int
+        let convKernel: Int
+
+        var convDim: Int {
+            (2 * keyHeads + valueHeads) * headDim
+        }
+    }
+
+    /// Whether the kernel is written for a layer: 128-wide key and value heads (its reductions are one simdgroup of
+    /// 32 lanes, 4 values each) and whole groups of value heads per key head.
+    static func fits(_ shape: Shape, valueHeadDim: Int) -> Bool {
+        shape.headDim == 128 && valueHeadDim == 128 && shape.valueHeads % shape.keyHeads == 0
+            && shape.convKernel >= 2
+    }
+
+    static let enabled = ProcessInfo.processInfo.environment["QUAIL_MLX_FUSED_GDN"] != "0"
+
+    private static let kernel = MLXFast.metalKernel(
+        name: "quail_fused_gated_delta_decode",
+        inputNames: [
+            "qkv", "z", "beta", "alpha", "conv_state", "conv_weight", "A_log", "dt_bias", "recurrent_state",
+            "norm_weight", "norm_eps",
+        ],
+        outputNames: ["output", "conv_state_out", "recurrent_state_out"],
+        source: qFusedGatedDeltaSource,
+        header: qFusedGatedDeltaHeader
+    )
+
+    /// Each shape's threadgroup height once probed; nil where the separate kernels are kept.
+    private final class Probed: @unchecked Sendable {
+        let lock = NSLock()
+        var heights: [Shape: Int?] = [:]
+    }
+
+    private static let probed = Probed()
+
+    /// The threadgroup height to run `shape` with, probing it the first time; nil to keep the separate kernels.
+    static func threadgroupY(for shape: Shape) -> Int? {
+        guard enabled else { return nil }
+        return probed.lock.withLock {
+            if let height = probed.heights[shape] {
+                return height
+            }
+            let height = probe(shape)
+            probed.heights[shape] = height
+            FileHandle.standardError.write(Data((height.map {
+                "quail-server: GatedDeltaNet decode fused into one kernel (threadgroup height \($0))\n"
+            } ?? "quail-server: GatedDeltaNet decode kept as separate kernels (the fused one differed)\n").utf8))
+            return height
+        }
+    }
+
+    /// The layer's output before `out_proj` (`[1, 1, valueHeads × headDim]`), and its new convolution and recurrent
+    /// states. `qkv`, `z`, `b` and `a` are the input projections' outputs for one position of one sequence.
+    static func decode(
+        qkv: MLXArray, z: MLXArray, b: MLXArray, a: MLXArray, convState: MLXArray, state: MLXArray,
+        convWeight: MLXArray, aLog: MLXArray, dtBias: MLXArray, normWeight: MLXArray, eps: Float, shape: Shape,
+        threadgroupY: Int
+    ) -> (MLXArray, MLXArray, MLXArray) {
+        let outputs = kernel(
+            [qkv, z, b, a, convState, convWeight, aLog, dtBias, state, normWeight, MLXArray(eps)],
+            template: [
+                ("T", qkv.dtype), ("HK", shape.keyHeads), ("HV", shape.valueHeads), ("DK", shape.headDim),
+                ("DV", shape.headDim), ("K", shape.convKernel), ("TY", threadgroupY),
+                ("RATIO", shape.valueHeads / shape.keyHeads),
+            ],
+            grid: (32, threadgroupY, shape.valueHeads),
+            threadGroup: (32, threadgroupY, 1),
+            outputShapes: [
+                [1, 1, shape.valueHeads * shape.headDim], [1, shape.convKernel - 1, shape.convDim],
+                [1, shape.valueHeads, shape.headDim, shape.headDim],
+            ],
+            outputDTypes: [qkv.dtype, qkv.dtype, .float32]
+        )
+        return (outputs[0], outputs[1], outputs[2])
+    }
+
+    /// Runs eight steps of a random layer of `shape` both ways, and keeps the first threadgroup height whose output
+    /// and states match the separate kernels' byte for byte (as Rapid-MLX's install probe does).
+    private static func probe(_ shape: Shape) -> Int? {
+        let headDim = shape.headDim
+        let dtype = DType.bfloat16
+        func random(_ shape: [Int], _ seed: UInt64, scale: Float = 1) -> MLXArray {
+            (MLXRandom.normal(shape, key: MLXRandom.key(seed)) * scale).asType(dtype)
+        }
+        let convWeight = random([shape.convDim, shape.convKernel, 1], 3501, scale: 0.1)
+        let aLog = random([shape.valueHeads], 3502)
+        let dtBias = random([shape.valueHeads], 3503)
+        let normWeight = random([headDim], 3504)
+        let convZeros = MLXArray.zeros([1, shape.convKernel - 1, shape.convDim], dtype: dtype)
+        let stateZeros = MLXArray.zeros([1, shape.valueHeads, headDim, headDim], dtype: .float32)
+        for threadgroupY in [32, 16, 8, 4] {
+            let same = try? withError {
+                var (stockConv, stockState, fusedConv, fusedState) = (convZeros, stateZeros, convZeros, stateZeros)
+                for step in UInt64(0) ..< 8 {
+                    let qkv = random([1, 1, shape.convDim], 3600 + step, scale: 0.3)
+                    let z = random([1, 1, shape.valueHeads * headDim], 3700 + step, scale: 2)
+                    let b = random([1, 1, shape.valueHeads], 3800 + step, scale: 2)
+                    let a = random([1, 1, shape.valueHeads], 3900 + step, scale: 2)
+                    let stock = qGatedDeltaNetStep(
+                        qkv: qkv, z: z.reshaped(1, 1, shape.valueHeads, headDim), b: b, a: a, convState: stockConv,
+                        state: stockState, convWeight: convWeight, aLog: aLog, dtBias: dtBias,
+                        normWeight: normWeight, eps: 1e-6, keyHeads: shape.keyHeads, valueHeads: shape.valueHeads,
+                        keyHeadDim: headDim, valueHeadDim: headDim, convKernel: shape.convKernel, mask: nil
+                    )
+                    let fused = decode(
+                        qkv: qkv, z: z, b: b, a: a, convState: fusedConv, state: fusedState, convWeight: convWeight,
+                        aLog: aLog, dtBias: dtBias, normWeight: normWeight, eps: 1e-6, shape: shape,
+                        threadgroupY: threadgroupY
+                    )
+                    (stockConv, stockState, fusedConv, fusedState) = (stock.1, stock.2, fused.1, fused.2)
+                    let equal = arrayEqual(stock.0.reshaped(fused.0.shape), fused.0).item(Bool.self)
+                        && arrayEqual(stock.1, fused.1).item(Bool.self)
+                        && arrayEqual(stock.2, fused.2).item(Bool.self)
+                    if !equal {
+                        return false
+                    }
+                }
+                return true
+            }
+            if same == true {
+                return threadgroupY
+            }
+        }
+        return nil
+    }
+}
+
 // MARK: - Model (Qwen35.swift)
 
 // MARK: - GatedDeltaNet
@@ -556,6 +932,9 @@ final class QQwen35GatedDeltaNet: Module {
     let valueDim: Int
     let convKernelSize: Int
     let convDim: Int
+    /// The fused single-token kernel's shape and threadgroup height for this layer, or nil to keep separate kernels.
+    let fusedShape: QFusedGatedDeltaDecode.Shape
+    let fusedHeight: Int?
 
     @ModuleInfo(key: "conv1d") var conv1d: Conv1d
     @ModuleInfo(key: "in_proj_qkv") var inProjQKV: Linear
@@ -579,6 +958,11 @@ final class QQwen35GatedDeltaNet: Module {
         valueDim = headVDim * numVHeads
         convKernelSize = args.linearConvKernelDim
         convDim = keyDim * 2 + valueDim
+        fusedShape = QFusedGatedDeltaDecode.Shape(
+            keyHeads: numKHeads, valueHeads: numVHeads, headDim: headKDim, convKernel: convKernelSize
+        )
+        fusedHeight = QFusedGatedDeltaDecode.fits(fusedShape, valueHeadDim: headVDim)
+            ? QFusedGatedDeltaDecode.threadgroupY(for: fusedShape) : nil
 
         precondition(
             numVHeads % numKHeads == 0,
@@ -619,63 +1003,42 @@ final class QQwen35GatedDeltaNet: Module {
         let B = inputs.dim(0)
         let S = inputs.dim(1)
 
-        var qkv = inProjQKV(inputs)
-        let z = inProjZ(inputs).reshaped(B, S, numVHeads, headVDim)
+        let qkv = inProjQKV(inputs)
+        let z = inProjZ(inputs)
         let b = inProjB(inputs)
         let a = inProjA(inputs)
+
+        // One request's next token: the rest of the layer as one kernel, where it gives the same bytes.
+        if B == 1, S == 1, mask == nil, let fusedHeight, let cache, let convState = cache[0],
+           let state = cache[1], convState.dtype == .bfloat16, state.dtype == .float32, qkv.dtype == .bfloat16
+        {
+            let (out, newConvState, newState) = QFusedGatedDeltaDecode.decode(
+                qkv: qkv, z: z, b: b, a: a, convState: convState, state: state, convWeight: conv1d.weight,
+                aLog: aLog, dtBias: dtBias, normWeight: norm.weight, eps: norm.eps, shape: fusedShape,
+                threadgroupY: fusedHeight
+            )
+            cache[0] = newConvState
+            cache[1] = newState
+            cache.advance(1)
+            return outProj(out)
+        }
 
         let convState: MLXArray = if let cacheState = cache?[0] {
             cacheState
         } else {
             MLXArray.zeros([B, convKernelSize - 1, convDim], dtype: inputs.dtype)
         }
-
-        if let mask {
-            qkv = MLX.where(mask[.ellipsis, .newAxis], qkv, 0)
-        }
-
-        let convInput = concatenated([convState, qkv], axis: 1)
-        if let cache {
-            cache[0] = contiguous(convInput[0..., (-(convKernelSize - 1))..., 0...])
-        }
-
-        let convOut = silu(conv1d(convInput))
-
-        let convSplit = MLX.split(convOut, indices: [keyDim, 2 * keyDim], axis: -1)
-        let q = convSplit[0].reshaped(B, S, numKHeads, headKDim)
-        let k = convSplit[1].reshaped(B, S, numKHeads, headKDim)
-        let v = convSplit[2].reshaped(B, S, numVHeads, headVDim)
-
-        var state = cache?[1]
-        let dtype = q.dtype
-        let invScale = pow(Float(headKDim), -0.5)
-        let qNormed =
-            MLXArray(pow(invScale, 2)).asType(dtype)
-                * MLXFast.rmsNorm(q, weight: MLXArray.mlxNone, eps: 1e-6)
-        let kNormed =
-            MLXArray(invScale).asType(dtype)
-                * MLXFast.rmsNorm(k, weight: MLXArray.mlxNone, eps: 1e-6)
-
-        var out: MLXArray
-
-        (out, state) = qGatedDeltaUpdate(
-            q: qNormed,
-            k: kNormed,
-            v: v,
-            a: a,
-            b: b,
-            aLog: aLog,
-            dtBias: dtBias,
-            state: state,
-            mask: mask
+        let (out, newConvState, newState) = qGatedDeltaNetStep(
+            qkv: qkv, z: z.reshaped(B, S, numVHeads, headVDim), b: b, a: a, convState: convState, state: cache?[1],
+            convWeight: conv1d.weight, aLog: aLog, dtBias: dtBias, normWeight: norm.weight, eps: norm.eps,
+            keyHeads: numKHeads, valueHeads: numVHeads, keyHeadDim: headKDim, valueHeadDim: headVDim,
+            convKernel: convKernelSize, mask: mask
         )
-
         if let cache {
-            cache[1] = state
+            cache[0] = newConvState
+            cache[1] = newState
             cache.advance(S)
         }
-
-        out = norm(out, gate: z)
         return outProj(out.reshaped(B, S, -1))
     }
 }
