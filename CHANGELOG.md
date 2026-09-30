@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.63.3] - 2026-10-01
+
+### Changed
+
+- **The 2026-09-30 comparison, corrected** (#152). Quail (MLX)'s accuracy and tool calling were run again with 0.63.1, which fixes the MLX prompt-cache bug the comparison found. Gemma 4's GSM8K on MLX is now 91.3%, where it was 84.7%, level with oMLX's 89.3% and Rapid-MLX's 90.0%. Qwen3.6's MMLU-Pro on MLX went from 79.5% to 84.8%. The report's summary now gives the cause, not the chat-template guess; so do quail-ai.app's comparison and How it works pages.
+
 ## [0.63.2] - 2026-09-30
 
 ### Fixed

@@ -92,7 +92,7 @@
     <ul>
       <li><strong>Throughput with several MLX requests at once.</strong> Rapid-MLX still makes 10–20% more tokens a second (<a href="https://github.com/adatoo/quail/issues/139">#139</a>).</li>
       <li><strong>One request on MLX.</strong> Rapid-MLX compiles its whole step and fuses more of the model; it's still 7–10% faster alone on Qwen3.6 and Gemma 4 (<a href="https://github.com/adatoo/quail/issues/141">#141</a>).</li>
-      <li><strong>Gemma 4's scores.</strong> They're a few points lower on Quail than on the other engines, likely from how Quail renders its chat template (<a href="https://github.com/adatoo/quail/issues/152">#152</a>).</li>
+      <li><strong>Gemma 4 on GGUF.</strong> Its MMLU-Pro score is a few points under llama-server's. The prompts are identical, and Quail's replies match llama-server's with the same cache settings; a larger sample will say whether it's more than chance (<a href="https://github.com/adatoo/quail/issues/152">#152</a>). The MLX gap the comparison found was a prompt-cache bug, fixed in 0.63.1.</li>
     </ul>
   </main>
 

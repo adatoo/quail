@@ -483,53 +483,53 @@
     },
     {
      "model": "qwen3-8b",
-     "engine": "quail-mlx",
-     "lane": "mlx",
-     "version": "0.62.0",
-     "task": "gsm8k_cot_llama",
-     "metric": "exact_match,strict-match",
-     "score": 0.8933333333333333,
-     "stderr": 0.02528878692663471,
-     "items": 150,
-     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/gsm8k_cot_llama/qwen3-8b-mlx/results_2026-09-30T17-32-33.955528.json",
-     "samples": [
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/gsm8k_cot_llama/qwen3-8b-mlx/samples_gsm8k_cot_llama_2026-09-30T17-32-33.955528.jsonl"
-     ]
-    },
-    {
-     "model": "qwen3-8b",
-     "engine": "quail-mlx",
-     "lane": "mlx",
-     "version": "0.62.0",
-     "task": "mmlu_pro",
-     "metric": "exact_match,custom-extract",
-     "score": 0.625,
-     "stderr": 0.0424191049701936,
-     "items": 112,
-     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/results_2026-09-30T17-43-01.497230.json",
-     "samples": [
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_biology_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_business_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_chemistry_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_computer_science_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_economics_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_engineering_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_health_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_history_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_law_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_math_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_other_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_philosophy_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_physics_2026-09-30T17-43-01.497230.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_psychology_2026-09-30T17-43-01.497230.jsonl"
-     ]
-    },
-    {
-     "model": "qwen3-8b",
      "engine": "ollama-mlx",
      "lane": "mlx",
      "version": "0.34.4",
      "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [dequantize] Invalid quantization mode ''. at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/mlx/c/ops.cpp:1258 (exit: exit status 2)\"}"
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.63.1",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9133333333333333,
+     "stderr": 0.023048760038210967,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/gsm8k_cot_llama/qwen3-8b-mlx/results_2026-09-30T22-54-51.608223.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/gsm8k_cot_llama/qwen3-8b-mlx/samples_gsm8k_cot_llama_2026-09-30T22-54-51.608223.jsonl"
+     ]
+    },
+    {
+     "model": "qwen3-8b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.63.1",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.6071428571428571,
+     "stderr": 0.04451512338422231,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/results_2026-09-30T23-06-07.311241.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_biology_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_business_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_chemistry_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_computer_science_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_economics_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_engineering_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_health_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_history_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_law_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_math_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_other_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_philosophy_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_physics_2026-09-30T23-06-07.311241.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3-8b/mmlu_pro/qwen3-8b-mlx/samples_mmlu_pro_psychology_2026-09-30T23-06-07.311241.jsonl"
+     ]
     }
    ],
    "tools": [
@@ -817,9 +817,16 @@
     },
     {
      "model": "qwen3-8b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [dequantize] Invalid quantization mode ''. at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/mlx/c/ops.cpp:1258 (exit: exit status 2)\"}"
+    },
+    {
+     "model": "qwen3-8b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "simple_python",
      "accuracy": 0.95,
      "correct": 38,
@@ -830,7 +837,7 @@
      "model": "qwen3-8b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "multiple",
      "accuracy": 0.925,
      "correct": 37,
@@ -841,7 +848,7 @@
      "model": "qwen3-8b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "parallel",
      "accuracy": 0.85,
      "correct": 34,
@@ -852,7 +859,7 @@
      "model": "qwen3-8b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "parallel_multiple",
      "accuracy": 0.875,
      "correct": 35,
@@ -863,19 +870,12 @@
      "model": "qwen3-8b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "irrelevance",
      "accuracy": 0.95,
      "correct": 38,
      "total": 40,
      "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3-8b/score/qwen3-8b-mlx/non_live/BFCL_v4_irrelevance_score.json"
-    },
-    {
-     "model": "qwen3-8b",
-     "engine": "ollama-mlx",
-     "lane": "mlx",
-     "version": "0.34.4",
-     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [dequantize] Invalid quantization mode ''. at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/mlx/c/ops.cpp:1258 (exit: exit status 2)\"}"
     }
    ]
   },
@@ -1347,53 +1347,53 @@
     },
     {
      "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [quantized_matmul] The shapes of the weight and scales are incompatible based on bits and group_size. w.shape() == (256,512) and scales.shape() == (256,32) with group_size=64 and bits=4 at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "task": "gsm8k_cot_llama",
      "metric": "exact_match,strict-match",
      "score": 0.96,
      "stderr": 0.016053601490175602,
      "items": 150,
-     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-mlx/results_2026-09-30T17-49-58.372380.json",
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-mlx/results_2026-09-30T23-13-52.731160.json",
      "samples": [
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-mlx/samples_gsm8k_cot_llama_2026-09-30T17-49-58.372380.jsonl"
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/gsm8k_cot_llama/qwen3.6-35b-a3b-mlx/samples_gsm8k_cot_llama_2026-09-30T23-13-52.731160.jsonl"
      ]
     },
     {
      "model": "qwen3.6-35b-a3b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "task": "mmlu_pro",
      "metric": "exact_match,custom-extract",
-     "score": 0.7946428571428571,
-     "stderr": 0.039786923368577094,
+     "score": 0.8482142857142857,
+     "stderr": 0.03490799026378573,
      "items": 112,
-     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/results_2026-09-30T18-04-58.233561.json",
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/results_2026-09-30T23-28-29.869230.json",
      "samples": [
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_biology_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_business_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_chemistry_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_computer_science_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_economics_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_engineering_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_health_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_history_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_law_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_math_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_other_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_philosophy_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_physics_2026-09-30T18-04-58.233561.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_psychology_2026-09-30T18-04-58.233561.jsonl"
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_biology_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_business_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_chemistry_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_computer_science_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_economics_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_engineering_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_health_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_history_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_law_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_math_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_other_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_philosophy_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_physics_2026-09-30T23-28-29.869230.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--qwen3.6-35b-a3b/mmlu_pro/qwen3.6-35b-a3b-mlx/samples_mmlu_pro_psychology_2026-09-30T23-28-29.869230.jsonl"
      ]
-    },
-    {
-     "model": "qwen3.6-35b-a3b",
-     "engine": "ollama-mlx",
-     "lane": "mlx",
-     "version": "0.34.4",
-     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [quantized_matmul] The shapes of the weight and scales are incompatible based on bits and group_size. w.shape() == (256,512) and scales.shape() == (256,32) with group_size=64 and bits=4 at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/"
     }
    ],
    "tools": [
@@ -1681,9 +1681,16 @@
     },
     {
      "model": "qwen3.6-35b-a3b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [quantized_matmul] The shapes of the weight and scales are incompatible based on bits and group_size. w.shape() == (256,512) and scales.shape() == (256,32) with group_size=64 and bits=4 at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/"
+    },
+    {
+     "model": "qwen3.6-35b-a3b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "simple_python",
      "accuracy": 0.925,
      "correct": 37,
@@ -1694,7 +1701,7 @@
      "model": "qwen3.6-35b-a3b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "multiple",
      "accuracy": 0.9,
      "correct": 36,
@@ -1705,10 +1712,10 @@
      "model": "qwen3.6-35b-a3b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "parallel",
-     "accuracy": 0.925,
-     "correct": 37,
+     "accuracy": 0.95,
+     "correct": 38,
      "total": 40,
      "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_parallel_score.json"
     },
@@ -1716,7 +1723,7 @@
      "model": "qwen3.6-35b-a3b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "parallel_multiple",
      "accuracy": 0.925,
      "correct": 37,
@@ -1727,19 +1734,12 @@
      "model": "qwen3.6-35b-a3b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "irrelevance",
      "accuracy": 0.925,
      "correct": 37,
      "total": 40,
      "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--qwen3.6-35b-a3b/score/qwen3.6-35b-a3b-mlx/non_live/BFCL_v4_irrelevance_score.json"
-    },
-    {
-     "model": "qwen3.6-35b-a3b",
-     "engine": "ollama-mlx",
-     "lane": "mlx",
-     "version": "0.34.4",
-     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: panic: mlx: [quantized_matmul] The shapes of the weight and scales are incompatible based on bits and group_size. w.shape() == (256,512) and scales.shape() == (256,32) with group_size=64 and bits=4 at /Users/runner/work/ollama/ollama/build/darwin-sources/_deps/mlx-c-src/"
     }
    ]
   },
@@ -2211,53 +2211,53 @@
     },
     {
      "model": "gemma-4-26b-a4b",
-     "engine": "quail-mlx",
-     "lane": "mlx",
-     "version": "0.62.0",
-     "task": "gsm8k_cot_llama",
-     "metric": "exact_match,strict-match",
-     "score": 0.8466666666666667,
-     "stderr": 0.029517623244908076,
-     "items": 150,
-     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-mlx/results_2026-09-30T18-16-29.909178.json",
-     "samples": [
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-mlx/samples_gsm8k_cot_llama_2026-09-30T18-16-29.909178.jsonl"
-     ]
-    },
-    {
-     "model": "gemma-4-26b-a4b",
-     "engine": "quail-mlx",
-     "lane": "mlx",
-     "version": "0.62.0",
-     "task": "mmlu_pro",
-     "metric": "exact_match,custom-extract",
-     "score": 0.8392857142857143,
-     "stderr": 0.03603175227506514,
-     "items": 112,
-     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/results_2026-09-30T18-34-08.441007.json",
-     "samples": [
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_biology_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_business_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_chemistry_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_computer_science_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_economics_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_engineering_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_health_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_history_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_law_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_math_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_other_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_philosophy_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_physics_2026-09-30T18-34-08.441007.jsonl",
-      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_psychology_2026-09-30T18-34-08.441007.jsonl"
-     ]
-    },
-    {
-     "model": "gemma-4-26b-a4b",
      "engine": "ollama-mlx",
      "lane": "mlx",
      "version": "0.34.4",
      "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: Error: layer 0: missing MoE expert weights (exit: exit status 1)\"}"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.63.1",
+     "task": "gsm8k_cot_llama",
+     "metric": "exact_match,strict-match",
+     "score": 0.9133333333333333,
+     "stderr": 0.02304876003821097,
+     "items": 150,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-mlx/results_2026-09-30T23-40-21.558605.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/gsm8k_cot_llama/gemma-4-26b-a4b-mlx/samples_gsm8k_cot_llama_2026-09-30T23-40-21.558605.jsonl"
+     ]
+    },
+    {
+     "model": "gemma-4-26b-a4b",
+     "engine": "quail-mlx",
+     "lane": "mlx",
+     "version": "0.63.1",
+     "task": "mmlu_pro",
+     "metric": "exact_match,custom-extract",
+     "score": 0.8571428571428571,
+     "stderr": 0.03374682794725243,
+     "items": 112,
+     "results_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/results_2026-09-30T23-58-21.663131.json",
+     "samples": [
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_biology_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_business_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_chemistry_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_computer_science_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_economics_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_engineering_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_health_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_history_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_law_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_math_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_other_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_philosophy_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_physics_2026-09-30T23-58-21.663131.jsonl",
+      "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/quality/quail-mlx--gemma-4-26b-a4b/mmlu_pro/gemma-4-26b-a4b-mlx/samples_mmlu_pro_psychology_2026-09-30T23-58-21.663131.jsonl"
+     ]
     }
    ],
    "tools": [
@@ -2545,9 +2545,16 @@
     },
     {
      "model": "gemma-4-26b-a4b",
+     "engine": "ollama-mlx",
+     "lane": "mlx",
+     "version": "0.34.4",
+     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: Error: layer 0: missing MoE expert weights (exit: exit status 1)\"}"
+    },
+    {
+     "model": "gemma-4-26b-a4b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "simple_python",
      "accuracy": 0.975,
      "correct": 39,
@@ -2558,7 +2565,7 @@
      "model": "gemma-4-26b-a4b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "multiple",
      "accuracy": 0.925,
      "correct": 37,
@@ -2569,7 +2576,7 @@
      "model": "gemma-4-26b-a4b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "parallel",
      "accuracy": 0.85,
      "correct": 34,
@@ -2580,10 +2587,10 @@
      "model": "gemma-4-26b-a4b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "parallel_multiple",
-     "accuracy": 0.875,
-     "correct": 35,
+     "accuracy": 0.85,
+     "correct": 34,
      "total": 40,
      "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_parallel_multiple_score.json"
     },
@@ -2591,19 +2598,12 @@
      "model": "gemma-4-26b-a4b",
      "engine": "quail-mlx",
      "lane": "mlx",
-     "version": "0.62.0",
+     "version": "0.63.1",
      "category": "irrelevance",
      "accuracy": 0.875,
      "correct": 35,
      "total": 40,
      "score_file": "/Users/adatoo/code/quail/bench/runs/20260930-000102-compare-mlx/tools/quail-mlx--gemma-4-26b-a4b/score/gemma-4-26b-a4b-mlx/non_live/BFCL_v4_irrelevance_score.json"
-    },
-    {
-     "model": "gemma-4-26b-a4b",
-     "engine": "ollama-mlx",
-     "lane": "mlx",
-     "version": "0.34.4",
-     "error": "HTTPError: HTTP 500: {\"error\":\"mlx runner failed: Error: layer 0: missing MoE expert weights (exit: exit status 1)\"}"
     }
    ]
   }

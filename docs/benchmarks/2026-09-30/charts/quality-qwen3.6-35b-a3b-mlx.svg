@@ -25,9 +25,9 @@
 <line class="axis" x1="534.5" x2="562.2" y1="49.0" y2="49.0" stroke-width="2"/>
 <text class="muted" x="568.2" y="53.0">0.96</text>
 <text x="142" y="79.0" text-anchor="end">Quail (MLX) · MMLU-Pro</text>
-<rect x="150" y="67.0" width="333.8" height="16" rx="2" fill="#2f6fdb" opacity="0.85"/>
-<line class="axis" x1="448.5" x2="510.8" y1="75.0" y2="75.0" stroke-width="2"/>
-<text class="muted" x="516.8" y="79.0">0.795</text>
+<rect x="150" y="67.0" width="356.2" height="16" rx="2" fill="#2f6fdb" opacity="0.85"/>
+<line class="axis" x1="473.5" x2="529.3" y1="75.0" y2="75.0" stroke-width="2"/>
+<text class="muted" x="535.3" y="79.0">0.848</text>
 <text x="142" y="105.0" text-anchor="end">oMLX · GSM8K</text>
 <rect x="150" y="93.0" width="394.8" height="16" rx="2" fill="#2f9e6e" opacity="0.85"/>
 <line class="axis" x1="523.8" x2="556.6" y1="101.0" y2="101.0" stroke-width="2"/>
