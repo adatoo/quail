@@ -29,9 +29,9 @@
 <line class="axis" x1="473.2" x2="553.4" y1="75.0" y2="75.0" stroke-width="2"/>
 <text class="muted" x="559.4" y="79.0">0.9</text>
 <text x="142" y="105.0" text-anchor="end">Quail (MLX) · parallel</text>
-<rect x="150" y="93.0" width="388.5" height="16" rx="2" fill="#2f9e6e" opacity="0.85"/>
-<line class="axis" x1="486.6" x2="559.1" y1="101.0" y2="101.0" stroke-width="2"/>
-<text class="muted" x="565.1" y="105.0">0.925</text>
+<rect x="150" y="93.0" width="399.0" height="16" rx="2" fill="#2f9e6e" opacity="0.85"/>
+<line class="axis" x1="500.7" x2="564.2" y1="101.0" y2="101.0" stroke-width="2"/>
+<text class="muted" x="570.2" y="105.0">0.95</text>
 <text x="142" y="131.0" text-anchor="end">Quail (MLX) · parallel multiple</text>
 <rect x="150" y="119.0" width="388.5" height="16" rx="2" fill="#9b51e0" opacity="0.85"/>
 <line class="axis" x1="486.6" x2="559.1" y1="127.0" y2="127.0" stroke-width="2"/>

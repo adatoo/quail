@@ -296,7 +296,7 @@ with a speed-only confirmation run on the M4 Pro Mac mini.
 9. [x] **The second run** (Quail 0.61.6 on GGUF, 0.62.0 on MLX): [docs/benchmarks/2026-09-30/](benchmarks/2026-09-30/README.md).
    - **GGUF lane:** level with llama-server, long prompts included.
    - **MLX lane:** fastest first token with 4 and 8 requests at once; Rapid-MLX still makes 10–20% more tokens a second with several at once (#139, #141 stay open for that).
-   - **Quality:** Gemma 4 scores a few points lower on Quail on both lanes (#152).
+   - **Quality:** level with the other engines, after #154 (0.63.1) fixed an MLX prompt-cache bug the run found (#152); Quail MLX's accuracy and tool calling were re-run with it. Gemma 4's MMLU-Pro on GGUF stays a few points under llama-server's, with identical prompts and no fault found (#152).
 10. [ ] Its results on `website/compare.html` (PR #131), once the owner has seen the page.
 
 **After 1.0:**

@@ -41,9 +41,16 @@ The other engines measured within 8% of their first run, most within 2%, so the 
 - **One request:** Rapid-MLX is 7–10% faster on Qwen3.6 and Gemma 4. Rapid-MLX compiles its whole single-request step and fuses more of the model's work into single GPU kernels. [#141](https://github.com/adatoo/quail/issues/141) stays open for that.
 - **Memory:** Quail's peak is now below Rapid-MLX's on every model, for example 11.7 GB against 20.7 GB on Qwen3 8B. oMLX uses less than Quail on Qwen3 8B and Gemma 4.
 
-**Quality and tool calling: the same as the other engines, except Gemma 4.**
-- On Gemma 4, Quail scored a few points lower in both runs and on both lanes: MMLU-Pro on GGUF (85.7% against 90.2% and 91.1%) and GSM8K on MLX (84.7% against 89.3% and 90.0%). Only one comparison is significant on its own: Ollama (GGUF) on MMLU-Pro, 6 items to 0, p = 0.031. Because it shows on both lanes and only for Gemma 4, the likely cause is Quail's own rendering of Gemma 4's chat template. It's being checked in [#152](https://github.com/adatoo/quail/issues/152).
-- Qwen3 8B and Qwen3.6 show no significant difference on either lane.
+**Quality and tool calling: level with the other engines, once an MLX bug this report found was fixed.**
+- **Found and fixed on MLX (#152):** the first version of this report had Quail (MLX) at 84.7% on Gemma 4's GSM8K, against 89.3% and 90.0%.
+  - The cause wasn't the chat template. Quail's prompts match the other engines' token for token.
+  - It was a bug in Quail's MLX prompt cache. When a prompt went back to a checkpoint of a sliding-window or recurrent layer, the next request's tokens were written into the stored checkpoint. A later prompt going back to it read the earlier request's text: 8 of the 150 GSM8K replies made up a new question instead of answering.
+  - Quail 0.63.1 fixes it, and Quail MLX's accuracy and tool calling were run again with it. Gemma 4's GSM8K is now 91.3% (oMLX 89.3%, Rapid-MLX 90.0%) and its MMLU-Pro 85.7%. Qwen3.6's MMLU-Pro went from 79.5% to 84.8%.
+- **Gemma 4 on GGUF, MMLU-Pro:** Quail has 85.7%, against 90.2% for llama-server and 91.1% for Ollama. Ollama's 6 items to 0 is significant on its own (p = 0.031).
+  - Quail runs the same llama.cpp as llama-server, and its prompts are identical. On a fresh cache, its replies are identical to llama-server's started with `--swa-full`, the full-size sliding-window cache that Quail keeps.
+  - That setting, and how much of a cached prompt is reused, change the arithmetic slightly. With step-by-step answers that flips items in both directions.
+  - No fault in Quail was found. A larger sample would say whether the gap is more than that (#152).
+- Qwen3 8B and Qwen3.6: no other engine is significantly ahead of Quail on either lane.
 
 **Where the others fell short:**
 - Rapid-MLX refused 133 of Qwen3.6's 200 tool-calling requests with HTTP 400. It rejected the model's arguments as the wrong type: a string where the schema wanted a number.
@@ -121,7 +128,7 @@ Engine-native ceiling (mlx_lm.benchmark, no server): generated tokens/s by seque
 
 | Engine | GSM8K | MMLU-Pro |
 |---|---:|---:|
-| Quail (MLX) | 89.3% (83%–93%, n=150) | 62.5% (53%–71%, n=112) |
+| Quail (MLX) | 91.3% (86%–95%, n=150) | 60.7% (51%–69%, n=112) |
 | oMLX | 88.7% (83%–93%, n=150) | 64.3% (55%–73%, n=112) |
 | Rapid-MLX | 90.7% (85%–94%, n=150) | 61.6% (52%–70%, n=112) |
 
@@ -197,7 +204,7 @@ Engine-native ceiling (mlx_lm.benchmark, no server): generated tokens/s by seque
 
 | Engine | GSM8K | MMLU-Pro |
 |---|---:|---:|
-| Quail (MLX) | 96.0% (92%–98%, n=150) | 79.5% (71%–86%, n=112) |
+| Quail (MLX) | 96.0% (92%–98%, n=150) | 84.8% (77%–90%, n=112) |
 | oMLX | 94.0% (89%–97%, n=150) | 82.1% (74%–88%, n=112) |
 | Rapid-MLX | 95.3% (91%–98%, n=150) | 78.6% (70%–85%, n=112) |
 
@@ -219,7 +226,7 @@ Engine-native ceiling (mlx_lm.benchmark, no server): generated tokens/s by seque
 
 | Engine | simple python | multiple | parallel | parallel multiple | irrelevance |
 |---|---:|---:|---:|---:|---:|
-| Quail (MLX) | 92.5% (80%–97%, n=40) | 90.0% (77%–96%, n=40) | 92.5% (80%–97%, n=40) | 92.5% (80%–97%, n=40) | 92.5% (80%–97%, n=40) |
+| Quail (MLX) | 92.5% (80%–97%, n=40) | 90.0% (77%–96%, n=40) | 95.0% (83%–99%, n=40) | 92.5% (80%–97%, n=40) | 92.5% (80%–97%, n=40) |
 | oMLX | 92.5% (80%–97%, n=40) | 90.0% (77%–96%, n=40) | 92.5% (80%–97%, n=40) | 92.5% (80%–97%, n=40) | 87.5% (74%–95%, n=40) |
 | Rapid-MLX | 7.5% (3%–20%, n=40) | 22.5% (12%–38%, n=40) | 15.0% (7%–29%, n=40) | 20.0% (10%–35%, n=40) | 97.5% (87%–100%, n=40) |
 
@@ -273,7 +280,7 @@ Engine-native ceiling (mlx_lm.benchmark, no server): generated tokens/s by seque
 
 | Engine | GSM8K | MMLU-Pro |
 |---|---:|---:|
-| Quail (MLX) | 84.7% (78%–90%, n=150) | 83.9% (76%–90%, n=112) |
+| Quail (MLX) | 91.3% (86%–95%, n=150) | 85.7% (78%–91%, n=112) |
 | oMLX | 89.3% (83%–93%, n=150) | 84.8% (77%–90%, n=112) |
 | Rapid-MLX | 90.0% (84%–94%, n=150) | 84.8% (77%–90%, n=112) |
 
@@ -295,7 +302,7 @@ Engine-native ceiling (mlx_lm.benchmark, no server): generated tokens/s by seque
 
 | Engine | simple python | multiple | parallel | parallel multiple | irrelevance |
 |---|---:|---:|---:|---:|---:|
-| Quail (MLX) | 97.5% (87%–100%, n=40) | 92.5% (80%–97%, n=40) | 85.0% (71%–93%, n=40) | 87.5% (74%–95%, n=40) | 87.5% (74%–95%, n=40) |
+| Quail (MLX) | 97.5% (87%–100%, n=40) | 92.5% (80%–97%, n=40) | 85.0% (71%–93%, n=40) | 85.0% (71%–93%, n=40) | 87.5% (74%–95%, n=40) |
 | oMLX | 97.5% (87%–100%, n=40) | 92.5% (80%–97%, n=40) | 82.5% (68%–91%, n=40) | 85.0% (71%–93%, n=40) | 87.5% (74%–95%, n=40) |
 | Rapid-MLX | 0.0% (0%–9%, n=40) | 0.0% (0%–9%, n=40) | 0.0% (0%–9%, n=40) | 0.0% (0%–9%, n=40) | 100.0% (91%–100%, n=40) |
 
@@ -362,7 +369,7 @@ Each cell names the engines that did better than Quail at that level, and by how
 - Rapid-MLX refused 3 of 200 BFCL requests (HTTP 400: Tool call 'calculate_projectile_range' parameter 'initial_velocity' violates declared schema: Expected number, got str. The model produced a schema-violating…) — Qwen3 8B.
 - Rapid-MLX asked for 1 of 200 BFCL requests to be sent again later (429 or 503 with Retry-After); they were, as a client would — Qwen3 8B.
 - Rapid-MLX refused 133 of 200 BFCL requests (HTTP 400: Tool call 'calculate_heat' parameter 'mass' violates declared schema: Expected number, got str. The model produced a schema-violating argument value; retry w…) — Qwen3.6 35B-A3B.
-- This run has two parts. The GGUF lane, and every engine's accuracy and tool calling except Quail MLX's, ran overnight on 2026-09-30 with Quail 0.61.6. The MLX lane's speed was measured again that afternoon for all four MLX engines, with Quail 0.62.0 (MLX 0.32.2), because the MLX fixes landed after the night run had started. Quail MLX's accuracy and tool calling were re-run with it. The versions table gives each engine's version.
+- This run has two parts. The GGUF lane, and every engine's accuracy and tool calling except Quail MLX's, ran overnight on 2026-09-30 with Quail 0.61.6. The MLX lane's speed was measured again that afternoon for all four MLX engines, with Quail 0.62.0 (MLX 0.32.2), because the MLX fixes landed after the night run had started. Quail MLX's accuracy and tool calling were re-run with it, then again that evening with Quail 0.63.1, which fixes the MLX prompt-cache bug this report found (#152). The versions table gives the version each engine's speed was measured with; Quail (MLX)'s accuracy and tool calling are 0.63.1's. The earlier results are kept in the run's `superseded/` folder.
 - Quail's GGUF footprint now grows by up to about 8 GB while it serves. It keeps idle requests' caches in memory to reuse them, as llama-server does with --cache-ram (#138). That's the rise in Quail (GGUF)'s peak memory since the first run.
 - Qwen3.6's chat template: llama-server and Ollama render each earlier assistant turn with 4 more tokens than Quail, oMLX and Rapid-MLX, which agree with each other. It only touches the few-shot quality prompts.
 - Rapid-MLX turns on its own GPU kernels as it loads a model: for Qwen3.6, a blocked GatedDeltaNet prefill kernel, a fused GatedDeltaNet decode and a compiled single-request decode. It also caps MLX's buffer cache (12.5 GB on this Mac). oMLX applies its own patches for the Qwen3.5 family, including a GatedDeltaNet prefill kernel and quantized-MLP prefill. They're part of each engine as shipped, so they were left on.
