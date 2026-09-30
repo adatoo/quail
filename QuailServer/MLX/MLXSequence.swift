@@ -146,7 +146,7 @@ final class MLXSequence {
         } else if request.cachePrompt, let taken = loaded.caches.take(for: prompt, trimmableOnly: false) {
             (layers, reused, checkpoints) = (taken.layers, taken.tokens.count, taken.checkpoints)
         } else {
-            layers = context.model.newCache(parameters: parameters)
+            layers = try context.model.newCache(parameters: parameters)
         }
         self.layers = layers
         self.reused = reused
@@ -164,7 +164,7 @@ final class MLXSequence {
         // `checkpointInterval` tokens on the way. Stopping short costs a forward pass of its own (on a 512-token
         // prompt, 15% of Gemma 4 26B-A4B's prompt time), so it's done only for a request that asks for its prompt
         // to be cached.
-        step = parameters.prefillStepSize
+        step = parameters.prefill.stepSize ?? 512
         untrimmable = request.cachePrompt && layers.contains { !$0.isTrimmable || $0.maxSize != nil }
         var feedTo = reused
         if untrimmable {

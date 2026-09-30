@@ -10,8 +10,12 @@
 //   over a batch of sequences of different lengths (`BatchKVCache`, `BatchSlidingKVCache`).
 // - Types are prefixed `QGemma4` so they don't meet mlx-swift-lm's own.
 //
+// Compared with mlx-swift-lm 0dcfe2f8a, the commit pinned (main, 2026-09-29): its own text-only Gemma 4
+// (MLXLLM/Models/Gemma4Text.swift) now has the experts and takes positions from `ropeOffset`, and in Quail it loaded
+// Gemma 4 26B-A4B text-only and batched it. This copy stays until that's checked across Gemma 4's other checkpoints.
+//
 // When mlx-swift-lm's pin moves, `MLXModelCopiesTests` fails until the source file's text model has been compared
-// with this one in the new release and the first line names it.
+// with this one at the new pin and this header names it.
 
 import Foundation
 import MLX

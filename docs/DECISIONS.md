@@ -909,6 +909,21 @@ One request alone, `-np 1` vs `-np 4`: 44.7 vs 40.8 tok/s (8B), 157.6 vs 228.7 (
 **Alternatives:** `MLXHuggingFace` for tokenizers (pulls `swift-huggingface` and macros for a downloader Quail doesn't use). Writing our own BPE tokenizer to avoid `swift-transformers` (a large, bug-prone job for byte-level BPE, SentencePiece and their pre-tokenizers). A separate `mlx-server` process (D-014, superseded by D-027).
 **Revisit if:** the notices work or the dependency footprint becomes a problem, mlx-swift-lm's generation API changes (3.x moved things before), or the static-library limitation is fixed and the engine can be tested.
 
+**Amended 2026-09-30 (a commit pin for MLX 0.32.2, #139):** mlx-swift-lm is pinned to commit `0dcfe2f8a` on its main branch (2026-09-29) instead of a release, which brings mlx-swift 0.32.2 and MLX core 0.32.2.
+- **Why:** with eight requests decoding at once, a step on MLX 0.31.1 (what mlx-swift 0.31.6 bundles) took about a third longer than on 0.32. The same held for mlx-lm itself, so it's MLX core, not Quail. The Mac mini (M4 Pro), Qwen3 8B 4-bit, eight rows, median step:
+
+  | | MLX 0.31.1 | MLX 0.32 |
+  |---|---:|---:|
+  | mlx-lm's `BatchGenerator` | 75.4–84.9 ms | 56.5–58.4 ms |
+  | Quail | 78.0–81.6 ms | 60.7–62.0 ms |
+- **Why a commit:** mlx-swift 0.32.2 came out on 2026-09-28. mlx-swift-lm 3.31.4, the latest release, caps mlx-swift below 0.32, and its main branch took 0.32.2 the same day, unreleased. Swift packages can't override a dependency's version range.
+- **What changed for Quail:**
+  - `newCache` now throws, and the prompt step size moved to `GenerateParameters.prefill`. The library's own iterator (image turns) keeps its old prompt chunking (`.remainder`).
+  - **Gemma 4 images keep their aspect ratio.** The library's processor now sizes each image to fit Gemma 4's 280-token budget without distorting it, so an image's token count is its own (a 96-pixel icon is 256, not 280). Quail now counts each image's tokens from its frame, `(height / patch) × (width / patch) / pooling²`, and pads the images onto the largest one's canvas, as the library's own `Gemma4Processor.prepare` does. Checked with one image and with two of different shapes, on Gemma 4 and Qwen3.6.
+- **Replies at temperature 0 change** slightly on some prompts, because MLX 0.32's kernels round differently: the same request gives the same text every time, but not always the text 0.61 gave. Batched replies still match their solo runs for a first stretch, then may take a different word, as D-056 describes.
+- **Model copies (D-066):** both were compared with this commit and stay. The copy test now accepts a commit pin.
+- **Moving back to a release:** as soon as mlx-swift-lm releases a version that takes mlx-swift 0.32 or later, the pin moves to it (#149, with the steps). `.github/workflows/mlx-release-watch.yml` checks every Monday while the pin is a commit: it reads the latest release's `Package.swift`, and once that release takes mlx-swift ≥ 0.32 it comments on #149 and fails, so GitHub emails the owner. It stops when the pin is an `exactVersion` again.
+
 ## D-043 · 2026-09-25 · The GGUF engine: `libllama` through llama.cpp's xcframework, in its own module
 
 **Decision:** `quail-server` loads GGUF models with `LlamaEngine` (`QuailServer/Llama`), a separate static library (`QuailServerLlama`) linked into the `quail-server` tool and the tests but not into `QuailServerCore`, so the seam types in `Engine.swift` and `ModelEntry.swift` became `public` and the tool hands its engines to `QuailServerApp.run(arguments:engines:)`. A format with no engine in a build still says so. **The library** is llama.cpp's own `llama-<tag>-xcframework.zip` at the same tag as the bundled `llama-server` (b11081), fetched by `task vendor:llama` with its own line in `Vendor/llama.sha256`, staged whole in the git-ignored `Vendor/llama.xcframework`, linked by Xcode, and embedded by `embed:llama` into `Quail.app/Contents/Frameworks/llama.framework`, thinned to arm64 (8 MB) and signed like everything else there. `quail-server` finds it through the rpath `@executable_path/../Frameworks` (Debug builds run from the products folder also find the copy beside them). `verify:bundle` checks the framework is present and **starts** `quail-server`, since a bad rpath, architecture or Team ID only shows at launch.

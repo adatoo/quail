@@ -297,7 +297,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             }
             let contextSize = entry.contextSize ?? files.contextLength ?? Self.defaultContext
             let canBatch = await container.perform { context in
-                BatchedLayers.canBatch(context.model.newCache(parameters: nil))
+                BatchedLayers.canBatch((try? context.model.newCache(parameters: nil)) ?? [])
                     && (context.model as? QGemma4Model)?.ownsEveryCache ?? true
             }
             let batched = switch Self.batchSetting {
@@ -681,7 +681,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         if request.cachePrompt, let taken = loaded.caches.take(for: prompt, trimmableOnly: true) {
             (layers, reused) = (taken.layers, taken.tokens.count)
         } else {
-            layers = context.model.newCache(parameters: parameters)
+            layers = try context.model.newCache(parameters: parameters)
         }
         let remaining = MLXArray(prompt[reused...].map { Int32(truncatingIfNeeded: $0) })
         var processor = parameters.processor()
@@ -693,7 +693,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let iterator = try TokenIterator(
             input: LMInput(text: .init(tokens: remaining.expandedDimensions(axis: 0))), model: context.model,
             cache: layers, processor: processor, sampler: SeededSampler(request.sampling),
-            prefillStepSize: parameters.prefillStepSize, maxTokens: request.maxTokens
+            prefill: .init(stepSize: parameters.prefill.stepSize, chunking: .remainder), maxTokens: request.maxTokens
         )
         let (stream, task) = generateTokenTask(
             promptTokenCount: prompt.count - reused, modelConfiguration: context.configuration,
@@ -800,7 +800,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
                     throw EngineError.generationFailed("this model's image processor isn't the one Quail drives")
                 }
                 // Gemma 4's processor applies the sRGB curve itself.
-                (imagePixels, frame) = try processor.preprocess(images: [image], processing: nil)
+                (imagePixels, frame) = try processor.preprocess(image: image, processing: nil)
             }
             pixels.append(imagePixels)
             frames.append(frame)
@@ -810,11 +810,20 @@ final class MLXEngine: Engine, @unchecked Sendable {
             tokens = try MLXVision.expand(
                 tokens, padID: imageID, counts: frames.map { $0.t * $0.h * $0.w / (mergeSize * mergeSize) }
             )
-        case let .gemma4(boi, eoi, seqLength):
-            let run = [boi] + Array(repeating: imageID, count: seqLength) + (eoi.map { [$0] } ?? [])
-            tokens = try MLXVision.expand(
-                tokens, marker: imageID, replacements: Array(repeating: run, count: frames.count)
-            )
+        case let .gemma4(boi, eoi, patchSize, pooling):
+            // Each image keeps its own aspect ratio, so its soft-token count is its own, and the images are
+            // zero-padded onto the largest one's canvas; the model reads each one's real region back from its frame
+            // (as the library's `Gemma4Processor.prepare` does).
+            let runs = frames.map { frame in
+                let count = (frame.h / patchSize) * (frame.w / patchSize) / (pooling * pooling)
+                return [boi] + Array(repeating: imageID, count: count) + (eoi.map { [$0] } ?? [])
+            }
+            tokens = try MLXVision.expand(tokens, marker: imageID, replacements: runs)
+            let (height, width) = (frames.map(\.h).max() ?? 0, frames.map(\.w).max() ?? 0)
+            pixels = zip(pixels, frames).map { image, frame in
+                frame.h == height && frame.w == width ? image
+                    : padded(image, widths: [0, 0, .init((0, height - frame.h)), .init((0, width - frame.w))])
+            }
         }
         guard tokens.count < loaded.info.contextSize else {
             throw EngineError.invalidRequest(
@@ -835,7 +844,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let iterator = try TokenIterator(
             input: input, model: context.model, cache: context.model.newCache(parameters: parameters),
             processor: processorChain, sampler: SeededSampler(request.sampling),
-            prefillStepSize: parameters.prefillStepSize, maxTokens: request.maxTokens
+            prefill: .init(stepSize: parameters.prefill.stepSize, chunking: .remainder), maxTokens: request.maxTokens
         )
         let (stream, task) = generateTokenTask(
             promptTokenCount: tokens.count, modelConfiguration: context.configuration,
@@ -1049,7 +1058,7 @@ extension Duration {
 /// A vision-loaded model's image layout (`MLXVision.Family`), with what its config files say.
 enum VisionSetup {
     case qwen35(mergeSize: Int)
-    case gemma4(boi: Int, eoi: Int?, seqLength: Int)
+    case gemma4(boi: Int, eoi: Int?, patchSize: Int, pooling: Int)
 
     var family: MLXVision.Family {
         switch self {
@@ -1082,10 +1091,12 @@ private struct ModelFiles {
         case .qwen35:
             return .qwen35(mergeSize: processor["merge_size"] as? Int ?? 2)
         case .gemma4:
+            let image = processor["image_processor"] as? [String: Any] ?? processor
             return .gemma4(
                 boi: config["boi_token_id"] as? Int ?? 255_999,
                 eoi: config["eoi_token_id"] as? Int ?? 258_882,
-                seqLength: processor["image_seq_length"] as? Int ?? 280
+                patchSize: image["patch_size"] as? Int ?? 16,
+                pooling: image["pooling_kernel_size"] as? Int ?? 3
             )
         }
     }

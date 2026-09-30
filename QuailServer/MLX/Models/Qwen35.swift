@@ -13,8 +13,13 @@
 // - Types are prefixed `QQwen35` so they don't meet mlx-swift-lm's own; its configuration types are internal there,
 //   so they are copied too.
 //
+// Compared with mlx-swift-lm 0dcfe2f8a, the commit pinned (main, 2026-09-29): its Qwen3.5 now fuses the four
+// GatedDeltaNet input projections into one, compiles decode segments and fuses the router's top-k. On the Mac mini it
+// took 10.99 ms a token on Qwen3.6 35B-A3B, against 11.22 ms for this copy and 10.79 ms with the fused GatedDeltaNet
+// decode kernel (#148), so this copy stays.
+//
 // When mlx-swift-lm's pin moves, `MLXModelCopiesTests` fails until the source files have been compared with this
-// one in the new release and the first line names it.
+// one at the new pin and this header names it.
 
 import Foundation
 import MLX
