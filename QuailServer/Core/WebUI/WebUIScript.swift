@@ -340,6 +340,9 @@ extension WebUI {
     }
 
     const statusOf = (model) => (model && model.status && (model.status.failed ? "failed" : model.status.value)) || "";
+    // While a model loads: the busy models it's waiting on to finish their requests (Quail's own `waiting_for`).
+    const waitingOf = (model) => (model && model.status && model.status.waiting_for) || [];
+    const waitingText = (model) => "waiting for " + waitingOf(model).map(displayName).join(", ") + " to finish";
     // Set once someone picks a model in this page; until then the picker follows what the server has loaded.
     let userPicked = false;
 
@@ -382,7 +385,8 @@ extension WebUI {
       return parts.filter(Boolean).join(" · ");
     }
     const formatBadge = (model) => make("span", "badge " + formatOf(model), formatOf(model).toUpperCase());
-    const stateLabel = (status) => ({ loaded: "loaded", loading: "loading…", failed: "failed" })[status] || "";
+    const stateLabel = (status, model) => (status === "loading" && waitingOf(model).length ? "waiting…"
+      : ({ loaded: "loaded", loading: "loading…", failed: "failed" })[status] || "");
 
     // The picker: a button showing the chosen model, over a list with each model's details. The hidden
     // <select> stays the source of truth, so everything that reads els.model.value is unchanged.
@@ -405,7 +409,9 @@ extension WebUI {
         const meta = make("span", "option-meta");
         meta.append(formatBadge(m), document.createTextNode(describeModel(m)));
         text.append(make("span", "option-name", displayName(m.id)), meta);
-        row.append(make("span", "dot " + status), text, make("span", "option-state " + status, stateLabel(status)));
+        const state = make("span", "option-state " + status, stateLabel(status, m));
+        if (waitingOf(m).length) { state.title = "Loading once it's no longer " + waitingText(m); }
+        row.append(make("span", "dot " + status), text, state);
         row.addEventListener("mousedown", (event) => event.preventDefault()); // keep focus on the list
         row.addEventListener("click", () => pickModel(index));
         row.addEventListener("mousemove", () => { if (activeIndex !== index) { activeIndex = index; highlight(); } });
@@ -443,17 +449,22 @@ extension WebUI {
       els.model.dispatchEvent(new Event("change"));
     }
 
+    let followingLoad = null;
     function updateModelControls() {
       const model = models.find((m) => m.id === els.model.value);
       const status = statusOf(model);
       els["model-dot"].className = "dot " + status;
-      els["model-dot"].title = status ? "Model " + status : "";
+      els["model-dot"].title = waitingOf(model).length ? "Model loading, " + waitingText(model) : status ? "Model " + status : "";
       renderPicker();
       const action = els["model-action"];
       action.disabled = !model || status === "loading" || Boolean(controller);
       action.textContent = status === "loaded" ? "Unload" : status === "loading" ? "Loading…" : "Load";
       action.title = status === "loaded" ? "Free this model's memory" : "Load this model now (a message loads it too)";
       action.dataset.action = status === "loaded" ? "unload" : "load";
+      // The page doesn't poll, so while its model loads it looks again, until the load ends.
+      if (status === "loading" && !followingLoad) {
+        followingLoad = setTimeout(() => { followingLoad = null; refreshModels(); }, 1500);
+      }
     }
 
     async function refreshModels() {
@@ -482,10 +493,14 @@ extension WebUI {
       }
     }
 
+    // How many models the server keeps loaded at once (`/props`' max_instances); loading one more unloads another.
+    let maxModels = 1;
     async function showBuild() {
       try {
         const res = await api("/props");
-        els.build.textContent = (await res.json()).build_info || "";
+        const props = await res.json();
+        els.build.textContent = props.build_info || "";
+        if (props.max_instances > 0) { maxModels = props.max_instances; }
       } catch (error) { els.build.textContent = ""; }
     }
 
@@ -501,8 +516,10 @@ extension WebUI {
           const entry = list.find((m) => m.id === model);
           if (!entry || statusOf(entry) !== "loading") {
             if (entry && statusOf(entry) === "failed") { setStatus(model + " failed to load. Quail's Logs window says why.", true); }
+            else if (els.status.className !== "error") { setStatus("", false); }
             break;
           }
+          if (waitingOf(entry).length) { setStatus("Loading " + displayName(model) + ", " + waitingText(entry) + "…", false); }
           await sleep(1000);
         }
       } catch (error) { fail(error); }
@@ -779,10 +796,42 @@ extension WebUI {
       }
     }
 
-    async function send() {
+    // Sending to a model that isn't loaded, while the server is full of others, would unload one of them: quite
+    // likely the model just loaded in Quail. Offer that one instead, and send once a button says which.
+    function loadedInstead() {
+      const chosen = models.find((m) => m.id === els.model.value);
+      if (!chosen || !["unloaded", "failed"].includes(statusOf(chosen))) { return null; }
+      const loaded = models.filter((m) => statusOf(m) === "loaded");
+      return loaded.length >= maxModels ? { chosen, loaded: loaded[0] } : null;
+    }
+
+    function offerLoaded(chosen, loaded) {
+      els.status.className = "";
+      els.status.replaceChildren(
+        document.createTextNode(displayName(chosen.id) + " isn't loaded, and " + displayName(loaded.id) + " is. "),
+        button("Use " + displayName(loaded.id), "Send this message to the model that's loaded", () => {
+          els.model.value = loaded.id;
+          els.model.dispatchEvent(new Event("change"));
+          send(true);
+        }),
+        document.createTextNode(" "),
+        button("Load " + displayName(chosen.id), "Unload " + displayName(loaded.id) + " (stopping any reply it's writing) and load this one", async () => {
+          // Asked for by hand, so the server stops the other model's requests rather than waiting for them.
+          try { await api("/models/load", { method: "POST", body: JSON.stringify({ model: chosen.id }) }); }
+          catch (error) { fail(error); return; }
+          send(true);
+        }));
+    }
+
+    async function send(decided) {
       const text = els.input.value.trim();
       if ((!text && !pending.length) || controller) { return; }
       if (!els.model.value) { setStatus("Choose a model first.", true); return; }
+      if (decided !== true) {
+        await refreshModels();
+        const offer = loadedInstead();
+        if (offer) { offerLoaded(offer.chosen, offer.loaded); return; }
+      }
       const images = pending.filter((a) => a.kind === "image").map((a) => a.url);
       if (images.length && !modelReadsImages()) {
         setStatus(formatOf(models.find((m) => m.id === els.model.value)) === "mlx"
@@ -831,8 +880,10 @@ extension WebUI {
       const body = applySettings({ model, messages, stream: true }, currentFormat());
       controller = new AbortController();
       setBusy(true);
+      const watch = watchLoad(model);
       try {
         const res = await api("/v1/chat/completions", { method: "POST", signal: controller.signal, body: JSON.stringify(body) });
+        watch.stop();
         await readStream(res, reply, ui);
       } catch (error) {
         if (error.name !== "AbortError") {
@@ -840,6 +891,7 @@ extension WebUI {
           if (!reply.content) { reply.error = error.message; }
         }
       } finally {
+        watch.stop();
         controller = null;
         setBusy(false);
         if (!reply.content && !reply.reasoning && !reply.calls) {
@@ -849,6 +901,26 @@ extension WebUI {
         if (conversation === current) { renderConversation(); }
         refreshModels();
       }
+    }
+
+    // Until a reply starts, a model that isn't loaded yet says so, and what its load is waiting for.
+    function watchLoad(model) {
+      const entry = models.find((m) => m.id === model);
+      let stopped = !entry || statusOf(entry) === "loaded";
+      (async () => {
+        while (!stopped) {
+          await sleep(1000);
+          if (stopped) { break; }
+          try {
+            const list = (await (await api("/v1/models")).json()).data || [];
+            const now = list.find((m) => m.id === model);
+            if (stopped) { break; }
+            if (!now || statusOf(now) === "loaded") { setStatus("", false); break; }
+            setStatus("Loading " + displayName(model) + (waitingOf(now).length ? ", " + waitingText(now) : "") + "…", false);
+          } catch (error) { break; }
+        }
+      })();
+      return { stop() { if (!stopped) { stopped = true; if (!els.status.className) { setStatus("", false); } } } };
     }
 
     // MARK: attachments
@@ -1043,6 +1115,8 @@ extension WebUI {
     document.addEventListener("mousedown", (event) => {
       if (!event.target.closest(".model-picker")) { closePicker(false); }
     });
+    // A model loaded in Quail while this page sat in the background: the list catches up when it's looked at again.
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && !controller) { refreshModels(); } });
     els.model.addEventListener("change", () => {
       userPicked = true;
       store.set("quail.model", els.model.value);

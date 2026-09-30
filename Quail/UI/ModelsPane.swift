@@ -285,6 +285,7 @@ struct ModelsPane: View {
             entry: entry,
             loading: model.status.value == "loading",
             unloading: unloading.contains(model.id),
+            waitingFor: activity.models.first { $0.id == model.id }?.waitingFor ?? model.status.waitingFor ?? [],
             live: activity.models.first { $0.id == model.id },
             requests: activity.requests.filter { $0.model == model.id },
             serverMemoryBytes: appState.activity.system.serverMemoryBytes,
@@ -785,6 +786,8 @@ private struct LoadedModelRow: View {
     let entry: InstalledModel?
     let loading: Bool
     let unloading: Bool
+    /// While it loads: the busy models it's waiting on to finish their requests (ADR D-068).
+    let waitingFor: [String]
     /// What `/slots` says about it: load time and, for MLX, its memory.
     let live: ServerActivity.Model?
     let requests: [ServerActivity.Request]
@@ -828,7 +831,7 @@ private struct LoadedModelRow: View {
                     .controlSize(.small)
                     .help(requests.isEmpty
                         ? "Free this model's memory; it loads again on its next request"
-                        : "Free this model's memory once its requests in progress finish")
+                        : "Stop its requests in progress and free its memory")
             }
             Button(action: onToggleDefault) {
                 Image(systemName: isDefault ? "star.fill" : "star")
@@ -860,10 +863,15 @@ private struct LoadedModelRow: View {
 
     private var activityText: String {
         if loading {
+            if !waitingFor.isEmpty {
+                // An MLX folder's name is owner--repo; the repo is enough to recognise it on one line.
+                let names = waitingFor.map { $0.components(separatedBy: "--").last ?? $0 }
+                return "Waiting for \(names.joined(separator: ", ")) to finish"
+            }
             return live?.loadingSeconds.map { "Loading \(Int($0)) s" } ?? "Loading…"
         }
         if unloading {
-            return requests.isEmpty ? "Unloading…" : "Unloading after \(requests.count) request\(requests.count == 1 ? "" : "s")"
+            return requests.isEmpty ? "Unloading…" : "Stopping \(requests.count) request\(requests.count == 1 ? "" : "s")…"
         }
         if requests.isEmpty {
             return "Idle"

@@ -212,6 +212,45 @@ struct UISnapshotTests {
         )
     }
 
+    @Test("Activity window, a load waiting for a busy model to finish (ADR D-068)")
+    func activityWindowWaiting() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        appState.activity.show(
+            system: SystemSample(
+                cpuPercent: 12, serverCPUPercent: 8, gpuPercent: 71, memoryUsedBytes: 33_500_000_000,
+                memoryTotalBytes: 68_719_476_736, serverMemoryBytes: 20_400_000_000
+            ),
+            server: ServerActivity(
+                models: [
+                    .init(
+                        id: "mlx-community--Qwen3.6-35B-A3B-4bit",
+                        state: "loaded",
+                        leases: 1,
+                        memoryBytes: 19_800_000_000
+                    ),
+                    .init(
+                        id: "Qwen3-8B-Q4_K_M",
+                        state: "loading",
+                        leases: 0,
+                        waitingFor: ["mlx-community--Qwen3.6-35B-A3B-4bit"]
+                    ),
+                ],
+                requests: [.init(
+                    id: 1, model: "mlx-community--Qwen3.6-35B-A3B-4bit", phase: .generating, promptTotal: 800,
+                    promptDone: 800, cached: 0, generated: 1312, promptPerSecond: 900, predictedPerSecond: 52,
+                    seconds: 31, client: Self.webUI
+                )],
+                clients: [Self.clientTotals(Self.webUI, requests: 1, busy: 31, active: 1)],
+                uptimeSeconds: 600
+            ),
+            history: Self.activityHistory(minutes: 1, serverMemory: 20_400_000_000)
+        )
+        try await render(
+            ActivityWindow(appState: appState), size: CGSize(width: 340, height: 520), name: "activity-waiting"
+        )
+    }
+
     @Test("Activity window, server stopped: the Mac's figures and charts, over 1 and 15 minutes")
     func activityWindowStopped() async throws {
         let (appState, scratch) = try await makeAppState()

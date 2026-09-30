@@ -125,7 +125,11 @@ struct ActivityWindow: View {
                     HStack {
                         Text(model.id).font(.callout.weight(.semibold)).lineLimit(1).truncationMode(.middle)
                         Spacer()
-                        if model.state == "loading" {
+                        if model.state == "loading", !(model.waitingFor ?? []).isEmpty {
+                            Text("Waiting")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        } else if model.state == "loading" {
                             Text("Loading \(Int(model.loadingSeconds ?? 0)) s")
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.orange)
@@ -138,6 +142,13 @@ struct ActivityWindow: View {
                     let requests = server.requests.filter { $0.model == model.id }
                     if requests.isEmpty, model.state == "loaded" {
                         Text("Idle").font(.caption).foregroundStyle(.secondary)
+                    }
+                    if model.state == "loading", let waiting = model.waitingFor, !waiting.isEmpty {
+                        // A load that a request needs waits for a busy model's requests to end (ADR D-068).
+                        Text("Loads once \(waiting.joined(separator: ", ")) finishes its requests")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
                     }
                     ForEach(requests) { RequestRow(request: $0) }
                 }

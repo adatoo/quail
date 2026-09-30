@@ -155,7 +155,7 @@ struct ServerRoutes: Sendable {
             models.append(.init(
                 id: model.id, state: model.state == .loaded ? "loaded" : "loading",
                 loadingSeconds: model.loadStartedAt.map { now.timeIntervalSince($0) }, leases: model.leases,
-                memoryBytes: memory
+                memoryBytes: memory, waitingFor: model.waitingFor.isEmpty ? nil : model.waitingFor
             ))
         }
         let requests = router.activity.snapshot().map { request in
@@ -177,7 +177,10 @@ struct ServerRoutes: Sendable {
     private func loadModel(_ request: HTTPRequest) async -> HTTPResponse {
         guard let id = Self.modelID(in: request) else { return missingModel() }
         do {
-            try await router.load(id) // queued; the status reads `loading` until it's ready
+            // Queued; the status reads `loading` until it's ready. Asked for by hand, so a busy model in the way has
+            // its
+            // requests stopped rather than waited for (ADR D-068).
+            try await router.load(id, interrupting: true)
             return .json(200, ["success": true])
         } catch {
             return routerError(error)
@@ -187,7 +190,7 @@ struct ServerRoutes: Sendable {
     private func unloadModel(_ request: HTTPRequest) async -> HTTPResponse {
         guard let id = Self.modelID(in: request) else { return missingModel() }
         do {
-            try await router.unload(id)
+            try await router.unload(id, interrupting: true)
             return .json(200, ["success": true])
         } catch {
             return routerError(error)
@@ -231,11 +234,14 @@ private struct ModelJSON: Encodable {
         let value: String
         let failed: Bool?
         let exitCode: Int?
+        /// Quail's own (ADR D-068): while loading, the busy models it's waiting on to finish their requests.
+        var waitingFor: [String]?
 
         enum CodingKeys: String, CodingKey {
             case value
             case failed
             case exitCode = "exit_code"
+            case waitingFor = "waiting_for"
         }
     }
 
@@ -290,7 +296,10 @@ private struct ModelJSON: Encodable {
         // is what `ServedModel` decodes.
         switch snapshot.state {
         case .unloaded: status = Status(value: "unloaded", failed: nil, exitCode: nil)
-        case .loading: status = Status(value: "loading", failed: nil, exitCode: nil)
+        case .loading: status = Status(
+                value: "loading", failed: nil, exitCode: nil,
+                waitingFor: snapshot.waitingFor.isEmpty ? nil : snapshot.waitingFor
+            )
         case .loaded: status = Status(value: "loaded", failed: nil, exitCode: nil)
         case .failed: status = Status(value: "unloaded", failed: true, exitCode: 1)
         }
@@ -305,11 +314,14 @@ struct ActivityJSON: Encodable {
         let loadingSeconds: Double?
         let leases: Int
         let memoryBytes: Int?
+        /// While loading: the busy models it's waiting on (ADR D-068).
+        let waitingFor: [String]?
 
         enum CodingKeys: String, CodingKey {
             case id, state, leases
             case loadingSeconds = "loading_seconds"
             case memoryBytes = "memory_bytes"
+            case waitingFor = "waiting_for"
         }
     }
 

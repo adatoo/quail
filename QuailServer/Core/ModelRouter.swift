@@ -11,6 +11,8 @@ enum ModelState: Equatable, Sendable {
 struct ModelSnapshot: Equatable, Sendable {
     let entry: ModelEntry
     let state: ModelState
+    /// While it's loading: the busy models it's waiting on to finish their requests before one of them can make room.
+    var waitingFor: [String] = []
 }
 
 enum RouterError: Error, Equatable, LocalizedError, Sendable {
@@ -33,6 +35,59 @@ enum RouterError: Error, Equatable, LocalizedError, Sendable {
 struct ModelLease: Sendable {
     let id: String
     let engine: any Engine
+    /// Stops this request if someone asks, by hand, for its model to go (`POST /models/load` or `/models/unload`).
+    var interrupter = RequestInterrupter()
+}
+
+/// Stops the requests using one load of a model, when someone asks by hand for it to go: a load of another model
+/// that needs its room, or an unload (ADR D-068). A request registers a handler for as long as it generates; one
+/// that registers after the interruption is stopped at once, so a request that was about to start doesn't slip in.
+final class RequestInterrupter: Sendable {
+    private struct State {
+        var handlers: [Int: @Sendable (String) -> Void] = [:]
+        var next = 0
+        var reason: String?
+    }
+
+    private let state = Locked(State())
+
+    /// Calls `handler` with the reason when the model's requests are stopped (at once, if they already were).
+    /// Returns the token to `remove` it with, or nil if it was called.
+    func register(_ handler: @escaping @Sendable (String) -> Void) -> Int? {
+        let (token, reason): (Int?, String?) = state.withState { state in
+            if let reason = state.reason {
+                return (nil, reason)
+            }
+            state.next += 1
+            state.handlers[state.next] = handler
+            return (state.next, nil)
+        }
+        if let reason {
+            handler(reason)
+        }
+        return token
+    }
+
+    func remove(_ token: Int) {
+        state.withState { _ = $0.handlers.removeValue(forKey: token) }
+    }
+
+    var interrupted: Bool {
+        state.withState { $0.reason != nil }
+    }
+
+    /// Stops every request registered now, and every one that registers later.
+    func interrupt(_ reason: String) {
+        let handlers = state.withState { state -> [@Sendable (String) -> Void] in
+            guard state.reason == nil else { return [] }
+            state.reason = reason
+            defer { state.handlers = [:] }
+            return Array(state.handlers.values)
+        }
+        for handler in handlers {
+            handler(reason)
+        }
+    }
 }
 
 /// Owns which models are loaded: at most `modelsMax`, least recently used out
@@ -51,6 +106,14 @@ actor ModelRouter {
         var unloadWhenIdle = false
         /// When its engine started loading, while it does (`GET /slots`).
         var loadStartedAt: Date?
+        /// Stops the requests on this load of the model (ADR D-068); a fresh one for each load, and after an
+        /// interruption that turned out not to be needed.
+        var interrupter = RequestInterrupter()
+        /// While loading: whether someone asked for it by hand, so busy models in its way have their requests
+        /// stopped rather than waited for (ADR D-068).
+        var interrupts = false
+        /// While loading: the busy models it's waiting on (`GET /models`, `GET /slots`).
+        var waitingFor: [String] = []
     }
 
     private var slots: [String: Slot]
@@ -77,11 +140,15 @@ actor ModelRouter {
     // MARK: Reading
 
     func snapshots() -> [ModelSnapshot] {
-        order.compactMap { id in slots[id].map { ModelSnapshot(entry: $0.entry, state: $0.state) } }
+        order.compactMap { id in slots[id].map(Self.snapshot) }
     }
 
     func snapshot(_ id: String) -> ModelSnapshot? {
-        slots[id].map { ModelSnapshot(entry: $0.entry, state: $0.state) }
+        slots[id].map(Self.snapshot)
+    }
+
+    private static func snapshot(_ slot: Slot) -> ModelSnapshot {
+        ModelSnapshot(entry: slot.entry, state: slot.state, waitingFor: slot.state == .loading ? slot.waitingFor : [])
     }
 
     func leaseCount(_ id: String) -> Int {
@@ -91,31 +158,55 @@ actor ModelRouter {
     /// The requests in progress, for `GET /slots` (ADR D-060). Not isolated: requests record themselves as they go.
     nonisolated let activity = ActivityRegistry()
 
-    /// Each model that's loading or loaded, for `GET /slots`: its state, when its load started, its leases and its
-    /// engine (to ask for its memory).
-    func activeModels() -> [(id: String, state: ModelState, loadStartedAt: Date?, leases: Int, engine: (any Engine)?)] {
+    /// Each model that's loading or loaded, for `GET /slots`: its state, when its load started, its leases, its
+    /// engine (to ask for its memory) and, while it loads, the busy models it's waiting on.
+    func activeModels() -> [ActiveModel] {
         order.compactMap { id in
             guard let slot = slots[id], slot.state == .loading || slot.state == .loaded else { return nil }
-            return (id, slot.state, slot.loadStartedAt, slot.leases, slot.engine)
+            return ActiveModel(
+                id: id, state: slot.state, loadStartedAt: slot.loadStartedAt, leases: slot.leases, engine: slot.engine,
+                waitingFor: slot.state == .loading ? slot.waitingFor : []
+            )
         }
+    }
+
+    struct ActiveModel {
+        let id: String
+        let state: ModelState
+        let loadStartedAt: Date?
+        let leases: Int
+        let engine: (any Engine)?
+        let waitingFor: [String]
     }
 
     // MARK: Loading
 
-    /// Queues a load and returns; the model reads `loading` until it's ready.
-    func load(_ id: String) throws {
+    /// Queues a load and returns; the model reads `loading` until it's ready. `interrupting`: someone asked for it
+    /// by hand, so if every model in its way is busy, the least recently used one has its requests stopped rather
+    /// than waited for (ADR D-068). A load a request needs waits.
+    func load(_ id: String, interrupting: Bool = false) throws {
         guard slots[id] != nil else { throw RouterError.unknownModel(id) }
         if isShutDown {
             throw RouterError.shuttingDown
         }
-        slots[id]?.unloadWhenIdle = false
+        if slots[id]!.unloadWhenIdle {
+            slots[id]?.unloadWhenIdle = false
+            // Asked to stay after all: requests from now on run, though the ones stopped already stay stopped.
+            if slots[id]!.interrupter.interrupted {
+                slots[id]?.interrupter = RequestInterrupter()
+            }
+        }
         switch slots[id]!.state {
         case .loaded:
             slots[id]?.lastUsed = tick()
         case .loading:
-            break
+            if interrupting {
+                slots[id]?.interrupts = true
+                wakeIdle()
+            }
         case .unloaded, .failed:
             slots[id]?.state = .loading
+            slots[id]?.interrupts = interrupting
             let previous = jobTail
             jobTail = Task {
                 await previous?.value
@@ -136,7 +227,7 @@ actor ModelRouter {
             case .loaded:
                 slots[id]?.leases += 1
                 slots[id]?.lastUsed = tick()
-                return ModelLease(id: id, engine: slots[id]!.engine!)
+                return ModelLease(id: id, engine: slots[id]!.engine!, interrupter: slots[id]!.interrupter)
             case .loading:
                 await settled(id)
                 waited = true
@@ -193,7 +284,9 @@ actor ModelRouter {
 
     // MARK: Unloading
 
-    func unload(_ id: String) async throws {
+    /// Unloads a model, or marks it to go once its requests end. `interrupting`: someone asked by hand, so its
+    /// requests are stopped rather than waited for (ADR D-068).
+    func unload(_ id: String, interrupting: Bool = false) async throws {
         guard slots[id] != nil else { throw RouterError.unknownModel(id) }
         switch slots[id]!.state {
         case .unloaded:
@@ -207,6 +300,9 @@ actor ModelRouter {
                 await unloadNow(id)
             } else {
                 slots[id]?.unloadWhenIdle = true
+                if interrupting {
+                    slots[id]!.interrupter.interrupt("\(id) was unloaded")
+                }
             }
         }
     }
@@ -273,6 +369,7 @@ actor ModelRouter {
             slots[id]?.state = .unloaded
         } else {
             slots[id]?.engine = engine
+            slots[id]?.interrupter = RequestInterrupter()
             slots[id]?.state = .loaded
             slots[id]?.lastUsed = tick()
             log.log(.info, "loaded \(id)")
@@ -281,16 +378,33 @@ actor ModelRouter {
     }
 
     /// Unloads least-recently-used models until one more fits, waiting for busy
-    /// ones — and for unloads already in flight — to finish.
+    /// ones — and for unloads already in flight — to finish. For a load asked for by
+    /// hand, the least recently used busy model has its requests stopped (ADR D-068).
     private func makeRoom(for id: String) async {
+        var interrupted: Set<String> = []
+        defer {
+            slots[id]?.waitingFor = []
+            // A model stopped for this load that's still here (another made room first) serves requests again.
+            for other in interrupted where slots[other]?.state == .loaded {
+                slots[other]?.interrupter = RequestInterrupter()
+            }
+        }
         while slots[id]?.state == .loading, !isShutDown {
             if loadedCount >= modelsMax {
-                let idle = slots.values
-                    .filter { $0.state == .loaded && $0.leases == 0 }
-                    .min { $0.lastUsed < $1.lastUsed }
-                if let victim = idle {
+                let loaded = slots.values.filter { $0.state == .loaded }.sorted { $0.lastUsed < $1.lastUsed }
+                if let victim = loaded.first(where: { $0.leases == 0 }) {
+                    slots[id]?.waitingFor = []
                     await unloadNow(victim.entry.id)
                 } else {
+                    if slots[id]?.interrupts == true, let victim = loaded.first {
+                        slots[id]?.waitingFor = [victim.entry.id]
+                        if interrupted.insert(victim.entry.id).inserted {
+                            log.log(.info, "stopping \(victim.entry.id)'s requests to load \(id)")
+                            victim.interrupter.interrupt("\(victim.entry.id) was unloaded to load \(id)")
+                        }
+                    } else {
+                        slots[id]?.waitingFor = loaded.map(\.entry.id)
+                    }
                     await waitForChange()
                 }
             } else if unloading > 0 {
@@ -319,6 +433,7 @@ actor ModelRouter {
     }
 
     private func settle(_ id: String) {
+        slots[id]?.interrupts = false
         let waiters = settleWaiters.removeValue(forKey: id) ?? []
         for waiter in waiters {
             waiter.resume()

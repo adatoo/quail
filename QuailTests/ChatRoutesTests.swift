@@ -728,6 +728,41 @@ struct ChatRoutesTests {
         #expect(harness.world.requests.isEmpty)
     }
 
+    @Test("POST /models/unload stops a streaming reply with an error that says why (ADR D-068)")
+    func unloadStopsAStream() async {
+        let harness = Harness { $0.endless = true }
+        let response = await harness
+            .send(#"{"model":"Alpha","stream":true,"messages":[{"role":"user","content":"hi"}]}"#)
+        guard case let .stream(chunks) = response.body else {
+            Issue.record("not a stream")
+            return
+        }
+        let reader = Task { () -> String in
+            var text = ""
+            for await chunk in chunks {
+                text += String(decoding: chunk, as: UTF8.self)
+            }
+            return text
+        }
+        #expect(await eventually { await harness.router.leaseCount("Alpha") == 1 })
+
+        let unload = await harness.routes.handle(HTTPRequest(
+            method: "POST", target: "/models/unload", headers: [:], body: Data(#"{"model":"Alpha"}"#.utf8)
+        ))
+        #expect(unload.status == 200)
+
+        let text = await reader.value
+        let error = text.components(separatedBy: "\n\n").compactMap { frame -> [String: Any]? in
+            guard frame.hasPrefix("data: ") else { return nil }
+            return (object(String(frame.dropFirst(6)))["error"] as? [String: Any])
+        }.first
+        #expect(error?["message"] as? String == "Stopped: Alpha was unloaded.")
+        #expect(error?["type"] as? String == "unavailable_error")
+        #expect(error?["code"] as? Int == 503)
+        #expect(await eventually { await harness.router.snapshot("Alpha")?.state == .unloaded })
+        #expect(await eventually { harness.world.cancelled == 1 })
+    }
+
     @Test("wrong method is a 405 and the API key is required")
     func methodAndAuth() async {
         let harness = Harness(apiKey: "k")
