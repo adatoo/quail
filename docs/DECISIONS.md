@@ -2,6 +2,44 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-069 · 2026-10-01 · The Bonsai models: which files, and which engine
+
+**Situation:** PrismML's Bonsai models are Qwen3 and Qwen3.6 models trained to low-bit weights. They come in three kinds, each published for GGUF and MLX:
+- **1-bit Bonsai** at 1.7B, 4B, 8B and 27B;
+- **Ternary Bonsai** (weights of −1, 0 or +1) at the same sizes;
+- **Bonsai 2 27B**, a ternary Qwen3.6 27B whose weights are stored in a Hadamard-rotated basis.
+
+Add Model already listed three Ternary Bonsai MLX downloads, from Rapid-MLX's catalog (D-058). Several of the other files need runtime code that llama.cpp and mlx-swift-lm don't have yet.
+
+**What runs where.** Checked on 2026-09-30 and 10-01 with llama.cpp b11081 and again with b11306, and with mlx-swift-lm 0dcfe2f8a (MLX 0.32.2):
+
+| | GGUF | MLX |
+|---|---|---|
+| 1-bit | ✅ `Q1_0` | ❌ MLX refuses `bits: 1` (mlx#3161, open since February) |
+| Ternary | ✅ the `Q2_0_g64` file (the 27B's is `Q2_g64`); ❌ PrismML's `Q2_0` and `PQ2_0` | ✅ affine 2-bit |
+| Bonsai 2 | ❌ `PQ2_0`/`PTQ1_0` (llama.cpp #29600, open) | ❌ needs mlx-swift-lm #630 (open); ✅ with Quail's own copy of it |
+
+**Decision:**
+- **1-bit Bonsai: GGUF only.** MLX would need either a fork of MLX core, which D-055 rules out, or Quail's own 1-bit quantized matmul in Metal.
+- **Ternary Bonsai: both formats, with the GGUF quant llama.cpp reads.**
+  - llama.cpp's own `Q2_0` stores 64 weights a block. PrismML's file named `Q2_0` stores 128, their fork's format, so llama.cpp stops with "failed to read tensor data".
+  - Their `Q2_0_g64` file is the upstream format.
+- **Bonsai 2: MLX only,** through a third model copy (D-066 amendment): mlx-swift-lm PR #630's rotation, built on Quail's Qwen3.5 copy.
+- **Strengths are what the checks showed, not what the base model can do.**
+  - The 1.7B, 4B and 8B models have no thinking mode: their template closes the think block.
+  - Both 4B models write a tool call without its opening `<tool_call>` tag, on llama-server as on quail-server, so they aren't marked agentic.
+
+**Alternatives:**
+- **PrismML's forks for 1-bit MLX** (`PrismML-Eng/mlx-swift`): a fork of MLX core, against D-055.
+- **Quail's own 1-bit matmul kernel,** which D-066 would allow: a large piece of Metal for one family, while upstream has a PR open.
+- **PrismML's recommended GGUF files** (`Q2_0`, `PQ2_0`): they don't load on upstream llama.cpp.
+
+**Revisit if:**
+- mlx#3161 ships in mlx-swift (1-bit on MLX);
+- mlx-swift-lm takes #630 (delete the copy);
+- llama.cpp takes #29600 (Bonsai 2 on GGUF);
+- PrismML renames its files.
+
 ## D-068 · 2026-09-30 · Load and Unload by hand stop a busy model's requests
 
 **Situation:** with one model loaded at a time, loading another while the chat page was still streaming a reply left the new model at "Loading…" for as long as the reply ran, with nothing saying why. The router never takes a model out from under a request (D-011's router semantics), so it waited. With a slow thinking model and no length limit, that's many minutes. Unload waited the same way. And the page kept its own choice of model, so its next message could reload the old model and push the new one out.
@@ -108,6 +146,37 @@ D-055 had decided on mlx-swift-lm's public API only, with no custom Metal and no
 - **Only where it's written for:** one sequence, one position, no mask, bfloat16 activations, a float32 state, and 128-wide heads. Prompts, batches and other shapes keep the separate kernels.
 - **Measured** on the Mac mini (M4 Pro), Qwen3.6 35B-A3B, prompt lookup off, cooled before each request: 11.22 ms a token with separate kernels, 10.79 ms fused (−3.8%). Replies at temperature 0 were identical.
 - **Still behind:** Rapid-MLX also compiles the whole single-request step. So does mlx-swift-lm's main branch, whose Qwen3.5 (four input projections fused into one, compiled decode segments, a fused router top-k) measured 10.99 ms against this copy's 10.79 ms on the same mini, so this copy stays.
+
+**Amended 2026-10-01 (the third copy: Bonsai 2 27B, D-069):** `QuailServer/MLX/Models/PrismHadamard.swift` is adapted from mlx-swift-lm pull request #630 at bac826f, which is still open. That PR's code is under mlx-swift-lm's MIT licence.
+- **What the copy is for:** Bonsai 2 packs Qwen3.6 27B's language-model weights as ternary values in MLX's affine 2-bit form, in a Hadamard-rotated basis. `model_type` is `prism_hadamard_qwen35`, and `config.json` names every rotated module.
+  - Each rotated linear layer rotates its input before the packed matmul, with a signed, blockwise Walsh–Hadamard transform (MLX's `hadamardTransform`).
+  - The rotated embedding un-rotates the rows it looks up.
+  - Without both, the pack still loads and writes fluent nonsense.
+- **Built on the Qwen3.5 copy** (`QPrismHadamardQwen35Model: QQwen35Model`). That copy keeps the GatedDeltaNet input projections apart, as the manifest names them.
+  - The manifest, its validation and the choice of tensors to cast to float16 are in `QuailServerCore` (`PrismHadamardManifest`), where they're tested without MLX.
+  - Text only: mlx-swift-lm's vision Qwen3.5 isn't `open`, so there's nothing to subclass for images.
+- **Checked against a reference:** mlx-lm's Qwen3.5, with the rotated modules installed as Rapid-MLX 0.14.3's runtime installs them. On a fixed prompt at temperature 0, Quail's reply matched its token ids, 60 of 60, up to Quail's end of turn.
+- **Several requests at once:** four different requests sent together gave the same greedy replies as sent one at a time, so `prism_hadamard_qwen35` is in `batchedFamilies`.
+- **Speed** on the M4 Pro (release build, one request): 23.5 tokens a second, against 14.9 for Qwen3.8 27B at 4 bits on the same Mac.
+  - The pack runs in float16, so the fused GatedDeltaNet decode kernel, which is bfloat16 only, isn't used.
+- **Delete when** the pin takes #630.
+
+**Amended 2026-10-01 (the fourth copy: Nemotron-H, and a config adapter):** `QuailServer/MLX/Models/NemotronH.swift` is copied from mlx-swift-lm's NemotronH.swift and registered for `model_type` nemotron_h, behind a rewrite of `config.json`.
+- **The config adapter** (`MLXConfigAdapters.nemotronH`, in `QuailServerCore`, tested without MLX):
+  - Nemotron 3.5 Lightning 30B-A3B writes its layer layout as `layers_block_type` (`["mamba", "moe", …]`), and the pinned `NemotronHConfiguration` refuses a config without `hybrid_override_pattern`, so its MLX download, listed from Rapid-MLX's catalog, didn't load.
+  - The adapter adds the pattern with mlx-lm's own mapping (ml-explore/mlx-lm#1857).
+  - It splices the keys in rather than re-serializing, because Nemotron 3 Nano's config has an `Infinity` that `JSONSerialization` reads but can't write.
+  - Nemotron 3.5's layout comes out as exactly Nemotron 3 Nano's pattern.
+- **The copy's one change:** the gated norm's identity weight is in the activations' type.
+  - mlx-swift-lm passes `rmsNorm` a float32 array of ones, where mlx-lm passes no weight.
+  - That makes the norm's output float32, and through each Mamba layer's output projection, the residual stream too.
+  - The cost was twice the bytes, and greedy replies that differed from mlx-lm's from the first token.
+- **Measured** on the M4 Pro (release build, mlx-community 4-bit, a 200-token reply):
+  - 56 tokens a second before, 76 now, against 89 for Python mlx-lm 0.31.3 and 65 for the Q4_0 GGUF on quail-server.
+  - Its greedy reply now matches mlx-lm's.
+  - Mlx-lm compiles its expert selection, and compiling that and the squared ReLU here changed nothing measurable, so the copy doesn't.
+- **Several requests at once** gave replies that differ from the same requests sent alone, so Nemotron-H isn't in `batchedFamilies`.
+- **Upstream:** both fixes belong in mlx-swift-lm's NemotronH.swift. The copy and the adapter go when the pin takes them.
 
 ## D-063 · 2026-09-28 · Comparing Quail with Ollama, oMLX and Rapid-MLX: method and harness
 
@@ -951,6 +1020,12 @@ One request alone, `-np 1` vs `-np 4`: 44.7 vs 40.8 tok/s (8B), 157.6 vs 228.7 (
 
 **Revisit if:** a client genuinely needs remote images (a flag that allows named hosts, off by default), or the marker differs across libmtmd versions (the engine checks it at load).
 
+**Amended 2026-10-01 (Muse Glimmer 30B):** a third MLX image family, `.museGlimmer`.
+- mlx-swift-lm registers Muse Glimmer only as a vision model, so it always loads through the existing fallback, and text turns run on the vision load too, one request at a time.
+- **The placeholder is `<|patch|>`.** Each widens to `<|image_start|>`, one `<|patch|>` per merged patch (t·h·w/merge²), then `<|image_end|>`, as the library's `MuseGlimmerProcessor` does.
+- Its processor applies the sRGB curve itself.
+- **Checked:** it named the three colours of the test image and where each is.
+
 ## D-046 · 2026-09-25 · Automation acts as a GitHub App, not a personal access token
 
 **Decision:** The Auto-merge and Dependabot-bump workflows authenticate as a GitHub App, `quail-release` (Contents and Pull requests: read and write, installed on this repo only), minting a one-hour installation token per run with `actions/create-github-app-token` from the secrets `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY` (Actions and Dependabot stores). This replaces D-024's `BOT_TOKEN` fine-grained PAT, which was never added: auto-merge never switched on, and every PR since needed a hand merge.
@@ -1060,6 +1135,21 @@ The hidden `<select>` stays the source of truth, so nothing else in the script c
 - **Verified against real output:** Gemma 4 26B-A4B (unsloth Q4_K_M under llama-server b11081) on seven conversations: the five of the other captures (with thinking on for `call-thinking`, since Gemma's template defaults it off), nested arguments (an array, an object, a number, a boolean and a string with quotes), and a reply after a tool result. The parsed calls byte for byte, the content and the reasoning equal llama-server's at four chunk sizes (`TestFixtures/ToolCalls/gemma-4-26b.json`). Our prompts equal llama-server's for all seven. Both Gemma 4 templates, the GGUF's and mlx-community's (they differ), render the five template cases byte for byte as llama.cpp does (`TestFixtures/ChatTemplates`).
 - **Python literals in Qwen XML (2026-09-29):** the first BFCL run on the benchmark laptop found Qwen3.6 writing `True` for a boolean parameter. Quail kept it as the string `"True"`, so the call failed BFCL's type check, while llama-server's parse was right, because its grammar holds typed parameters to JSON. A parameter whose schema says boolean now reads `True`/`False` as booleans, and `None` is read as null for any type except string. It cost Qwen3.6 two of eight `parallel` cases and one of eight `multiple` cases on both Quail engines.
 - **Left as it is:** llama-server passes `enable_thinking: true` to any template that can think. Quail passes only what the request sends, so Gemma 4 on Quail doesn't think unless asked, while on llama-server it does (Qwen3's template reads a missing value as on, so it isn't affected). Changing Quail's default is a separate decision.
+
+**Amended 2026-10-01 (Muse Glimmer):** a sixth format, `ToolCallFormat.museGlimmer`, read by its own parser (`MuseGlimmerParser`), as Harmony is, since it carries the reasoning too.
+- **The format:** Meta's template writes each turn as `<|start|>ROLE to=RECIPIENT<|message|>BODY` ended by `<|eom|>` (more to come) or `<|eot|>`. The generation prompt already wrote `<|start|>assistant`, so a reply starts in its first header.
+  - `to=self` is reasoning.
+  - `to=user`, or no recipient, is the answer.
+  - `to=NAME` is a tool call whose body is an ATEM block: `<atem:function_calls><atem:invoke name="NAME"><atem:parameter name="KEY">VALUE</atem:parameter>…`.
+  - Detected by the template containing `<atem:function_calls>` and `to=self`.
+- **Values:** written raw and possibly over several lines. A string parameter is kept exactly, spaces included, as the template promises. A parameter the tool's schema types otherwise is read as JSON, as mlx-swift-lm's `ATEMToolCallParser` does. Several invokes in one block are several calls. A block that doesn't parse, or names a tool the request didn't offer, is given back as content.
+- **Reasoning strength:** OpenAI's `reasoning_effort` is passed to the template as `reasoning_strength`, which Muse Glimmer's reads (low, medium, high, xhigh; its default is high), and as `reasoning_effort`, which gpt-oss's reads. A value in `chat_template_kwargs` wins.
+- **Refused, as for Harmony:** constrained output and forced calls, whose grammars don't know this format yet.
+- **Verified against real output:** bartowski's Q4_K_M under quail-server, and mlx-community's 4-bit on the MLX engine. Each thought, called the tool, answered from its result and read a test image.
+  - The template renders the five template cases byte for byte as llama-server b11081 does (`TestFixtures/ChatTemplates/golden/muse-glimmer`, dates aside; see its README).
+  - The parser's tests use constructed replies in the shape the real ones took.
+  - The same GGUF under llama-server b11081 gave the same answer and call, and reasoning of the same length, on the three text requests.
+- **llama-server** has its own Muse Glimmer parser. Two fixes to it came after b11081: #29242 for a call's first parse, and #29615 for `json_schema`. So the bundled llama.cpp moves to b11306. On it the same GGUF gave the same replies, and a `json_schema` request came back valid after its reasoning.
 
 ## D-039 · 2026-09-25 · The API key is on by default while llama-server is the runtime
 

@@ -275,11 +275,10 @@ struct CatalogTests {
         let document = try decoder.decode(Catalog.Document.self, from: data)
         let catalog = document.catalog
 
-        // 13-17 families per the plan; every repo id and quant filename in
-        // it was verified against the live Hub API (see PR; revision 2
-        // added Qwen3.6/Qwen3.8, three Gemma 4 sizes, and the DeepSeek-R1
-        // distills, replacing qwen3-30b-a3b and the two Gemma 3 entries).
-        #expect((13 ... 17).contains(catalog.families.count))
+        // Every repo id and quant filename in it was verified against the live Hub API when its
+        // revision added it (the catalog's own notes say how each was checked).
+        #expect(catalog.families.count >= 17)
+        #expect(Set(catalog.families.map(\.id)).count == catalog.families.count, "family ids must be unique")
         #expect(catalog.ramTiers.keys.sorted() == ["large", "medium", "small"])
         #expect(catalog.chipBandwidthGBps["Apple M4 Pro"] == 273)
 
@@ -314,5 +313,38 @@ struct CatalogTests {
         // The same repo Rapid-MLX lists, so Add Model shows it once (Catalog.current drops the duplicate).
         #expect(qwen35.mlx?.repo == "mlx-community/Qwen3.5-9B-4bit")
         #expect(qwen35.mlx?.vision == true)
+        // Revision 8, Bonsai (ADR D-069). 1-bit Bonsai is GGUF only: MLX 0.32 has no 1-bit quantization.
+        let bonsai = try #require(catalog.families.first { $0.id == "bonsai-8b" })
+        #expect(bonsai.gguf?.repo == "prism-ml/Bonsai-8B-gguf")
+        #expect(bonsai.gguf?.quants == ["Q1_0"])
+        #expect(bonsai.mlx == nil)
+        // Ternary Bonsai offers the 64-weight-block files llama.cpp reads, never PrismML's Q2_0 (128-weight blocks)
+        // or PQ2_0, which need its fork. The 27B's is named differently.
+        let ternary8 = try #require(catalog.families.first { $0.id == "ternary-bonsai-8b" })
+        #expect(ternary8.gguf?.quants == ["Q2_0_g64"])
+        let ternary = try #require(catalog.families.first { $0.id == "ternary-bonsai-27b" })
+        #expect(ternary.gguf?.quants == ["Q2_g64"])
+        #expect(ternary.gguf?.mmproj == "Ternary-Bonsai-27B-mmproj-Q8_0.gguf")
+        #expect(ternary.mlx?.repo == "prism-ml/Ternary-Bonsai-27B-mlx-2bit")
+        #expect(ternary.mlx?.vision == true)
+        // Bonsai 2 runs on MLX only, through Quail's copy of mlx-swift-lm #630 (Models/PrismHadamard.swift).
+        let bonsai2 = try #require(catalog.families.first { $0.id == "bonsai-2-27b" })
+        #expect(bonsai2.gguf == nil)
+        #expect(bonsai2.mlx?.repo == "prism-ml/Ternary-Bonsai-2-27B-mlx-2bit")
+        let granite = try #require(catalog.families.first { $0.id == "granite-4.2-8b" })
+        #expect(granite.mlx?.repo == "ibm-granite/granite-4.2-8b-q4-mlx")
+        let ornith = try #require(catalog.families.first { $0.id == "ornith-1.5-9b" })
+        #expect(ornith.gguf?.mmproj == "mmproj-Ornith-1.5-9B-BF16.gguf")
+        // Ornith's own MLX 4-bit leaves the vision tower out.
+        #expect(ornith.mlx?.vision == false)
+        // Nemotron 3.5's MLX download loads through a config adapter and Quail's Nemotron-H copy.
+        let nemotron = try #require(catalog.families.first { $0.id == "nemotron-3.5-lightning-30b-a3b" })
+        #expect(nemotron.activeParamsB == 3)
+        #expect(nemotron.gguf?.defaultQuant == "Q4_0")
+        #expect(nemotron.mlx?.repo == "mlx-community/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-4bit")
+        // Muse Glimmer, read by MuseGlimmerParser; its MLX download loads through the vision model.
+        let muse = try #require(catalog.families.first { $0.id == "muse-glimmer-30b" })
+        #expect(muse.gguf?.mmproj == "mmproj-Muse-Glimmer-30B-f16.gguf")
+        #expect(muse.mlx?.vision == true)
     }
 }

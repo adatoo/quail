@@ -30,7 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// with fakes). See `NullSecretStore`'s doc comment for why this
     /// matters: a real `Keychain()` here was popping a macOS
     /// authorization prompt on every single `xcodebuild test` run.
-    private static var isHostingUnitTests: Bool {
+    static var isHostingUnitTests: Bool {
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 

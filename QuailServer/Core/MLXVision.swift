@@ -12,11 +12,15 @@ public enum MLXVision {
         /// Gemma 4 26B-A4B and 31B: a fixed run of soft tokens between begin- and end-of-image.
         /// (Gemma 4 12B is `gemma4_unified`, which mlx-swift-lm doesn't load with its vision half.)
         case gemma4
+        /// Muse Glimmer 30B: begin-of-image, a patch token per merged patch, end-of-image. mlx-swift-lm has only its
+        /// vision model, so it's always loaded that way.
+        case museGlimmer
 
         public init?(modelType: String) {
             switch modelType {
             case "qwen3_5", "qwen3_5_moe": self = .qwen35
             case "gemma4": self = .gemma4
+            case "muse_glimmer": self = .museGlimmer
             default: return nil
             }
         }
@@ -26,6 +30,7 @@ public enum MLXVision {
             switch self {
             case .qwen35: "<|vision_start|><|image_pad|><|vision_end|>"
             case .gemma4: "<|image|>"
+            case .museGlimmer: "<|patch|>"
             }
         }
 
@@ -34,12 +39,13 @@ public enum MLXVision {
             switch self {
             case .qwen35: "<|image_pad|>"
             case .gemma4: "<|image|>"
+            case .museGlimmer: "<|patch|>"
             }
         }
     }
 
     public static var supportedModelTypes: Set<String> {
-        ["qwen3_5", "qwen3_5_moe", "gemma4"]
+        ["qwen3_5", "qwen3_5_moe", "gemma4", "muse_glimmer"]
     }
 
     /// Whether the MLX model in `directory` can read images in Quail: its `config.json` has a

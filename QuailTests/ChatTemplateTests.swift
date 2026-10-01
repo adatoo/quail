@@ -32,7 +32,7 @@ struct ChatTemplateTests {
         }
     }
 
-    private static let families = ["qwen3", "gemma3", "llama3", "gptoss", "gemma4", "gemma4-mlx"]
+    private static let families = ["qwen3", "gemma3", "llama3", "gptoss", "gemma4", "gemma4-mlx", "muse-glimmer"]
     /// llama-server passes `enable_thinking: true` to a template that can think, unless a request says
     /// otherwise (b11081 server-context.cpp). Qwen3's template reads a missing value the same way; Gemma 4's
     /// reads it as off, so its goldens need the value llama-server gave.

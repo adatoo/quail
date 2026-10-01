@@ -44,7 +44,7 @@ extension JSONSchemaGrammar {
         case .bareJSON:
             // The whole reply is one call; there is nothing to repeat.
             argumentsKey = "parameters"
-        case .qwenXML, .harmony, .gemma4, .none:
+        case .qwenXML, .harmony, .gemma4, .museGlimmer, .none:
             throw RequestError.invalid(
                 "forcing a tool call isn't supported for this model's chat format (\(format.label)) yet"
             )
@@ -89,6 +89,7 @@ extension ToolCallFormat {
         case .bareJSON: "bare JSON"
         case .harmony: "Harmony"
         case .gemma4: "Gemma 4"
+        case .museGlimmer: "Muse Glimmer"
         case .none: "no tool-call format"
         }
     }

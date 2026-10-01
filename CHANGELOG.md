@@ -10,6 +10,35 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.64.0] - 2026-10-01
+
+### Added
+
+- **PrismML's Bonsai models,** Qwen3 and Qwen3.6 models trained to very low-bit weights (ADR D-069):
+  - **1-bit Bonsai** 1.7B, 4B, 8B and 27B, GGUF only (MLX has no 1-bit support yet). The 8B is 1.2 GB and writes about 125 tokens a second on an M4 Pro.
+  - **Ternary Bonsai** 1.7B, 4B, 8B and 27B, in GGUF and MLX.
+  - **Bonsai 2 27B,** a ternary Qwen3.6 27B in 8.6 GB, on MLX. It writes about 23 tokens a second, against 15 for Qwen3.8 27B at 4 bits. Its weights are stored rotated, which mlx-swift-lm doesn't handle yet, so Quail carries its own copy of the pending mlx-swift-lm change. It handles text only, and several requests at once are decoded together.
+  - The 27B models think. The 1-bit and Ternary 27B models also read images. The smaller models don't think, and the 4B models can't reliably call tools.
+  - The Ternary Bonsai MLX downloads that Add Model already listed now appear once, as catalog rows.
+- **Granite 4.2** 3B, 8B and 30B, IBM's Apache-licensed models, in GGUF and MLX from IBM's own repositories. They think by default.
+- **Ornith 1.5** 9B and 35B-A3B, coding fine-tunes of Qwen3.5, in GGUF (which reads images) and MLX.
+- **Nemotron 3.5 Lightning 30B-A3B,** NVIDIA's mixture of experts with 3B active, in GGUF and MLX. On MLX it writes about 76 tokens a second on an M4 Pro, against 65 for the GGUF.
+- **Muse Glimmer 30B**, Meta's Apache-licensed model that reads images, in GGUF and MLX.
+  - Its replies are messages to a recipient: its reasoning (`to=self`), the answer, or a tool. Tool calls are ATEM blocks, which Quail's server now reads on both engines.
+  - A request's `reasoning_effort` sets its reasoning strength (low, medium, high or xhigh). `chat_template_kwargs` can set `reasoning_strength` directly.
+- A request's `reasoning_effort` also reaches gpt-oss's template, as `reasoning_effort`.
+
+### Changed
+
+- **llama.cpp b11306** (from b11081), bundled for the llama.cpp runtime and used by quail-server's GGUF engine. It has llama.cpp's fixes for Muse Glimmer's tool calls and `json_schema` output on llama-server (#29242, #29615).
+
+### Fixed
+
+- Running the unit tests no longer puts a second Quail in the menu bar. Quitting it during a run crashed the run, since the tests had a model loaded.
+- **MLX: Nemotron-H models ran in float32 after their first Mamba layer.** mlx-swift-lm's gated norm used a float32 weight, which made every later layer float32. That was slower, and greedy replies differed from mlx-lm's. Quail's own copy of the model fixes it (D-066 amendment), taking Nemotron 3.5 from 56 to 76 tokens a second.
+  - Nemotron 3.5's MLX download, which Add Model already listed, also didn't load before: the pinned mlx-swift-lm couldn't read how its config names its layers.
+- Adding a GGUF model no longer downloads the multi-token-prediction (`mtp-`) or draft (`dflash-`) files some repositories keep beside each quant, such as bartowski's Nemotron 3.5.
+
 ## [0.63.3] - 2026-10-01
 
 ### Changed

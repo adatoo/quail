@@ -1,0 +1,8 @@
+<|endoftext|><|start|>system<|message|>You are a helpful AI assistant.
+Knowledge cutoff: 2026-01-04.
+Current date: 2026-09-24.
+
+Reasoning strength: high.
+
+# Valid recipients: "self", "user".<|eot|><|start|>user<|message|>Écris « bonjour » en 日本語 — with an emoji 🐦 and a "quote" and a
+newline.<|eot|><|start|>assistant

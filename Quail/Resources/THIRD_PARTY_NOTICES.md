@@ -6,12 +6,12 @@ Quail includes the software below. Each project's licence text, and any notice i
 | --- | --- | --- | --- |
 | EventSource | 1.5.1 | MIT | quail-server (through swift-huggingface) |
 | fmt (inside mlx-swift) | 0.32.2 | MIT with an exception for embedded use | quail-server (through mlx-swift-lm) |
-| llama.cpp | b11081 | MIT | quail-server and the bundled llama-server |
+| llama.cpp | b11306 | MIT | quail-server and the bundled llama-server |
 | metal-cpp (inside mlx-swift) | 0.32.2 | Apache-2.0 | quail-server (through mlx-swift-lm) |
 | mlx (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
 | mlx-c (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
 | mlx-swift | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
-| mlx-swift-lm | 0dcfe2f8a743 | MIT | quail-server, which also carries adapted copies of some of its model files (QuailServer/MLX/Models, ADR D-066) |
+| mlx-swift-lm | 0dcfe2f8a743 | MIT | quail-server, which also carries adapted copies of some of its model files, one of them from its open pull request #630 (QuailServer/MLX/Models, ADR D-066) |
 | mlx-vlm (the fused GatedDeltaNet kernel's reduction structure) | pull request 2105 (not merged) | MIT | quail-server (adapted, through the Rapid-MLX fused GatedDeltaNet decode kernel) |
 | nlohmann/json (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
 | Rapid-MLX fused GatedDeltaNet decode kernel | 0.15.2 | Apache-2.0 | quail-server (adapted, in QuailServer/MLX/Models/Qwen35.swift; ADR D-066) |
@@ -89,7 +89,7 @@ source code, you may redistribute such embedded portions in such object form
 without including the above copyright and permission notices.
 ```
 
-## llama.cpp b11081
+## llama.cpp b11306
 
 https://github.com/ggml-org/llama.cpp  
 Licence: MIT

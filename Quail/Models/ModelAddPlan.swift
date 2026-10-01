@@ -94,8 +94,13 @@ enum ModelAddPlan {
         return boundary == "-" || boundary == "." || boundary == "_"
     }
 
+    /// A model's weights, not a companion: a vision projector (`mmproj-`), or the separate
+    /// multi-token-prediction head (`mtp-`) and speculative-decoding draft (`dflash-`) files some
+    /// repos ship beside each quant — bartowski's Nemotron 3.5 has `mtp-…-Q4_0.gguf`, which a
+    /// "Q4_0" pick would otherwise download with the model.
     static func isMainGGUF(_ filename: String) -> Bool {
-        filename.lowercased().hasSuffix(".gguf") && !filename.hasPrefix("mmproj-")
+        filename.lowercased().hasSuffix(".gguf")
+            && !["mmproj-", "mtp-", "dflash-"].contains { filename.hasPrefix($0) }
     }
 
     /// `X-Q4_K_M-00001-of-00002` → `X-Q4_K_M`, so a split model presents

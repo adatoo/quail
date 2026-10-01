@@ -97,6 +97,7 @@ struct ToolCallTests {
     @Test("a family's tool-call format is read from its template", arguments: [
         ("qwen3", ToolCallFormat.hermesJSON), ("qwen36", .qwenXML), ("llama3", .bareJSON),
         ("gptoss", .harmony), ("gemma3", ToolCallFormat.none), ("gemma4", .gemma4), ("gemma4-mlx", .gemma4),
+        ("muse-glimmer", .museGlimmer),
     ])
     func detection(family: String, expected: ToolCallFormat) throws {
         #expect(try ToolCallFormat.detect(template: Self.text("ChatTemplates/templates/\(family).jinja")) == expected)
@@ -371,5 +372,72 @@ struct ToolCallTests {
         // Invalid JSON arguments and a cut-off call are text.
         #expect(harmony("<|channel|>commentary to=functions.add<|message|>{oops<|call|>").calls.isEmpty)
         #expect(harmony("<|channel|>commentary to=functions.add<|message|>{\"a\":").calls.isEmpty)
+    }
+
+    // MARK: Muse Glimmer
+
+    private func muse(
+        _ raw: String,
+        size: Int = 10000
+    ) -> (content: String, reasoning: String, calls: [ParsedToolCall]) {
+        parse(chunked(raw, size), format: .museGlimmer)
+    }
+
+    @Test("Muse Glimmer: to=self is reasoning, to=user the answer, however it's cut", arguments: [1, 3, 7, 10000])
+    func museMessages(size: Int) {
+        // The generation prompt ends `<|start|>assistant`, so a reply begins in the first message's header.
+        let raw = " to=self<|message|>The user greets.<|eom|><|start|>assistant to=user<|message|>Hello there!"
+        let result = muse(raw, size: size)
+        #expect(result.reasoning == "The user greets.")
+        #expect(result.content == "Hello there!")
+        #expect(result.calls.isEmpty)
+    }
+
+    @Test("Muse Glimmer: an ATEM block to a tool is a call, typed by the tool's schema", arguments: [1, 5, 10000])
+    func museCall(size: Int) {
+        let raw = """
+         to=self<|message|>Need weather.<|eom|><|start|>assistant to=get_weather<|message|><atem:function_calls>
+        <atem:invoke name="get_weather">
+        <atem:parameter name="city"> New York</atem:parameter>
+        <atem:parameter name="days">3</atem:parameter>
+        </atem:invoke>
+        </atem:function_calls>
+        """
+        let result = muse(raw, size: size)
+        #expect(result.reasoning == "Need weather.")
+        // A string keeps its spaces (the template says they aren't stripped); an integer is JSON.
+        #expect(result.calls == [ParsedToolCall(name: "get_weather", arguments: #"{"city":" New York","days":3}"#)])
+        #expect(result.content == "")
+    }
+
+    @Test("Muse Glimmer: several calls, multi-line strings, and what isn't a call")
+    func museVariants() {
+        let two = """
+         to=add<|message|><atem:function_calls>
+        <atem:invoke name="add">
+        <atem:parameter name="a">1</atem:parameter>
+        <atem:parameter name="b">2.5</atem:parameter>
+        <atem:parameter name="note">line one
+        "line" <two></atem:parameter>
+        </atem:invoke>
+        </atem:function_calls><|eom|><|start|>assistant to=get_weather<|message|><atem:function_calls>
+        <atem:invoke name="get_weather"><atem:parameter name="city">Paris</atem:parameter></atem:invoke>
+        </atem:function_calls>
+        """
+        #expect(muse(two).calls == [
+            ParsedToolCall(name: "add", arguments: #"{"a":1,"b":2.5,"note":"line one\n\"line\" <two>"}"#),
+            ParsedToolCall(name: "get_weather", arguments: #"{"city":"Paris"}"#),
+        ])
+        // A tool the request didn't offer, a malformed block and a cut-off call are given back as text.
+        let unknown = #" to=other<|message|><atem:function_calls><atem:invoke name="other"></atem:invoke></atem:function_calls>"#
+        #expect(muse(unknown).calls.isEmpty)
+        #expect(muse(unknown).content.hasPrefix("<atem:function_calls>"))
+        #expect(muse(" to=add<|message|><atem:function_calls>oops</atem:function_calls>").calls.isEmpty)
+        let cut = muse(" to=add<|message|><atem:function_calls>\n<atem:invoke name=\"add\">")
+        #expect(cut.calls.isEmpty)
+        #expect(cut.content == "<atem:function_calls>\n<atem:invoke name=\"add\">")
+        // No recipient is the answer; a reply that never opened a message is the answer too.
+        #expect(muse("<|message|>Plain.").content == "Plain.")
+        #expect(muse("Just text").content == "Just text")
     }
 }

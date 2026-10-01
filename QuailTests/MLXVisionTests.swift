@@ -51,5 +51,8 @@ struct MLXVisionTests {
         #expect(try MLXVision.expand([1, 9, 2], marker: 9, replacements: [run]) == [1, 7, 9, 9, 9, 8, 2])
         #expect(MLXVision.Family(modelType: "gemma4")?.placeholder == "<|image|>")
         #expect(MLXVision.Family(modelType: "qwen3_5_moe") == .qwen35)
+        // Muse Glimmer's template writes `<|patch|>` per image, and the same token fills its run.
+        #expect(MLXVision.Family(modelType: "muse_glimmer")?.placeholder == "<|patch|>")
+        #expect(MLXVision.Family(modelType: "muse_glimmer")?.imageToken == "<|patch|>")
     }
 }
