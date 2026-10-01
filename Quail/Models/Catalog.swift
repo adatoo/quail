@@ -56,6 +56,10 @@ struct Catalog: Sendable, Equatable {
         var supersededBy: String?
         /// Its rating on Arena's text leaderboard, when it's on it (ADR D-070).
         var arena: ArenaRating?
+        /// Quail's own scores for its default download (ADR D-070).
+        var quailScores: QuailScores?
+        /// Why it has no Quail scores ("It always thinks…"), when that needs saying.
+        var quailNote: String?
 
         /// A repo the user pasted, as opposed to one a catalog lists.
         var isUserAdded: Bool {
@@ -82,6 +86,18 @@ struct Catalog: Sendable, Equatable {
         var rank: Int
         /// How many models the leaderboard ranks.
         var outOf: Int
+        var asOf: Date
+    }
+
+    /// Quail's own tests of a family's default download, answering without thinking (`task bench:scores`,
+    /// `scripts/update-quail-scores`; ADR D-070). Percentages.
+    struct QuailScores: Sendable, Equatable, Hashable {
+        /// GSM8K, 8-shot chain of thought.
+        var maths: Int
+        /// MMLU-Pro, 5-shot chain of thought, 14 subjects.
+        var knowledge: Int
+        /// BFCL's function-calling categories together.
+        var tools: Int
         var asOf: Date
     }
 
@@ -192,7 +208,16 @@ struct Catalog: Sendable, Equatable {
             var summary: String?
             var supersededBy: String?
             var arena: RawArena?
+            var quail: RawQuail?
             var variants: Variants
+        }
+
+        struct RawQuail: Sendable, Equatable, Codable {
+            var maths: Int?
+            var knowledge: Int?
+            var tools: Int?
+            var asOf: String?
+            var note: String?
         }
 
         /// `name` is the model's name on the leaderboard, which the script looks up; the rest is what it found.
@@ -267,7 +292,13 @@ struct Catalog: Sendable, Equatable {
                             return ArenaRating(
                                 rating: rating, interval: arena.interval ?? 0, rank: rank, outOf: outOf, asOf: asOf
                             )
-                        }
+                        },
+                        quailScores: raw.quail.flatMap { quail in
+                            guard let maths = quail.maths, let knowledge = quail.knowledge, let tools = quail.tools,
+                                  let asOf = Self.day(quail.asOf) else { return nil }
+                            return QuailScores(maths: maths, knowledge: knowledge, tools: tools, asOf: asOf)
+                        },
+                        quailNote: raw.quail?.note
                     )
                 }
             )

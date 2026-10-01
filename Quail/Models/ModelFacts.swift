@@ -64,6 +64,21 @@ enum ModelFacts {
     static let arenaCaveat = "From people's votes between two answers, on the full-precision model: "
         + "a quantized download can do a little worse. Ratings within each other's ± are a tie."
 
+    // MARK: - Quail's own scores
+
+    /// "Maths 87% · Knowledge 64% · Tools 81%".
+    static func quailText(_ scores: Catalog.QuailScores) -> String {
+        "Maths \(scores.maths)% · Knowledge \(scores.knowledge)% · Tools \(scores.tools)%"
+    }
+
+    static func quailMethod(_ scores: Catalog.QuailScores) -> String {
+        "Quail's own tests of this download, answering without thinking, on an M1 Max, "
+            + "\(dayText(scores.asOf)): GSM8K maths (150 questions), MMLU-Pro knowledge (112) and BFCL tool calls "
+            + "(200). Each is good to about ±4 points, so closer scores are a tie."
+    }
+
+    static let quailMethodURL = URL(string: "https://quail-ai.app/docs/models.html#scores")!
+
     /// Whether "not publicly ranked" is worth saying: an embedding model or a smoke test isn't a chat model, so
     /// the text leaderboard was never going to list it.
     static func expectsRanking(_ family: Catalog.Family) -> Bool {

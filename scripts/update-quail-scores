@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""Writes Quail's own scores into Quail/Resources/catalog.json from a `task bench:scores` run (ADR D-070).
+
+For each family the run scored on Quail, one line, after its "summary":
+
+    "quail": { "maths": 87, "knowledge": 64, "tools": 81, "asOf": "2026-10-02" },
+
+- maths: GSM8K, 8-shot chain of thought, strict match (lm-eval's gsm8k_cot_llama), in percent;
+- knowledge: MMLU-Pro, 5-shot chain of thought, 14 subjects (lm-eval's mmlu_pro), in percent;
+- tools: BFCL's function-calling categories together (simple, multiple, parallel, parallel-multiple and
+  irrelevance), correct over total, in percent.
+
+Each answered without thinking, at temperature 0, on the catalog's default download. A family missing any of the
+three is left as it was, and listed. Only "quail" lines change, so the file's hand-made layout survives.
+
+Usage: scripts/update-quail-scores RUN_DIR [--catalog FILE] [--as-of YYYY-MM-DD]
+"""
+
+import argparse
+import datetime
+import json
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+QUAIL_LINE = re.compile(r'^\s*"quail": \{.*\},?$')
+
+
+def read_jsonl(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+def scores(run: Path) -> dict[str, dict]:
+    result: dict[str, dict] = {}
+    for record in read_jsonl(run / "quality.jsonl"):
+        if not record.get("engine", "").startswith("quail-") or record.get("score") is None:
+            continue
+        key = {"gsm8k_cot_llama": "maths", "mmlu_pro": "knowledge"}.get(record.get("task"))
+        if key:
+            result.setdefault(record["model"], {})[key] = round(record["score"] * 100)
+    tools: dict[str, list[int]] = {}
+    for record in read_jsonl(run / "tools.jsonl"):
+        if not record.get("engine", "").startswith("quail-") or record.get("total") is None:
+            continue
+        totals = tools.setdefault(record["model"], [0, 0, 0])
+        totals[0] += record["correct"]
+        totals[1] += record["total"]
+        totals[2] += 1
+    for model, (correct, total, categories) in tools.items():
+        if total and categories == 5:
+            result.setdefault(model, {})["tools"] = round(correct / total * 100)
+    return result
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("run")
+    parser.add_argument("--catalog", default=str(ROOT / "Quail/Resources/catalog.json"))
+    parser.add_argument("--as-of", default=datetime.date.today().isoformat())
+    args = parser.parse_args()
+
+    found = scores(Path(args.run))
+    lines = Path(args.catalog).read_text(encoding="utf-8").split("\n")
+    out: list[str] = []
+    family = None
+    written, incomplete = [], []
+    for line in lines:
+        match = re.match(r'^      "id": "([^"]+)",$', line)
+        if match:
+            family = match.group(1)
+        if family in found and QUAIL_LINE.match(line) and set(found[family]) == {"maths", "knowledge", "tools"}:
+            continue  # replaced below, after the summary
+        out.append(line)
+        if family and re.match(r'^      "summary": ', line):
+            score = found.get(family)
+            if score is None:
+                continue
+            if set(score) != {"maths", "knowledge", "tools"}:
+                incomplete.append(f"{family} (has {', '.join(sorted(score))})")
+                continue
+            body = ", ".join(f'"{k}": {score[k]}' for k in ("maths", "knowledge", "tools"))
+            out.append(f'      "quail": {{ {body}, "asOf": "{args.as_of}" }},')
+            written.append(family)
+    text = "\n".join(out)
+    json.loads(text)  # still valid JSON
+    Path(args.catalog).write_text(text, encoding="utf-8")
+    print(f"{len(written)} families scored: {', '.join(written)}")
+    if incomplete:
+        print("Left as they were, as the run hasn't all three scores: " + "; ".join(incomplete), file=sys.stderr)
+    unknown = sorted(set(found) - set(written) - {i.split(" ")[0] for i in incomplete})
+    if unknown:
+        print("Not in the catalog: " + ", ".join(unknown), file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
