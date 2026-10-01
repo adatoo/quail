@@ -23,7 +23,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE: "158"
-          # owner/repo#number, one per line. Add the NemotronH pull request once it's opened.
+          # owner/repo#number, one per line.
           WATCHED: |
             ml-explore/mlx#3161
             ggml-org/llama.cpp#29600

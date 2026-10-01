@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.65.2] - 2026-10-01
+
+### Changed
+
+- Quail won't send its Nemotron-H fixes to mlx-swift-lm, so the upstream watch (#158) no longer waits for that pull request. Quail keeps its own fixed copy of the model code until mlx-swift-lm fixes the same problems.
+
 ## [0.65.1] - 2026-10-01
 
 ### Fixed
