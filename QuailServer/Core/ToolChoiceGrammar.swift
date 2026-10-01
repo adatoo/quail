@@ -44,7 +44,24 @@ extension JSONSchemaGrammar {
         case .bareJSON:
             // The whole reply is one call; there is nothing to repeat.
             argumentsKey = "parameters"
-        case .qwenXML, .harmony, .gemma4, .museGlimmer, .none:
+        case .museGlimmer:
+            // Its arguments aren't one JSON value but ATEM parameters, each typed by its own schema.
+            var chosen: [(name: String, parameters: Value)] = []
+            for tool in tools {
+                guard let function = tool["function"], let toolName = function["name"]?.stringValue,
+                      name == nil || name == toolName
+                else { continue }
+                chosen.append((toolName, function["parameters"].flatMap { $0.isNull ? nil : $0 } ?? .record([])))
+            }
+            guard !chosen.isEmpty else {
+                throw RequestError.invalid("tool_choice names \"\(name ?? "")\", which isn't in 'tools'")
+            }
+            do {
+                return try atemCalls(chosen, parallel: parallel, reasoning: reasoning)
+            } catch let failure as Failure {
+                throw RequestError.invalid("a tool's parameters can't be used to force a call: \(failure.message)")
+            }
+        case .qwenXML, .harmony, .gemma4, .none:
             throw RequestError.invalid(
                 "forcing a tool call isn't supported for this model's chat format (\(format.label)) yet"
             )

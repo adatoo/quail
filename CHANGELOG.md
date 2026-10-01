@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Added
+
+- **Muse Glimmer: constrained output and forced tool calls,** on its GGUF download.
+  - A `json_schema` or `json_object` reply comes as its answer message, after any reasoning.
+  - `tool_choice` set to required or to a named tool makes it write an ATEM call. Each parameter is held to its own type, and strings are written as they are.
+  - With `parallel_tool_calls` it can make several calls.
+  - On MLX, constrained output and forced calls aren't available yet, for this or any other model.
+
 ## [0.64.0] - 2026-10-01
 
 ### Added

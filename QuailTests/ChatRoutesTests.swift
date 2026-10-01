@@ -547,11 +547,41 @@ struct ChatRoutesTests {
             #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"reasoning_effort":"low","chat_template_kwargs":{"reasoning_strength":"xhigh"}}"#
         )
         #expect(harness.prompt.contains("Reasoning strength: xhigh."))
+        // Constrained output: the JSON is the answer message, after an optional reasoning message.
         let constrained = await harness.json(
             #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"json_object"}}"#
         )
-        #expect(constrained.status == 400)
-        #expect("\(constrained.json["error"] ?? "")".contains("Muse Glimmer"))
+        #expect(constrained.status == 200)
+        let grammar = harness.world.requests.last?.grammar ?? ""
+        #expect(grammar.contains(
+            #"root ::= (" to=self<|message|>" think-0 "<|eom|>" "<|start|>assistant" think-space)? " to=user<|message|>" json-root"#
+        ))
+        // A forced call: an ATEM block to the tool, its string parameter written raw.
+        let forced = await harness.json(
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":\#(Self.weatherTools),"tool_choice":"required"}"#
+        )
+        #expect(forced.status == 200)
+        let callGrammar = harness.world.requests.last?.grammar ?? ""
+        #expect(callGrammar
+            .contains(
+                #"t0-call ::= " to=get_weather<|message|><atem:function_calls>\n<atem:invoke name=\"get_weather\">\n" t0-param-city? "</atem:invoke>\n</atem:function_calls>""#
+            ))
+        #expect(callGrammar
+            .contains(#"t0-param-city ::= "<atem:parameter name=\"city\">" atem-text-0 "</atem:parameter>\n""#))
+        #expect(callGrammar
+            .contains(#"root ::= (" to=self<|message|>" think-0 "<|eom|>" "<|start|>assistant" think-space)? t0-call"#))
+    }
+
+    @Test("Harmony still refuses constrained output: its answer's channel header isn't in the grammar yet")
+    func harmonyConstrainedRefused() async {
+        let harness = Harness(pieces: ["x"], template: Self.template("gptoss")) {
+            $0.capabilities = .init(grammar: true)
+        }
+        let reply = await harness.json(
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"json_object"}}"#
+        )
+        #expect(reply.status == 400)
+        #expect("\(reply.json["error"] ?? "")".contains("Harmony"))
     }
 
     @Test("reasoning_effort reaches gpt-oss's template under its own name")

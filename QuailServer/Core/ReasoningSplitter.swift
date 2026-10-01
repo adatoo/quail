@@ -14,18 +14,32 @@ struct ReasoningTags: Equatable, Sendable {
     var close: String
     /// Whether a reasoning block can also come after answer text, not only at the start of a reply.
     var anywhere = false
+    /// For a grammar (`JSONSchemaGrammar`): text the reasoning block's close is always followed by, and text the
+    /// answer always starts with, in a family whose reply is a run of messages (Muse Glimmer's headers).
+    var afterClose = ""
+    var answerPrefix = ""
 
     /// `<think>…</think>`: Qwen3 and most reasoning models.
     static let think = ReasoningTags(open: "<think>", close: "</think>")
     /// Gemma 4's thought channel. It writes an empty one after a tool result even with thinking off, and
     /// can end a reply with another or with a stray `<channel|>`, as llama.cpp's own parser notes.
     static let gemma4 = ReasoningTags(open: "<|channel>thought", close: "<channel|>", anywhere: true)
+    /// Muse Glimmer's reasoning message and its answer's header, after the generation prompt's
+    /// `<|start|>assistant` (`MuseGlimmerParser` reads its replies; these shape a grammar for them).
+    static let museGlimmer = ReasoningTags(
+        open: " to=self<|message|>", close: "<|eom|>", afterClose: "<|start|>assistant",
+        answerPrefix: " to=user<|message|>"
+    )
 }
 
 extension ToolCallFormat {
     /// How this family marks its reasoning (Harmony's channels have their own parser).
     var reasoningTags: ReasoningTags {
-        self == .gemma4 ? .gemma4 : .think
+        switch self {
+        case .gemma4: .gemma4
+        case .museGlimmer: .museGlimmer
+        default: .think
+        }
     }
 }
 

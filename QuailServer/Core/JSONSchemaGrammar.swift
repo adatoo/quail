@@ -65,12 +65,10 @@ enum JSONSchemaGrammar {
                 }
                 converter.rules.merge(frame.rules) { _, new in new }
             }
-            switch reasoning {
-            case .none: converter.rules["root"] = body
-            case let .optional(tags):
-                converter.rules["root"] = "(\"\(tags.open)\" think-0 \"\(tags.close)\" think-space)? \(body)"
-            case let .open(tags): converter.rules["root"] = "think-0 \"\(tags.close)\" think-space \(body)"
+            if let prefix = reasoning.tags?.answerPrefix, !prefix.isEmpty {
+                body = "\(formatLiteral(prefix)) \(body)"
             }
+            converter.rules["root"] = root(body, reasoning: reasoning)
         }
         if let tags = reasoning.tags {
             addThinkingRules(closedBy: tags.close, to: &converter)
@@ -78,21 +76,106 @@ enum JSONSchemaGrammar {
         return converter.grammar()
     }
 
-    /// `think-0`: any text that doesn't contain `close`. One rule per prefix of the tag matched so far; the
-    /// tag's first character appears nowhere else in it (`</think>`, `<channel|>`), so that character
-    /// always restarts the match and the closing tag is recognised wherever it comes.
+    /// Muse Glimmer's tool calls (ADR D-040 amendment): a message to the tool holding an ATEM block, one
+    /// `<atem:parameter>` per property in the schema's order (the required ones always, the others optionally).
+    /// A string is written raw, up to its closing tag; any other value is JSON held to its own schema, which
+    /// `MuseGlimmerParser` reads back as JSON. With `parallel`, several calls, each its own message.
+    static func atemCalls(
+        _ tools: [(name: String, parameters: Value)], parallel: Bool, reasoning: Reasoning
+    ) throws -> String {
+        var rules: [String: String] = [:]
+        var calls: [String] = []
+        for (index, tool) in tools.enumerated() {
+            var converter = Converter(root: tool.parameters)
+            var parts: [String] = []
+            let required = Set(tool.parameters["required"]?.arrayValue?.compactMap(\.stringValue) ?? [])
+            if case let .object(properties)? = tool.parameters["properties"] {
+                for (key, schema) in properties {
+                    guard case let .string(property) = key else { continue }
+                    let value: String
+                    // As `MuseGlimmerParser` reads it: a string (or string-or-null) parameter is the text as written.
+                    let types = Set(
+                        schema["type"]?.arrayValue?.compactMap(\.stringValue)
+                            ?? schema["type"]?.stringValue.map { [$0] } ?? []
+                    )
+                    // An untyped one too: the parser has no type to read it as.
+                    let isText = types.isEmpty || types.subtracting(["null"]) == ["string"]
+                    let strings = schema["enum"]?.arrayValue?.compactMap(\.stringValue)
+                    if isText, schema["enum"] == nil, schema["const"] == nil {
+                        value = "atem-text-0"
+                    } else if isText, let values = schema["enum"]?.arrayValue, strings?.count == values.count {
+                        // Written raw, so the choices are the bare strings.
+                        value = "(" + values.compactMap(\.stringValue).map(formatLiteral).joined(separator: " | ") + ")"
+                    } else {
+                        value = try converter.visit(
+                            schema, name: "t\(index)-\(property)", path: "#/properties/\(property)"
+                        )
+                    }
+                    let open = formatLiteral("<atem:parameter name=\"\(property)\">")
+                    let rule = converter.addRule(
+                        "t\(index)-param-\(property)", "\(open) \(value) \(formatLiteral("</atem:parameter>\n"))"
+                    )
+                    parts.append(required.contains(property) ? rule : rule + "?")
+                }
+            }
+            let head = formatLiteral(
+                " to=\(tool.name)<|message|><atem:function_calls>\n<atem:invoke name=\"\(tool.name)\">\n"
+            )
+            let tail = formatLiteral("</atem:invoke>\n</atem:function_calls>")
+            calls.append(converter.addRule("t\(index)-call", ([head] + parts + [tail]).joined(separator: " ")))
+            for (rule, text) in converter.rules {
+                if let existing = rules[rule], existing != text {
+                    throw Failure(message: "two tools' parameters need different grammar rules named \(rule)")
+                }
+                rules[rule] = text
+            }
+        }
+        var converter = Converter(root: .record([]))
+        converter.rules = rules
+        let call = calls.count == 1 ? calls[0] : "(" + calls.joined(separator: " | ") + ")"
+        let body = parallel ? "\(call) (\(formatLiteral("<|eom|><|start|>assistant")) \(call))*" : call
+        converter.rules["root"] = root(body, reasoning: reasoning)
+        addTextRules("atem-text", closedBy: "</atem:parameter>", to: &converter)
+        if let tags = reasoning.tags {
+            addThinkingRules(closedBy: tags.close, to: &converter)
+        }
+        return converter.grammar()
+    }
+
+    /// `body`, after the thinking block if `reasoning` says there may be one or the template opened it.
+    private static func root(_ body: String, reasoning: Reasoning) -> String {
+        switch reasoning {
+        case .none: body
+        case let .optional(tags): "(\"\(tags.open)\" think-0 \(closing(tags)) think-space)? \(body)"
+        case let .open(tags): "think-0 \(closing(tags)) think-space \(body)"
+        }
+    }
+
+    /// The thinking block's close, and what always follows it in the family's format.
+    private static func closing(_ tags: ReasoningTags) -> String {
+        tags.afterClose.isEmpty ? "\"\(tags.close)\"" : "\"\(tags.close)\" \(formatLiteral(tags.afterClose))"
+    }
+
+    /// `think-0`: any text that doesn't contain `close`; `think-space`: the newlines after it.
     private static func addThinkingRules(closedBy close: String, to converter: inout Converter) {
         converter.rules["think-space"] = "[\\n]{0,2}"
+        addTextRules("think", closedBy: close, to: &converter)
+    }
+
+    /// `name-0`: any text that doesn't contain `close`. One rule per prefix of the tag matched so far; the
+    /// tag's first character appears nowhere else in it (`</think>`, `<channel|>`, `</atem:parameter>`), so that
+    /// character always restarts the match and the closing tag is recognised wherever it comes.
+    private static func addTextRules(_ name: String, closedBy close: String, to converter: inout Converter) {
         let tag = Array(close)
         let first = tag[0]
-        converter.rules["think-0"] = "| [^\(first)] think-0 | \"\(first)\" think-1"
+        converter.rules["\(name)-0"] = "| [^\(first)] \(name)-0 | \"\(first)\" \(name)-1"
         for matched in 1 ..< tag.count {
             let next = tag[matched]
-            var rule = "| \"\(first)\" think-1 | [^\(first)\(next)] think-0"
+            var rule = "| \"\(first)\" \(name)-1 | [^\(first)\(next)] \(name)-0"
             if matched < tag.count - 1 {
-                rule += " | \"\(next)\" think-\(matched + 1)"
+                rule += " | \"\(next)\" \(name)-\(matched + 1)"
             }
-            converter.rules["think-\(matched)"] = rule
+            converter.rules["\(name)-\(matched)"] = rule
         }
     }
 

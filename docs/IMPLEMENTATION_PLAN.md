@@ -211,6 +211,7 @@ Found while reviewing the project on 2026-09-24; not part of any phase.
 - [x] **Ornith 1.5** 9B and 35B-A3B (2026-10-01, catalog revision 8).
 - [x] **Nemotron 3.5 Lightning 30B-A3B** (2026-10-01, catalog revision 8), on GGUF and MLX: a config adapter, and a copy of mlx-swift-lm's Nemotron-H with its float32 norm fixed (D-066 amendment). Offer both fixes upstream.
 - [x] **Muse Glimmer 30B** (2026-10-01, catalog revision 8): its reply format is read by a parser of its own on both engines (D-040 amendment), and on MLX it loads through its vision model (D-047 amendment). llama.cpp b11306 for llama-server's own fixes.
+- [x] **Muse Glimmer's constrained output and forced tool calls** on GGUF (2026-10-01, D-040 amendment).
 - [x] **Dependabot PR #29** — `softprops/action-gh-release` 2 → 3. *(Merged 2026-09-24: v3 only moves the action to Node 24, no input changed; `release.yml` uses it twice, for the DMG and the appcast, and every release since has attached both.)*
 
 ## Build and verify loop
