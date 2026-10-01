@@ -46,6 +46,16 @@ struct Catalog: Sendable, Equatable {
         var addedAt: Date?
         /// Set for a model from Rapid-MLX's catalog (ADR D-058): its size and what the catalog says about it.
         var rapidMLX: RapidMLXCatalog.Model?
+        /// The day the maker made the weights public (ADR D-070). Curated families only.
+        var released: Date?
+        /// The maker's own Hugging Face repo (`Qwen/Qwen3-8B`), as opposed to the quantized one Quail downloads.
+        var modelCard: String?
+        /// One line on what it's for, and any quirk worth knowing before downloading it.
+        var summary: String?
+        /// The `id` of a newer family from the same line that replaces this one.
+        var supersededBy: String?
+        /// Its rating on Arena's text leaderboard, when it's on it (ADR D-070).
+        var arena: ArenaRating?
 
         /// A repo the user pasted, as opposed to one a catalog lists.
         var isUserAdded: Bool {
@@ -61,6 +71,18 @@ struct Catalog: Sendable, Equatable {
             case .mlxSafetensors: mlx?.repo
             }
         }
+    }
+
+    /// A family's rating on Arena's text leaderboard with style control (arena.ai), from its CC BY 4.0
+    /// dataset, `lmarena-ai/leaderboard-dataset`. `scripts/update-arena-ratings` refreshes these (ADR D-070).
+    struct ArenaRating: Sendable, Equatable, Hashable {
+        var rating: Int
+        /// Half the width of the 95% confidence interval: ratings closer than this are a tie.
+        var interval: Int
+        var rank: Int
+        /// How many models the leaderboard ranks.
+        var outOf: Int
+        var asOf: Date
     }
 
     struct GGUFVariant: Sendable, Equatable, Hashable {
@@ -165,7 +187,30 @@ struct Catalog: Sendable, Equatable {
             var rank: Int?
             var license: String?
             var strengths: [String]?
+            var released: String?
+            var modelCard: String?
+            var summary: String?
+            var supersededBy: String?
+            var arena: RawArena?
             var variants: Variants
+        }
+
+        /// `name` is the model's name on the leaderboard, which the script looks up; the rest is what it found.
+        struct RawArena: Sendable, Equatable, Codable {
+            var name: String
+            var rating: Int?
+            var interval: Int?
+            var rank: Int?
+            var outOf: Int?
+            var asOf: String?
+        }
+
+        /// `2026-08-05`, read as a calendar day in UTC.
+        static func day(_ text: String?) -> Date? {
+            guard let text else { return nil }
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withFullDate]
+            return formatter.date(from: text)
         }
 
         struct RawRAMTier: Sendable, Equatable, Codable {
@@ -211,7 +256,18 @@ struct Catalog: Sendable, Equatable {
                         ) },
                         mlx: raw.variants.mlx.map { MLXVariant(repo: $0.repo, vision: $0.vision ?? false) },
                         isCurated: true,
-                        addedAt: nil
+                        addedAt: nil,
+                        released: Self.day(raw.released),
+                        modelCard: raw.modelCard,
+                        summary: raw.summary,
+                        supersededBy: raw.supersededBy,
+                        arena: raw.arena.flatMap { arena in
+                            guard let rating = arena.rating, let rank = arena.rank, let outOf = arena.outOf,
+                                  let asOf = Self.day(arena.asOf) else { return nil }
+                            return ArenaRating(
+                                rating: rating, interval: arena.interval ?? 0, rank: rank, outOf: outOf, asOf: asOf
+                            )
+                        }
                     )
                 }
             )

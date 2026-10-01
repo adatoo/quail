@@ -288,6 +288,10 @@ struct AddModelSheet: View {
                     if family.isUserAdded {
                         Badge(text: "user-added", color: .secondary)
                     }
+                    if ModelFacts.isNew(family) {
+                        Badge(text: "New", color: .accentColor)
+                            .help(family.released.map { "Released \(ModelFacts.dayText($0))" } ?? "")
+                    }
                 }
                 Text([note, subtitle(for: family)].compactMap(\.self).joined(separator: " · "))
                     .font(.caption)
@@ -323,9 +327,10 @@ struct AddModelSheet: View {
         return installs.queue.contains { repos.contains($0.target.repo) } ? .queued : nil
     }
 
-    /// "32B · 3B active · GGUF, MLX" — what it's good for is in the chips beneath, so the role
-    /// appears only when it says something they don't ("smoke-test").
-    private func subtitle(for family: Catalog.Family) -> String {
+    /// "32B · 3B active · GGUF, MLX · ~45 tok/s" — what it's good for is in the chips beneath, so the role
+    /// appears only when it says something they don't ("smoke-test"). The speed is the default pick's, so the
+    /// title above a chosen quant leaves it to the fit card.
+    private func subtitle(for family: Catalog.Family, withSpeed: Bool = true) -> String {
         var parts: [String] = []
         if let params = family.paramsB {
             parts.append("\(Self.formatParams(params))B")
@@ -340,6 +345,12 @@ struct AddModelSheet: View {
         parts.append(formats.joined(separator: ", "))
         if let bytes = family.rapidMLX?.sizeBytes {
             parts.append(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))
+        }
+        // The default pick's speed on this Mac, so rows compare without opening each one.
+        if withSpeed, case let .estimate(estimate)? = appState.catalogFits[family.id], estimate.verdict != .wontFit,
+           let speed = estimate.estimatedTokensPerSecond
+        {
+            parts.append("~\(Int(speed.rounded())) tok/s")
         }
         return parts.joined(separator: " · ")
     }
@@ -569,18 +580,33 @@ struct AddModelSheet: View {
             switch selection {
             case let .curated(family):
                 Text(family.name).font(.title2.bold())
-                Text(subtitle(for: family)).foregroundStyle(.secondary)
+                Text(subtitle(for: family, withSpeed: false)).foregroundStyle(.secondary)
                 if let license = family.license {
                     Text("License: \(license)").font(.caption).foregroundStyle(.secondary)
+                }
+                if family.isCurated {
+                    ModelFactsCard(
+                        family: family,
+                        filesRepo: currentRepo(for: selection),
+                        newer: ModelFacts.newer(than: family, in: appState.catalog.families),
+                        onShowNewer: { self.selection = .curated($0) }
+                    )
+                    .padding(.top, 4)
+                } else {
+                    filesLink(for: selection)
                 }
 
             case let .pasted(repo):
                 Text(repo).font(.title2.bold())
                 Text("From Hugging Face — not in Quail's curated catalog").foregroundStyle(.secondary)
+                filesLink(for: selection)
             }
-            if let repo = currentRepo(for: selection), let url = URL(string: "https://huggingface.co/\(repo)") {
-                Link(repo, destination: url).font(.caption)
-            }
+        }
+    }
+
+    @ViewBuilder private func filesLink(for selection: Selection) -> some View {
+        if let repo = currentRepo(for: selection), let url = URL(string: "https://huggingface.co/\(repo)") {
+            Link(repo, destination: url).font(.caption)
         }
     }
 

@@ -2,6 +2,41 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-070 · 2026-10-01 · Helping people choose a model: release dates, model cards, and Arena's ratings
+
+**Decision:** Each curated catalog family carries what helps someone choose it, all optional in the schema so older apps read the catalog unchanged:
+- `released`, the day its maker made it public;
+- `modelCard`, the maker's own Hugging Face repo, as opposed to the quantized one Quail downloads;
+- `summary`, one line on what it's for and any quirk worth knowing;
+- `supersededBy`, the id of a newer family from the same line;
+- `arena`, its rating on Arena's text leaderboard.
+
+The Add Model sheet shows these in a card (`ModelFactsCard`) under the model's name, a **New** badge on its row for 30 days after release, and the default pick's estimated speed on each row. The Models list shows the same card behind an ⓘ button on a row, and a **Newer: …** badge on a row whose family has a successor you haven't installed; it opens Add Model on that successor.
+
+**Release dates are hand-entered, from the maker's announcement.** A Hugging Face repo's `createdAt` is when it was created, often weeks before it went public (Qwen3.8 27B: created 5 August, public 14 August; Granite 4.2: 7 and 25 August), and a quantized repo's dates are the quantizer's. Where a maker published no post, the date is from news coverage that agrees with the repo's own dates.
+
+**The public ranking is Arena's text leaderboard with style control.** It was chosen on 2026-10-01 from these sources:
+- **Artificial Analysis Intelligence Index:** a single 0–100 score covering 20 of the 32 chat models in the catalog, the most of any source. Its Data Platform Terms (v1.1, 2026-08-19) forbid showing the numbers in a product or reproducing them "in a structured, tabular, or machine-readable format", so it isn't used unless Artificial Analysis gives written permission.
+- **Arena:** 11 of 32, a single comparable number with a confidence interval, published daily as `lmarena-ai/leaderboard-dataset` under CC BY 4.0.
+- **Others:** Epoch's Capabilities Index covers 8 and LiveBench 1. Hugging Face's Open LLM Leaderboard was retired in 2025. Model cards' own eval results are self-reported and not comparable.
+
+**How the rating is shown:**
+- `rating ± interval · #rank of N`. The interval is half the 95% confidence interval, so two ratings within each other's ± are a tie (Granite 4.2 8B at 1288 and 3B at 1289).
+- With the caveat that Arena rates the full-precision model (Nemotron 3.5's entry is its NVFP4 build), so a quantized download can do a little worse.
+- With the credit CC BY 4.0 asks for: the source, © Arena, the date, links to the leaderboard, the dataset and the licence, and that the numbers are rounded.
+- A family Arena doesn't list says "Not publicly ranked". It never borrows a base model's score: a fine-tune, a distill or a 1-bit or ternary Bonsai isn't the model it came from. Embedding and smoke-test models say nothing.
+
+**Refreshing:** `scripts/update-arena-ratings` (`task catalog:arena`) reads the leaderboard through the Hub's dataset viewer API, so no parquet reader is needed. It rewrites only the `arena` lines, keeping the file's hand-made layout. A name the leaderboard drops is an error to fix by hand. The app picks up a refreshed `catalog.json` from `main` within a week (D-051), whether or not a release follows.
+
+**Next:** Quail's own scores (MMLU-Pro and BFCL tool calling from the bench harness, D-063, on the quantized files people download) for the families Arena doesn't list, labelled as Quail's and never on Arena's scale; and alternatives worked out from size, fit, speed and strengths.
+
+**Alternatives:**
+- Artificial Analysis's index, pending permission.
+- Filling gaps from other sources: their scales differ, and a mixed column reads as one.
+- Hugging Face downloads and likes for curated models: they measure popularity, which would be read as quality.
+
+**Revisit if:** Artificial Analysis grants permission; Arena changes its dataset's licence or shape; or Quail's own scores cover the catalog.
+
 ## D-069 · 2026-10-01 · The Bonsai models: which files, and which engine
 
 **Situation:** PrismML's Bonsai models are Qwen3 and Qwen3.6 models trained to low-bit weights. They come in three kinds, each published for GGUF and MLX:

@@ -10,6 +10,19 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.66.0] - 2026-10-01
+
+### Added
+
+- **More to help you choose a model** (ADR D-070). In Add Model, each curated model now has:
+  - a line on what it's for;
+  - the day it was released, and a **New** badge for its first 30 days;
+  - links to its maker's model card and to the files Quail downloads;
+  - its **Arena rating** where Arena's text leaderboard lists it: 11 models so far, credited, dated, and with the caveat that Arena rates the full-precision model. Others say they aren't publicly ranked.
+  - Each row also shows the estimated speed on this Mac.
+- **In the Models list,** an ⓘ button on a row shows the same, and a **Newer** badge marks a model with a newer version from the same line (Qwen3 8B → Qwen3.5 9B, Qwen3 32B → Qwen3.8 27B), which it opens in Add Model.
+- `task catalog:arena` refreshes the ratings from Arena's CC BY 4.0 dataset.
+
 ## [0.65.3] - 2026-10-01
 
 ### Fixed

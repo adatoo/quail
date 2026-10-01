@@ -296,6 +296,26 @@ struct CatalogTests {
             }
         }
 
+        // What helps you choose (revision 9, ADR D-070): every family has a release day, its maker's repo and a
+        // summary; what replaces a family is in the catalog and came out later; a rating is complete.
+        for family in catalog.families {
+            #expect(family.released != nil, "\(family.id) missing released")
+            #expect(family.modelCard?.contains("/") == true, "\(family.id) missing modelCard")
+            #expect(family.summary?.isEmpty == false, "\(family.id) missing summary")
+            if let successor = family.supersededBy {
+                let newer = try #require(catalog.families.first { $0.id == successor }, "\(family.id) → \(successor)")
+                #expect(try #require(newer.released) > family.released!, "\(successor) isn't newer than \(family.id)")
+            }
+            if let arena = family.arena {
+                #expect(arena.rating > 1000 && arena.rank >= 1 && arena.rank <= arena.outOf, "\(family.id): \(arena)")
+            }
+        }
+        // A family that names its leaderboard entry has its rating filled in by scripts/update-arena-ratings.
+        let named = document.families.filter { $0.arena != nil }
+        #expect(named.count == catalog.families.count { $0.arena != nil }, "an arena name without its rating")
+        #expect(catalog.families.first { $0.id == "qwen3.8-27b" }?.arena != nil)
+        #expect(catalog.families.first { $0.id == "bonsai-8b" }?.arena == nil)
+
         // Spot-checks against the values verified live:
         let qwen3 = try #require(catalog.families.first { $0.id == "qwen3-0.6b" })
         #expect(qwen3.gguf?.repo == "Qwen/Qwen3-0.6B-GGUF")
