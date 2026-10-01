@@ -62,7 +62,7 @@ def tool_calling(engines: list[Engine], models: list[Model], budget_name: str, r
                 server = engine.start(model, run_dir / "tools-servers", log=log)
                 shim = Shim(server, fairness, workdir / "requests.jsonl").start()
                 spec = {"served": server.served, "categories": CATEGORIES, "per_category": per_category,
-                        "threads": fairness["slots"]}
+                        "threads": model.slot_count(fairness)}
                 (workdir / "spec.json").write_text(json.dumps(spec, indent=1))
                 done = subprocess.run([str(BFCL_PYTHON), str(RUN_BFCL), str(workdir / "spec.json")],
                                       env=tool_env(workdir, shim), capture_output=True, text=True)

@@ -95,7 +95,7 @@ def quality(engines: list[Engine], models: list[Model], budget_name: str, run_di
                 shim = Shim(server, fairness, workdir / "requests.jsonl").start()
                 for task, limit_key, metric, gen_kwargs in TASKS:
                     out = workdir / task
-                    argv = command(task, budget[limit_key], gen_kwargs, shim, server.served, fairness["slots"],
+                    argv = command(task, budget[limit_key], gen_kwargs, shim, server.served, model.slot_count(fairness),
                                    fairness["sampling"]["seed"], out)
                     with open(workdir / f"{task}.log", "w") as console:
                         done = subprocess.run(argv, env=tool_env(), stdout=console, stderr=subprocess.STDOUT)

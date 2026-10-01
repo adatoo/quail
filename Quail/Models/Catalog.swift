@@ -58,7 +58,7 @@ struct Catalog: Sendable, Equatable {
         var arena: ArenaRating?
         /// Quail's own scores for its default download (ADR D-070).
         var quailScores: QuailScores?
-        /// Why it has no Quail scores ("It always thinks…"), when that needs saying.
+        /// Why it has no Quail scores ("It always thinks…"), or a caveat shown beside them.
         var quailNote: String?
 
         /// A repo the user pasted, as opposed to one a catalog lists.

@@ -24,8 +24,12 @@ class ConfigTests(unittest.TestCase):
         # The catalog's own scores (ADR D-070): every chat model in catalog.json, one lane each.
         with mock.patch.dict(os.environ, {"QUAIL_BENCH_MODELS": "catalog-models"}):
             models = {m.id: m for m in config.models(Path("/store"))}
-        self.assertGreaterEqual(len(models), 29)
+        self.assertGreaterEqual(len(models), 28)
         self.assertNotIn("nomic-embed-v1.5", models)
+        self.assertNotIn("muse-glimmer-30b", models, "it always thinks, so it isn't on this scale")
+        fairness = config.fairness()
+        self.assertEqual(models["gemma-4-31b"].slot_count(fairness), 4)
+        self.assertEqual(models["qwen3-8b"].slot_count(fairness), fairness["slots"])
         self.assertEqual(models["qwen3.8-27b"].gguf, Path("/store/gguf/Qwen3.8-27B-UD-Q4_K_M.gguf"))
         self.assertFalse(models["qwen3.8-27b"].mlx.exists(), "a lane a model isn't in never exists")
         self.assertFalse(models["bonsai-2-27b"].gguf.exists())

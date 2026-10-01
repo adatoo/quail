@@ -10,6 +10,11 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Changed
+
+- Muse Glimmer isn't in Quail's own tests: it thinks before every answer and can't be told not to, and the tests score answers given without thinking. Its model card says so. gpt-oss is tested at its lowest reasoning effort, and its card notes that beside its scores.
+- `task bench:scores` runs Gemma 4 31B four requests at a time rather than eight, as eight ran a 64 GB Mac's GPU out of memory. A model's `slots` in the models file sets this.
+
 ## [0.67.1] - 2026-10-01
 
 ### Fixed

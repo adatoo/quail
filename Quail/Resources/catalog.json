@@ -245,6 +245,7 @@
       "released": "2025-08-05",
       "modelCard": "openai/gpt-oss-20b",
       "summary": "OpenAI's open mixture-of-experts model: quick, good with tools, with a reasoning effort you can set.",
+      "quail": { "note": "It can't stop reasoning, so it was tested at its lowest reasoning effort: a sentence or so before each answer." },
       "arena": { "name": "gpt-oss-20b", "rating": 1318, "interval": 6, "rank": 260, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "ggml-org/gpt-oss-20b-GGUF", "quants": ["mxfp4"], "default": "mxfp4" },
@@ -296,6 +297,7 @@
       "released": "2026-08-10",
       "modelCard": "meta-models/Muse-Glimmer-30B",
       "summary": "Meta's 2026 open model: reasoning, tool calls and images.",
+      "quail": { "note": "Not in Quail's own tests: it thinks before every answer and its template has no switch to stop it, and they score answers given without thinking." },
       "arena": { "name": "muse-glimmer", "rating": 1425, "interval": 10, "rank": 117, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "bartowski/Muse-Glimmer-30B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-Muse-Glimmer-30B-f16.gguf" },

@@ -208,7 +208,7 @@ def presets(model: Model, lane: str, served: str, fairness: dict, *, llama_serve
     """The `--models-preset` section both Quail's server and llama-server read (ModelStore.regeneratePresets'
     format). For GGUF the context is one pool shared by every slot, as llama-server's unified KV cache is; for
     MLX each request has its own cache, so the context is per request."""
-    slots = fairness["slots"]
+    slots = model.slot_count(fairness)
     per_slot = fairness["context_per_slot"]
     lines = [f"[{served}]", f"model = {model.path(lane)}"]
     if lane == "gguf":
@@ -243,7 +243,7 @@ class QuailEngine(Engine):
                 str(self.locate()), "--host", "127.0.0.1", "--port", str(port),
                 "--models-dir", str(workdir / "empty-gguf"), "--mlx-dir", str(workdir / "empty-mlx"),
                 "--models-preset", str(workdir / "presets.ini"), "--models-max", "1",
-                "--parallel", str(fairness["slots"]), "--no-prompt-cache-disk", "--no-webui",
+                "--parallel", str(model.slot_count(fairness)), "--no-prompt-cache-disk", "--no-webui",
                 "--log-file", str(workdir / "quail-server.log"), "--api-key", key,
             ],
             env=quail_switches(),
