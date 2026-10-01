@@ -11,7 +11,7 @@ Quail includes the software below. Each project's licence text, and any notice i
 | mlx (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
 | mlx-c (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
 | mlx-swift | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
-| mlx-swift-lm | 0dcfe2f8a743 | MIT | quail-server, which also carries adapted copies of some of its model files (QuailServer/MLX/Models, ADR D-066) |
+| mlx-swift-lm | 0dcfe2f8a743 | MIT | quail-server, which also carries adapted copies of some of its model files, one of them from its open pull request #630 (QuailServer/MLX/Models, ADR D-066) |
 | mlx-vlm (the fused GatedDeltaNet kernel's reduction structure) | pull request 2105 (not merged) | MIT | quail-server (adapted, through the Rapid-MLX fused GatedDeltaNet decode kernel) |
 | nlohmann/json (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
 | Rapid-MLX fused GatedDeltaNet decode kernel | 0.15.2 | Apache-2.0 | quail-server (adapted, in QuailServer/MLX/Models/Qwen35.swift; ADR D-066) |

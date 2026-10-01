@@ -128,6 +128,22 @@ struct ModelAddPlanTests {
         #expect(ModelAddPlan.ggufFiles(for: listing, quant: "F16", mmproj: nil).isEmpty)
     }
 
+    @Test("Ternary Bonsai's Q2_0_g64 pick leaves its Q2_0 and PQ2_0 siblings alone")
+    func ternaryBonsaiQuant() {
+        // prism-ml/Ternary-Bonsai-8B-gguf, 2026-09-30. llama.cpp b11081's Q2_0 has 64-weight blocks: it reads
+        // the g64 file, and refuses PrismML's 128-weight "Q2_0" ("failed to read tensor data") and PQ2_0.
+        let listing = HFRepo(id: "prism-ml/Ternary-Bonsai-8B-gguf", files: [
+            Self.hfFile("Ternary-Bonsai-8B-F16.gguf"),
+            Self.hfFile("Ternary-Bonsai-8B-PQ2_0.gguf"),
+            Self.hfFile("Ternary-Bonsai-8B-Q2_0.gguf"),
+            Self.hfFile("Ternary-Bonsai-8B-Q2_0_g64.gguf"),
+        ])
+        #expect(ModelAddPlan.ggufFiles(for: listing, quant: "Q2_0_g64", mmproj: nil).map(\.localFilename) == [
+            "Ternary-Bonsai-8B-Q2_0_g64.gguf",
+        ])
+        #expect(!ModelAddPlan.matchesQuant(stem: "Ternary-Bonsai-8B-PQ2_0", quant: "Q2_0"))
+    }
+
     @Test("mlxFiles drops dotfiles and sorts deterministically")
     func mlxFileSelection() {
         let listing = HFRepo(id: "r", files: [

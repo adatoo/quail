@@ -44,7 +44,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
     /// off with `QUAIL_MLX_BATCH=0`, and on for any model whose caches can batch with `QUAIL_MLX_BATCH=1`.
     static let batchSetting = ProcessInfo.processInfo.environment["QUAIL_MLX_BATCH"]
     /// `model_type`s whose batched text was checked against the same requests run alone.
-    static let batchedFamilies: Set<String> = ["qwen3", "qwen3_5", "qwen3_5_moe", "gemma4"]
+    static let batchedFamilies: Set<String> = ["qwen3", "qwen3_5", "qwen3_5_moe", "gemma4", "prism_hadamard_qwen35"]
 
     /// Whether MLX's buffer cache is limited and cleared while serving (`BufferCachePolicy`, #137); off with
     /// `QUAIL_MLX_CLEAR_CACHE=0`, which leaves MLX's defaults (a cache up to about the whole of memory).

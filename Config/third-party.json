@@ -12,7 +12,7 @@
         {"name": "nlohmann/json", "license": "MIT", "path": "Source/Cmlx/json/LICENSE.MIT"}
       ]
     },
-    "mlx-swift-lm": {"name": "mlx-swift-lm", "license": "MIT", "shipped": true, "in": "quail-server, which also carries adapted copies of some of its model files (QuailServer/MLX/Models, ADR D-066)"},
+    "mlx-swift-lm": {"name": "mlx-swift-lm", "license": "MIT", "shipped": true, "in": "quail-server, which also carries adapted copies of some of its model files, one of them from its open pull request #630 (QuailServer/MLX/Models, ADR D-066)"},
     "sparkle": {"name": "Sparkle", "license": "MIT and the licences of its bundled components (text below)", "shipped": true, "in": "Quail (the direct-download build only)"},
     "swift-argument-parser": {"name": "swift-argument-parser", "license": "Apache-2.0", "shipped": true, "in": "the quail command-line tool"},
     "swift-asn1": {"name": "swift-asn1", "license": "Apache-2.0", "shipped": true, "in": "quail-server", "via": "swift-crypto"},

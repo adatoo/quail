@@ -10,6 +10,15 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Added
+
+- **PrismML's Bonsai models,** Qwen3 and Qwen3.6 models trained to very low-bit weights (ADR D-069):
+  - **1-bit Bonsai** 1.7B, 4B, 8B and 27B, GGUF only (MLX has no 1-bit support yet). The 8B is 1.2 GB and writes about 125 tokens a second on an M4 Pro.
+  - **Ternary Bonsai** 1.7B, 4B, 8B and 27B, in GGUF and MLX.
+  - **Bonsai 2 27B,** a ternary Qwen3.6 27B in 8.6 GB, on MLX. It writes about 23 tokens a second, against 15 for Qwen3.8 27B at 4 bits. Its weights are stored rotated, which mlx-swift-lm doesn't handle yet, so Quail carries its own copy of the pending mlx-swift-lm change. It handles text only, and several requests at once are decoded together.
+  - The 27B models think. The 1-bit and Ternary 27B models also read images. The smaller models don't think, and the 4B models can't reliably call tools.
+  - The Ternary Bonsai MLX downloads that Add Model already listed now appear once, as catalog rows.
+
 ### Fixed
 
 - Running the unit tests no longer puts a second Quail in the menu bar. Quitting it during a run crashed the run, since the tests had a model loaded.

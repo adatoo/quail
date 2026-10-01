@@ -2,6 +2,44 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-069 · 2026-10-01 · The Bonsai models: which files, and which engine
+
+**Situation:** PrismML's Bonsai models are Qwen3 and Qwen3.6 models trained to low-bit weights. They come in three kinds, each published for GGUF and MLX:
+- **1-bit Bonsai** at 1.7B, 4B, 8B and 27B;
+- **Ternary Bonsai** (weights of −1, 0 or +1) at the same sizes;
+- **Bonsai 2 27B**, a ternary Qwen3.6 27B whose weights are stored in a Hadamard-rotated basis.
+
+Add Model already listed three Ternary Bonsai MLX downloads, from Rapid-MLX's catalog (D-058). Several of the other files need runtime code that llama.cpp and mlx-swift-lm don't have yet.
+
+**What runs where.** Checked on 2026-09-30 and 10-01 with llama.cpp b11081 and again with b11306, and with mlx-swift-lm 0dcfe2f8a (MLX 0.32.2):
+
+| | GGUF | MLX |
+|---|---|---|
+| 1-bit | ✅ `Q1_0` | ❌ MLX refuses `bits: 1` (mlx#3161, open since February) |
+| Ternary | ✅ the `Q2_0_g64` file (the 27B's is `Q2_g64`); ❌ PrismML's `Q2_0` and `PQ2_0` | ✅ affine 2-bit |
+| Bonsai 2 | ❌ `PQ2_0`/`PTQ1_0` (llama.cpp #29600, open) | ❌ needs mlx-swift-lm #630 (open); ✅ with Quail's own copy of it |
+
+**Decision:**
+- **1-bit Bonsai: GGUF only.** MLX would need either a fork of MLX core, which D-055 rules out, or Quail's own 1-bit quantized matmul in Metal.
+- **Ternary Bonsai: both formats, with the GGUF quant llama.cpp reads.**
+  - llama.cpp's own `Q2_0` stores 64 weights a block. PrismML's file named `Q2_0` stores 128, their fork's format, so llama.cpp stops with "failed to read tensor data".
+  - Their `Q2_0_g64` file is the upstream format.
+- **Bonsai 2: MLX only,** through a third model copy (D-066 amendment): mlx-swift-lm PR #630's rotation, built on Quail's Qwen3.5 copy.
+- **Strengths are what the checks showed, not what the base model can do.**
+  - The 1.7B, 4B and 8B models have no thinking mode: their template closes the think block.
+  - Both 4B models write a tool call without its opening `<tool_call>` tag, on llama-server as on quail-server, so they aren't marked agentic.
+
+**Alternatives:**
+- **PrismML's forks for 1-bit MLX** (`PrismML-Eng/mlx-swift`): a fork of MLX core, against D-055.
+- **Quail's own 1-bit matmul kernel,** which D-066 would allow: a large piece of Metal for one family, while upstream has a PR open.
+- **PrismML's recommended GGUF files** (`Q2_0`, `PQ2_0`): they don't load on upstream llama.cpp.
+
+**Revisit if:**
+- mlx#3161 ships in mlx-swift (1-bit on MLX);
+- mlx-swift-lm takes #630 (delete the copy);
+- llama.cpp takes #29600 (Bonsai 2 on GGUF);
+- PrismML renames its files.
+
 ## D-068 · 2026-09-30 · Load and Unload by hand stop a busy model's requests
 
 **Situation:** with one model loaded at a time, loading another while the chat page was still streaming a reply left the new model at "Loading…" for as long as the reply ran, with nothing saying why. The router never takes a model out from under a request (D-011's router semantics), so it waited. With a slow thinking model and no length limit, that's many minutes. Unload waited the same way. And the page kept its own choice of model, so its next message could reload the old model and push the new one out.
@@ -108,6 +146,20 @@ D-055 had decided on mlx-swift-lm's public API only, with no custom Metal and no
 - **Only where it's written for:** one sequence, one position, no mask, bfloat16 activations, a float32 state, and 128-wide heads. Prompts, batches and other shapes keep the separate kernels.
 - **Measured** on the Mac mini (M4 Pro), Qwen3.6 35B-A3B, prompt lookup off, cooled before each request: 11.22 ms a token with separate kernels, 10.79 ms fused (−3.8%). Replies at temperature 0 were identical.
 - **Still behind:** Rapid-MLX also compiles the whole single-request step. So does mlx-swift-lm's main branch, whose Qwen3.5 (four input projections fused into one, compiled decode segments, a fused router top-k) measured 10.99 ms against this copy's 10.79 ms on the same mini, so this copy stays.
+
+**Amended 2026-10-01 (the third copy: Bonsai 2 27B, D-069):** `QuailServer/MLX/Models/PrismHadamard.swift` is adapted from mlx-swift-lm pull request #630 at bac826f, which is still open. That PR's code is under mlx-swift-lm's MIT licence.
+- **What the copy is for:** Bonsai 2 packs Qwen3.6 27B's language-model weights as ternary values in MLX's affine 2-bit form, in a Hadamard-rotated basis. `model_type` is `prism_hadamard_qwen35`, and `config.json` names every rotated module.
+  - Each rotated linear layer rotates its input before the packed matmul, with a signed, blockwise Walsh–Hadamard transform (MLX's `hadamardTransform`).
+  - The rotated embedding un-rotates the rows it looks up.
+  - Without both, the pack still loads and writes fluent nonsense.
+- **Built on the Qwen3.5 copy** (`QPrismHadamardQwen35Model: QQwen35Model`). That copy keeps the GatedDeltaNet input projections apart, as the manifest names them.
+  - The manifest, its validation and the choice of tensors to cast to float16 are in `QuailServerCore` (`PrismHadamardManifest`), where they're tested without MLX.
+  - Text only: mlx-swift-lm's vision Qwen3.5 isn't `open`, so there's nothing to subclass for images.
+- **Checked against a reference:** mlx-lm's Qwen3.5, with the rotated modules installed as Rapid-MLX 0.14.3's runtime installs them. On a fixed prompt at temperature 0, Quail's reply matched its token ids, 60 of 60, up to Quail's end of turn.
+- **Several requests at once:** four different requests sent together gave the same greedy replies as sent one at a time, so `prism_hadamard_qwen35` is in `batchedFamilies`.
+- **Speed** on the M4 Pro (release build, one request): 23.5 tokens a second, against 14.9 for Qwen3.8 27B at 4 bits on the same Mac.
+  - The pack runs in float16, so the fused GatedDeltaNet decode kernel, which is bfloat16 only, isn't used.
+- **Delete when** the pin takes #630.
 
 ## D-063 · 2026-09-28 · Comparing Quail with Ollama, oMLX and Rapid-MLX: method and harness
 

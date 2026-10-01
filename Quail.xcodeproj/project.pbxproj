@@ -36,6 +36,7 @@
 		269116CB3FDD91029B04B286 /* InstalledLookupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7BD67C786011602F9C3C68D /* InstalledLookupTests.swift */; };
 		26B6595B697BA4FD761FDBA5 /* ConnectPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9314E5E80DBE23041BD6062B /* ConnectPane.swift */; };
 		26BB0700BBAC741DB1619F62 /* BufferCachePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A66321C6A059921ED0DA60B /* BufferCachePolicyTests.swift */; };
+		274782A068D53EC8291AA603 /* PrismHadamard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F8D15391A65C398F5FD40F6 /* PrismHadamard.swift */; };
 		27D217ED7F5B79CFE30BBD9E /* ServerLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ABBD0A16BBF556AE94F03D0 /* ServerLog.swift */; };
 		294AAE9056D74B73DFA51C94 /* ModelAddPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B83D2B3E8DD5780934B2E1C5 /* ModelAddPlanTests.swift */; };
 		2AB54DF34364E60EB414F204 /* FakeRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 857FE791D3A8B14C0ACD9E8F /* FakeRuntime.swift */; };
@@ -49,6 +50,7 @@
 		3198BCA384DB17EAE8EF1E3F /* ActivityRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1498589EF389C9452D5C3E0 /* ActivityRegistry.swift */; };
 		31D658A3E5A9CC979FE16300 /* ToolCalls.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03A0381BF3FC28180D84EB6 /* ToolCalls.swift */; };
 		31FBD2F3CDFC6CD4C28F01E5 /* ThirdPartyNoticesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B03427DF23641EF1208ED53 /* ThirdPartyNoticesTests.swift */; };
+		337942886FAD083C8C71ED99 /* PrismHadamardManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6251D6657B3186ED19DE440 /* PrismHadamardManifest.swift */; };
 		34014C7D0B71B7CA1BF0107D /* PromptLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9474AE44F51B390B92C36573 /* PromptLookup.swift */; };
 		3430F195CEBC5CF8261D57D2 /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB03FA5B5C74DB6E5B963EF2 /* AppStateTests.swift */; };
 		35F2D94F2909B60470AF9EF0 /* BatchKVCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E413E301C8E22E733C0745 /* BatchKVCache.swift */; };
@@ -262,6 +264,7 @@
 		F2AAFE55E1165BA78AB7A5DF /* ConnectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE785CFCB0ACA27903BF3A40 /* ConnectTests.swift */; };
 		F2B2A1AB9C4A686061468A41 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 172E2ED30331FE206614AC9C /* ArgumentParser */; };
 		F3F50F958D11AB624F27AE58 /* Jinja in Frameworks */ = {isa = PBXBuildFile; productRef = 62CCE8FBD277DAC37C38B903 /* Jinja */; };
+		F44DF601477F72ACB68CEBC6 /* PrismHadamardManifestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03740276A6FADF2B005D9564 /* PrismHadamardManifestTests.swift */; };
 		F5F1627431AF9E772BD5AF5C /* ModelsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 351669FD912B75E519CAAF15 /* ModelsPane.swift */; };
 		F776FD285CA12050FB52D748 /* UISnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60DBCD25631515D95F070E94 /* UISnapshotTests.swift */; };
 		F86D6D882D60A0CEAFA7240D /* libQuailServerLlama.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D660F1A52A0F7FB2BE791117 /* libQuailServerLlama.a */; };
@@ -353,6 +356,7 @@
 /* Begin PBXFileReference section */
 		0172F426DB7DE0BD44BE2CFA /* ConnectionTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionTester.swift; sourceTree = "<group>"; };
 		027FC3DED8EE5BC8F7D17E77 /* BenchmarkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkStore.swift; sourceTree = "<group>"; };
+		03740276A6FADF2B005D9564 /* PrismHadamardManifestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrismHadamardManifestTests.swift; sourceTree = "<group>"; };
 		0532EA6870674FB9963AFA18 /* Website.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Website.swift; sourceTree = "<group>"; };
 		053831E50B3F626A3623257F /* SystemMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitor.swift; sourceTree = "<group>"; };
 		0640E04CE3738AEE988AB275 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -378,6 +382,7 @@
 		19B87DA34C1C3C10454DD9BC /* CatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTests.swift; sourceTree = "<group>"; };
 		19EEEAB816FBBB86E54289E2 /* ModelImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelImporterTests.swift; sourceTree = "<group>"; };
 		1A66321C6A059921ED0DA60B /* BufferCachePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BufferCachePolicyTests.swift; sourceTree = "<group>"; };
+		1F8D15391A65C398F5FD40F6 /* PrismHadamard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrismHadamard.swift; sourceTree = "<group>"; };
 		202E2A8059B6ABFB4874ED71 /* PathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathsTests.swift; sourceTree = "<group>"; };
 		22C7273EA670E9C7F59B72CB /* BenchmarkRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkRunner.swift; sourceTree = "<group>"; };
 		239E0D546E27423C906B3A80 /* StubURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubURLProtocol.swift; sourceTree = "<group>"; };
@@ -600,6 +605,7 @@
 		F3AE822102B29E1411CC45C2 /* InferenceRoutesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InferenceRoutesTests.swift; sourceTree = "<group>"; };
 		F4A8F96383D76232185BF9AF /* Qwen35.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Qwen35.swift; sourceTree = "<group>"; };
 		F60E1C92E810C3197B7DBCF0 /* ServerPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerPane.swift; sourceTree = "<group>"; };
+		F6251D6657B3186ED19DE440 /* PrismHadamardManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrismHadamardManifest.swift; sourceTree = "<group>"; };
 		F6430CBAD1F05B2810D5D718 /* OfflineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineTests.swift; sourceTree = "<group>"; };
 		F78BA7C73CC4779E4C7DF5E5 /* WebUIMarkdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUIMarkdown.swift; sourceTree = "<group>"; };
 		F9235B293BB2D882972965C8 /* QuailServerRuntimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailServerRuntimeTests.swift; sourceTree = "<group>"; };
@@ -754,6 +760,7 @@
 				738D6D85AB093419EF96D0D4 /* ParkedSequencesTests.swift */,
 				202E2A8059B6ABFB4874ED71 /* PathsTests.swift */,
 				5907867E917EAA9CB82DDAAF /* PingTests.swift */,
+				03740276A6FADF2B005D9564 /* PrismHadamardManifestTests.swift */,
 				921AEE79C781B5EB581C6DC5 /* ProcessSupervisorTests.swift */,
 				42A6314E89ECBDE283B024E7 /* PromptCachePlanTests.swift */,
 				D8FAB3B74C84276EA092A9EE /* PromptLookupTests.swift */,
@@ -889,6 +896,7 @@
 				5841043F06995332D2619E0F /* OrderedJSON.swift */,
 				EDB04C74AC59105326C6451C /* ParkedSequences.swift */,
 				3CC38C064EB747431E011EB1 /* PresetsFile.swift */,
+				F6251D6657B3186ED19DE440 /* PrismHadamardManifest.swift */,
 				6D000FBCEBA8D37938C4F39E /* PromptCachePlan.swift */,
 				9474AE44F51B390B92C36573 /* PromptLookup.swift */,
 				95E0E264352A291B2B0573F5 /* QuailServerApp.swift */,
@@ -976,6 +984,7 @@
 			isa = PBXGroup;
 			children = (
 				13DE418731F6FDA225381A9C /* Gemma4Text.swift */,
+				1F8D15391A65C398F5FD40F6 /* PrismHadamard.swift */,
 				F4A8F96383D76232185BF9AF /* Qwen35.swift */,
 			);
 			path = Models;
@@ -1435,6 +1444,7 @@
 				3EFAF922BCFA71E54298A2CF /* MLXEngine.swift in Sources */,
 				B4FC3F3EFA939C38E9EA6F4B /* MLXSequence.swift in Sources */,
 				E9828E886FD418E556AE3F2E /* MLXTrace.swift in Sources */,
+				274782A068D53EC8291AA603 /* PrismHadamard.swift in Sources */,
 				2B7F298250EA270D19E64F0E /* PromptDiskCache.swift in Sources */,
 				88BA01A2D101109F18391180 /* QuailModels.swift in Sources */,
 				1330D9CE4E1FE9CD41348E08 /* Qwen35.swift in Sources */,
@@ -1632,6 +1642,7 @@
 				66BA08FBBEF5BD86CF506909 /* ParkedSequencesTests.swift in Sources */,
 				78A0C100BA7CBC5B2B1F3FA8 /* PathsTests.swift in Sources */,
 				AF8F824B4E7AD00629E4BEC8 /* PingTests.swift in Sources */,
+				F44DF601477F72ACB68CEBC6 /* PrismHadamardManifestTests.swift in Sources */,
 				C3F586D3E7C525482C51C7BC /* ProcessSupervisorTests.swift in Sources */,
 				4EB1A0A5D124FF3994BA481C /* PromptCachePlanTests.swift in Sources */,
 				FB8504F0AAF172854C655320 /* PromptLookupTests.swift in Sources */,
@@ -1691,6 +1702,7 @@
 				9D7E310BC0A851564856F006 /* OrderedJSON.swift in Sources */,
 				7788E31519D388BA255DB4FD /* ParkedSequences.swift in Sources */,
 				4D92C31AB0FBCED76664BA8E /* PresetsFile.swift in Sources */,
+				337942886FAD083C8C71ED99 /* PrismHadamardManifest.swift in Sources */,
 				C5ABD73023E726F17E8BCE8A /* PromptCachePlan.swift in Sources */,
 				34014C7D0B71B7CA1BF0107D /* PromptLookup.swift in Sources */,
 				45D2C7C5DDF6E10F03A6A694 /* QuailServerApp.swift in Sources */,
