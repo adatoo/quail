@@ -333,5 +333,9 @@ struct CatalogTests {
         #expect(bonsai2.mlx?.repo == "prism-ml/Ternary-Bonsai-2-27B-mlx-2bit")
         let granite = try #require(catalog.families.first { $0.id == "granite-4.2-8b" })
         #expect(granite.mlx?.repo == "ibm-granite/granite-4.2-8b-q4-mlx")
+        let ornith = try #require(catalog.families.first { $0.id == "ornith-1.5-9b" })
+        #expect(ornith.gguf?.mmproj == "mmproj-Ornith-1.5-9B-BF16.gguf")
+        // Ornith's own MLX 4-bit leaves the vision tower out.
+        #expect(ornith.mlx?.vision == false)
     }
 }

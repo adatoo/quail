@@ -19,6 +19,7 @@ version's section with `task version:bump` (ADR D-024); every merge to
   - The 27B models think. The 1-bit and Ternary 27B models also read images. The smaller models don't think, and the 4B models can't reliably call tools.
   - The Ternary Bonsai MLX downloads that Add Model already listed now appear once, as catalog rows.
 - **Granite 4.2** 3B, 8B and 30B, IBM's Apache-licensed models, in GGUF and MLX from IBM's own repositories. They think by default.
+- **Ornith 1.5** 9B and 35B-A3B, coding fine-tunes of Qwen3.5, in GGUF (which reads images) and MLX.
 
 ### Fixed
 
