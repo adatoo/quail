@@ -178,7 +178,7 @@ D-055 had decided on mlx-swift-lm's public API only, with no custom Metal and no
   - Its greedy reply now matches mlx-lm's.
   - Mlx-lm compiles its expert selection, and compiling that and the squared ReLU here changed nothing measurable, so the copy doesn't.
 - **Several requests at once** gave replies that differ from the same requests sent alone, so Nemotron-H isn't in `batchedFamilies`.
-- **Upstream:** both fixes belong in mlx-swift-lm's NemotronH.swift. The copy and the adapter go when the pin takes them.
+- **Upstream:** both fixes belong in mlx-swift-lm's NemotronH.swift, but Quail isn't submitting them (2026-10-01). The copy and the adapter stay until a pin brings the same fixes from upstream's own work.
 
 ## D-063 · 2026-09-28 · Comparing Quail with Ollama, oMLX and Rapid-MLX: method and harness
 
