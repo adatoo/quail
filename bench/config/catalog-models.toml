@@ -1,7 +1,8 @@
 # Every chat model in the curated catalog, for Quail's own quality and tool-calling scores (ADR D-070):
 # QUAIL_BENCH_MODELS=catalog-models with ENGINES=quail-gguf (and quail-mlx for Bonsai 2, which is MLX only).
 # Each is its catalog default download. Thinking is off, as for the engine comparison (fairness.toml).
-# Gemma 4 31B runs 4 requests at once, not 8: eight 8K caches beside its weights ran the M1 Max's GPU out of memory.
+# Gemma 4 31B runs 2 requests at once, not 8: with libllama's full-size sliding-window cache (which Quail keeps), 4 or
+# 8 caches of 8K beside its weights ran the M1 Max's GPU out of memory.
 # Not here: qwen3-0.6b (smoke test); nomic-embed-v1.5 (embedding model); deepseek-r1-distill-llama-8b (always thinks); deepseek-r1-distill-qwen-32b (always thinks); muse-glimmer-30b (its template has no switch, and it
 # thinks before answering).
 
@@ -59,7 +60,7 @@ gguf = "gguf/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf"
 name = "Gemma 4 31B (vision)"
 catalog = "gemma-4-31b:Q4_K_M"
 gguf = "gguf/gemma-4-31B-it-Q4_K_M.gguf"
-slots = 4
+slots = 2
 
 ["llama-3.1-8b"]
 name = "Llama 3.1 8B Instruct"

@@ -28,7 +28,7 @@ class ConfigTests(unittest.TestCase):
         self.assertNotIn("nomic-embed-v1.5", models)
         self.assertNotIn("muse-glimmer-30b", models, "it always thinks, so it isn't on this scale")
         fairness = config.fairness()
-        self.assertEqual(models["gemma-4-31b"].slot_count(fairness), 4)
+        self.assertEqual(models["gemma-4-31b"].slot_count(fairness), 2)
         self.assertEqual(models["qwen3-8b"].slot_count(fairness), fairness["slots"])
         self.assertEqual(models["qwen3.8-27b"].gguf, Path("/store/gguf/Qwen3.8-27B-UD-Q4_K_M.gguf"))
         self.assertFalse(models["qwen3.8-27b"].mlx.exists(), "a lane a model isn't in never exists")
