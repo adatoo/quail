@@ -10,6 +10,10 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Fixed
+
+- Running the unit tests no longer puts a second Quail in the menu bar. Quitting it during a run crashed the run, since the tests had a model loaded.
+
 ## [0.63.3] - 2026-10-01
 
 ### Changed

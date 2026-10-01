@@ -8,7 +8,9 @@ struct QuailApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra {
+        // Not in the menu bar while it only hosts unit tests: a second bird there was being quit mid-run, and a
+        // model the tests had loaded then aborted the process as it exited.
+        MenuBarExtra(isInserted: .constant(!AppDelegate.isHostingUnitTests)) {
             MenuView(appState: appDelegate.appState, updateSettings: appDelegate.updateSettings)
         } label: {
             // Always the same bird glyph; only the colour reflects
