@@ -128,6 +128,22 @@ struct ModelAddPlanTests {
         #expect(ModelAddPlan.ggufFiles(for: listing, quant: "F16", mmproj: nil).isEmpty)
     }
 
+    @Test("MTP heads and DFlash drafts beside a quant aren't downloaded with it")
+    func sideFilesNeverMain() {
+        // Shape verified live from bartowski/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF and
+        // bartowski/Muse-Glimmer-30B-GGUF on 2026-09-30.
+        let listing = HFRepo(id: "r", files: [
+            Self.hfFile("NVIDIA-Nemotron-3.5-Lightning-30B-A3B-Q4_0.gguf"),
+            Self.hfFile("mtp-NVIDIA-Nemotron-3.5-Lightning-30B-A3B-Q4_0.gguf"),
+            Self.hfFile("dflash-Muse-Glimmer-30B-Q8_0.gguf"),
+        ])
+        #expect(ModelAddPlan.quants(in: listing) == ["Q4_0"])
+        #expect(ModelAddPlan.ggufFiles(for: listing, quant: "Q4_0", mmproj: nil).map(\.localFilename) == [
+            "NVIDIA-Nemotron-3.5-Lightning-30B-A3B-Q4_0.gguf",
+        ])
+        #expect(ModelAddPlan.ggufFiles(for: listing, quant: "Q8_0", mmproj: nil).isEmpty)
+    }
+
     @Test("Ternary Bonsai's Q2_0_g64 pick leaves its Q2_0 and PQ2_0 siblings alone")
     func ternaryBonsaiQuant() {
         // prism-ml/Ternary-Bonsai-8B-gguf, 2026-09-30. llama.cpp b11081's Q2_0 has 64-weight blocks: it reads

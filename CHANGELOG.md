@@ -20,10 +20,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
   - The Ternary Bonsai MLX downloads that Add Model already listed now appear once, as catalog rows.
 - **Granite 4.2** 3B, 8B and 30B, IBM's Apache-licensed models, in GGUF and MLX from IBM's own repositories. They think by default.
 - **Ornith 1.5** 9B and 35B-A3B, coding fine-tunes of Qwen3.5, in GGUF (which reads images) and MLX.
+- **Nemotron 3.5 Lightning 30B-A3B,** NVIDIA's mixture of experts with 3B active, in GGUF and MLX. On MLX it writes about 76 tokens a second on an M4 Pro, against 65 for the GGUF.
 
 ### Fixed
 
 - Running the unit tests no longer puts a second Quail in the menu bar. Quitting it during a run crashed the run, since the tests had a model loaded.
+- **MLX: Nemotron-H models ran in float32 after their first Mamba layer.** mlx-swift-lm's gated norm used a float32 weight, which made every later layer float32. That was slower, and greedy replies differed from mlx-lm's. Quail's own copy of the model fixes it (D-066 amendment), taking Nemotron 3.5 from 56 to 76 tokens a second.
+  - Nemotron 3.5's MLX download, which Add Model already listed, also didn't load before: the pinned mlx-swift-lm couldn't read how its config names its layers.
+- Adding a GGUF model no longer downloads the multi-token-prediction (`mtp-`) or draft (`dflash-`) files some repositories keep beside each quant, such as bartowski's Nemotron 3.5.
 
 ## [0.63.3] - 2026-10-01
 

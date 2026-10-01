@@ -39,5 +39,12 @@ enum QuailModels {
                 manifest: decoder.decode(PrismHadamardManifest.self, from: data)
             )
         }
+        // Nemotron-H (Models/NemotronH.swift), given a config it can read: Nemotron 3.5 names its layer layout
+        // differently (`MLXConfigAdapters.nemotronH`).
+        await LLMTypeRegistry.shared.registerModelType("nemotron_h") { data in
+            try QNemotronHModel(
+                JSONDecoder.json5().decode(NemotronHConfiguration.self, from: MLXConfigAdapters.nemotronH(data))
+            )
+        }
     }
 }

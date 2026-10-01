@@ -161,6 +161,23 @@ D-055 had decided on mlx-swift-lm's public API only, with no custom Metal and no
   - The pack runs in float16, so the fused GatedDeltaNet decode kernel, which is bfloat16 only, isn't used.
 - **Delete when** the pin takes #630.
 
+**Amended 2026-10-01 (the fourth copy: Nemotron-H, and a config adapter):** `QuailServer/MLX/Models/NemotronH.swift` is copied from mlx-swift-lm's NemotronH.swift and registered for `model_type` nemotron_h, behind a rewrite of `config.json`.
+- **The config adapter** (`MLXConfigAdapters.nemotronH`, in `QuailServerCore`, tested without MLX):
+  - Nemotron 3.5 Lightning 30B-A3B writes its layer layout as `layers_block_type` (`["mamba", "moe", …]`), and the pinned `NemotronHConfiguration` refuses a config without `hybrid_override_pattern`, so its MLX download, listed from Rapid-MLX's catalog, didn't load.
+  - The adapter adds the pattern with mlx-lm's own mapping (ml-explore/mlx-lm#1857).
+  - It splices the keys in rather than re-serializing, because Nemotron 3 Nano's config has an `Infinity` that `JSONSerialization` reads but can't write.
+  - Nemotron 3.5's layout comes out as exactly Nemotron 3 Nano's pattern.
+- **The copy's one change:** the gated norm's identity weight is in the activations' type.
+  - mlx-swift-lm passes `rmsNorm` a float32 array of ones, where mlx-lm passes no weight.
+  - That makes the norm's output float32, and through each Mamba layer's output projection, the residual stream too.
+  - The cost was twice the bytes, and greedy replies that differed from mlx-lm's from the first token.
+- **Measured** on the M4 Pro (release build, mlx-community 4-bit, a 200-token reply):
+  - 56 tokens a second before, 76 now, against 89 for Python mlx-lm 0.31.3 and 65 for the Q4_0 GGUF on quail-server.
+  - Its greedy reply now matches mlx-lm's.
+  - Mlx-lm compiles its expert selection, and compiling that and the squared ReLU here changed nothing measurable, so the copy doesn't.
+- **Several requests at once** gave replies that differ from the same requests sent alone, so Nemotron-H isn't in `batchedFamilies`.
+- **Upstream:** both fixes belong in mlx-swift-lm's NemotronH.swift. The copy and the adapter go when the pin takes them.
+
 ## D-063 · 2026-09-28 · Comparing Quail with Ollama, oMLX and Rapid-MLX: method and harness
 
 **Situation:** the owner wants to know how Quail compares with Ollama, oMLX and Rapid-MLX, measured with standard benchmarks. The results go in the repo and on the website, including where Quail loses. Until now only `quail bench` existed. It depends on llama-server's `/tokenize` and server-side `timings`, so it can't measure the others.

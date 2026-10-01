@@ -337,5 +337,10 @@ struct CatalogTests {
         #expect(ornith.gguf?.mmproj == "mmproj-Ornith-1.5-9B-BF16.gguf")
         // Ornith's own MLX 4-bit leaves the vision tower out.
         #expect(ornith.mlx?.vision == false)
+        // Nemotron 3.5's MLX download loads through a config adapter and Quail's Nemotron-H copy.
+        let nemotron = try #require(catalog.families.first { $0.id == "nemotron-3.5-lightning-30b-a3b" })
+        #expect(nemotron.activeParamsB == 3)
+        #expect(nemotron.gguf?.defaultQuant == "Q4_0")
+        #expect(nemotron.mlx?.repo == "mlx-community/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-4bit")
     }
 }

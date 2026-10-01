@@ -209,6 +209,7 @@ Found while reviewing the project on 2026-09-24; not part of any phase.
 - [x] **Bonsai** (2026-10-01, catalog revision 8, ADR D-069): 1-bit and Ternary Bonsai at four sizes, and Bonsai 2 27B on MLX through a copy of mlx-swift-lm's open PR #630 (D-066 amendment). Delete the copy when the pin takes #630.
 - [x] **Granite 4.2** 3B, 8B and 30B (2026-10-01, catalog revision 8).
 - [x] **Ornith 1.5** 9B and 35B-A3B (2026-10-01, catalog revision 8).
+- [x] **Nemotron 3.5 Lightning 30B-A3B** (2026-10-01, catalog revision 8), on GGUF and MLX: a config adapter, and a copy of mlx-swift-lm's Nemotron-H with its float32 norm fixed (D-066 amendment). Offer both fixes upstream.
 - [x] **Dependabot PR #29** — `softprops/action-gh-release` 2 → 3. *(Merged 2026-09-24: v3 only moves the action to Node 24, no input changed; `release.yml` uses it twice, for the DMG and the appcast, and every release since has attached both.)*
 
 ## Build and verify loop
