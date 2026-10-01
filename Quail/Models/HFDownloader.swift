@@ -7,7 +7,7 @@ import Foundation
 /// via HTTP `Range`, with the LFS sha256 verified once a file is
 /// complete.
 ///
-/// In-process streaming (`URLSession.bytes(for:)`), not a true background
+/// In-process streaming (a data task's chunks, `ChunkedBody`), not a true background
 /// `URLSession` — see ADR D-015 for why: background sessions are
 /// delegate-only (no streaming, so sha256 needs a second full read),
 /// their resume mechanism is Apple's own opaque, sometimes-unreliable
@@ -311,14 +311,19 @@ actor HFDownloader {
             }
 
             request.timeoutInterval = Self.downloadTimeout
-            let delegate = RangePreservingRedirectDelegate()
-            let asyncBytes: URLSession.AsyncBytes, response: URLResponse
+            let body: ChunkedBody
             do {
-                (asyncBytes, response) = try await urlSession.bytes(for: request, delegate: delegate)
+                body = try await ChunkedBody.start(request, in: urlSession)
             } catch {
                 throw Self.offline(error)
             }
-            let honoredRange = try Self.checkStatus(response)
+            let honoredRange: Bool
+            do {
+                honoredRange = try Self.checkStatus(body.response)
+            } catch {
+                body.cancel()
+                throw error
+            }
 
             if requestedRange, !honoredRange {
                 // The server ignored our Range and is about to send the
@@ -352,8 +357,8 @@ actor HFDownloader {
                 buffer.removeAll(keepingCapacity: true)
             }
 
-            for try await byte in asyncBytes {
-                buffer.append(byte)
+            for try await chunk in body.chunks {
+                buffer.append(chunk)
                 if buffer.count >= Self.chunkSize {
                     try Task.checkCancellation()
                     flush()
@@ -456,7 +461,7 @@ struct HFPartialSidecar: Sendable, Equatable, Codable {
 /// host would be sending a credential somewhere it isn't needed — the
 /// same reasoning URLSession's own default cross-host redirect handling
 /// already applies to `Authorization` specifically.
-private final class RangePreservingRedirectDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+private class RangePreservingRedirectDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
     func urlSession(
         _: URLSession, task: URLSessionTask,
         willPerformHTTPRedirection _: HTTPURLResponse, newRequest request: URLRequest,
@@ -467,5 +472,88 @@ private final class RangePreservingRedirectDelegate: NSObject, URLSessionTaskDel
             redirected.setValue(range, forHTTPHeaderField: "Range")
         }
         completionHandler(redirected)
+    }
+}
+
+/// A download's response, then its body in the pieces URLSession delivers them (tens of KB to a few MB), with
+/// `Range` carried across the CDN redirect as `RangePreservingRedirectDelegate` does.
+///
+/// This replaced `URLSession.bytes(for:)`, whose body is read a byte at a time: inside this actor that loop
+/// topped out at 23 MB/s on an M4 Pro (57 MB/s outside an actor), and a laptop's `quail pull` measured about
+/// 5 MB/s on a line that gave curl 20. A delegate-fed stream of chunks costs nothing per byte.
+private struct ChunkedBody {
+    let response: URLResponse
+    let chunks: AsyncThrowingStream<Data, Error>
+    let task: URLSessionDataTask
+
+    func cancel() {
+        task.cancel()
+    }
+
+    /// Starts `request` and returns once the response has arrived; the body follows in `chunks`. Cancelling
+    /// the caller, or ending the stream, cancels the transfer.
+    static func start(_ request: URLRequest, in session: URLSession) async throws -> ChunkedBody {
+        let delegate = ChunkDelegate()
+        let task = session.dataTask(with: request)
+        task.delegate = delegate
+        delegate.onTermination { task.cancel() }
+        let response = try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                delegate.awaitResponse(continuation)
+                task.resume()
+            }
+        } onCancel: {
+            task.cancel()
+        }
+        return ChunkedBody(response: response, chunks: delegate.chunks, task: task)
+    }
+}
+
+private final class ChunkDelegate: RangePreservingRedirectDelegate, URLSessionDataDelegate, @unchecked Sendable {
+    let chunks: AsyncThrowingStream<Data, Error>
+    private let chunkContinuation: AsyncThrowingStream<Data, Error>.Continuation
+    private let lock = NSLock()
+    private var responseContinuation: CheckedContinuation<URLResponse, Error>?
+
+    override init() {
+        (chunks, chunkContinuation) = AsyncThrowingStream.makeStream()
+        super.init()
+    }
+
+    func onTermination(_ action: @escaping @Sendable () -> Void) {
+        chunkContinuation.onTermination = { _ in action() }
+    }
+
+    func awaitResponse(_ continuation: CheckedContinuation<URLResponse, Error>) {
+        lock.withLock { responseContinuation = continuation }
+    }
+
+    private func takeResponseContinuation() -> CheckedContinuation<URLResponse, Error>? {
+        lock.withLock {
+            defer { responseContinuation = nil }
+            return responseContinuation
+        }
+    }
+
+    func urlSession(
+        _: URLSession, dataTask _: URLSessionDataTask, didReceive response: URLResponse,
+        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+    ) {
+        takeResponseContinuation()?.resume(returning: response)
+        completionHandler(.allow)
+    }
+
+    func urlSession(_: URLSession, dataTask _: URLSessionDataTask, didReceive data: Data) {
+        chunkContinuation.yield(data)
+    }
+
+    func urlSession(_: URLSession, task _: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error {
+            takeResponseContinuation()?.resume(throwing: error)
+            chunkContinuation.finish(throwing: error)
+        } else {
+            takeResponseContinuation()?.resume(throwing: URLError(.badServerResponse))
+            chunkContinuation.finish()
+        }
     }
 }

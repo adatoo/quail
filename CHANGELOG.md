@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.67.1] - 2026-10-01
+
+### Fixed
+
+- **Model downloads are much faster.** Quail read each download a byte at a time, which capped it at a few MB/s on some Macs, well below the connection (about 5 MB/s on an M1 Max where curl got 20). It now takes the data in the chunks the network delivers. Resuming, checksums and cancelling work as before.
+
 ## [0.67.0] - 2026-10-01
 
 ### Added
