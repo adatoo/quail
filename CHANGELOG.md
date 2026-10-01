@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.65.3] - 2026-10-01
+
+### Fixed
+
+- **Deleting a model while another downloads works.** It used to do nothing in the Models pane, without saying why. Deleting the model that's downloading again now says to cancel the download first.
+
 ## [0.65.2] - 2026-10-01
 
 ### Changed

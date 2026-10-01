@@ -143,7 +143,7 @@ extension AppState {
                 try await deleteInstalledModel(id: entry.id)
                 return ControlResponse(ok: true, message: "Deleted \(entry.id).")
             } catch {
-                return .failure("Couldn't delete \(entry.id): \(error)")
+                return .failure("Couldn't delete \(entry.id): \(error.localizedDescription)")
             }
         }
     }

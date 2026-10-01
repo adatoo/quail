@@ -34,6 +34,7 @@ struct ModelsPane: View {
     @State private var pendingDeletion: String?
     @State private var showDeleteConfirm = false
     @State private var relocationError: String?
+    @State private var deletionError: String?
     @State private var loadError: String?
     /// Models asked to unload that the server still lists, so their row says so until they go.
     @State private var unloading: Set<String> = []
@@ -143,10 +144,12 @@ struct ModelsPane: View {
             Button("Delete", role: .destructive) {
                 let id = pendingDeletion
                 Task {
-                    // Best-effort: the row disappearing (or not) is
-                    // reflected by the catalog read below.
                     if let id {
-                        try? await appState.deleteInstalledModel(id: id)
+                        do {
+                            try await appState.deleteInstalledModel(id: id)
+                        } catch {
+                            deletionError = "Couldn't delete \(id): \(error.localizedDescription)"
+                        }
                     }
                     await refresh()
                 }
@@ -156,6 +159,17 @@ struct ModelsPane: View {
             Text(
                 "Removes the file(s) and the catalog row together; presets are regenerated. The server is stopped first if a model was loaded."
             )
+        }
+        .alert("Could not delete the model", isPresented: .init(
+            get: { deletionError != nil }, set: {
+                if !$0 {
+                    deletionError = nil
+                }
+            }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deletionError ?? "")
         }
         .alert("Could not relocate the store", isPresented: .init(
             get: { relocationError != nil }, set: {
