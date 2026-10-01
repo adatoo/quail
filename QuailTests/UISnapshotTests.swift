@@ -91,6 +91,36 @@ struct UISnapshotTests {
         )
     }
 
+    @Test("Add Model: release date, model card, Arena rating, and a newer model (ADR D-070)")
+    func addModelSheetFacts() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        for (id, name) in [("qwen3.8-27b", "add-model-rated"), ("qwen3-8b", "add-model-newer")] {
+            let family = appState.catalog.families.first { $0.id == id }
+            try await render(
+                AddModelSheet(appState: appState, preselect: family),
+                size: CGSize(width: 820, height: 640), name: name
+            )
+        }
+        let rated = try #require(appState.catalog.families.first { $0.id == "gemma-4-31b" })
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            try await render(
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(rated.name).font(.headline)
+                    ModelFactsCard(
+                        family: rated, filesRepo: rated.gguf?.repo,
+                        newer: appState.catalog.families.first { $0.id == "qwen3.8-27b" }, onShowNewer: { _ in }
+                    )
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(Color(nsColor: .windowBackgroundColor)),
+                size: CGSize(width: 380, height: 260), name: "model-facts-\(appearance == .aqua ? "light" : "dark")",
+                appearance: appearance
+            )
+        }
+    }
+
     @Test("Add Model, MLX: Rapid-MLX's picks and catalog")
     func addModelSheetMLX() async throws {
         let (appState, scratch) = try await makeAppState()

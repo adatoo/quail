@@ -61,6 +61,8 @@
   <li><strong>More MLX models</strong>, from Rapid-MLX's catalog.</li>
   <li><strong>Any Hugging Face repo</strong>: paste its name.</li>
 </ul>
+<p>Each curated model says what it's for, the day its maker released it (with a <strong>New</strong> badge for the first 30 days), and links to its maker's model card and to the files Quail downloads. In the Models list, the ⓘ button on a row shows the same, and a model with a newer version from the same line is marked <strong>Newer</strong>.</p>
+<p>Where <a href="https://arena.ai/leaderboard/text">Arena's text leaderboard</a> lists a model, its rating appears too: a score from people's votes between two answers, with style control, ± its margin and its rank. Two ratings within each other's margin are a tie. Arena rates the full-precision model, so a quantized download can do a little worse, and models it doesn't list say so rather than borrowing another model's score. The ratings are Arena's (© Arena), from its <a href="https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset">leaderboard dataset</a> under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, rounded, and refreshed with the catalog.</p>
 <p>The catalog updates itself weekly. From the terminal, <code>quail pull --list</code> shows the catalog and <code>quail pull &lt;name&gt;[:quant]</code> downloads.</p>
 <p>Models other apps downloaded — LM Studio, llama.cpp, the Hugging Face cache, oMLX — can be moved in rather than downloaded again: Quail offers them once, and <span class="path">Storage and downloads → ⋯ → Import Models from Other Apps…</span> reopens the list.</p>
 

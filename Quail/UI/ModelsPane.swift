@@ -249,10 +249,21 @@ struct ModelsPane: View {
     /// `entry`'s catalog family's strengths (ADR D-052), matched as the Add Model sheet matches
     /// installed models to families.
     private func strengths(of entry: InstalledModel) -> [ModelStrength] {
-        guard let family = appState.catalog.families.first(where: {
-            !InstalledLookup.entries(for: $0, in: [entry]).isEmpty
-        }) else { return [] }
+        guard let family = family(of: entry) else { return [] }
         return ModelStrength.strengths(of: family, format: entry.format)
+    }
+
+    private func family(of entry: InstalledModel) -> Catalog.Family? {
+        appState.catalog.families.first { !InstalledLookup.entries(for: $0, in: [entry]).isEmpty }
+    }
+
+    /// The family that replaces `entry`'s, when you don't have it yet (ADR D-070).
+    private func newer(than entry: InstalledModel) -> Catalog.Family? {
+        guard let family = family(of: entry),
+              let newer = ModelFacts.newer(than: family, in: appState.catalog.families),
+              InstalledLookup.entries(for: newer, in: rows).isEmpty
+        else { return nil }
+        return newer
     }
 
     private var measuredSpeeds: [String: Double] {
@@ -355,6 +366,12 @@ struct ModelsPane: View {
                     kvCacheChoices: kvCacheChoices[entry.id] ?? [],
                     measuredSpeed: measuredSpeeds[entry.id],
                     strengths: strengths(of: entry),
+                    family: family(of: entry).flatMap { $0.isCurated ? $0 : nil },
+                    newer: newer(than: entry),
+                    onShowNewer: { family in
+                        preselectFamily = family
+                        showAddSheet = true
+                    },
                     onSetContext: { tokens in
                         Task { await appState.setContextSize(tokens, forModel: entry.id) }
                     },
@@ -629,6 +646,11 @@ private struct ModelRow: View {
     let measuredSpeed: Double?
     /// What its catalog family is good for; empty for a model from outside the catalog.
     let strengths: [ModelStrength]
+    /// Its curated catalog family, for the info button; `nil` for a model from outside the catalog.
+    let family: Catalog.Family?
+    /// A newer family from the same line that isn't installed.
+    let newer: Catalog.Family?
+    let onShowNewer: (Catalog.Family) -> Void
     let onSetContext: (Int?) -> Void
     let onSetKVCache: (KVCacheSetting) -> Void
     let onLoad: () -> Void
@@ -637,6 +659,7 @@ private struct ModelRow: View {
     let onBenchmark: () -> Void
 
     @State private var showSettings = false
+    @State private var showFacts = false
 
     /// Two lines, so the name has the row's width to itself: the id and its
     /// loaded-state on top; format, size, context, measured speed and fit
@@ -673,6 +696,15 @@ private struct ModelRow: View {
                         Badge(text: "loaded", color: .green).fixedSize()
                     } else if let loaded {
                         Badge(text: loaded, color: .gray).fixedSize()
+                    }
+                    if let newer {
+                        Button { onShowNewer(newer) } label: {
+                            // The name without its "(vision)"-style note, so the id keeps the row's width.
+                            Badge(text: "Newer: \(ModelFacts.shortName(newer))", color: .orange)
+                        }
+                        .buttonStyle(.plain)
+                        .fixedSize()
+                        .help("\(newer.name) replaces this model. Click to see it in Add Model.")
                     }
                 }
                 HStack(spacing: 10) {
@@ -748,6 +780,31 @@ private struct ModelRow: View {
                 }
                 .buttonStyle(.borderless)
                 .help(isDefault ? "Default — loads automatically on Start" : "Load automatically on Start")
+            }
+            if let family {
+                Button {
+                    showFacts = true
+                } label: {
+                    Image(systemName: "info.circle")
+                }
+                .buttonStyle(.borderless)
+                .help("About \(family.name): release date, model card, public ranking")
+                .popover(isPresented: $showFacts, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(family.name).font(.headline)
+                        ModelFactsCard(
+                            family: family,
+                            filesRepo: entry.sourceRepo,
+                            newer: newer,
+                            onShowNewer: newer == nil ? nil : { newer in
+                                showFacts = false
+                                onShowNewer(newer)
+                            }
+                        )
+                    }
+                    .padding(14)
+                    .frame(width: 380, alignment: .leading)
+                }
             }
             Button {
                 showSettings = true

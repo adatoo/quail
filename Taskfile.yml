@@ -236,6 +236,11 @@ tasks:
     cmds:
       - Config/check-offline.sh
 
+  catalog:arena:
+    desc: Refresh the Arena ratings in Resources/catalog.json from Arena's CC BY 4.0 dataset (ADR D-070)
+    cmds:
+      - scripts/update-arena-ratings
+
   site:serve:
     desc: Serve the website (website/) at http://localhost:8765 to look at it (ADR D-062)
     cmds:

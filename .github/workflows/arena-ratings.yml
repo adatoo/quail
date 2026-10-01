@@ -1,0 +1,80 @@
+name: Arena ratings
+
+# The catalog shows Arena's text-leaderboard rating for the models Arena lists (ADR D-070). On the
+# first of each month this runs scripts/update-arena-ratings and, when a rating moved, opens a PR
+# with the new numbers, a CHANGELOG line and its version bump; it then merges itself like any other
+# once CI passes. The app reads catalog.json from main, so the numbers reach people within a week.
+#
+# Pushed as the quail-release GitHub App (ADR D-046): a branch pushed with GITHUB_TOKEN starts no
+# workflows, so CI would never run on the PR. Without the App's secrets it says so and stops.
+on:
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  refresh:
+    name: arena-ratings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for the App's credentials
+        id: creds
+        env:
+          CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+        run: |
+          if [ -z "$CLIENT_ID" ]; then
+            echo "::notice::RELEASE_APP_CLIENT_ID isn't set — run task catalog:arena by hand."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Mint the App's token
+        if: steps.creds.outputs.present == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        if: steps.creds.outputs.present == 'true'
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Set up Task
+        if: steps.creds.outputs.present == 'true'
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Refresh, and open a PR if anything moved
+        if: steps.creds.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          scripts/update-arena-ratings
+          if git diff --quiet Quail/Resources/catalog.json; then
+            echo "No rating moved."
+            exit 0
+          fi
+          as_of=$(grep -o '"asOf": "[0-9-]*" }' Quail/Resources/catalog.json | head -1 | grep -o '[0-9-]\{10\}')
+          branch="chore/arena-ratings-$as_of"
+          if git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
+            echo "$branch is already open."
+            exit 0
+          fi
+          title="chore(catalog): Arena ratings as of $as_of"
+          perl -0pi -e "s/^## \\[Unreleased\\][ \\t]*\\n/## [Unreleased]\\n\\n### Changed\\n\\n- The catalog's Arena ratings, as of $as_of.\\n/m" CHANGELOG.md
+          git switch -c "$branch"
+          PR_TITLE="$title" task version:bump
+          git config user.name "quail-release[bot]"
+          git config user.email "quail-release[bot]@users.noreply.github.com"
+          git commit -am "$title"
+          git push -u origin "$branch"
+          gh pr create --title "$title" --body "Monthly refresh of the catalog's Arena ratings (ADR D-070) by \`scripts/update-arena-ratings\`. The ratings are Arena's (© Arena), from \`lmarena-ai/leaderboard-dataset\` under CC BY 4.0."

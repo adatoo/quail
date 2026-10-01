@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Refreshes the Arena ratings in Quail/Resources/catalog.json (ADR D-070).
+
+A curated family that Arena's text leaderboard lists carries one line naming it there:
+
+    "arena": { "name": "qwen3.8-27b" },
+
+This script looks each name up in the leaderboard's latest style-control ratings, the CC BY 4.0 dataset
+lmarena-ai/leaderboard-dataset on Hugging Face, read through the Hub's dataset viewer API (JSON, so no parquet
+reader is needed; five pages of 100), and rewrites the line with what it found:
+
+    "arena": { "name": "qwen3.8-27b", "rating": 1439, "interval": 5, "rank": 94, "outOf": 340, "asOf": "2026-09-30" },
+
+`interval` is half the width of the 95% confidence interval, rounded. Only those lines change, so the file's
+hand-made layout survives. A name the leaderboard no longer lists is an error, not a silent removal: delete the
+line, or fix the name, by hand. The revision is left alone, as the app takes a refreshed catalog of the same
+revision.
+
+Usage: scripts/update-arena-ratings [--catalog FILE] [--check]
+  --check  exit 1 if the file would change, without writing it
+"""
+
+import argparse
+import json
+import os
+import re
+import sys
+import time
+import urllib.parse
+import urllib.request
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+API = "https://datasets-server.huggingface.co/filter"
+DATASET = "lmarena-ai/leaderboard-dataset"
+CONFIG = "text_style_control"
+LINE = re.compile(r'^(?P<indent>\s*)"arena": \{ "name": "(?P<name>[^"]+)"[^}]*\}(?P<comma>,?)$')
+
+
+def overall_rows(attempts=5):
+    """Every model's overall row, a page of 100 at a time."""
+    rows, offset, total = [], 0, None
+    while total is None or offset < total:
+        params = urllib.parse.urlencode({
+            "dataset": DATASET, "config": CONFIG, "split": "latest",
+            "where": "\"category\"='overall'", "offset": offset, "length": 100,
+        })
+        for attempt in range(attempts):
+            try:
+                with urllib.request.urlopen(f"{API}?{params}", timeout=60) as response:
+                    page = json.load(response)
+                break
+            except (OSError, json.JSONDecodeError):
+                # The viewer API times out or answers 502 now and then; it answers on a retry.
+                if attempt == attempts - 1:
+                    raise
+                time.sleep(5 * (attempt + 1))
+        total = page["num_rows_total"]
+        rows += [item["row"] for item in page["rows"]]
+        offset += 100
+    return rows
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--catalog", default=os.path.join(ROOT, "Quail/Resources/catalog.json"))
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+
+    with open(args.catalog, encoding="utf-8") as f:
+        lines = f.read().split("\n")
+
+    rows = overall_rows()
+    by_name = {row["model_name"]: row for row in rows}
+    out_of = len(rows)
+    missing = []
+    changed = 0
+    for index, line in enumerate(lines):
+        match = LINE.match(line)
+        if not match:
+            continue
+        name = match["name"]
+        row = by_name.get(name)
+        if row is None:
+            missing.append(name)
+            continue
+        fields = {
+            "name": name,
+            "rating": round(row["rating"]),
+            "interval": round((row["rating_upper"] - row["rating_lower"]) / 2),
+            "rank": row["rank"],
+            "outOf": out_of,
+            "asOf": row["leaderboard_publish_date"],
+        }
+        body = ", ".join(f"{json.dumps(key)}: {json.dumps(value)}" for key, value in fields.items())
+        new = f'{match["indent"]}"arena": {{ {body} }}{match["comma"]}'
+        if new != line:
+            print(f"{name}: {line.strip()} -> {new.strip()}")
+            lines[index] = new
+            changed += 1
+
+    if missing:
+        print("Not on the leaderboard any more: " + ", ".join(missing), file=sys.stderr)
+        return 2
+    json.loads("\n".join(lines))  # still valid JSON
+    if args.check:
+        return 1 if changed else 0
+    if changed:
+        with open(args.catalog, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
+    print(f"{changed} rating(s) changed.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
