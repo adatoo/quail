@@ -37,6 +37,7 @@ struct ModelFactsCard: View {
                 }
             }
             .font(.callout)
+            quailScores
             ranking
             if let newer {
                 HStack(spacing: 6) {
@@ -49,6 +50,29 @@ struct ModelFactsCard: View {
                 }
                 .font(.callout)
             }
+        }
+    }
+
+    @ViewBuilder private var quailScores: some View {
+        if let scores = family.quailScores {
+            VStack(alignment: .leading, spacing: 3) {
+                Label {
+                    Text(ModelFacts.quailText(scores)).monospacedDigit()
+                } icon: {
+                    Image(systemName: "checkmark.seal").foregroundStyle(.secondary)
+                }
+                .font(.callout)
+                .help(ModelFacts.quailMethod(scores))
+                Text(ModelFacts.quailMethod(scores))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Link("How Quail tests", destination: ModelFacts.quailMethodURL)
+            }
+            .font(.caption)
+        } else if let note = family.quailNote {
+            Label(note, systemImage: "checkmark.seal")
+                .font(.callout)
+                .foregroundStyle(.secondary)
         }
     }
 

@@ -65,6 +65,26 @@ struct ModelFactsTests {
         #expect(ModelFacts.modelCardURL(catalog.families[1])?.absoluteString == "https://huggingface.co/Org/B")
     }
 
+    @Test("Quail's scores need all three and a date; a note stands in for scores that don't apply")
+    func quailScores() throws {
+        let json = """
+        {"revision": 1, "ramTiersGB": {}, "chipBandwidthGBps": {}, "families": [
+          {"id": "a", "name": "A", "quail": {"maths": 87, "knowledge": 64, "tools": 81, "asOf": "2026-10-02"},
+           "variants": {"gguf": {"repo": "o/a", "quants": ["Q4_0"]}}},
+          {"id": "b", "name": "B", "quail": {"maths": 87, "asOf": "2026-10-02"},
+           "variants": {"gguf": {"repo": "o/b", "quants": ["Q4_0"]}}},
+          {"id": "c", "name": "C", "quail": {"note": "It always thinks."},
+           "variants": {"gguf": {"repo": "o/c", "quants": ["Q4_0"]}}}
+        ]}
+        """
+        let families = try JSONDecoder().decode(Catalog.Document.self, from: Data(json.utf8)).catalog.families
+        let scores = try #require(families[0].quailScores)
+        #expect(ModelFacts.quailText(scores) == "Maths 87% · Knowledge 64% · Tools 81%")
+        #expect(ModelFacts.quailMethod(scores).contains("2 Oct 2026"))
+        #expect(families[1].quailScores == nil)
+        #expect(families[2].quailScores == nil && families[2].quailNote == "It always thinks.")
+    }
+
     @Test("a badge's short name drops the parenthetical note")
     func shortName() {
         var family = Self.family("m")

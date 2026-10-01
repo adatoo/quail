@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.67.0] - 2026-10-01
+
+### Added
+
+- **Quail's own scores for catalog models** (ADR D-070 amendment): Maths (GSM8K), Knowledge (MMLU-Pro) and Tools (BFCL), answering without thinking, on each model's default download. The model card shows them once a model has been tested. The website explains the method.
+- `task bench:scores` runs those tests for every chat model in the catalog, model by model, resumably. `scripts/update-quail-scores` writes the results into the catalog.
+
 ## [0.66.0] - 2026-10-01
 
 ### Added

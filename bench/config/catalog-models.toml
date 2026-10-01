@@ -1,0 +1,150 @@
+# Every chat model in the curated catalog, for Quail's own quality and tool-calling scores (ADR D-070):
+# QUAIL_BENCH_MODELS=catalog-models with ENGINES=quail-gguf (and quail-mlx for Bonsai 2, which is MLX only).
+# Each is its catalog default download. Thinking is off, as for the engine comparison (fairness.toml).
+# Not here: qwen3-0.6b (smoke test); nomic-embed-v1.5 (embedding model); deepseek-r1-distill-llama-8b (always thinks); deepseek-r1-distill-qwen-32b (always thinks).
+
+["qwen3-4b"]
+name = "Qwen3 4B"
+catalog = "qwen3-4b:Q4_K_M"
+gguf = "gguf/Qwen3-4B-Q4_K_M.gguf"
+
+["qwen3-8b"]
+name = "Qwen3 8B"
+catalog = "qwen3-8b:Q4_K_M"
+gguf = "gguf/Qwen3-8B-Q4_K_M.gguf"
+
+["qwen3.5-9b"]
+name = "Qwen3.5 9B (vision)"
+catalog = "qwen3.5-9b:Q4_K_M"
+gguf = "gguf/Qwen_Qwen3.5-9B-Q4_K_M.gguf"
+
+["qwen3.6-35b-a3b"]
+name = "Qwen3.6 35B-A3B (MoE)"
+catalog = "qwen3.6-35b-a3b:Q4_K_M"
+gguf = "gguf/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"
+
+["qwen3-coder-30b-a3b"]
+name = "Qwen3-Coder 30B-A3B (MoE)"
+catalog = "qwen3-coder-30b-a3b:Q4_K_M"
+gguf = "gguf/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf"
+
+["mimo-v2.6-distill-9b"]
+name = "MiMo V2.6 9B (Xiaomi, vision)"
+catalog = "mimo-v2.6-distill-9b:Q4_K_M"
+gguf = "gguf/MiMo-V2.6-Distill-Qwen-9B-Q4_K_M.gguf"
+
+["qwen3-32b"]
+name = "Qwen3 32B"
+catalog = "qwen3-32b:Q4_K_M"
+gguf = "gguf/Qwen3-32B-Q4_K_M.gguf"
+
+["qwen3.8-27b"]
+name = "Qwen3.8 27B (vision)"
+catalog = "qwen3.8-27b:Q4_K_M"
+gguf = "gguf/Qwen3.8-27B-UD-Q4_K_M.gguf"
+
+["gemma-4-12b"]
+name = "Gemma 4 12B (vision)"
+catalog = "gemma-4-12b:Q4_K_M"
+gguf = "gguf/gemma-4-12b-it-Q4_K_M.gguf"
+
+["gemma-4-26b-a4b"]
+name = "Gemma 4 26B-A4B (MoE, vision)"
+catalog = "gemma-4-26b-a4b:Q4_K_M"
+gguf = "gguf/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf"
+
+["gemma-4-31b"]
+name = "Gemma 4 31B (vision)"
+catalog = "gemma-4-31b:Q4_K_M"
+gguf = "gguf/gemma-4-31B-it-Q4_K_M.gguf"
+
+["llama-3.1-8b"]
+name = "Llama 3.1 8B Instruct"
+catalog = "llama-3.1-8b:Q4_K_M"
+gguf = "gguf/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+
+["gpt-oss-20b"]
+name = "gpt-oss 20B (MoE)"
+catalog = "gpt-oss-20b:mxfp4"
+gguf = "gguf/gpt-oss-20b-MXFP4.gguf"
+request = { reasoning_effort = "low" }
+
+["muse-glimmer-30b"]
+name = "Muse Glimmer 30B (vision)"
+catalog = "muse-glimmer-30b:Q4_K_M"
+gguf = "gguf/Muse-Glimmer-30B-Q4_K_M.gguf"
+
+["nemotron-3.5-lightning-30b-a3b"]
+name = "Nemotron 3.5 Lightning 30B-A3B"
+catalog = "nemotron-3.5-lightning-30b-a3b:Q4_0"
+gguf = "gguf/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-Q4_0.gguf"
+
+["granite-4.2-30b"]
+name = "Granite 4.2 30B"
+catalog = "granite-4.2-30b:Q4_K_M"
+gguf = "gguf/granite-4.2-30b-Q4_K_M.gguf"
+
+["granite-4.2-8b"]
+name = "Granite 4.2 8B"
+catalog = "granite-4.2-8b:Q4_K_M"
+gguf = "gguf/granite-4.2-8b-Q4_K_M.gguf"
+
+["granite-4.2-3b"]
+name = "Granite 4.2 3B"
+catalog = "granite-4.2-3b:Q4_K_M"
+gguf = "gguf/granite-4.2-3b-Q4_K_M.gguf"
+
+["ornith-1.5-35b-a3b"]
+name = "Ornith 1.5 35B-A3B (vision)"
+catalog = "ornith-1.5-35b-a3b:Q4_K_M"
+gguf = "gguf/Ornith-1.5-35B-Q4_K_M.gguf"
+
+["ornith-1.5-9b"]
+name = "Ornith 1.5 9B (vision)"
+catalog = "ornith-1.5-9b:Q4_K_M"
+gguf = "gguf/Ornith-1.5-9B-Q4_K_M.gguf"
+
+["ternary-bonsai-27b"]
+name = "Ternary Bonsai 27B (vision)"
+catalog = "ternary-bonsai-27b:Q2_g64"
+gguf = "gguf/Ternary-Bonsai-27B-Q2_g64.gguf"
+
+["ternary-bonsai-8b"]
+name = "Ternary Bonsai 8B"
+catalog = "ternary-bonsai-8b:Q2_0_g64"
+gguf = "gguf/Ternary-Bonsai-8B-Q2_0_g64.gguf"
+
+["ternary-bonsai-4b"]
+name = "Ternary Bonsai 4B"
+catalog = "ternary-bonsai-4b:Q2_0_g64"
+gguf = "gguf/Ternary-Bonsai-4B-Q2_0_g64.gguf"
+
+["ternary-bonsai-1.7b"]
+name = "Ternary Bonsai 1.7B"
+catalog = "ternary-bonsai-1.7b:Q2_0_g64"
+gguf = "gguf/Ternary-Bonsai-1.7B-Q2_0_g64.gguf"
+
+["bonsai-2-27b"]
+name = "Bonsai 2 27B"
+catalog = "bonsai-2-27b"
+mlx = "mlx/prism-ml--Ternary-Bonsai-2-27B-mlx-2bit"
+
+["bonsai-27b"]
+name = "Bonsai 27B, 1-bit (vision)"
+catalog = "bonsai-27b:Q1_0"
+gguf = "gguf/Bonsai-27B-Q1_0.gguf"
+
+["bonsai-8b"]
+name = "Bonsai 8B, 1-bit"
+catalog = "bonsai-8b:Q1_0"
+gguf = "gguf/Bonsai-8B-Q1_0.gguf"
+
+["bonsai-4b"]
+name = "Bonsai 4B, 1-bit"
+catalog = "bonsai-4b:Q1_0"
+gguf = "gguf/Bonsai-4B-Q1_0.gguf"
+
+["bonsai-1.7b"]
+name = "Bonsai 1.7B, 1-bit"
+catalog = "bonsai-1.7b:Q1_0"
+gguf = "gguf/Bonsai-1.7B-Q1_0.gguf"

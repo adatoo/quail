@@ -90,7 +90,10 @@ class Engine:
         raise NotImplementedError
 
     def request_fields(self, model: Model) -> dict:
-        """Extra fields every request to this engine carries (thinking off, in the engine's own words)."""
+        """Extra fields every request to this engine carries (thinking off, in the engine's own words), or the
+        model's own (`request` in its config)."""
+        if model.request is not None:
+            return dict(model.request)
         return {"chat_template_kwargs": {"enable_thinking": False}}
 
     def after_start(self, server: Server) -> None:

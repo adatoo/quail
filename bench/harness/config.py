@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 BENCH = Path(__file__).resolve().parents[1]
@@ -41,6 +41,9 @@ class Model:
     gguf: Path
     mlx: Path
     family: str
+    # Fields every request to it carries in place of the engine's own thinking-off fields (`request = { … }`),
+    # for a template with another switch: gpt-oss's lowest reasoning effort.
+    request: dict | None = field(default=None, hash=False)
 
     def path(self, lane: str) -> Path:
         return self.gguf if lane == "gguf" else self.mlx
@@ -50,18 +53,25 @@ class Model:
         return f"{self.id}-{lane}"
 
 
+# A lane a model isn't in: a path that never exists, so every step skips it.
+ABSENT = Path("/nonexistent/quail-bench")
+
+
 def models(root: Path | None = None) -> list[Model]:
+    """config/models.toml, the engine comparison's three models, or the file QUAIL_BENCH_MODELS names
+    (`catalog-models` for the catalog's own scores, ADR D-070)."""
     root = root or store()
     result = []
-    for model_id, entry in load("models").items():
+    for model_id, entry in load(os.environ.get("QUAIL_BENCH_MODELS") or "models").items():
         result.append(
             Model(
                 id=model_id,
                 name=entry["name"],
                 catalog=entry.get("catalog", ""),
-                gguf=_resolve(root, entry["gguf"]),
-                mlx=_resolve(root, entry["mlx"]),
+                gguf=_resolve(root, entry["gguf"]) if "gguf" in entry else ABSENT,
+                mlx=_resolve(root, entry["mlx"]) if "mlx" in entry else ABSENT,
                 family=entry.get("family", ""),
+                request=entry.get("request"),
             )
         )
     return result
