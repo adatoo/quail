@@ -40,6 +40,8 @@ Add Model already listed three Ternary Bonsai MLX downloads, from Rapid-MLX's ca
 - llama.cpp takes #29600 (Bonsai 2 on GGUF);
 - PrismML renames its files.
 
+The weekly Upstream watch workflow follows the three upstream PRs and comments on #158 when one merges or closes.
+
 ## D-068 · 2026-09-30 · Load and Unload by hand stop a busy model's requests
 
 **Situation:** with one model loaded at a time, loading another while the chat page was still streaming a reply left the new model at "Loading…" for as long as the reply ran, with nothing saying why. The router never takes a model out from under a request (D-011's router semantics), so it waited. With a slow thinking model and no length limit, that's many minutes. Unload waited the same way. And the page kept its own choice of model, so its next message could reload the old model and push the new one out.
