@@ -170,4 +170,18 @@ struct ModelAddPlanTests {
             "config.json", "model.safetensors", "tokenizer.json",
         ])
     }
+
+    @Test("mlxFiles skips subfolders, whose files would share a name with the top level's")
+    func mlxFilesSkipSubfolders() {
+        // prism-ml/Ternary-Bonsai-2-27B-mlx-2bit: `runtime/LICENSE` flattened to a second
+        // `LICENSE` and failed the size check, so the download never got past its first file.
+        let listing = HFRepo(id: "prism-ml/Ternary-Bonsai-2-27B-mlx-2bit", files: [
+            Self.hfFile("LICENSE", size: 10174), Self.hfFile("runtime/LICENSE", size: 1066),
+            Self.hfFile("assets/bonsai-logo.svg"), Self.hfFile("mtp/model.safetensors"),
+            Self.hfFile("config.json"), Self.hfFile("model.safetensors"),
+        ])
+        let files = ModelAddPlan.mlxFiles(for: listing)
+        #expect(files.map(\.remotePath) == ["LICENSE", "config.json", "model.safetensors"])
+        #expect(Set(files.map(\.localFilename)).count == files.count)
+    }
 }
