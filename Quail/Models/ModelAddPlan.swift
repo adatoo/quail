@@ -67,13 +67,18 @@ enum ModelAddPlan {
         return files
     }
 
-    /// Everything an MLX model's directory needs — the whole listing
-    /// minus the repo's VCS dotfiles. `mlx-lm`-style loaders ignore
-    /// unknown files, but there's no reason to store `.gitattributes`
-    /// (confirmed present in every repo checked, ~1.5 KB) in the store.
+    /// Everything an MLX model's directory needs — the files at the
+    /// repo's top level, minus its VCS dotfiles. `mlx-lm`-style loaders
+    /// ignore unknown files, but there's no reason to store
+    /// `.gitattributes` (confirmed present in every repo checked,
+    /// ~1.5 KB) in the store. Subfolders are skipped because the
+    /// directory is flat (ARCHITECTURE.md §6) and `localFilename` drops
+    /// the folder: Bonsai 2's `runtime/LICENSE` became a second
+    /// `LICENSE` and failed its size check, and folders such as `mtp/`
+    /// and `optiq/` hold side weights that would land beside the model's.
     static func mlxFiles(for listing: HFRepo) -> [HFFile] {
         listing.files
-            .filter { !$0.localFilename.hasPrefix(".") }
+            .filter { !$0.localFilename.hasPrefix(".") && !$0.remotePath.contains("/") }
             .sorted { $0.localFilename < $1.localFilename }
     }
 

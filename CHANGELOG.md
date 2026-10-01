@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.65.1] - 2026-10-01
+
+### Fixed
+
+- **Bonsai 2 27B now downloads.** An MLX download no longer fetches the files in a repo's subfolders. Bonsai 2 has a second `LICENSE` in one, which failed the download with a checksum error. Other models stop downloading images and unused side weights.
+
 ## [0.65.0] - 2026-10-01
 
 ### Added
