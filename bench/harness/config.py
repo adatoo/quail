@@ -44,6 +44,12 @@ class Model:
     # Fields every request to it carries in place of the engine's own thinking-off fields (`request = { … }`),
     # for a template with another switch: gpt-oss's lowest reasoning effort.
     request: dict | None = field(default=None, hash=False)
+    # Fewer requests at once than fairness.toml's `slots`, for a model whose cache for all of them won't fit the
+    # GPU (Gemma 4 31B on a 64 GB Mac). Concurrency doesn't change a temperature-0 answer, only how long a run takes.
+    slots: int | None = None
+
+    def slot_count(self, fairness: dict) -> int:
+        return self.slots or fairness["slots"]
 
     def path(self, lane: str) -> Path:
         return self.gguf if lane == "gguf" else self.mlx
@@ -72,6 +78,7 @@ def models(root: Path | None = None) -> list[Model]:
                 mlx=_resolve(root, entry["mlx"]) if "mlx" in entry else ABSENT,
                 family=entry.get("family", ""),
                 request=entry.get("request"),
+                slots=entry.get("slots"),
             )
         )
     return result

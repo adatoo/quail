@@ -11,7 +11,7 @@ For each family the run scored on Quail, one line, after its "summary":
   irrelevance), correct over total, in percent.
 
 Each answered without thinking, at temperature 0, on the catalog's default download. A family missing any of the
-three is left as it was, and listed. Only "quail" lines change, so the file's hand-made layout survives.
+three is left as it was, and listed. A note already on a family's line is kept beside its scores. Only "quail" lines change, so the file's hand-made layout survives.
 
 Usage: scripts/update-quail-scores RUN_DIR [--catalog FILE] [--as-of YYYY-MM-DD]
 """
@@ -64,6 +64,17 @@ def main() -> int:
 
     found = scores(Path(args.run))
     lines = Path(args.catalog).read_text(encoding="utf-8").split("\n")
+    # A family's note ("tested at its lowest reasoning effort") stays beside its new scores.
+    notes: dict[str, str] = {}
+    family = None
+    for line in lines:
+        match = re.match(r'^      "id": "([^"]+)",$', line)
+        if match:
+            family = match.group(1)
+        if family and QUAIL_LINE.match(line):
+            note = json.loads("{" + line.strip().rstrip(",").split("{", 1)[1].rsplit("}", 1)[0] + "}").get("note")
+            if note:
+                notes[family] = note
     out: list[str] = []
     family = None
     written, incomplete = [], []
@@ -82,7 +93,10 @@ def main() -> int:
                 incomplete.append(f"{family} (has {', '.join(sorted(score))})")
                 continue
             body = ", ".join(f'"{k}": {score[k]}' for k in ("maths", "knowledge", "tools"))
-            out.append(f'      "quail": {{ {body}, "asOf": "{args.as_of}" }},')
+            body += f', "asOf": "{args.as_of}"'
+            if family in notes:
+                body += f', "note": {json.dumps(notes[family], ensure_ascii=False)}'
+            out.append(f'      "quail": {{ {body} }},')
             written.append(family)
     text = "\n".join(out)
     json.loads(text)  # still valid JSON

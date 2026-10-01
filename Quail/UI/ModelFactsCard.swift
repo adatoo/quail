@@ -63,7 +63,7 @@ struct ModelFactsCard: View {
                 }
                 .font(.callout)
                 .help(ModelFacts.quailMethod(scores))
-                Text(ModelFacts.quailMethod(scores))
+                Text(ModelFacts.quailMethod(scores) + (family.quailNote.map { " " + $0 } ?? ""))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Link("How Quail tests", destination: ModelFacts.quailMethodURL)
