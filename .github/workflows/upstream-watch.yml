@@ -1,0 +1,50 @@
+name: Upstream watch
+
+# Upstream pull requests Quail is waiting for (#158): the 1-bit and Bonsai 2 runtimes,
+# and the changes that let Quail delete its copies of mlx-swift-lm model files (ADR D-066,
+# D-069). Every Monday this reads each one's state. When one has merged or closed, it
+# comments on #158 (once per pull request and state) and fails, so GitHub emails the
+# owner; the issue says what Quail does next.
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    name: upstream-watch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Look for merged or closed pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: "158"
+          # owner/repo#number, one per line. Add the NemotronH pull request once it's opened.
+          WATCHED: |
+            ml-explore/mlx#3161
+            ggml-org/llama.cpp#29600
+            ml-explore/mlx-swift-lm#630
+        run: |
+          changed=0
+          while read -r entry; do
+            [ -z "$entry" ] && continue
+            repo="${entry%#*}"
+            number="${entry#*#}"
+            state=$(gh pr view "$number" --repo "$repo" --json state --jq .state)
+            echo "$entry: $state"
+            [ "$state" = "OPEN" ] && continue
+            changed=1
+            note="$entry is $state"
+            if ! gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json comments --jq '.comments[].body' | grep -qF "$note"; then
+              gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
+                --body "$note. The table in this issue says what Quail does next; take it off the workflow's list once done."
+            fi
+          done <<< "$WATCHED"
+          if [ "$changed" -eq 1 ]; then
+            echo "::error::An upstream pull request Quail is waiting for has merged or closed (#$ISSUE)."
+            exit 1
+          fi

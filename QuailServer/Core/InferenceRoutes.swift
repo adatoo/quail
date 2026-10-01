@@ -396,7 +396,9 @@ struct InferenceRoutes: Sendable {
             let tags = tokens.toolFormat.reasoningTags
             let reasoning: JSONSchemaGrammar.Reasoning = tokens.thinkingIsOpen ? .open(tags)
                 : tokens.supportsThinking ? .optional(tags) : .none
-            if settings.constraint != nil, tokens.toolFormat.hasOwnParser {
+            // Muse Glimmer's answer has a header the grammar writes (`ReasoningTags.museGlimmer`); Harmony's doesn't
+            // yet.
+            if settings.constraint != nil, tokens.toolFormat == .harmony {
                 throw RequestError.invalid(
                     "constrained output isn't supported for this model's chat format (\(tokens.toolFormat.label)) yet"
                 )

@@ -150,6 +150,53 @@ struct JSONSchemaGrammarTests {
         }
     }
 
+    @Test("Muse Glimmer's calls: an ATEM parameter per property, strings raw, other types JSON, several calls apart")
+    func museGlimmerCalls() throws {
+        let tools = try OrderedJSON.parse(#"""
+        [{"type":"function","function":{"name":"add","parameters":{"type":"object","properties":{
+          "a":{"type":"integer"},"note":{"type":["string","null"]},"unit":{"type":"string","enum":["cm","in"]}},
+          "required":["a","unit"]}}},
+         {"type":"function","function":{"name":"ping"}}]
+        """#).arrayValue ?? []
+        let g = try rules(JSONSchemaGrammar.toolCalls(
+            tools: tools, name: nil, format: .museGlimmer, parallel: true, reasoning: .optional(.museGlimmer)
+        ))
+        // Required in order, the optional one optional; a typed value is JSON, a string-or-null one raw text, a
+        // string enum its bare choices.
+        #expect(g["t0-call"] ==
+            #"" to=add<|message|><atem:function_calls>\n<atem:invoke name=\"add\">\n" t0-param-a t0-param-note? t0-param-unit "</atem:invoke>\n</atem:function_calls>""#)
+        #expect(g["t0-param-a"] == #""<atem:parameter name=\"a\">" integer "</atem:parameter>\n""#)
+        #expect(g["t0-param-note"] == #""<atem:parameter name=\"note\">" atem-text-0 "</atem:parameter>\n""#)
+        #expect(g["t0-param-unit"] == #""<atem:parameter name=\"unit\">" ("cm" | "in") "</atem:parameter>\n""#)
+        #expect(g["integer"] != nil) // llama.cpp's own integer rule
+        // A tool with no parameters is the block alone.
+        #expect(g["t1-call"] ==
+            #"" to=ping<|message|><atem:function_calls>\n<atem:invoke name=\"ping\">\n" "</atem:invoke>\n</atem:function_calls>""#)
+        // Any of the tools, one or more, after an optional reasoning message (and no answer header: the call is the
+        // message).
+        #expect(g["root"] ==
+            #"(" to=self<|message|>" think-0 "<|eom|>" "<|start|>assistant" think-space)? (t0-call | t1-call) ("<|eom|><|start|>assistant" (t0-call | t1-call))*"#)
+        // Raw text runs to the parameter's closing tag.
+        #expect(g["atem-text-0"] == #"| [^<] atem-text-0 | "<" atem-text-1"#)
+        #expect(g["atem-text-16"] == #"| "<" atem-text-1 | [^<>] atem-text-0"#)
+        #expect(g["think-0"] == #"| [^<] think-0 | "<" think-1"#)
+    }
+
+    @Test("Muse Glimmer's constrained answer: its header before the JSON, an optional reasoning message before that")
+    func museGlimmerConstrained() throws {
+        let g = try rules(JSONSchemaGrammar.gbnf(
+            for: OrderedJSON.parse(#"{"type":"object"}"#), reasoning: .optional(.museGlimmer)
+        ))
+        #expect(g["root"] ==
+            #"(" to=self<|message|>" think-0 "<|eom|>" "<|start|>assistant" think-space)? " to=user<|message|>" json-root"#)
+        // Other families' roots are as they were.
+        let qwen = try rules(JSONSchemaGrammar.gbnf(
+            for: OrderedJSON.parse(#"{"type":"object"}"#),
+            reasoning: .optional(.think)
+        ))
+        #expect(qwen["root"] == #"("<think>" think-0 "</think>" think-space)? json-root"#)
+    }
+
     @Test("names that collide with a built-in rule don't clobber it")
     func reservedNames() throws {
         let g =

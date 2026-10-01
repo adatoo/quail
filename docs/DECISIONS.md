@@ -40,6 +40,8 @@ Add Model already listed three Ternary Bonsai MLX downloads, from Rapid-MLX's ca
 - llama.cpp takes #29600 (Bonsai 2 on GGUF);
 - PrismML renames its files.
 
+The weekly Upstream watch workflow follows the three upstream PRs and comments on #158 when one merges or closes.
+
 ## D-068 · 2026-09-30 · Load and Unload by hand stop a busy model's requests
 
 **Situation:** with one model loaded at a time, loading another while the chat page was still streaming a reply left the new model at "Loading…" for as long as the reply ran, with nothing saying why. The router never takes a model out from under a request (D-011's router semantics), so it waited. With a slow thinking model and no length limit, that's many minutes. Unload waited the same way. And the page kept its own choice of model, so its next message could reload the old model and push the new one out.
@@ -1144,7 +1146,12 @@ The hidden `<select>` stays the source of truth, so nothing else in the script c
   - Detected by the template containing `<atem:function_calls>` and `to=self`.
 - **Values:** written raw and possibly over several lines. A string parameter is kept exactly, spaces included, as the template promises. A parameter the tool's schema types otherwise is read as JSON, as mlx-swift-lm's `ATEMToolCallParser` does. Several invokes in one block are several calls. A block that doesn't parse, or names a tool the request didn't offer, is given back as content.
 - **Reasoning strength:** OpenAI's `reasoning_effort` is passed to the template as `reasoning_strength`, which Muse Glimmer's reads (low, medium, high, xhigh; its default is high), and as `reasoning_effort`, which gpt-oss's reads. A value in `chat_template_kwargs` wins.
-- **Refused, as for Harmony:** constrained output and forced calls, whose grammars don't know this format yet.
+- **Constrained output and forced calls, on the GGUF engine (2026-10-01):** the grammar writes the headers too, since a reply starts inside its first one.
+  - **Constrained output:** an optional reasoning message (` to=self<|message|>…<|eom|><|start|>assistant`), then ` to=user<|message|>` and the JSON (`ReasoningTags.museGlimmer`).
+  - **Forced calls:** each call is ` to=NAME<|message|>` and its ATEM block, with the schema's parameters in order, required ones always present. A string, a string-or-null or an untyped parameter is any text without `</atem:parameter>`; a string enum is one of its values; any other type is JSON from the schema, which the parser reads as JSON. Parallel calls are joined by `<|eom|><|start|>assistant`, as the template writes them.
+  - llama.cpp's grammar sampler matches the special tokens (`<|message|>`, `<|eom|>`, `<|start|>`) by their text, as Gemma 4's `<channel|>` grammar already relies on.
+  - **Verified** with bartowski's Q4_K_M under quail-server: a `json_schema` request came back schema-valid after its reasoning; `tool_choice` required and named each gave one call with typed arguments; a request for two calls at once gave both. Asked less directly, the model makes one call and waits for its result, forced or not.
+  - **Still refused:** Harmony, and the MLX engine, which has no grammar for any model.
 - **Verified against real output:** bartowski's Q4_K_M under quail-server, and mlx-community's 4-bit on the MLX engine. Each thought, called the tool, answered from its result and read a test image.
   - The template renders the five template cases byte for byte as llama-server b11081 does (`TestFixtures/ChatTemplates/golden/muse-glimmer`, dates aside; see its README).
   - The parser's tests use constructed replies in the shape the real ones took.
