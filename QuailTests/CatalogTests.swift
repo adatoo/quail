@@ -331,5 +331,7 @@ struct CatalogTests {
         let bonsai2 = try #require(catalog.families.first { $0.id == "bonsai-2-27b" })
         #expect(bonsai2.gguf == nil)
         #expect(bonsai2.mlx?.repo == "prism-ml/Ternary-Bonsai-2-27B-mlx-2bit")
+        let granite = try #require(catalog.families.first { $0.id == "granite-4.2-8b" })
+        #expect(granite.mlx?.repo == "ibm-granite/granite-4.2-8b-q4-mlx")
     }
 }

@@ -18,6 +18,7 @@ version's section with `task version:bump` (ADR D-024); every merge to
   - **Bonsai 2 27B,** a ternary Qwen3.6 27B in 8.6 GB, on MLX. It writes about 23 tokens a second, against 15 for Qwen3.8 27B at 4 bits. Its weights are stored rotated, which mlx-swift-lm doesn't handle yet, so Quail carries its own copy of the pending mlx-swift-lm change. It handles text only, and several requests at once are decoded together.
   - The 27B models think. The 1-bit and Ternary 27B models also read images. The smaller models don't think, and the 4B models can't reliably call tools.
   - The Ternary Bonsai MLX downloads that Add Model already listed now appear once, as catalog rows.
+- **Granite 4.2** 3B, 8B and 30B, IBM's Apache-licensed models, in GGUF and MLX from IBM's own repositories. They think by default.
 
 ### Fixed
 
