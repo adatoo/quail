@@ -1124,9 +1124,20 @@ final class AppState {
     /// earlier version stopped it unconditionally, contradicting this
     /// comment); the router keeps that preset until the next Start, and a
     /// request naming it fails to load rather than finding stale weights.
-    enum ModelDeletionError: Error, Equatable {
+    ///
+    /// Another model's download doesn't block a delete: it writes only
+    /// under `.partial/` until it's verified. Only a re-download of this
+    /// same model does, since it would move files back in as they go.
+    enum ModelDeletionError: Error, Equatable, LocalizedError {
         case notInstalled
         case downloadInFlight
+
+        var errorDescription: String? {
+            switch self {
+            case .notInstalled: "it isn't installed."
+            case .downloadInFlight: "it's downloading — cancel the download first."
+            }
+        }
     }
 
     /// Bumped whenever the store's contents change outside a download
@@ -1135,17 +1146,24 @@ final class AppState {
     private(set) var storeRevision = 0
 
     func deleteInstalledModel(id: String) async throws {
-        guard !installs.isDownloading else { throw ModelDeletionError.downloadInFlight }
-        var catalog = modelStore.loadCatalog()
-        guard let index = catalog.entries.firstIndex(where: { $0.id == id }) else {
+        guard let entry = modelStore.loadCatalog().entries.first(where: { $0.id == id }) else {
             throw ModelDeletionError.notInstalled
         }
-        let entry = catalog.entries[index]
+        guard !isDownloading(entry) else { throw ModelDeletionError.downloadInFlight }
         await refreshServedModels()
         let inUse = servedModels.contains { $0.id == id && ["loaded", "loading"].contains($0.status.value) }
         if inUse {
             await stop()
         }
+
+        // Read again after the awaits: a download that finished meanwhile
+        // has written its own row, which a copy read earlier would drop.
+        // Nothing below awaits, so nothing else can write in between.
+        var catalog = modelStore.loadCatalog()
+        guard let index = catalog.entries.firstIndex(where: { $0.id == id }) else {
+            throw ModelDeletionError.notInstalled
+        }
+        guard !isDownloading(entry) else { throw ModelDeletionError.downloadInFlight }
 
         let fm = FileManager.default
         switch entry.format {
@@ -1181,6 +1199,15 @@ final class AppState {
             catalog: catalog, defaultModelID: config.defaultModelID, includeMLX: canServe(.mlxSafetensors)
         )
         storeRevision += 1
+    }
+
+    /// Whether the running download is this model again: same repo and
+    /// format, and for a GGUF the same quant. A hand-placed model has no
+    /// `sourceRepo`, so it never matches.
+    private func isDownloading(_ entry: InstalledModel) -> Bool {
+        guard installs.isDownloading, let target = installs.target, let repo = entry.sourceRepo else { return false }
+        return target.repo == repo && target.format == entry.format
+            && (entry.format != .gguf || target.quant == entry.quant)
     }
 
     // MARK: - Open at login

@@ -818,7 +818,7 @@ struct AddModelSheet: View {
             try await appState.deleteInstalledModel(id: entry.id)
             deleteError = nil
         } catch {
-            deleteError = "Couldn't delete \(entry.id): \(error)"
+            deleteError = "Couldn't delete \(entry.id): \(error.localizedDescription)"
         }
         await reloadInstalled()
     }

@@ -1044,6 +1044,60 @@ struct AppStateTests {
         #expect(appState.serverController.phase == .stopped)
     }
 
+    @Test("a download of another model doesn't block a delete; a re-download of the same model does")
+    func deleteDuringDownload() async throws {
+        let scratch = scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let chunk = Data(repeating: 0x7, count: 256 * 1024)
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        StubURLProtocol.handler = { _ in
+            StubResponse(statusCode: 200, chunks: [chunk, chunk, chunk], interChunkDelay: 0.1)
+        }
+        let downloader = try HFDownloader(
+            urlSession: URLSession(configuration: config), hubBaseURL: #require(URL(string: "http://hub.test"))
+        )
+        let appState = makeAppState(scratchDir: scratch, downloader: downloader)
+        let store = appState.modelStore
+        let old = try writeFixtureGGUF(named: "Old-Q8_0", to: store)
+        try writeFixtureGGUF(named: "Kept-Q4_K_M", to: store)
+        try store.saveCatalog(StoreCatalog(entries: [
+            InstalledModel(
+                id: "Kept-Q4_K_M", format: .gguf, bytes: 1, sourceRepo: "org/Kept-GGUF", quant: "Q4_K_M",
+                addedAt: .init()
+            ),
+            InstalledModel(
+                id: "Old-Q8_0", format: .gguf, bytes: 1, sourceRepo: "org/Old-GGUF", quant: "Q8_0", addedAt: .init()
+            ),
+        ]))
+        let size = Int64(chunk.count * 3)
+
+        // Another model downloading: the delete goes through, and the download's row survives it.
+        let new = HFFile(remotePath: "New-Q8_0.gguf", sizeBytes: size, sha256: nil)
+        let running = try #require(appState.installs.install(
+            repo: "org/New-GGUF", files: [new], format: .gguf, quant: "Q8_0"
+        ))
+        try await appState.deleteInstalledModel(id: "Old-Q8_0")
+        #expect(appState.installs.isDownloading)
+        #expect(!FileManager.default.fileExists(atPath: old.path))
+        await running.value
+        #expect(appState.installs.phase == .installed(modelID: "New-Q8_0"))
+        #expect(Set(store.loadCatalog().entries.map(\.id)) == ["Kept-Q4_K_M", "New-Q8_0"])
+
+        // The same model downloading again: refused, with a message that says why.
+        let again = HFFile(remotePath: "Kept-Q4_K_M.gguf", sizeBytes: size, sha256: nil)
+        let rerun = try #require(appState.installs.install(
+            repo: "org/Kept-GGUF", files: [again], format: .gguf, quant: "Q4_K_M"
+        ))
+        await #expect(throws: AppState.ModelDeletionError.downloadInFlight) {
+            try await appState.deleteInstalledModel(id: "Kept-Q4_K_M")
+        }
+        #expect(AppState.ModelDeletionError.downloadInFlight.localizedDescription.contains("cancel the download"))
+        appState.installs.cancel()
+        await rerun.value
+        #expect(store.loadCatalog().entries.contains { $0.id == "Kept-Q4_K_M" })
+    }
+
     @Test("reconcileStore: a default model deleted outside Quail is cleared and logged; catalog.json follows the disk")
     func reconcileClearsStaleDefault() async throws {
         let scratch = scratchDirectory()
