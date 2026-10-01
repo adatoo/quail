@@ -13,6 +13,9 @@
                                                 BFCL's function-calling categories, through the request shim
     python -m harness compare [--budget …] [--engines …] [--models …] [--resume RUN]
                                                 all four, in one run folder; --resume carries on a stopped one
+    python -m harness scores [--budget …] [--engines …] [--models …] [--resume RUN]
+                                                quality and tools in one run folder: the catalog's own scores
+                                                (QUAIL_BENCH_MODELS=catalog-models, ADR D-070)
     python -m harness report RUN [--smoke RUN] [--out DIR] [--notes FILE]
                                                 the report: docs/benchmarks/<date>/ from a compare run
     python -m harness site [--report DIR]      website/compare.html: the feature table, and a report's results
@@ -182,12 +185,30 @@ def run_compare(args) -> int:
         tool_calling(chosen, models, args.budget, run_dir)
         print(f"\nresults: {run_dir}")
 
-    run_dir = None
-    if args.resume:
-        run_dir = config.RUNS / args.resume if not args.resume.startswith("/") else Path(args.resume)
-        if not run_dir.is_dir():
-            raise SystemExit(f"no run folder {run_dir}")
-    return timed("compare", args, body, run_dir)
+    return timed("compare", args, body, resumed(args))
+
+
+def resumed(args) -> Path | None:
+    """The run folder --resume names, to carry on; None for a new one."""
+    if not args.resume:
+        return None
+    run_dir = config.RUNS / args.resume if not args.resume.startswith("/") else Path(args.resume)
+    if not run_dir.is_dir():
+        raise SystemExit(f"no run folder {run_dir}")
+    return run_dir
+
+
+def run_scores(args) -> int:
+    """Quality and tool calling, one model after another, in one run folder (ADR D-070's own scores)."""
+    chosen, models = engines.select(args.engines), pick_models(args.models)
+
+    def body(run_dir):
+        for model in models:
+            quality(chosen, [model], args.budget, run_dir)
+            tool_calling(chosen, [model], args.budget, run_dir)
+        print(f"\nresults: {run_dir}")
+
+    return timed("scores", args, body, resumed(args))
 
 
 def run_report(args) -> int:
@@ -267,6 +288,14 @@ def main(argv: list[str] | None = None) -> int:
     compare_parser.add_argument("--allow-others", action="store_true",
                                 help="run even though the Mac isn't quiet (a dry run; recorded as such)")
     compare_parser.set_defaults(fn=run_compare)
+    scores_parser = sub.add_parser("scores", help="quality and tools in one run, model by model")
+    scores_parser.add_argument("--budget", default="quick", help="quick, night or full (config/fairness.toml)")
+    scores_parser.add_argument("--engines", help=f"comma-separated, from: {', '.join(engines.ENGINES)}")
+    scores_parser.add_argument("--models", help="comma-separated model ids from the models file")
+    scores_parser.add_argument("--resume", help="a run folder name under bench/runs to carry on")
+    scores_parser.add_argument("--allow-others", action="store_true",
+                               help="run even though the Mac isn't quiet (a dry run; recorded as such)")
+    scores_parser.set_defaults(fn=run_scores)
     report_parser = sub.add_parser("report", help="write the report for a compare run")
     report_parser.add_argument("run", help="the compare run's folder name under bench/runs")
     report_parser.add_argument("--smoke", help="the smoke run whose capabilities.json gives the caveats")

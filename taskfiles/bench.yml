@@ -9,6 +9,7 @@
 #   task bench:quality    GSM8K and MMLU-Pro (lm-eval) through the request shim
 #   task bench:tools      BFCL's function-calling categories through the request shim
 #   task bench:compare    all four in one run folder (RESUME=<run> carries on a stopped one)
+#   task bench:scores     quality and tool calling for every chat model in the catalog, on Quail (ADR D-070)
 #   task bench:report     the report for a compare run: docs/benchmarks/<date>/ (RUN=…, SMOKE=…, NOTES=…)
 #   task bench:site       website/compare.html from config/features.toml (and REPORT=<report folder>)
 #   task bench:restore    resume anything a killed run left paused (Spotlight, analysis daemons)
@@ -135,6 +136,25 @@ tasks:
         [ -n "${ALLOW_OTHERS:-}" ] && args+=(--allow-others)
         [ -n "${RESUME:-}" ] && args+=(--resume "$RESUME")
         PYTHONUNBUFFERED=1 uv run --quiet python -m harness compare "${args[@]}"
+
+  scores:
+    desc: The catalog's own scores (ADR D-070) — quality and tool calling for every chat model in catalog.json, on Quail; RESUME=<run> carries on
+    dir: bench
+    env:
+      QUAIL_BENCH_MODELS: catalog-models
+      ENGINES: '{{.ENGINES | default "quail-gguf,quail-mlx"}}'
+      MODELS: '{{.MODELS}}'
+      BUDGET: '{{.BUDGET | default "night"}}'
+      ALLOW_OTHERS: '{{.ALLOW_OTHERS}}'
+      RESUME: '{{.RESUME}}'
+    cmds:
+      - |
+        args=(--budget "$BUDGET")
+        [ -n "${ENGINES:-}" ] && args+=(--engines "$ENGINES")
+        [ -n "${MODELS:-}" ] && args+=(--models "$MODELS")
+        [ -n "${ALLOW_OTHERS:-}" ] && args+=(--allow-others)
+        [ -n "${RESUME:-}" ] && args+=(--resume "$RESUME")
+        PYTHONUNBUFFERED=1 uv run --quiet python -m harness scores "${args[@]}"
 
   report:
     desc: The report for a compare run — docs/benchmarks/<date>/ (RUN=<run folder>, SMOKE=<smoke folder>, NOTES=<toml>)
