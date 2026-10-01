@@ -7,6 +7,7 @@ struct ChatOutputParser: Sendable {
     private var reasoning: ReasoningSplitter?
     private var tools: ToolCallParser
     private var harmony: HarmonyParser?
+    private var museGlimmer: MuseGlimmerParser?
 
     init(format: ToolCallFormat, tools: [Value], startsInReasoning: Bool) {
         let parser = ToolCallParser(format: format, tools: tools)
@@ -14,6 +15,9 @@ struct ChatOutputParser: Sendable {
         if format == .harmony {
             let names = Set(tools.compactMap { $0["function"]?["name"]?.stringValue })
             harmony = HarmonyParser(toolNames: names)
+            reasoning = nil
+        } else if format == .museGlimmer {
+            museGlimmer = MuseGlimmerParser(tools: tools)
             reasoning = nil
         } else {
             reasoning = ReasoningSplitter(startsInReasoning: startsInReasoning, tags: format.reasoningTags)
@@ -24,12 +28,18 @@ struct ChatOutputParser: Sendable {
         if harmony != nil {
             return harmony!.push(text)
         }
+        if museGlimmer != nil {
+            return museGlimmer!.push(text)
+        }
         return route(reasoning!.push(text))
     }
 
     mutating func flush() -> [ChatDelta] {
         if harmony != nil {
             return harmony!.flush()
+        }
+        if museGlimmer != nil {
+            return museGlimmer!.flush()
         }
         var out = route(reasoning!.flush())
         out += tools.flush()

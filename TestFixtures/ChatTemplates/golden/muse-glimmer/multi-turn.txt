@@ -1,0 +1,7 @@
+<|endoftext|><|start|>system<|message|>You are a helpful AI assistant.
+Knowledge cutoff: 2026-01-04.
+Current date: 2026-09-24.
+
+Reasoning strength: high.
+
+# Valid recipients: "self", "user".<|eot|><|start|>user<|message|>Hi there<|eot|><|start|>assistant to=user<|message|>Hello! How can I help?<|eot|><|start|>user<|message|>Name a prime number.<|eot|><|start|>assistant

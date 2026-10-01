@@ -58,6 +58,7 @@
 		39321DD81883B474301D4429 /* ControlProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4279E9EF2E774CD49728C388 /* ControlProtocol.swift */; };
 		39DEA4A625365988B9637FD9 /* LineSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275CDD748714AE0692A9AEB4 /* LineSocket.swift */; };
 		3B371F88FC2A5EB4DE1F7220 /* WebUIServiceWorker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8D43A294A38E9B6EA1EB73 /* WebUIServiceWorker.swift */; };
+		3B86DBFF872A048E1BC3F9FA /* MuseGlimmerParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F9589F8178FEC351009E5D4 /* MuseGlimmerParser.swift */; };
 		3BCA43382C343027C7FB0981 /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5017B60F5810B38F0C09B7F3 /* DeviceInfo.swift */; };
 		3D0EB48D9129E71E6B3A43E2 /* ModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E932070B21FCE331F0977B5 /* ModelStore.swift */; };
 		3D4B8A0405C4485889775071 /* HealthProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C78D90DD87C5908D1A1D288 /* HealthProbe.swift */; };
@@ -446,6 +447,7 @@
 		5D5A599F94B321B7316C410B /* QuailServerRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuailServerRuntime.swift; sourceTree = "<group>"; };
 		5DD2BF18B030F3C9DB008CE0 /* WebsiteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteTests.swift; sourceTree = "<group>"; };
 		5DD4E2DDDB747A1DC4476B84 /* AppLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLink.swift; sourceTree = "<group>"; };
+		5F9589F8178FEC351009E5D4 /* MuseGlimmerParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseGlimmerParser.swift; sourceTree = "<group>"; };
 		5FAC90DF2AAA47B501A896E4 /* MLXMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXMetadataTests.swift; sourceTree = "<group>"; };
 		60448A7125CE8D5E7B59ED7D /* TextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextGenerator.swift; sourceTree = "<group>"; };
 		60CD26ED650B7D72E7C62559 /* ModelInstallControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelInstallControllerTests.swift; sourceTree = "<group>"; };
@@ -900,6 +902,7 @@
 				765F245F5544D7D2A7A43437 /* MLXVision.swift */,
 				7DF2791AEA49107BAE0D5767 /* ModelEntry.swift */,
 				DB7A7DD97C1C21E7D0DACFA0 /* ModelRouter.swift */,
+				5F9589F8178FEC351009E5D4 /* MuseGlimmerParser.swift */,
 				EFEBD8D0A3C37BB5E843993D /* OnceFlag.swift */,
 				5841043F06995332D2619E0F /* OrderedJSON.swift */,
 				EDB04C74AC59105326C6451C /* ParkedSequences.swift */,
@@ -1710,6 +1713,7 @@
 				0EA094A65B69B8AC91DF25C9 /* MLXVision.swift in Sources */,
 				CCC3F9AD44854E176B1605E3 /* ModelEntry.swift in Sources */,
 				9A443B62A88E925F6AA9BA20 /* ModelRouter.swift in Sources */,
+				3B86DBFF872A048E1BC3F9FA /* MuseGlimmerParser.swift in Sources */,
 				DD4636F17C7A1A122976047C /* OnceFlag.swift in Sources */,
 				9D7E310BC0A851564856F006 /* OrderedJSON.swift in Sources */,
 				7788E31519D388BA255DB4FD /* ParkedSequences.swift in Sources */,
@@ -1852,7 +1856,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 120;
+				CURRENT_PROJECT_VERSION = 121;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1877,7 +1881,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.63.3;
+				MARKETING_VERSION = 0.64.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2033,7 +2037,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 120;
+				CURRENT_PROJECT_VERSION = 121;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2052,7 +2056,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.63.3;
+				MARKETING_VERSION = 0.64.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

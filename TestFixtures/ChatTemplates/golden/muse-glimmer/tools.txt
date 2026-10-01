@@ -1,0 +1,41 @@
+<|endoftext|><|start|>system<|message|>You are a helpful AI assistant.
+Knowledge cutoff: 2026-01-04.
+Current date: 2026-09-24.
+
+Reasoning strength: high.
+
+In this environment you have access to a set of tools you can use to answer the user's question.
+
+You can invoke a function by writing a "<atem:function_calls>" block like the following:
+<atem:function_calls>
+<atem:invoke name="$FUNCTION_NAME">
+<atem:parameter name="$PARAMETER_NAME">$PARAMETER_VALUE</atem:parameter>
+...
+</atem:invoke>
+</atem:function_calls>
+
+String and scalar parameters should be specified as is, while lists and objects should use JSON format. Note that spaces for string values are not stripped. The output is not expected to be valid XML and is parsed with regular expressions.
+Here are the functions available in JSONSchema format:
+// Tool metadata
+{"name": "get_weather", "description": ""}
+{"name": "get_time", "description": ""}
+// Function schemas
+{"name": "get_weather", "description": "Get the current weather for a city.", "parameters": {"type": "object", "required": ["city"], "properties": {"unit": {"type": "string", "enum": ["celsius", "fahrenheit"], "description": "Temperature unit"}, "city": {"type": "string", "description": "City name, e.g. Paris"}}}}
+{"name": "get_time", "description": "Get the current time in a timezone.", "parameters": {"type": "object", "properties": {"timezone": {"type": "string"}}, "required": ["timezone"]}}
+
+Here's an example of how to call a function in the tool set:
+(If the tool namespace is not specified, invoke the function directly as `example_function_name` rather than `example_tool_name.example_function_name`)
+
+to=example_tool_name.example_function_name
+
+<atem:function_calls>
+<atem:invoke name="example_tool_name.example_function_name">
+<atem:parameter name="example_parameter_1">value_1</atem:parameter>
+<atem:parameter name="example_parameter_2">This is the value for the second parameter
+that can span
+"multiple" lines
+</atem:parameter>
+</atem:invoke>
+</atem:function_calls>
+
+# Valid recipients: "self", "get_weather.*", "get_time.*", "user".<|eot|><|start|>user<|message|>What's the weather in Paris and what time is it in Tokyo?<|eot|><|start|>assistant

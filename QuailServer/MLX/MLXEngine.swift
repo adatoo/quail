@@ -803,6 +803,12 @@ final class MLXEngine: Engine, @unchecked Sendable {
                 }
                 // Gemma 4's processor applies the sRGB curve itself.
                 (imagePixels, frame) = try processor.preprocess(image: image, processing: nil)
+            case .museGlimmer:
+                guard let processor = context.processor as? MuseGlimmerProcessor else {
+                    throw EngineError.generationFailed("this model's image processor isn't the one Quail drives")
+                }
+                // So does Muse Glimmer's.
+                (imagePixels, frame) = try processor.preprocess(image: image, processing: nil)
             }
             pixels.append(imagePixels)
             frames.append(frame)
@@ -826,6 +832,13 @@ final class MLXEngine: Engine, @unchecked Sendable {
                 frame.h == height && frame.w == width ? image
                     : padded(image, widths: [0, 0, .init((0, height - frame.h)), .init((0, width - frame.w))])
             }
+        case let .museGlimmer(mergeSize):
+            // Begin-of-image, a patch token per merged patch, end-of-image (the library's `MuseGlimmerProcessor`).
+            let start = context.tokenizer.convertTokenToId("<|image_start|>") ?? 200_080
+            let end = context.tokenizer.convertTokenToId("<|image_end|>") ?? 200_081
+            let runs = frames
+                .map { [start] + Array(repeating: imageID, count: $0.product / (mergeSize * mergeSize)) + [end] }
+            tokens = try MLXVision.expand(tokens, marker: imageID, replacements: runs)
         }
         guard tokens.count < loaded.info.contextSize else {
             throw EngineError.invalidRequest(
@@ -1061,11 +1074,13 @@ extension Duration {
 enum VisionSetup {
     case qwen35(mergeSize: Int)
     case gemma4(boi: Int, eoi: Int?, patchSize: Int, pooling: Int)
+    case museGlimmer(mergeSize: Int)
 
     var family: MLXVision.Family {
         switch self {
         case .qwen35: .qwen35
         case .gemma4: .gemma4
+        case .museGlimmer: .museGlimmer
         }
     }
 }
@@ -1100,6 +1115,9 @@ private struct ModelFiles {
                 patchSize: image["patch_size"] as? Int ?? 16,
                 pooling: image["pooling_kernel_size"] as? Int ?? 3
             )
+        case .museGlimmer:
+            let image = processor["image_processor"] as? [String: Any] ?? processor
+            return .museGlimmer(mergeSize: image["merge_size"] as? Int ?? 2)
         }
     }
 

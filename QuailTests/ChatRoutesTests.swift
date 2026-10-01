@@ -516,6 +516,55 @@ struct ChatRoutesTests {
         #expect((reply.json["choices"] as? [[String: Any]])?.first?["finish_reason"] as? String == "tool_calls")
     }
 
+    @Test(
+        "Muse Glimmer, on its real template: to=self is reasoning, an ATEM block a call, reasoning_effort its strength"
+    )
+    func museGlimmerReply() async {
+        let harness = Harness(
+            pieces: [
+                " to=self<|message|>",
+                "Need weather.",
+                "<|eom|><|start|>assistant to=get_weather<|message|><atem:function_calls>\n",
+                #"<atem:invoke name="get_weather">"#,
+                #"<atem:parameter name="city">Paris</atem:parameter></atem:invoke>"#,
+                "\n</atem:function_calls>",
+            ],
+            template: Self.template("muse-glimmer")
+        ) {
+            $0.capabilities = .init(grammar: true)
+        }
+        let reply = await harness.json(
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"tools":\#(Self.weatherTools),"reasoning_effort":"low"}"#
+        )
+        #expect(harness.prompt.contains("Reasoning strength: low."))
+        #expect(harness.prompt.hasSuffix("<|start|>assistant"))
+        #expect(message(reply.json)["reasoning_content"] as? String == "Need weather.")
+        let call = (message(reply.json)["tool_calls"] as? [[String: Any]])?.first?["function"] as? [String: Any]
+        #expect(call?["name"] as? String == "get_weather")
+        #expect(call?["arguments"] as? String == #"{"city":"Paris"}"#)
+        // chat_template_kwargs wins over reasoning_effort; constrained output isn't offered for this format.
+        _ = await harness.json(
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"reasoning_effort":"low","chat_template_kwargs":{"reasoning_strength":"xhigh"}}"#
+        )
+        #expect(harness.prompt.contains("Reasoning strength: xhigh."))
+        let constrained = await harness.json(
+            #"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"response_format":{"type":"json_object"}}"#
+        )
+        #expect(constrained.status == 400)
+        #expect("\(constrained.json["error"] ?? "")".contains("Muse Glimmer"))
+    }
+
+    @Test("reasoning_effort reaches gpt-oss's template under its own name")
+    func gptossReasoningEffort() async {
+        let harness = Harness(pieces: ["<|channel|>final<|message|>Hi"], template: Self.template("gptoss"))
+        _ = await harness
+            .json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"reasoning_effort":"low"}"#)
+        #expect(harness.prompt.contains("Reasoning: low"))
+        let invalid = await harness
+            .json(#"{"model":"Alpha","messages":[{"role":"user","content":"x"}],"reasoning_effort":3}"#)
+        #expect(invalid.status == 400)
+    }
+
     @Test("Gemma 4 thinking after a tool result: the template opens the thought channel, so the reply starts in it")
     func gemma4OpenThought() async {
         let body = #"{"model":"Alpha","messages":[{"role":"user","content":"x"},{"role":"assistant","content":null,"tool_calls":[{"id":"c1","type":"function","function":{"name":"get_weather","arguments":"{\"city\":\"Paris\"}"}}]},{"role":"tool","tool_call_id":"c1","content":"18C"}],"tools":\#(Self.weatherTools),"chat_template_kwargs":{"enable_thinking":true}"#

@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.64.0] - 2026-10-01
+
 ### Added
 
 - **PrismML's Bonsai models,** Qwen3 and Qwen3.6 models trained to very low-bit weights (ADR D-069):
@@ -21,6 +23,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 - **Granite 4.2** 3B, 8B and 30B, IBM's Apache-licensed models, in GGUF and MLX from IBM's own repositories. They think by default.
 - **Ornith 1.5** 9B and 35B-A3B, coding fine-tunes of Qwen3.5, in GGUF (which reads images) and MLX.
 - **Nemotron 3.5 Lightning 30B-A3B,** NVIDIA's mixture of experts with 3B active, in GGUF and MLX. On MLX it writes about 76 tokens a second on an M4 Pro, against 65 for the GGUF.
+- **Muse Glimmer 30B**, Meta's Apache-licensed model that reads images, in GGUF and MLX.
+  - Its replies are messages to a recipient: its reasoning (`to=self`), the answer, or a tool. Tool calls are ATEM blocks, which Quail's server now reads on both engines.
+  - A request's `reasoning_effort` sets its reasoning strength (low, medium, high or xhigh). `chat_template_kwargs` can set `reasoning_strength` directly.
+- A request's `reasoning_effort` also reaches gpt-oss's template, as `reasoning_effort`.
+
+### Changed
+
+- **llama.cpp b11306** (from b11081), bundled for the llama.cpp runtime and used by quail-server's GGUF engine. It has llama.cpp's fixes for Muse Glimmer's tool calls and `json_schema` output on llama-server (#29242, #29615).
 
 ### Fixed
 

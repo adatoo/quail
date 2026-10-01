@@ -266,6 +266,14 @@ struct ChatRequest: Sendable {
                 }
             }
         }
+        // OpenAI's `reasoning_effort`, under the names templates read: gpt-oss's `reasoning_effort` and Muse
+        // Glimmer's `reasoning_strength`. A value sent in `chat_template_kwargs` wins.
+        if let effort = body["reasoning_effort"], !effort.isNull {
+            guard effort.stringValue != nil else { throw RequestError.invalid("'reasoning_effort' must be a string") }
+            for name in ["reasoning_effort", "reasoning_strength"] where templateKwargs[name] == nil {
+                templateKwargs[name] = effort
+            }
+        }
     }
 }
 

@@ -1020,6 +1020,12 @@ One request alone, `-np 1` vs `-np 4`: 44.7 vs 40.8 tok/s (8B), 157.6 vs 228.7 (
 
 **Revisit if:** a client genuinely needs remote images (a flag that allows named hosts, off by default), or the marker differs across libmtmd versions (the engine checks it at load).
 
+**Amended 2026-10-01 (Muse Glimmer 30B):** a third MLX image family, `.museGlimmer`.
+- mlx-swift-lm registers Muse Glimmer only as a vision model, so it always loads through the existing fallback, and text turns run on the vision load too, one request at a time.
+- **The placeholder is `<|patch|>`.** Each widens to `<|image_start|>`, one `<|patch|>` per merged patch (t·h·w/merge²), then `<|image_end|>`, as the library's `MuseGlimmerProcessor` does.
+- Its processor applies the sRGB curve itself.
+- **Checked:** it named the three colours of the test image and where each is.
+
 ## D-046 · 2026-09-25 · Automation acts as a GitHub App, not a personal access token
 
 **Decision:** The Auto-merge and Dependabot-bump workflows authenticate as a GitHub App, `quail-release` (Contents and Pull requests: read and write, installed on this repo only), minting a one-hour installation token per run with `actions/create-github-app-token` from the secrets `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY` (Actions and Dependabot stores). This replaces D-024's `BOT_TOKEN` fine-grained PAT, which was never added: auto-merge never switched on, and every PR since needed a hand merge.
@@ -1129,6 +1135,21 @@ The hidden `<select>` stays the source of truth, so nothing else in the script c
 - **Verified against real output:** Gemma 4 26B-A4B (unsloth Q4_K_M under llama-server b11081) on seven conversations: the five of the other captures (with thinking on for `call-thinking`, since Gemma's template defaults it off), nested arguments (an array, an object, a number, a boolean and a string with quotes), and a reply after a tool result. The parsed calls byte for byte, the content and the reasoning equal llama-server's at four chunk sizes (`TestFixtures/ToolCalls/gemma-4-26b.json`). Our prompts equal llama-server's for all seven. Both Gemma 4 templates, the GGUF's and mlx-community's (they differ), render the five template cases byte for byte as llama.cpp does (`TestFixtures/ChatTemplates`).
 - **Python literals in Qwen XML (2026-09-29):** the first BFCL run on the benchmark laptop found Qwen3.6 writing `True` for a boolean parameter. Quail kept it as the string `"True"`, so the call failed BFCL's type check, while llama-server's parse was right, because its grammar holds typed parameters to JSON. A parameter whose schema says boolean now reads `True`/`False` as booleans, and `None` is read as null for any type except string. It cost Qwen3.6 two of eight `parallel` cases and one of eight `multiple` cases on both Quail engines.
 - **Left as it is:** llama-server passes `enable_thinking: true` to any template that can think. Quail passes only what the request sends, so Gemma 4 on Quail doesn't think unless asked, while on llama-server it does (Qwen3's template reads a missing value as on, so it isn't affected). Changing Quail's default is a separate decision.
+
+**Amended 2026-10-01 (Muse Glimmer):** a sixth format, `ToolCallFormat.museGlimmer`, read by its own parser (`MuseGlimmerParser`), as Harmony is, since it carries the reasoning too.
+- **The format:** Meta's template writes each turn as `<|start|>ROLE to=RECIPIENT<|message|>BODY` ended by `<|eom|>` (more to come) or `<|eot|>`. The generation prompt already wrote `<|start|>assistant`, so a reply starts in its first header.
+  - `to=self` is reasoning.
+  - `to=user`, or no recipient, is the answer.
+  - `to=NAME` is a tool call whose body is an ATEM block: `<atem:function_calls><atem:invoke name="NAME"><atem:parameter name="KEY">VALUE</atem:parameter>…`.
+  - Detected by the template containing `<atem:function_calls>` and `to=self`.
+- **Values:** written raw and possibly over several lines. A string parameter is kept exactly, spaces included, as the template promises. A parameter the tool's schema types otherwise is read as JSON, as mlx-swift-lm's `ATEMToolCallParser` does. Several invokes in one block are several calls. A block that doesn't parse, or names a tool the request didn't offer, is given back as content.
+- **Reasoning strength:** OpenAI's `reasoning_effort` is passed to the template as `reasoning_strength`, which Muse Glimmer's reads (low, medium, high, xhigh; its default is high), and as `reasoning_effort`, which gpt-oss's reads. A value in `chat_template_kwargs` wins.
+- **Refused, as for Harmony:** constrained output and forced calls, whose grammars don't know this format yet.
+- **Verified against real output:** bartowski's Q4_K_M under quail-server, and mlx-community's 4-bit on the MLX engine. Each thought, called the tool, answered from its result and read a test image.
+  - The template renders the five template cases byte for byte as llama-server b11081 does (`TestFixtures/ChatTemplates/golden/muse-glimmer`, dates aside; see its README).
+  - The parser's tests use constructed replies in the shape the real ones took.
+  - The same GGUF under llama-server b11081 gave the same answer and call, and reasoning of the same length, on the three text requests.
+- **llama-server** has its own Muse Glimmer parser. Two fixes to it came after b11081: #29242 for a call's first parse, and #29615 for `json_schema`. So the bundled llama.cpp moves to b11306. On it the same GGUF gave the same replies, and a `json_schema` request came back valid after its reasoning.
 
 ## D-039 · 2026-09-25 · The API key is on by default while llama-server is the runtime
 

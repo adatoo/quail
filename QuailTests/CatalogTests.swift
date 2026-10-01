@@ -342,5 +342,9 @@ struct CatalogTests {
         #expect(nemotron.activeParamsB == 3)
         #expect(nemotron.gguf?.defaultQuant == "Q4_0")
         #expect(nemotron.mlx?.repo == "mlx-community/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-4bit")
+        // Muse Glimmer, read by MuseGlimmerParser; its MLX download loads through the vision model.
+        let muse = try #require(catalog.families.first { $0.id == "muse-glimmer-30b" })
+        #expect(muse.gguf?.mmproj == "mmproj-Muse-Glimmer-30B-f16.gguf")
+        #expect(muse.mlx?.vision == true)
     }
 }

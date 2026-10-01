@@ -22,7 +22,14 @@ enum ToolCallFormat: Equatable, Sendable {
     case harmony
     /// `<|tool_call>call:NAME{key:<|"|>text<|"|>,n:1}<tool_call|>`: Gemma 4's own notation (`Gemma4Arguments`).
     case gemma4
+    /// Muse Glimmer's messages: `<|start|>assistant to=NAME<|message|><atem:function_calls>…` (`MuseGlimmerParser`).
+    case museGlimmer
     case none
+
+    /// A family whose whole reply is read by its own parser (`ChatOutputParser`), reasoning included.
+    var hasOwnParser: Bool {
+        self == .harmony || self == .museGlimmer
+    }
 
     static func detect(template: String) -> ToolCallFormat {
         // What llama.cpp looks for too (b11081 chat.cpp).
@@ -31,6 +38,9 @@ enum ToolCallFormat: Equatable, Sendable {
         }
         if template.contains("<|channel|>"), template.contains("commentary") {
             return .harmony
+        }
+        if template.contains("<atem:function_calls>"), template.contains("to=self") {
+            return .museGlimmer
         }
         if template.contains("<function=") {
             return .qwenXML
@@ -98,13 +108,13 @@ struct ToolCallParser: Sendable {
     }
 
     mutating func push(_ text: String) -> [ChatDelta] {
-        guard isActive, format != .harmony else { return text.isEmpty ? [] : [.content(text)] }
+        guard isActive, !format.hasOwnParser else { return text.isEmpty ? [] : [.content(text)] }
         pending += text
         return drain(final: false)
     }
 
     mutating func flush() -> [ChatDelta] {
-        guard isActive, format != .harmony else { return [] }
+        guard isActive, !format.hasOwnParser else { return [] }
         return drain(final: true)
     }
 

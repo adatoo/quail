@@ -62,7 +62,7 @@ enum ModelStrength: String, CaseIterable, Identifiable, Sendable {
         case .longContext:
             "Trained for 128K tokens or more: long documents, big codebases, long agent sessions. The context Quail gives it still depends on this Mac's memory."
         case .vision:
-            "Reads images you attach — screenshots, photos, diagrams. Works with the GGUF download (it includes the vision projector), and with MLX for Qwen3.5-family models and Gemma 4 26B-A4B and 31B."
+            "Reads images you attach — screenshots, photos, diagrams. Works with the GGUF download (it includes the vision projector), and with MLX for Qwen3.5-family models, Gemma 4 26B-A4B and 31B, and Muse Glimmer."
         case .multilingual:
             "Strong in many languages, not just English."
         case .embedding:

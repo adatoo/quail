@@ -6,7 +6,7 @@ Quail includes the software below. Each project's licence text, and any notice i
 | --- | --- | --- | --- |
 | EventSource | 1.5.1 | MIT | quail-server (through swift-huggingface) |
 | fmt (inside mlx-swift) | 0.32.2 | MIT with an exception for embedded use | quail-server (through mlx-swift-lm) |
-| llama.cpp | b11081 | MIT | quail-server and the bundled llama-server |
+| llama.cpp | b11306 | MIT | quail-server and the bundled llama-server |
 | metal-cpp (inside mlx-swift) | 0.32.2 | Apache-2.0 | quail-server (through mlx-swift-lm) |
 | mlx (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
 | mlx-c (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
@@ -89,7 +89,7 @@ source code, you may redistribute such embedded portions in such object form
 without including the above copyright and permission notices.
 ```
 
-## llama.cpp b11081
+## llama.cpp b11306
 
 https://github.com/ggml-org/llama.cpp  
 Licence: MIT

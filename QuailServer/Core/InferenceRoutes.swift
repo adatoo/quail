@@ -396,9 +396,10 @@ struct InferenceRoutes: Sendable {
             let tags = tokens.toolFormat.reasoningTags
             let reasoning: JSONSchemaGrammar.Reasoning = tokens.thinkingIsOpen ? .open(tags)
                 : tokens.supportsThinking ? .optional(tags) : .none
-            if settings.constraint != nil, tokens.toolFormat == .harmony {
-                throw RequestError
-                    .invalid("constrained output isn't supported for this model's chat format (Harmony) yet")
+            if settings.constraint != nil, tokens.toolFormat.hasOwnParser {
+                throw RequestError.invalid(
+                    "constrained output isn't supported for this model's chat format (\(tokens.toolFormat.label)) yet"
+                )
             }
             var forcedCall: String?
             if chat.toolChoice.forcesCall {
