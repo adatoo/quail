@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.67.2] - 2026-10-01
+
 ### Changed
 
 - Muse Glimmer isn't in Quail's own tests: it thinks before every answer and can't be told not to, and the tests score answers given without thinking. Its model card says so. gpt-oss is tested at its lowest reasoning effort, and its card notes that beside its scores.
