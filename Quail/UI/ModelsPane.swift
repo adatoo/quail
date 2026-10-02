@@ -368,6 +368,11 @@ struct ModelsPane: View {
                     strengths: strengths(of: entry),
                     family: family(of: entry).flatMap { $0.isCurated ? $0 : nil },
                     newer: newer(than: entry),
+                    alternatives: family(of: entry).map {
+                        ModelAlternatives.alternatives(
+                            for: $0, in: appState.catalog.families, fits: appState.catalogVerdicts
+                        )
+                    } ?? [],
                     onShowNewer: { family in
                         preselectFamily = family
                         showAddSheet = true
@@ -650,6 +655,9 @@ private struct ModelRow: View {
     let family: Catalog.Family?
     /// A newer family from the same line that isn't installed.
     let newer: Catalog.Family?
+    /// Other families worth a look, once the Add Model sheet has worked out the catalog's verdicts.
+    let alternatives: [ModelAlternatives.Alternative]
+    /// Opens the Add Model sheet on a family: the newer one, or an alternative.
     let onShowNewer: (Catalog.Family) -> Void
     let onSetContext: (Int?) -> Void
     let onSetKVCache: (KVCacheSetting) -> Void
@@ -796,9 +804,10 @@ private struct ModelRow: View {
                             family: family,
                             filesRepo: entry.sourceRepo,
                             newer: newer,
-                            onShowNewer: newer == nil ? nil : { newer in
+                            alternatives: alternatives,
+                            onShow: { family in
                                 showFacts = false
-                                onShowNewer(newer)
+                                onShowNewer(family)
                             }
                         )
                     }

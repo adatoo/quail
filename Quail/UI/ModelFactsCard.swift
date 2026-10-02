@@ -1,16 +1,18 @@
 import SwiftUI
 
 /// What helps you choose a catalog family (ADR D-070): what it's for, when it came out, its maker's page and the
-/// files, how it ranks publicly, and what replaced it. The same card in the Add Model sheet and behind a Models
-/// row's info button.
+/// files, how it ranks publicly, what replaced it, and what else to consider on this Mac. The same card in the
+/// Add Model sheet and behind a Models row's info button.
 struct ModelFactsCard: View {
     let family: Catalog.Family
     /// The repo Quail downloads from, linked as "Files".
     let filesRepo: String?
     /// A newer family from the same line, when the catalog has one.
     let newer: Catalog.Family?
-    /// Shows `newer` in the Add Model sheet; `nil` hides the button.
-    var onShowNewer: ((Catalog.Family) -> Void)?
+    /// Other families worth a look on this Mac (`ModelAlternatives`).
+    var alternatives: [ModelAlternatives.Alternative] = []
+    /// Shows `newer` or an alternative in the Add Model sheet; `nil` hides the buttons.
+    var onShow: ((Catalog.Family) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -43,13 +45,62 @@ struct ModelFactsCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.up.circle").foregroundStyle(.orange)
                     Text("Newer from the same line: \(newer.name)")
-                    if let onShowNewer {
-                        Button("Show") { onShowNewer(newer) }
+                    if let onShow {
+                        Button("Show") { onShow(newer) }
                             .controlSize(.small)
                     }
                 }
                 .font(.callout)
             }
+            alternativesList
+        }
+    }
+
+    @ViewBuilder private var alternativesList: some View {
+        if !alternatives.isEmpty {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Alternatives on this Mac").font(.callout.weight(.semibold))
+                ForEach(alternatives, id: \.family.id) { alternative in
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Image(systemName: Self.symbol(alternative.reason))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 16)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(alternative.family.name).font(.callout)
+                            Text("\(Self.label(alternative.reason)): \(alternative.detail)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 4)
+                        if let onShow {
+                            Button("Show") { onShow(alternative.family) }
+                                .controlSize(.small)
+                        }
+                    }
+                }
+                Text("From Quail's own tests, and the memory and speed estimated for this Mac.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    private static func label(_ reason: ModelAlternatives.Reason) -> String {
+        switch reason {
+        case .scoresHigher: "Scores higher"
+        case .smaller: "Smaller"
+        case .faster: "Faster"
+        }
+    }
+
+    private static func symbol(_ reason: ModelAlternatives.Reason) -> String {
+        switch reason {
+        case .scoresHigher: "arrow.up.right"
+        case .smaller: "arrow.down.right.and.arrow.up.left"
+        case .faster: "hare"
         }
     }
 

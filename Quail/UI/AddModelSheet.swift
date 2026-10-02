@@ -589,7 +589,10 @@ struct AddModelSheet: View {
                         family: family,
                         filesRepo: currentRepo(for: selection),
                         newer: ModelFacts.newer(than: family, in: appState.catalog.families),
-                        onShowNewer: { self.selection = .curated($0) }
+                        alternatives: ModelAlternatives.alternatives(
+                            for: family, in: appState.catalog.families, fits: appState.catalogVerdicts
+                        ),
+                        onShow: { self.selection = .curated($0) }
                     )
                     .padding(.top, 4)
                 } else {
