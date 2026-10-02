@@ -62,6 +62,15 @@ class EngineSettingsTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             engines.select("nope")
 
+    def test_the_swa_full_variant_only_by_name_with_its_setting(self):
+        self.assertNotIn("llama-server-swa-full", [e.name for e in engines.select(None)])
+        [variant] = engines.select("llama-server-swa-full")
+        gemma = next(m for m in config.models() if m.id == "gemma-4-26b-a4b")
+        with mock.patch.object(engines, "quail_app", return_value=Path("/Applications/Quail.app")):
+            launch = variant.launch(gemma, Path("/tmp/w"), 1, "k")
+        self.assertTrue(launch.files["presets.ini"].endswith("swa-full = true\n"))
+        self.assertIn("kv-unified = true", launch.files["presets.ini"])
+
 
 
 class DiscardTests(unittest.TestCase):
