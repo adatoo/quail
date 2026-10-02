@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Added
+
+- **`quail eval tools`** checks that tool calling works for a model, end to end (ADR D-065). It sends 16 requests, each checked against the call it should make:
+  - one call, choosing a tool, two calls and two tools;
+  - no tool that fits, and answering from a tool's result.
+
+  Works on Quail's server, or any other with `--url`.
+
 ## [0.71.0] - 2026-10-02
 
 ### Added
