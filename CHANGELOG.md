@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.70.0] - 2026-10-02
+
 ### Added
 
 - **Alternatives on a model's card.** In Add Model, a scored model's card now suggests up to three other catalog models that fit this Mac (ADR D-070 amendment):
