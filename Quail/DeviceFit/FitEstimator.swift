@@ -33,6 +33,53 @@ struct ModelShape: Sendable, Equatable, Codable {
     /// The context the model was trained for (`<arch>.context_length`),
     /// when the header says — caps the per-model context setting.
     var trainedContext: Int?
+    /// The layers that keep a cache of past tokens, when they aren't all alike (ADR D-071): `nil` means every one
+    /// of `layerCount` layers keeps `kvHeadCount` heads of `headDim` for every token, the plain formula.
+    var kvLayers: [KVLayers]?
+
+    init(
+        weightBytes: Int64, layerCount: Int, kvHeadCount: Int, headDim: Int, activeWeightBytes: Int64? = nil,
+        trainedContext: Int? = nil, kvLayers: [KVLayers]? = nil
+    ) {
+        self.weightBytes = weightBytes
+        self.layerCount = layerCount
+        self.kvHeadCount = kvHeadCount
+        self.headDim = headDim
+        self.activeWeightBytes = activeWeightBytes
+        self.trainedContext = trainedContext
+        self.kvLayers = kvLayers
+    }
+
+    /// Layers that cache alike: `count` of them, each holding `kvHeads` heads of keys and values
+    /// (`keyValueDim` = key plus value dimension per head) for every token, or for at most `window` tokens.
+    struct KVLayers: Sendable, Equatable, Codable {
+        var count: Int
+        var kvHeads: Int
+        var keyValueDim: Int
+        /// A sliding-window layer whose engine keeps only its window (MLX's rotating cache). `nil` for a layer
+        /// that keeps every token, which includes a GGUF sliding-window layer: libllama's default full-size
+        /// window cache (`swa_full`), which quail-server keeps (ADR D-048), sizes it like any other.
+        var window: Int?
+    }
+
+    /// `layers`, one entry per layer (`nil` for a layer that keeps no cache), merged into groups; `nil` when
+    /// that comes to the plain formula's single group, so a plain model's shape is as it always was.
+    private static func kvLayers(
+        _ layers: [KVLayers?], plain: (layers: Int, kvHeads: Int, headDim: Int)
+    ) -> [KVLayers]? {
+        var groups: [KVLayers] = []
+        for case let layer? in layers where layer.kvHeads > 0 && layer.keyValueDim > 0 {
+            if let index = groups.firstIndex(where: {
+                ($0.kvHeads, $0.keyValueDim, $0.window) == (layer.kvHeads, layer.keyValueDim, layer.window)
+            }) {
+                groups[index].count += 1
+            } else {
+                groups.append(layer)
+            }
+        }
+        let uniform = [KVLayers(count: plain.layers, kvHeads: plain.kvHeads, keyValueDim: 2 * plain.headDim)]
+        return groups == uniform ? nil : groups
+    }
 
     /// Builds a `ModelShape` from a GGUF header. `headDim` prefers
     /// `keyLength` (`<arch>.attention.key_length`) when the architecture
@@ -72,8 +119,32 @@ struct ModelShape: Sendable, Equatable, Codable {
                 used: metadata.expertUsedCount,
                 of: metadata.expertCount
             ),
-            trainedContext: metadata.contextLength
+            trainedContext: metadata.contextLength,
+            kvLayers: ggufKVLayers(metadata, layerCount: layerCount, kvHeadCount: kvHeadCount, headDim: headDim)
         )
+    }
+
+    /// Each layer's cache, from the per-layer keys llama.cpp reads: a sliding-window layer takes the `_swa` head
+    /// dimensions, a hybrid's linear-attention layers (`full_attention_interval`) and its layers with no KV heads
+    /// keep none, nor do layers that share an earlier one's. Every kept layer holds the whole context (`swa_full`).
+    private static func ggufKVLayers(
+        _ metadata: GGUFMetadata, layerCount: Int, kvHeadCount: Int, headDim: Int
+    ) -> [KVLayers]? {
+        let shared = metadata.sharedKVLayers ?? 0
+        let layers: [KVLayers?] = (0 ..< layerCount).map { index in
+            if index >= layerCount - shared {
+                return nil
+            }
+            if let interval = metadata.fullAttentionInterval, interval > 0, (index + 1) % interval != 0 {
+                return nil
+            }
+            let heads = metadata.headCountKVPerLayer.flatMap { index < $0.count ? $0[index] : nil } ?? kvHeadCount
+            let sliding = metadata.slidingWindowPattern.flatMap { index < $0.count ? $0[index] : nil } ?? false
+            let key = (sliding ? metadata.keyLengthSWA : nil) ?? metadata.keyLength ?? headDim
+            let value = (sliding ? metadata.valueLengthSWA : nil) ?? metadata.valueLength ?? key
+            return KVLayers(count: 1, kvHeads: heads, keyValueDim: key + value)
+        }
+        return kvLayers(layers, plain: (layerCount, kvHeadCount, headDim))
     }
 
     /// Builds a `ModelShape` from an MLX `config.json`. Returns `nil` if a
@@ -96,8 +167,53 @@ struct ModelShape: Sendable, Equatable, Codable {
                 used: metadata.numExpertsPerToken,
                 of: metadata.numLocalExperts
             ),
-            trainedContext: metadata.trainedContext
+            trainedContext: metadata.trainedContext,
+            kvLayers: mlxKVLayers(metadata.layout, layerCount: layerCount, kvHeadCount: kvHeadCount, headDim: headDim)
         )
+    }
+
+    /// Each layer's cache, from the config's layer types: a sliding-window layer keeps only its window
+    /// (mlx-swift-lm's and mlx-lm's rotating cache), a global layer of Gemma 4 has its own head count and size,
+    /// and linear-attention, Mamba and MLP layers, and layers sharing an earlier one's cache, keep none.
+    private static func mlxKVLayers(
+        _ layout: MLXMetadata.AttentionLayout, layerCount: Int, kvHeadCount: Int, headDim: Int
+    ) -> [KVLayers]? {
+        let shared = layout.sharedKVLayers ?? 0
+        let pattern = layout.hybridOverridePattern.map(Array.init)
+        let layers: [KVLayers?] = (0 ..< layerCount).map { index in
+            if index >= layerCount - shared {
+                return nil
+            }
+            if let types = layout.layersBlockType, index < types.count, types[index] != "attention" {
+                return nil
+            }
+            if let pattern, index < pattern.count, pattern[index] != "*" {
+                return nil
+            }
+            let sliding: Bool
+            if let types = layout.layerTypes, index < types.count {
+                switch types[index] {
+                case "sliding_attention": sliding = true
+                case "full_attention", "attention": sliding = false
+                default: return nil // linear attention and the like: a fixed-size state
+                }
+            } else if let interval = layout.fullAttentionInterval, interval > 0 {
+                guard (index + 1) % interval == 0 else { return nil }
+                sliding = false
+            } else if let every = layout.slidingWindowPattern, every > 0 {
+                sliding = (index + 1) % every != 0
+            } else {
+                sliding = false
+            }
+            if sliding, let window = layout.slidingWindow, window > 0 {
+                return KVLayers(count: 1, kvHeads: kvHeadCount, keyValueDim: 2 * headDim, window: window)
+            }
+            return KVLayers(
+                count: 1, kvHeads: layout.globalHeadCountKV ?? kvHeadCount,
+                keyValueDim: 2 * (layout.globalHeadDim ?? headDim)
+            )
+        }
+        return kvLayers(layers, plain: (layerCount, kvHeadCount, headDim))
     }
 
     private static func activeWeightBytes(total: Int64, used: Int?, of experts: Int?) -> Int64? {
@@ -242,7 +358,7 @@ enum FitEstimator {
         return params >= 20 ? Int(params / 5) * 5 : Int(params)
     }
 
-    /// RAM_needed = W + 2 · L · H_kv · d · b · C + O
+    /// RAM_needed = W + KV(C) + O, where KV(C) = 2 · L · H_kv · d · b · C for a model whose layers are all alike.
     ///
     /// `b` is `kvCache.bytesPerElement`: 2 for the engines' default f16 cache, about 1 or 0.56 when a model is set
     /// to a quantized one (ADR D-057). Not read from model metadata: it's a setting, not a model property.
@@ -252,13 +368,42 @@ enum FitEstimator {
         kvCache: KVCacheSetting = .full,
         overheadBytes: Int64
     ) -> Int64 {
-        model.weightBytes + kvBytesPerToken(model, kvCache) * Int64(contextSize) + overheadBytes
+        model.weightBytes + kvBytes(model, contextSize: contextSize, kvCache: kvCache) + overheadBytes
     }
 
-    /// 2 · L · H_kv · d · b: one token's keys and values across the layers.
-    static func kvBytesPerToken(_ model: ModelShape, _ kvCache: KVCacheSetting) -> Int64 {
-        Int64(2 * Double(model.layerCount) * Double(model.kvHeadCount) * Double(model.headDim) * kvCache
-            .bytesPerElement)
+    /// The keys and values held for `contextSize` tokens, summed over the layers that keep them (ADR D-071).
+    /// A layer with a window holds at most that many tokens, and stays at full precision under a quantized
+    /// setting, as MLX leaves its rotating caches (ADR D-057).
+    static func kvBytes(_ model: ModelShape, contextSize: Int, kvCache: KVCacheSetting) -> Int64 {
+        let layers = model.kvLayers
+            ?? [ModelShape.KVLayers(
+                count: model.layerCount,
+                kvHeads: model.kvHeadCount,
+                keyValueDim: 2 * model.headDim
+            )]
+        return layers.reduce(0) { total, group in
+            let tokens = group.window.map { min($0, contextSize) } ?? contextSize
+            let bytes = group.window == nil ? kvCache.bytesPerElement : KVCacheSetting.full.bytesPerElement
+            let perToken = Int64(Double(group.count) * Double(group.kvHeads) * Double(group.keyValueDim) * bytes)
+            return total + perToken * Int64(tokens)
+        }
+    }
+
+    /// The largest context up to `limit` whose cache fits in `budget` bytes; 0 if none does.
+    static func largestContext(_ model: ModelShape, fitting budget: Int64, kvCache: KVCacheSetting, limit: Int) -> Int {
+        guard budget >= 0 else { return 0 }
+        guard kvBytes(model, contextSize: limit, kvCache: kvCache) > budget else { return limit }
+        // KV grows with the context, so the largest that fits is found by halving the range.
+        var low = 0, high = limit
+        while low < high {
+            let middle = (low + high + 1) / 2
+            if kvBytes(model, contextSize: middle, kvCache: kvCache) <= budget {
+                low = middle
+            } else {
+                high = middle - 1
+            }
+        }
+        return low
     }
 
     /// The verdict, RAM figure, and (when the chip is recognized) speed
@@ -308,13 +453,12 @@ enum FitEstimator {
                 verdict = .comfortable
                 contextForRAMFigure = requestedContextSize
             } else {
-                // Solve for the largest context that fits under the full
-                // (not comfortable-fraction) ceiling:
-                // ceiling >= W + O + 2*L*Hkv*d*b*C
-                let perTokenBytes = kvBytesPerToken(model, kvCache)
-                let budget = ceiling - model.weightBytes - overhead
-                let fittingContext = perTokenBytes > 0 ? Int(budget / perTokenBytes) : requestedContextSize
-                let reduced = max(0, min(fittingContext, requestedContextSize))
+                // The largest context that fits under the full
+                // (not comfortable-fraction) ceiling: ceiling >= W + O + KV(C).
+                let reduced = largestContext(
+                    model, fitting: ceiling - model.weightBytes - overhead, kvCache: kvCache,
+                    limit: max(0, requestedContextSize)
+                )
                 verdict = .tight(reducedContextSize: reduced)
                 contextForRAMFigure = reduced
             }

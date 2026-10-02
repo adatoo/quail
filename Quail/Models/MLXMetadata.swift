@@ -26,6 +26,88 @@ struct MLXMetadata: Sendable, Equatable {
     var numLocalExperts: Int?
     /// The context the model was trained for (`max_position_embeddings`).
     var trainedContext: Int?
+    /// Which layers keep a cache of past tokens, and how big, when they aren't all alike (`AttentionLayout`).
+    var layout = AttentionLayout()
+
+    /// The fields that say how a model's layers differ: sliding-window layers beside global ones (Gemma, gpt-oss,
+    /// Muse Glimmer), and linear-attention or Mamba layers that keep a fixed-size state rather than a cache that
+    /// grows with the context (Qwen3.5 family, Nemotron H). All empty for a model whose layers are all alike.
+    struct AttentionLayout: Sendable, Equatable, Decodable {
+        /// Per layer: `full_attention`, `sliding_attention`, `linear_attention`, …
+        var layerTypes: [String]?
+        var slidingWindow: Int?
+        /// Gemma 3's older spelling: every Nth layer is global, the rest sliding-window.
+        var slidingWindowPattern: Int?
+        /// Gemma 4's global layers: fewer KV heads, each larger, than its sliding-window layers.
+        var globalHeadCountKV: Int?
+        var globalHeadDim: Int?
+        /// Qwen3.5 family: every Nth layer is attention, the rest linear attention.
+        var fullAttentionInterval: Int?
+        /// Nemotron H: per layer, `attention`, `mamba`, `mlp` or `moe`.
+        var layersBlockType: [String]?
+        /// Nemotron H's other spelling: one character per layer, `*` for attention.
+        var hybridOverridePattern: String?
+        /// Gemma 3n and 4's small models: the last layers reuse an earlier layer's cache.
+        var sharedKVLayers: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case layerTypes = "layer_types"
+            case slidingWindow = "sliding_window"
+            case slidingWindowPattern = "sliding_window_pattern"
+            case globalHeadCountKV = "num_global_key_value_heads"
+            case globalHeadDim = "global_head_dim"
+            case fullAttentionInterval = "full_attention_interval"
+            case layersBlockType = "layers_block_type"
+            case hybridOverridePattern = "hybrid_override_pattern"
+            case sharedKVLayers = "num_kv_shared_layers"
+        }
+
+        init() {}
+
+        /// Lenient: a field of an unexpected type (a pattern written as a list, say) is left out, not an error.
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            layerTypes = try? container.decodeIfPresent([String].self, forKey: .layerTypes)
+            slidingWindow = try? container.decodeIfPresent(Int.self, forKey: .slidingWindow)
+            slidingWindowPattern = try? container.decodeIfPresent(Int.self, forKey: .slidingWindowPattern)
+            globalHeadCountKV = try? container.decodeIfPresent(Int.self, forKey: .globalHeadCountKV)
+            globalHeadDim = try? container.decodeIfPresent(Int.self, forKey: .globalHeadDim)
+            fullAttentionInterval = try? container.decodeIfPresent(Int.self, forKey: .fullAttentionInterval)
+            layersBlockType = try? container.decodeIfPresent([String].self, forKey: .layersBlockType)
+            hybridOverridePattern = try? container.decodeIfPresent(String.self, forKey: .hybridOverridePattern)
+            sharedKVLayers = try? container.decodeIfPresent(Int.self, forKey: .sharedKVLayers)
+        }
+
+        /// Each field from this one, else from `fallback` (a multimodal config's `text_config`).
+        func filled(from fallback: AttentionLayout) -> AttentionLayout {
+            var result = self
+            result.layerTypes = layerTypes ?? fallback.layerTypes
+            result.slidingWindow = slidingWindow ?? fallback.slidingWindow
+            result.slidingWindowPattern = slidingWindowPattern ?? fallback.slidingWindowPattern
+            result.globalHeadCountKV = globalHeadCountKV ?? fallback.globalHeadCountKV
+            result.globalHeadDim = globalHeadDim ?? fallback.globalHeadDim
+            result.fullAttentionInterval = fullAttentionInterval ?? fallback.fullAttentionInterval
+            result.layersBlockType = layersBlockType ?? fallback.layersBlockType
+            result.hybridOverridePattern = hybridOverridePattern ?? fallback.hybridOverridePattern
+            result.sharedKVLayers = sharedKVLayers ?? fallback.sharedKVLayers
+            return result
+        }
+    }
+
+    private struct LayoutConfig: Decodable {
+        var top: AttentionLayout
+        var text: AttentionLayout?
+
+        enum CodingKeys: String, CodingKey {
+            case textConfig = "text_config"
+        }
+
+        init(from decoder: any Decoder) throws {
+            top = try AttentionLayout(from: decoder)
+            text = try? decoder.container(keyedBy: CodingKeys.self)
+                .decodeIfPresent(AttentionLayout.self, forKey: .textConfig)
+        }
+    }
 
     enum MLXReadError: Error, Equatable {
         case invalidJSON
@@ -150,6 +232,10 @@ struct MLXMetadata: Sendable, Equatable {
             result.headDim = headDim
         } else if let hiddenSize, let heads, heads > 0 {
             result.headDim = hiddenSize / heads
+        }
+
+        if let layout = try? JSONDecoder().decode(LayoutConfig.self, from: data) {
+            result.layout = layout.top.filled(from: layout.text ?? AttentionLayout())
         }
 
         let quantization = raw.quantization ?? raw.quantizationConfig

@@ -19,7 +19,11 @@ import Foundation
 struct GGUFMetadata: Sendable, Equatable {
     var architecture: String?
     var blockCount: Int?
+    /// KV heads: the one value, or the largest of a per-layer array (`headCountKVPerLayer`).
     var headCountKV: Int?
+    /// `<arch>.attention.head_count_kv` when it's written per layer: Gemma 4 gives its sliding-window and global
+    /// layers different counts, and hybrids (Nemotron H, Granite 4 hybrid) write 0 for a layer without attention.
+    var headCountKVPerLayer: [Int]?
     var embeddingLength: Int?
     var headCount: Int?
     /// The raw `ggml_ftype` enum value from `general.file_type` (e.g. the
@@ -45,6 +49,20 @@ struct GGUFMetadata: Sendable, Equatable {
     /// `<arch>.expert_used_count` — experts activated per token, for MoE
     /// architectures. `nil` for dense models.
     var expertUsedCount: Int?
+    /// `<arch>.attention.key_length_swa`/`value_length_swa`: the head dimensions of the sliding-window layers,
+    /// where they differ from the global layers' (Gemma 4: 256 against 512).
+    var keyLengthSWA: Int?
+    var valueLengthSWA: Int?
+    /// `<arch>.attention.sliding_window`: how many tokens a sliding-window layer attends to.
+    var slidingWindow: Int?
+    /// `<arch>.attention.sliding_window_pattern`, per layer: true for a sliding-window layer.
+    var slidingWindowPattern: [Bool]?
+    /// `<arch>.full_attention_interval`: in a Qwen3.5-family hybrid, every Nth layer is attention and the rest
+    /// linear attention, which keeps a fixed-size state rather than a cache that grows with the context.
+    var fullAttentionInterval: Int?
+    /// `<arch>.attention.shared_kv_layers`: the last layers reuse an earlier layer's cache (Gemma 3n and 4's
+    /// small models) and keep none of their own.
+    var sharedKVLayers: Int?
     /// `<arch>.context_length` — the context the model was trained for;
     /// caps the per-model context setting (a larger `ctx-size` makes
     /// llama.cpp warn and quality degrade past it).
@@ -139,7 +157,31 @@ struct GGUFMetadata: Sendable, Equatable {
                     result.blockCount = try cursor.readScalarAsInt(type: type)
                     continue
                 case "\(arch).attention.head_count_kv":
-                    result.headCountKV = try cursor.readScalarAsInt(type: type)
+                    if type == 9 {
+                        let counts = try cursor.readIntArray()
+                        result.headCountKVPerLayer = counts
+                        result.headCountKV = counts.max()
+                    } else {
+                        result.headCountKV = try cursor.readScalarAsInt(type: type)
+                    }
+                    continue
+                case "\(arch).attention.key_length_swa":
+                    result.keyLengthSWA = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).attention.value_length_swa":
+                    result.valueLengthSWA = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).attention.sliding_window":
+                    result.slidingWindow = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).attention.sliding_window_pattern" where type == 9:
+                    result.slidingWindowPattern = try cursor.readIntArray().map { $0 != 0 }
+                    continue
+                case "\(arch).full_attention_interval":
+                    result.fullAttentionInterval = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).attention.shared_kv_layers":
+                    result.sharedKVLayers = try cursor.readScalarAsInt(type: type)
                     continue
                 case "\(arch).embedding_length":
                     result.embeddingLength = try cursor.readScalarAsInt(type: type)
@@ -309,11 +351,7 @@ struct GGUFMetadata: Sendable, Equatable {
         }
 
         /// Reads a numeric scalar (or the first element of a numeric
-        /// array, skipping the rest) as `Int`. Some architectures write
-        /// `attention.head_count_kv` as a per-layer array rather than one
-        /// shared value; the device-fit formula in ARCHITECTURE.md §7
-        /// only has room for one number, so the first element stands in
-        /// for all of them until FitEstimator needs anything smarter.
+        /// array, skipping the rest) as `Int`.
         mutating func readScalarAsInt(type: UInt32) throws -> Int {
             switch type {
             case 0: try Int(readUInt8())
@@ -328,6 +366,17 @@ struct GGUFMetadata: Sendable, Equatable {
                 try readFirstOfArrayAsInt()
             default:
                 throw GGUFReadError.truncated
+            }
+        }
+
+        /// An array of integers or booleans (after its type tag has been read), every element as `Int`.
+        mutating func readIntArray() throws -> [Int] {
+            let elementType = try readUInt32()
+            let count = try readUInt64()
+            guard elementType != 8, elementType != 9, elementType != 6, elementType != 12,
+                  count <= UInt64(data.count) else { throw GGUFReadError.truncated }
+            return try (0 ..< count).map { _ in
+                elementType == 7 ? try Int(readUInt8()) : try readScalarAsInt(type: elementType)
             }
         }
 

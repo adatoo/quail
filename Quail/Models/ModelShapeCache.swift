@@ -12,9 +12,15 @@ final class ModelShapeCache: @unchecked Sendable {
 
     static let lifetime: TimeInterval = 30 * 24 * 60 * 60
 
+    /// Raised when `ModelShape` learns something new from the same files, so shapes read before are read again:
+    /// 2 added each layer's cache (`kvLayers`, ADR D-071).
+    static let version = 2
+
     private struct Entry: Codable {
         var shape: ModelShape
         var fetchedAt: Date
+        /// `nil` in entries written before there was a version.
+        var version: Int?
     }
 
     private let url: URL?
@@ -35,7 +41,7 @@ final class ModelShapeCache: @unchecked Sendable {
     func shape(for key: String) -> ModelShape? {
         lock.withLock {
             loadIfNeeded()
-            guard let entry = entries?[key],
+            guard let entry = entries?[key], entry.version == Self.version,
                   now().timeIntervalSince(entry.fetchedAt) < Self.lifetime else { return nil }
             return entry.shape
         }
@@ -44,7 +50,7 @@ final class ModelShapeCache: @unchecked Sendable {
     func store(_ shape: ModelShape, for key: String) {
         let snapshot: [String: Entry]? = lock.withLock {
             loadIfNeeded()
-            entries?[key] = Entry(shape: shape, fetchedAt: now())
+            entries?[key] = Entry(shape: shape, fetchedAt: now(), version: Self.version)
             return entries
         }
         guard let url, let snapshot, let data = try? JSONEncoder().encode(snapshot) else { return }

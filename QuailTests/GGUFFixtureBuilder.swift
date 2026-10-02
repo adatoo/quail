@@ -62,6 +62,19 @@ struct GGUFFixtureBuilder {
         }))
     }
 
+    /// A `bool` array, as `<arch>.attention.sliding_window_pattern` is written.
+    mutating func addBoolArray(_ key: String, _ values: [Bool]) {
+        keys.append((key, 9, {
+            var data = Data()
+            var elementType: UInt32 = 7 // bool
+            withUnsafeBytes(of: &elementType) { data.append(contentsOf: $0) }
+            var count = UInt64(values.count).littleEndian
+            withUnsafeBytes(of: &count) { data.append(contentsOf: $0) }
+            data.append(contentsOf: values.map { $0 ? UInt8(1) : 0 })
+            return data
+        }))
+    }
+
     /// A `string` array — the shape of `tokenizer.ggml.tokens` in a real
     /// file, used here to confirm skipping doesn't require decoding.
     mutating func addStringArray(_ key: String, _ values: [String]) {

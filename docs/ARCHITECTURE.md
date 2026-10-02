@@ -177,13 +177,18 @@ Quail answers two questions per model before download: will it fit, and roughly 
 | Memory free right now | `host_statistics64` (free + inactive + purgeable) |
 | Memory bandwidth | Lookup table keyed by chip name, shipped in `catalog.json`; unknown chip → no speed estimate |
 
-**What Quail reads from the model** — GGUF metadata (`llama.block_count`, `attention.head_count_kv`, `embedding_length`, file size) or the MLX `config.json` (`num_hidden_layers`, `num_key_value_heads`, `head_dim`, quant bits, `num_experts_per_tok` for MoE) plus directory size. Both are read from the Hub file listing before download, so the verdict shows in the picker.
+**What Quail reads from the model** — GGUF metadata (`llama.block_count`, `attention.head_count_kv`, `embedding_length`, file size, and per layer the sliding-window pattern, `_swa` head sizes and `full_attention_interval`) or the MLX `config.json` (`num_hidden_layers`, `num_key_value_heads`, `head_dim`, quant bits, `num_experts_per_tok` for MoE, `layer_types` and `sliding_window`) plus directory size. Both are read from the Hub file listing before download, so the verdict shows in the picker.
 
 **Fit estimate**
 
-    RAM_needed = W + 2 · L · H_kv · d · b · C + O
+    RAM_needed = W + Σ_layers H_kv · (d_k + d_v) · b · min(C, window) + O
 
-where W is weight bytes, L layers, H_kv KV heads, d head dim, b bytes per KV element (2 for f16, about 1.06 for an 8-bit and 0.56 for a 4-bit cache, set per model in the Models pane, D-057), C context tokens, O a fixed overhead (~1.5 GB for llama.cpp, ~2.5 GB for the Python runtimes). Each installed model has a context setting (D-020): **Automatic** — the largest of 32K / 16K / 8K that is Comfortable on this Mac, capped at the model's trained context (`<arch>.context_length`) — or a size the user picks from 4K–128K in the Models pane, each option labelled with its verdict. Verdicts are computed at the context the model will actually run at. Pre-download verdicts in the picker still use C = 8,192.
+where W is weight bytes, H_kv a layer's KV heads, d_k and d_v its key and value head dims, b bytes per KV element (2 for f16, about 1.06 for an 8-bit and 0.56 for a 4-bit cache, set per model in the Models pane, D-057), C context tokens (window is C itself except for a sliding-window layer under MLX, whose cache holds only its window, at full precision), O a fixed overhead (~1.5 GB for llama.cpp, ~2.5 GB for the Python runtimes). Each installed model has a context setting (D-020): **Automatic** — the largest of 32K / 16K / 8K that is Comfortable on this Mac, capped at the model's trained context (`<arch>.context_length`) — or a size the user picks from 4K–128K in the Models pane, each option labelled with its verdict. Verdicts are computed at the context the model will actually run at. Pre-download verdicts in the picker still use C = 8,192.
+
+The sum counts only the layers that keep a cache of past tokens (D-071). A plain model's layers are all alike, so it comes to 2 · L · H_kv · d · b · C. Layers that differ are read per layer:
+- sliding-window layers (Gemma, gpt-oss, Muse Glimmer), with their own head sizes;
+- Gemma 4's global layers, with fewer, larger heads;
+- linear-attention and Mamba layers (Qwen3.5 family, Nemotron H), which keep a small fixed-size state instead, left to O.
 
 Verdicts: **Comfortable** (needed < 70% of the GPU ceiling), **Tight** (fits at a reduced context, which Quail sets automatically), **Won't fit** (weights alone exceed the ceiling). Verdicts are per runtime because overheads differ.
 
