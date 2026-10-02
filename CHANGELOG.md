@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.72.2] - 2026-10-03
+
 ### Added
 
 - The benchmark harness can run llama-server with a full-size sliding-window cache, as Quail's server keeps it (`ENGINES=llama-server-swa-full`). This tells that setting apart from Quail's own differences on Gemma 4 (#152). It's never part of a default run.
