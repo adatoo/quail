@@ -10,6 +10,10 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Fixed
+
+- **A development build with its own data folder (`QUAIL_DATA_ROOT`) keeps its own Keychain items.** It used the real app's, so its first launch could replace the real API key, and reading a secret raised a Keychain prompt. Shipped builds are unchanged.
+
 ## [0.70.0] - 2026-10-02
 
 ### Added

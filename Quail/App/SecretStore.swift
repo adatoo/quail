@@ -23,7 +23,10 @@ struct Keychain: SecretStore {
         case unexpectedStatus(OSStatus)
     }
 
-    private let service = "com.datoos.quail"
+    /// A development copy with its own data (`QUAIL_DATA_ROOT`, Debug builds only) keeps its own secrets too.
+    /// On the real service, its first launch, which turns the API key on, could replace the real key, and
+    /// every new ad-hoc signature that reads a secret raises a Keychain prompt.
+    private let service = ControlPaths.debugDataRoot == nil ? "com.datoos.quail" : "com.datoos.quail.debug"
 
     func set(_ value: String, account: String) throws {
         let data = Data(value.utf8)
