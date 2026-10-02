@@ -10,6 +10,10 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Llama 3.1 8B's Tools score is 70, not 35.** It was re-tested after Quail began converting its tool-call values to the tool's types (0.68.1). Its Maths and Knowledge scores came out the same. Catalog revision 11.
+
 ## [0.72.0] - 2026-10-02
 
 ### Added
