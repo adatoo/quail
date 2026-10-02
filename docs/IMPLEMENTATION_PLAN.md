@@ -287,7 +287,7 @@ with a speed-only confirmation run on the M4 Pro Mac mini.
 3. [x] Quality (lm-eval: GSM8K, MMLU-Pro) and tool calling (BFCL).
 4. [x] The report generator (`task bench:report`, with a hand-written summary and caveats from `bench/config/notes/<date>.toml`). `website/compare.html` with a sourced feature table is PR #131; it shows results only after step 8.
 5. [x] `quail bench --url` (D-064): the `quail-bench-url-1` suite, timed from the client, for any OpenAI-compatible server.
-6. [ ] `quail eval tools` (D-065).
+6. [x] `quail eval tools` (D-065): 16 hand-written tool-calling requests, checked as BFCL checks a call, on Quail or any server.
 7. [x] **The first run** (night budget, on the M1 Max, Quail 0.58.1): [docs/benchmarks/2026-09-29/](benchmarks/2026-09-29/README.md), published in the repo only.
    - **GGUF lane:** level with llama-server and Ollama, except on 4,096-token prompts.
    - **MLX lane:** behind oMLX and Rapid-MLX.
