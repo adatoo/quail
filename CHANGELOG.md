@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.68.1] - 2026-10-02
+
+### Fixed
+
+- **Llama 3.1's tool calls now carry numbers as numbers.** It often writes a number as a string (`"base": "10"`), which a client checking the tool's schema rejects. Quail now reads such a value as the type the tool's schema asks for, as it already did for Qwen's calls (ADR D-040 amendment).
+
 ## [0.68.0] - 2026-10-02
 
 ### Added

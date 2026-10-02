@@ -350,6 +350,24 @@ struct ToolCallTests {
         #expect(parse(chunked("<|pyth no", size), format: .bareJSON).content == "<|pyth no")
     }
 
+    @Test("Llama 3.1: a value written as a string is read as the schema's type")
+    func bareJSONSchemaTypes() {
+        let tools: [Value] = (try? OrderedJSON.parse(#"""
+        [{"type":"function","function":{"name":"convert","parameters":{"type":"object","properties":{
+          "base":{"type":"integer"},"scale":{"type":"number"},"exact":{"type":"boolean"},"digits":{"type":"array"},
+          "label":{"type":"string"},"unit":{"type":"integer"}}}}}]
+        """#).arrayValue) ?? []
+        // Llama 3.1 8B's way with numbers (bench, 2026-10-02): `"base": "10"` for an integer.
+        let raw = #"<|python_tag|>{"name": "convert", "parameters": {"base": "10", "scale": "2.5", "exact": "true", "digits": "[1, 2]", "label": "10", "unit": "ten", "extra": "7"}}"#
+        #expect(parse([raw], format: .bareJSON, tools: tools).calls.first?.arguments
+            ==
+            #"{"base": 10, "scale": 2.5, "exact": true, "digits": [1, 2], "label": "10", "unit": "ten", "extra": "7"}"#)
+        // Values already of the right type are left as written.
+        let typed = #"{"name": "convert", "parameters": {"base": 10, "exact": false}}"#
+        #expect(parse([typed], format: .bareJSON, tools: tools).calls.first?
+            .arguments == #"{"base": 10, "exact": false}"#)
+    }
+
     @Test("Qwen XML: several functions in one block are several calls; a JSON body is the arguments")
     func qwenXMLVariants() {
         let two = "<tool_call>\n<function=get_weather>\n<parameter=city>\nParis\n</parameter>\n</function>\n"
