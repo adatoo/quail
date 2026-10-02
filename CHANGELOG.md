@@ -10,6 +10,15 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Added
+
+- **Alternatives on a model's card.** In Add Model, a scored model's card now suggests up to three other catalog models that fit this Mac (ADR D-070 amendment):
+  - one about the same size that scores higher in Quail's tests;
+  - one that needs much less memory and is about as good;
+  - one that's much faster here and is about as good.
+
+  Each has a **Show** button. The ⓘ card in the Models list shows them too.
+
 ## [0.69.0] - 2026-10-02
 
 ### Changed

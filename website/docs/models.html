@@ -65,6 +65,14 @@
 <p>Where <a href="https://arena.ai/leaderboard/text">Arena's text leaderboard</a> lists a model, its rating appears too: a score from people's votes between two answers, with style control, ± its margin and its rank. Two ratings within each other's margin are a tie. Arena rates the full-precision model, so a quantized download can do a little worse, and models it doesn't list say so rather than borrowing another model's score. The ratings are Arena's (© Arena), from its <a href="https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset">leaderboard dataset</a> under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, rounded, and refreshed with the catalog.</p>
 <h3 id="scores">Quail's own scores</h3>
 <p>Quail also tests every chat model in its catalog itself, on the download it offers by default, so models Arena doesn't list can be compared too. Each answers without thinking, at temperature 0, on an M1 Max: <strong>Maths</strong> is GSM8K (150 questions, worked step by step), <strong>Knowledge</strong> is MMLU-Pro (112 questions across 14 subjects) and <strong>Tools</strong> is BFCL's function-calling cases (200, including ones where no tool fits). With samples this size, maths and tools are good to about ±5 points and knowledge to about ±9 (95% intervals), so smaller differences are a tie. The full results are in the repository's <code>docs/benchmarks/2026-10-02-catalog-scores/</code>. Models that can't answer without thinking first (the DeepSeek R1 distills) aren't scored on this scale. The harness is in the repository's <code>bench/</code> folder: <code>task bench:scores</code>.</p>
+<h3 id="alternatives">Alternatives</h3>
+<p>A scored model's card in Add Model also suggests up to three other catalog models that fit this Mac, each with a <strong>Show</strong> button:</p>
+<ul>
+<li><strong>Scores higher:</strong> about the same memory (at most a quarter more, or 2 GB), ahead on at least one of Quail's tests by more than its margin, and behind on none.</li>
+<li><strong>Smaller:</strong> at most three-quarters of the memory, and behind on no test by more than its margin.</li>
+<li><strong>Faster:</strong> at least 1.5 times the estimated speed on this Mac, and behind on no test by more than its margin.</li>
+</ul>
+<p>Memory and speed are Quail's estimates for this Mac at the default context. A coding model's alternatives are ones good at coding. Arena's ratings aren't used here, because they cover too few of the catalog's models.</p>
 <p>The catalog updates itself weekly. From the terminal, <code>quail pull --list</code> shows the catalog and <code>quail pull &lt;name&gt;[:quant]</code> downloads.</p>
 <p>Models other apps downloaded — LM Studio, llama.cpp, the Hugging Face cache, oMLX — can be moved in rather than downloaded again: Quail offers them once, and <span class="path">Storage and downloads → ⋯ → Import Models from Other Apps…</span> reopens the list.</p>
 

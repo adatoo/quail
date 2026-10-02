@@ -74,7 +74,14 @@ The Add Model sheet shows these in a card (`ModelFactsCard`) under the model's n
 - **Shown:** as "Maths · Knowledge · Tools" percentages, labelled as Quail's tests, with the method, the date and their margins: about ±5 points for maths and tools and ±9 for knowledge (95% intervals at these sample sizes; amended 2026-10-02 from ±4, which was one standard error). They are never blended with Arena's ratings.
 - `scripts/update-quail-scores RUN` writes them into the catalog.
 
-**Next:** alternatives worked out from size, fit, speed, strengths and these scores.
+**Alternatives (amended 2026-10-02):** a scored family's card suggests up to three other catalog families (`ModelAlternatives`). Each has a **Show** button that opens it in Add Model. The Models list's ⓘ card shows them too, once Add Model has worked out the catalog's verdicts.
+- **Candidates:** curated, scored, for the same kind of work (a coding model's alternatives have the coding strength), and Comfortable or Tight on this Mac. The family's own successor is left out, since the card shows it as Newer already.
+- **Scores higher:** needs about the same memory: at most 1.25 times as much, or 2 GB more, whichever is larger, so a 1.5 GB model can step up. It must be ahead of the family on at least one test by more than that test's margin, and behind on none. The best total wins; on a tie, the one needing less memory.
+- **Smaller:** needs at most three-quarters of the memory and is behind on no test by more than its margin. The smallest wins.
+- **Faster:** has at least 1.5 times the estimated speed on this Mac and is behind on no test by more than its margin. The fastest wins.
+- **Size is memory, not parameters:** this Mac's fit estimate at the default context. Parameters made a 1-bit 27B Bonsai, at 3.8 GB, look as big as a 4-bit 27B at 16 GB.
+- Each family appears once. With parameters as size and no size limit on "scores higher", Gemma 4 31B was the "higher" pick for 24 of 28 families, down to a 1.7B, which helps no one.
+- **Not used:** Arena's ratings (11 of 32 families). Mixing them in would make the comparison depend on which families Arena happens to list.
 
 **Alternatives:**
 - Artificial Analysis's index, pending permission.

@@ -109,7 +109,7 @@ struct UISnapshotTests {
                     Text(rated.name).font(.headline)
                     ModelFactsCard(
                         family: rated, filesRepo: rated.gguf?.repo,
-                        newer: appState.catalog.families.first { $0.id == "qwen3.8-27b" }, onShowNewer: { _ in }
+                        newer: appState.catalog.families.first { $0.id == "qwen3.8-27b" }, onShow: { _ in }
                     )
                 }
                 .padding(14)
@@ -117,6 +117,39 @@ struct UISnapshotTests {
                 .background(Color(nsColor: .windowBackgroundColor)),
                 size: CGSize(width: 380, height: 400), name: "model-facts-\(appearance == .aqua ? "light" : "dark")",
                 appearance: appearance
+            )
+        }
+    }
+
+    @Test("The facts card's alternatives")
+    func modelFactsAlternatives() async throws {
+        let (appState, scratch) = try await makeAppState()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let families = appState.catalog.families
+        let target = try #require(families.first { $0.id == "qwen3.8-27b" })
+        func fit(_ gigabytes: Double, _ speed: Double) -> FitEstimate {
+            FitEstimate(verdict: .comfortable, ramNeededBytes: Int64(gigabytes * 1e9), estimatedTokensPerSecond: speed)
+        }
+        let fits = [
+            "qwen3.8-27b": fit(19, 18), "gemma-4-31b": fit(21, 16), "gemma-4-12b": fit(9.5, 40),
+            "gemma-4-26b-a4b": fit(19, 70),
+        ]
+        let alternatives = ModelAlternatives.alternatives(for: target, in: families, fits: fits)
+        #expect(alternatives.count == 3)
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            try await render(
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(target.name).font(.headline)
+                    ModelFactsCard(
+                        family: target, filesRepo: target.gguf?.repo, newer: nil, alternatives: alternatives,
+                        onShow: { _ in }
+                    )
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(Color(nsColor: .windowBackgroundColor)),
+                size: CGSize(width: 380, height: 560),
+                name: "model-facts-alternatives-\(appearance == .aqua ? "light" : "dark")", appearance: appearance
             )
         }
     }
