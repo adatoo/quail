@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.69.0] - 2026-10-02
+
 ### Changed
 
 - **Fit verdicts and Automatic context are sharper for models that mix layer types.** Quail now counts the memory for past tokens layer by layer (ADR D-071). It used to treat every layer as a full one. Measured on real models, this made Gemma 4's estimate 2.2 times too high on GGUF and up to 24 times on MLX. The Qwen3.5 family (Qwen3.5, 3.6 and 3.8, MiMo, Ornith and the 27B Bonsais) was 4 times too high. So these models now get longer contexts and Comfortable verdicts where they fit. Nemotron 3.5's GGUF estimate also counts its attention layers again; before, they counted as nothing.
