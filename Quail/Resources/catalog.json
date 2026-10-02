@@ -1,7 +1,7 @@
 {
-  "revision": 9,
+  "revision": 10,
   "asOf": "2026-10-01",
-  "notes": "Revision 9: what helps you choose (ADR D-070). Each family has the day its maker made it public (from the maker's announcement, or news coverage where there was none; a Hugging Face repo's creation date is often weeks earlier, while it was private), its maker's own Hugging Face repo, a one-line summary, and for Qwen3 8B and 32B the newer model that replaces each. The 11 families Arena's text leaderboard lists carry its style-control rating, refreshed by scripts/update-arena-ratings from the CC BY 4.0 dataset lmarena-ai/leaderboard-dataset. Nemotron 3.5's entry there is its NVFP4 build. Revision 8: more models. Each was checked on 2026-09-30 and 10-01 on quail-server (M4 Pro), and for GGUF on llama.cpp b11081 and again on b11306. The checks were a short answer, a tool call and its result, and for vision rows, the colours of a test image and where each is. Speeds are from a release build. Bonsai (PrismML, Apache-2.0; ADR D-069): 1-bit Bonsai is GGUF only (Q1_0), as MLX 0.32 has no 1-bit quantization. Ternary Bonsai offers PrismML's Q2_0_g64 file (Q2_g64 for the 27B), which is llama.cpp's own Q2_0 layout. Their file named Q2_0 uses 128-weight blocks from their fork and fails to load, as does PQ2_0. The smaller models don't think, because their template closes the think block. Both 4B models write tool calls without the opening tag, on llama-server too, so they aren't marked agentic. The 1-bit and Ternary 27B models think, call tools and read images (with their Q8_0 projectors, and the ternary 27B's MLX download too). Bonsai 2 27B is MLX only. Its weights are Hadamard-rotated, which Quail's copy of mlx-swift-lm's open PR #630 undoes (D-066 amendment). 60 greedy tokens matched a Python reference token for token, and it writes about 23 tokens a second, against 15 for Qwen3.8 27B 4-bit. The Ternary 1.7B, 8B and 27B MLX downloads are the ones Rapid-MLX lists, so Add Model shows each once. Granite 4.2 (IBM, Apache-2.0): the 3B and 8B think by default and call tools, from IBM's own GGUF and q4 MLX repos. The 30B shares their architecture and repos; its files were checked on the Hub, not loaded. Ornith 1.5 (MIT), Qwen3.5 fine-tunes for coding: the 9B thinks, calls tools and reads images from its GGUF with the BF16 projector. Its own MLX 4-bit leaves the vision tower out. The 35B-A3B shares Qwen3.6 35B-A3B's architecture, which Quail already serves; its files were checked, not loaded. Nemotron 3.5 Lightning 30B-A3B (NVIDIA, OpenMDW-1.1): the GGUF defaults to Q4_0, as its K-quants are about 6 GB larger (its expert width isn't a multiple of 256). bartowski's mtp- files beside each quant are no longer downloaded with it. Its MLX 4-bit loads through a config adapter and Quail's copy of mlx-swift-lm's Nemotron-H (D-066 amendment), at 76 tokens a second against 65 for the GGUF. Muse Glimmer 30B (Meta, Apache-2.0) reads images. Its replies are messages to a recipient: itself for reasoning, the user, or a tool, whose call is an ATEM block. quail-server's MuseGlimmerParser reads them (D-040 amendment), and on MLX the model loads through its vision model (D-047 amendment). bartowski's GGUF Q4_K_M with its f16 projector, and mlx-community's 4-bit, each think, call a tool, answer from the result and read the test image. On llama-server b11306 the GGUF gives the same replies and honours json_schema. Revision 7: added Qwen3.5 9B (Apache-2.0), the current small Qwen and the base MiMo V2.6 9B is tuned from, checked on 2026-09-28 on this pinned llama.cpp and quail-server: bartowski's GGUF Q4_K_M with its f16 mmproj chats, thinks by default, calls a tool and uses its result, and names four test colours exactly on both servers; the mlx-community 4-bit does the same on quail-server and read the text in three of four test images, so its MLX variant is marked vision. The MLX repo is the one Rapid-MLX lists, so Add Model shows it once. unsloth's GGUF was passed over: its template turns thinking off unless asked, unlike Qwen's own and our other Qwen entries. On this llama.cpp the GGUF misreads small text in images at the default image size (llama.cpp issue 22785; --image-min-tokens 1024 fixes it). Revision 6: MLX variants can be marked vision once checked to read images in quail-server's MLX engine (Qwen3.5 family, D-047 amendment): Qwen3.8-27B, Qwen3.6-35B-A3B and Gemma 4 26B-A4B (mlx-community 4-bit) named four test colours exactly on 2026-09-26, and Qwen3.8 and Gemma 4 read the text in a test image too. Revision 5: added Xiaomi's MiMo-V2.6-Distill-Qwen-9B (MIT; a Qwen3.5-9B fine-tune for coding and agents), checked on 2026-09-26 on this pinned llama.cpp and quail-server: GGUF Q4_K_M with its f16 mmproj chats, reads an image and calls tools on both servers, and completed an opencode task; the mlx-community OptiQ 4-bit (mixed 4/8-bit) loads and calls tools on quail-server; Claude Code finished a Write task at 64K context (at 32K it thrashed on compaction). Revision 4: every family lists what it is good for (strengths, D-052), each checked against its model card: chat, coding, agentic (tool calling), reasoning (a thinking mode), long-context (trained for 128K or more, from its config), multilingual, embedding, audio (Gemma 4 12B; Quail cannot pass audio yet). Vision is not listed here — the app derives it from a GGUF mmproj, the only way Quail passes images. Revision 3: re-ranked for cross-size recommendations (D-019) — rank now means best-of-its-kind today regardless of size: current generation (Qwen3.8, Qwen3.6, Gemma 4) 1, current specialists/smaller 2, previous generation 3, small/older 4; a model never outranks its own successor. Revision 2: refreshed against the live Hub (repo id resolves, quant filenames match case-insensitively, mmproj exists for vision families — same bar as revision 1's own verification). Replaced qwen3-30b-a3b with its direct successor qwen3.6-35b-a3b (fills the large RAM tier, previously empty); replaced the gemma-3-12b/27b entries with three Gemma 4 sizes (Apache-2.0 as of this generation, not the old Gemma license); added qwen3.8-27b (vision) and the DeepSeek-R1-Distill 8B/32B reasoning distills. Sizes and bandwidths remain approximate, used only for fit/speed estimates.",
+  "notes": "Revision 10: Quail's own scores (ADR D-070 amendment) for 28 chat families, from task bench:scores on an M1 Max on 2026-10-01/02 (run 20261001-174235-scores; docs/benchmarks/2026-10-02-catalog-scores/): GSM8K, MMLU-Pro and BFCL, answering without thinking, on each default download. The R1 distills and Muse Glimmer carry a note instead, as they always think; gpt-oss ran at its lowest reasoning effort. Revision 9: what helps you choose (ADR D-070). Each family has the day its maker made it public (from the maker's announcement, or news coverage where there was none; a Hugging Face repo's creation date is often weeks earlier, while it was private), its maker's own Hugging Face repo, a one-line summary, and for Qwen3 8B and 32B the newer model that replaces each. The 11 families Arena's text leaderboard lists carry its style-control rating, refreshed by scripts/update-arena-ratings from the CC BY 4.0 dataset lmarena-ai/leaderboard-dataset. Nemotron 3.5's entry there is its NVFP4 build. Revision 8: more models. Each was checked on 2026-09-30 and 10-01 on quail-server (M4 Pro), and for GGUF on llama.cpp b11081 and again on b11306. The checks were a short answer, a tool call and its result, and for vision rows, the colours of a test image and where each is. Speeds are from a release build. Bonsai (PrismML, Apache-2.0; ADR D-069): 1-bit Bonsai is GGUF only (Q1_0), as MLX 0.32 has no 1-bit quantization. Ternary Bonsai offers PrismML's Q2_0_g64 file (Q2_g64 for the 27B), which is llama.cpp's own Q2_0 layout. Their file named Q2_0 uses 128-weight blocks from their fork and fails to load, as does PQ2_0. The smaller models don't think, because their template closes the think block. Both 4B models write tool calls without the opening tag, on llama-server too, so they aren't marked agentic. The 1-bit and Ternary 27B models think, call tools and read images (with their Q8_0 projectors, and the ternary 27B's MLX download too). Bonsai 2 27B is MLX only. Its weights are Hadamard-rotated, which Quail's copy of mlx-swift-lm's open PR #630 undoes (D-066 amendment). 60 greedy tokens matched a Python reference token for token, and it writes about 23 tokens a second, against 15 for Qwen3.8 27B 4-bit. The Ternary 1.7B, 8B and 27B MLX downloads are the ones Rapid-MLX lists, so Add Model shows each once. Granite 4.2 (IBM, Apache-2.0): the 3B and 8B think by default and call tools, from IBM's own GGUF and q4 MLX repos. The 30B shares their architecture and repos; its files were checked on the Hub, not loaded. Ornith 1.5 (MIT), Qwen3.5 fine-tunes for coding: the 9B thinks, calls tools and reads images from its GGUF with the BF16 projector. Its own MLX 4-bit leaves the vision tower out. The 35B-A3B shares Qwen3.6 35B-A3B's architecture, which Quail already serves; its files were checked, not loaded. Nemotron 3.5 Lightning 30B-A3B (NVIDIA, OpenMDW-1.1): the GGUF defaults to Q4_0, as its K-quants are about 6 GB larger (its expert width isn't a multiple of 256). bartowski's mtp- files beside each quant are no longer downloaded with it. Its MLX 4-bit loads through a config adapter and Quail's copy of mlx-swift-lm's Nemotron-H (D-066 amendment), at 76 tokens a second against 65 for the GGUF. Muse Glimmer 30B (Meta, Apache-2.0) reads images. Its replies are messages to a recipient: itself for reasoning, the user, or a tool, whose call is an ATEM block. quail-server's MuseGlimmerParser reads them (D-040 amendment), and on MLX the model loads through its vision model (D-047 amendment). bartowski's GGUF Q4_K_M with its f16 projector, and mlx-community's 4-bit, each think, call a tool, answer from the result and read the test image. On llama-server b11306 the GGUF gives the same replies and honours json_schema. Revision 7: added Qwen3.5 9B (Apache-2.0), the current small Qwen and the base MiMo V2.6 9B is tuned from, checked on 2026-09-28 on this pinned llama.cpp and quail-server: bartowski's GGUF Q4_K_M with its f16 mmproj chats, thinks by default, calls a tool and uses its result, and names four test colours exactly on both servers; the mlx-community 4-bit does the same on quail-server and read the text in three of four test images, so its MLX variant is marked vision. The MLX repo is the one Rapid-MLX lists, so Add Model shows it once. unsloth's GGUF was passed over: its template turns thinking off unless asked, unlike Qwen's own and our other Qwen entries. On this llama.cpp the GGUF misreads small text in images at the default image size (llama.cpp issue 22785; --image-min-tokens 1024 fixes it). Revision 6: MLX variants can be marked vision once checked to read images in quail-server's MLX engine (Qwen3.5 family, D-047 amendment): Qwen3.8-27B, Qwen3.6-35B-A3B and Gemma 4 26B-A4B (mlx-community 4-bit) named four test colours exactly on 2026-09-26, and Qwen3.8 and Gemma 4 read the text in a test image too. Revision 5: added Xiaomi's MiMo-V2.6-Distill-Qwen-9B (MIT; a Qwen3.5-9B fine-tune for coding and agents), checked on 2026-09-26 on this pinned llama.cpp and quail-server: GGUF Q4_K_M with its f16 mmproj chats, reads an image and calls tools on both servers, and completed an opencode task; the mlx-community OptiQ 4-bit (mixed 4/8-bit) loads and calls tools on quail-server; Claude Code finished a Write task at 64K context (at 32K it thrashed on compaction). Revision 4: every family lists what it is good for (strengths, D-052), each checked against its model card: chat, coding, agentic (tool calling), reasoning (a thinking mode), long-context (trained for 128K or more, from its config), multilingual, embedding, audio (Gemma 4 12B; Quail cannot pass audio yet). Vision is not listed here — the app derives it from a GGUF mmproj, the only way Quail passes images. Revision 3: re-ranked for cross-size recommendations (D-019) — rank now means best-of-its-kind today regardless of size: current generation (Qwen3.8, Qwen3.6, Gemma 4) 1, current specialists/smaller 2, previous generation 3, small/older 4; a model never outranks its own successor. Revision 2: refreshed against the live Hub (repo id resolves, quant filenames match case-insensitively, mmproj exists for vision families — same bar as revision 1's own verification). Replaced qwen3-30b-a3b with its direct successor qwen3.6-35b-a3b (fills the large RAM tier, previously empty); replaced the gemma-3-12b/27b entries with three Gemma 4 sizes (Apache-2.0 as of this generation, not the old Gemma license); added qwen3.8-27b (vision) and the DeepSeek-R1-Distill 8B/32B reasoning distills. Sizes and bandwidths remain approximate, used only for fit/speed estimates.",
   "ramTiersGB": {
     "small": { "max": 24, "recommendParamsB": [0, 9] },
     "medium": { "max": 48, "recommendParamsB": [9, 35] },
@@ -42,6 +42,7 @@
       "released": "2025-04-29",
       "modelCard": "Qwen/Qwen3-4B",
       "summary": "A small, quick all-rounder from 2025 that thinks before it answers and calls tools.",
+      "quail": { "maths": 89, "knowledge": 61, "tools": 90, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "Qwen/Qwen3-4B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
         "mlx": { "repo": "mlx-community/Qwen3-4B-4bit" }
@@ -58,6 +59,7 @@
       "released": "2025-04-29",
       "modelCard": "Qwen/Qwen3-8B",
       "summary": "The 2025 Qwen all-rounder: thinks before it answers and calls tools.",
+      "quail": { "maths": 91, "knowledge": 62, "tools": 88, "asOf": "2026-10-02" },
       "supersededBy": "qwen3.5-9b",
       "variants": {
         "gguf": { "repo": "Qwen/Qwen3-8B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M" },
@@ -75,6 +77,7 @@
       "released": "2026-03-02",
       "modelCard": "Qwen/Qwen3.5-9B",
       "summary": "The current small Qwen: chat, tools and images, thinking by default. A good first model for a 16 GB Mac.",
+      "quail": { "maths": 91, "knowledge": 75, "tools": 92, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "bartowski/Qwen_Qwen3.5-9B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-Qwen_Qwen3.5-9B-f16.gguf" },
         "mlx": { "repo": "mlx-community/Qwen3.5-9B-4bit", "vision": true }
@@ -92,6 +95,7 @@
       "released": "2026-04-16",
       "modelCard": "Qwen/Qwen3.6-35B-A3B",
       "summary": "Mixture-of-experts: the knowledge of a 35B model at close to the speed of a 3B one, and it reads images.",
+      "quail": { "maths": 97, "knowledge": 83, "tools": 92, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "unsloth/Qwen3.6-35B-A3B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
         "mlx": { "repo": "mlx-community/Qwen3.6-35B-A3B-4bit", "vision": true }
@@ -109,6 +113,7 @@
       "released": "2025-07-31",
       "modelCard": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
       "summary": "Qwen's 2025 coding specialist, quick as a mixture-of-experts. It answers straight away, without thinking first.",
+      "quail": { "maths": 92, "knowledge": 62, "tools": 90, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
         "mlx": { "repo": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit" }
@@ -125,6 +130,7 @@
       "released": "2026-09-22",
       "modelCard": "XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B",
       "summary": "Xiaomi's tune of Qwen3.5 9B for coding and agents; it reads images too.",
+      "quail": { "maths": 87, "knowledge": 62, "tools": 78, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "bartowski/MiMo-V2.6-Distill-Qwen-9B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-MiMo-V2.6-Distill-Qwen-9B-f16.gguf" },
         "mlx": { "repo": "mlx-community/MiMo-V2.6-Distill-Qwen-9B-OptiQ-4bit" }
@@ -141,6 +147,7 @@
       "released": "2025-04-29",
       "modelCard": "Qwen/Qwen3-32B",
       "summary": "The largest dense Qwen3, from 2025: capable but slow.",
+      "quail": { "maths": 95, "knowledge": 70, "tools": 88, "asOf": "2026-10-02" },
       "supersededBy": "qwen3.8-27b",
       "arena": { "name": "qwen3-32b", "rating": 1347, "interval": 9, "rank": 218, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
@@ -159,6 +166,7 @@
       "released": "2026-08-14",
       "modelCard": "Qwen/Qwen3.8-27B",
       "summary": "Qwen's current mid-size model: reasoning, tools, long context and images.",
+      "quail": { "maths": 97, "knowledge": 83, "tools": 84, "asOf": "2026-10-02" },
       "arena": { "name": "qwen3.8-27b", "rating": 1439, "interval": 5, "rank": 94, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "unsloth/Qwen3.8-27B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
@@ -176,6 +184,7 @@
       "released": "2026-06-03",
       "modelCard": "google/gemma-4-12B-it",
       "summary": "Google's mid-size Gemma 4: chat, images and many languages.",
+      "quail": { "maths": 94, "knowledge": 81, "tools": 88, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "unsloth/gemma-4-12b-it-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
         "mlx": { "repo": "mlx-community/gemma-4-12B-it-4bit" }
@@ -193,6 +202,7 @@
       "released": "2026-04-02",
       "modelCard": "google/gemma-4-26B-A4B-it",
       "summary": "Gemma 4 as a mixture-of-experts: quick for its size, with images and many languages.",
+      "quail": { "maths": 95, "knowledge": 90, "tools": 90, "asOf": "2026-10-02" },
       "arena": { "name": "gemma-4-26b-a4b", "rating": 1437, "interval": 7, "rank": 97, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "unsloth/gemma-4-26B-A4B-it-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
@@ -210,6 +220,7 @@
       "released": "2026-04-02",
       "modelCard": "google/gemma-4-31B-it",
       "summary": "Google's largest Gemma 4: strong at chat and writing, with images and many languages.",
+      "quail": { "maths": 97, "knowledge": 90, "tools": 90, "asOf": "2026-10-02" },
       "arena": { "name": "gemma-4-31b", "rating": 1453, "interval": 7, "rank": 74, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "unsloth/gemma-4-31B-it-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-F16.gguf" },
@@ -227,6 +238,7 @@
       "released": "2024-07-23",
       "modelCard": "meta-llama/Llama-3.1-8B-Instruct",
       "summary": "Meta's 2024 8B: a well-known baseline, older than the other models of its size here.",
+      "quail": { "maths": 85, "knowledge": 46, "tools": 35, "asOf": "2026-10-02" },
       "arena": { "name": "llama-3.1-8b-instruct", "rating": 1211, "interval": 4, "rank": 337, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M" },
@@ -245,7 +257,7 @@
       "released": "2025-08-05",
       "modelCard": "openai/gpt-oss-20b",
       "summary": "OpenAI's open mixture-of-experts model: quick, good with tools, with a reasoning effort you can set.",
-      "quail": { "note": "It can't stop reasoning, so it was tested at its lowest reasoning effort: a sentence or so before each answer." },
+      "quail": { "maths": 94, "knowledge": 46, "tools": 51, "asOf": "2026-10-02", "note": "It can't stop reasoning, so it was tested at its lowest reasoning effort: a sentence or so before each answer." },
       "arena": { "name": "gpt-oss-20b", "rating": 1318, "interval": 6, "rank": 260, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "ggml-org/gpt-oss-20b-GGUF", "quants": ["mxfp4"], "default": "mxfp4" },
@@ -316,6 +328,7 @@
       "released": "2026-08-11",
       "modelCard": "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16",
       "summary": "NVIDIA's mixture-of-experts model built for speed: reasoning and tools, quick for its size.",
+      "quail": { "maths": 85, "knowledge": 62, "tools": 56, "asOf": "2026-10-02" },
       "arena": { "name": "nvidia-nemotron-3.5-lightning-30b-a3b-nvfp4", "rating": 1349, "interval": 6, "rank": 213, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "bartowski/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF", "quants": ["Q4_0", "IQ4_XS", "Q8_0"], "default": "Q4_0" },
@@ -333,6 +346,7 @@
       "released": "2026-08-25",
       "modelCard": "ibm-granite/granite-4.2-30b",
       "summary": "IBM's largest Granite 4.2, made for business work: tools, reasoning and documents.",
+      "quail": { "maths": 95, "knowledge": 62, "tools": 80, "asOf": "2026-10-02" },
       "arena": { "name": "granite-4.2-30b", "rating": 1340, "interval": 10, "rank": 229, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "ibm-granite/granite-4.2-30b-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
@@ -350,6 +364,7 @@
       "released": "2026-08-25",
       "modelCard": "ibm-granite/granite-4.2-8b",
       "summary": "IBM's mid-size Granite 4.2: thinks by default and calls tools.",
+      "quail": { "maths": 82, "knowledge": 61, "tools": 55, "asOf": "2026-10-02" },
       "arena": { "name": "granite-4.2-8b", "rating": 1288, "interval": 11, "rank": 290, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "ibm-granite/granite-4.2-8b-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
@@ -367,6 +382,7 @@
       "released": "2026-08-25",
       "modelCard": "ibm-granite/granite-4.2-3b",
       "summary": "IBM's small Granite 4.2: thinks by default and calls tools, and runs on modest Macs.",
+      "quail": { "maths": 61, "knowledge": 47, "tools": 76, "asOf": "2026-10-02" },
       "arena": { "name": "granite-4.2-3b", "rating": 1289, "interval": 12, "rank": 287, "outOf": 410, "asOf": "2026-09-30" },
       "variants": {
         "gguf": { "repo": "ibm-granite/granite-4.2-3b-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q8_0"], "default": "Q4_K_M" },
@@ -385,6 +401,7 @@
       "released": "2026-08-19",
       "modelCard": "ornith-ai/Ornith-1.5-35B-A3B",
       "summary": "Ornith's coding tune of Qwen3.6 35B-A3B: a quick mixture-of-experts that reads images.",
+      "quail": { "maths": 93, "knowledge": 77, "tools": 90, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "ornith-ai/Ornith-1.5-35B-A3B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-Ornith-1.5-35B-BF16.gguf" },
         "mlx": { "repo": "ornith-ai/Ornith-1.5-35B-A3B-MLX-4bit" }
@@ -401,6 +418,7 @@
       "released": "2026-08-19",
       "modelCard": "ornith-ai/Ornith-1.5-9B",
       "summary": "Ornith's coding tune of Qwen3.5 9B: thinks, calls tools and reads images.",
+      "quail": { "maths": 89, "knowledge": 69, "tools": 85, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "ornith-ai/Ornith-1.5-9B-GGUF", "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "default": "Q4_K_M", "mmproj": "mmproj-Ornith-1.5-9B-BF16.gguf" },
         "mlx": { "repo": "ornith-ai/Ornith-1.5-9B-MLX-4bit" }
@@ -417,6 +435,7 @@
       "released": "2026-07-14",
       "modelCard": "prism-ml/Ternary-Bonsai-27B-gguf",
       "summary": "A 27B trained to ternary weights, about half the size of a usual 4-bit download. Thinks, calls tools and reads images.",
+      "quail": { "maths": 96, "knowledge": 68, "tools": 94, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "prism-ml/Ternary-Bonsai-27B-gguf", "quants": ["Q2_g64"], "default": "Q2_g64", "mmproj": "Ternary-Bonsai-27B-mmproj-Q8_0.gguf" },
         "mlx": { "repo": "prism-ml/Ternary-Bonsai-27B-mlx-2bit", "vision": true }
@@ -433,6 +452,7 @@
       "released": "2026-04-16",
       "modelCard": "prism-ml/Ternary-Bonsai-8B-mlx-2bit",
       "summary": "An 8B trained to ternary weights: about half the size of a usual 4-bit download, and it calls tools.",
+      "quail": { "maths": 85, "knowledge": 52, "tools": 90, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "prism-ml/Ternary-Bonsai-8B-gguf", "quants": ["Q2_0_g64"], "default": "Q2_0_g64" },
         "mlx": { "repo": "prism-ml/Ternary-Bonsai-8B-mlx-2bit" }
@@ -449,6 +469,7 @@
       "released": "2026-04-16",
       "modelCard": "prism-ml/Ternary-Bonsai-4B-mlx-2bit",
       "summary": "A 4B trained to ternary weights: small and quick, but its tool calls are unreliable.",
+      "quail": { "maths": 89, "knowledge": 45, "tools": 16, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "prism-ml/Ternary-Bonsai-4B-gguf", "quants": ["Q2_0_g64"], "default": "Q2_0_g64" },
         "mlx": { "repo": "prism-ml/Ternary-Bonsai-4B-mlx-2bit" }
@@ -465,6 +486,7 @@
       "released": "2026-04-16",
       "modelCard": "prism-ml/Ternary-Bonsai-1.7B-mlx-2bit",
       "summary": "The smallest ternary Bonsai, for quick, simple chat.",
+      "quail": { "maths": 55, "knowledge": 24, "tools": 86, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "prism-ml/Ternary-Bonsai-1.7B-gguf", "quants": ["Q2_0_g64"], "default": "Q2_0_g64" },
         "mlx": { "repo": "prism-ml/Ternary-Bonsai-1.7B-mlx-2bit" }
@@ -481,6 +503,7 @@
       "released": "2026-09-17",
       "modelCard": "prism-ml/Ternary-Bonsai-2-27B-gguf",
       "summary": "PrismML's second-generation ternary 27B, from Qwen3.8 27B: half the size of its 4-bit download and faster. MLX only.",
+      "quail": { "maths": 97, "knowledge": 73, "tools": 90, "asOf": "2026-10-02" },
       "variants": {
         "mlx": { "repo": "prism-ml/Ternary-Bonsai-2-27B-mlx-2bit" }
       }
@@ -496,6 +519,7 @@
       "released": "2026-07-14",
       "modelCard": "prism-ml/Bonsai-27B-gguf",
       "summary": "A 27B with 1-bit weights, very small for its size. Thinks, calls tools and reads images. GGUF only.",
+      "quail": { "maths": 95, "knowledge": 61, "tools": 87, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "prism-ml/Bonsai-27B-gguf", "quants": ["Q1_0"], "default": "Q1_0", "mmproj": "Bonsai-27B-mmproj-Q8_0.gguf" }
       }
@@ -511,6 +535,7 @@
       "released": "2026-03-31",
       "modelCard": "prism-ml/Bonsai-8B-gguf",
       "summary": "An 8B with 1-bit weights: a 1.2 GB download, very fast, and it calls tools. GGUF only.",
+      "quail": { "maths": 82, "knowledge": 38, "tools": 88, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "prism-ml/Bonsai-8B-gguf", "quants": ["Q1_0"], "default": "Q1_0" }
       }
@@ -526,6 +551,7 @@
       "released": "2026-03-31",
       "modelCard": "prism-ml/Bonsai-4B-gguf",
       "summary": "A 4B with 1-bit weights: tiny and fast, but its tool calls are unreliable. GGUF only.",
+      "quail": { "maths": 79, "knowledge": 31, "tools": 16, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "prism-ml/Bonsai-4B-gguf", "quants": ["Q1_0"], "default": "Q1_0" }
       }
@@ -541,6 +567,7 @@
       "released": "2026-03-31",
       "modelCard": "prism-ml/Bonsai-1.7B-gguf",
       "summary": "The smallest 1-bit Bonsai, for quick, simple chat. GGUF only.",
+      "quail": { "maths": 44, "knowledge": 22, "tools": 85, "asOf": "2026-10-02" },
       "variants": {
         "gguf": { "repo": "prism-ml/Bonsai-1.7B-gguf", "quants": ["Q1_0"], "default": "Q1_0" }
       }

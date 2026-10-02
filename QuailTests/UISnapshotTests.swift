@@ -115,7 +115,7 @@ struct UISnapshotTests {
                 .padding(14)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .background(Color(nsColor: .windowBackgroundColor)),
-                size: CGSize(width: 380, height: 260), name: "model-facts-\(appearance == .aqua ? "light" : "dark")",
+                size: CGSize(width: 380, height: 400), name: "model-facts-\(appearance == .aqua ? "light" : "dark")",
                 appearance: appearance
             )
         }
