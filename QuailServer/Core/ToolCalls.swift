@@ -267,7 +267,7 @@ struct ToolCallParser: Sendable {
         while true {
             rest = rest.drop(while: { $0.isWhitespace })
             guard let object = Self.jsonObjectPrefix(of: rest),
-                  let call = Self.callFromJSON(String(object), allowed: toolNames)
+                  let call = Self.callFromJSON(String(object), allowed: toolNames, coercingTo: schemas)
             else { return nil }
             calls.append(call)
             rest = rest[object.endIndex...].drop(while: { $0.isWhitespace })
@@ -311,17 +311,30 @@ struct ToolCallParser: Sendable {
 
     /// `{"name": "f", "arguments": {…}}` (Hermes) or `"parameters"` (Llama 3); `arguments` may itself
     /// be a JSON string. The name must be one of the tools the request offered.
-    static func callFromJSON(_ text: String, allowed: Set<String>) -> ParsedToolCall? {
+    ///
+    /// With `schemas`, a value written as a string where the tool's schema asks for another type is read
+    /// as that type, as `qwenXML` reads its values: Llama 3.1 writes `"base": "10"` for an integer.
+    static func callFromJSON(
+        _ text: String, allowed: Set<String>, coercingTo schemas: [String: [String: String]]? = nil
+    ) -> ParsedToolCall? {
         guard let value = try? OrderedJSON.parse(text.trimmingCharacters(in: .whitespacesAndNewlines)),
               let name = value["name"]?.stringValue, allowed.contains(name)
         else { return nil }
-        let arguments = value["arguments"] ?? value["parameters"] ?? .object([:])
+        var arguments = value["arguments"] ?? value["parameters"] ?? .object([:])
         if let string = arguments.stringValue {
             guard (try? OrderedJSON.parse(string)) != nil else { return nil }
             return ParsedToolCall(name: name, arguments: string)
         }
-        guard case .object = arguments,
-              let json = try? OrderedJSON.serialize(arguments, spaced: true) else { return nil }
+        guard case var .object(members) = arguments else { return nil }
+        if let types = schemas?[name] {
+            for (key, member) in members {
+                if case let .string(parameter) = key, case let .string(raw) = member {
+                    members[key] = typed(raw, as: types[parameter])
+                }
+            }
+            arguments = .object(members)
+        }
+        guard let json = try? OrderedJSON.serialize(arguments, spaced: true) else { return nil }
         return ParsedToolCall(name: name, arguments: json)
     }
 
@@ -377,14 +390,16 @@ struct ToolCallParser: Sendable {
             if raw.hasSuffix("\n") {
                 raw.removeLast()
             }
-            arguments[.string(key)] = typed(raw, as: schemas[name]?[key])
+            arguments[.string(key)] = Self.typed(raw, as: schemas[name]?[key])
             rest = rest[end.upperBound...]
         }
         guard let json = try? OrderedJSON.serialize(.object(arguments)) else { return nil }
         return ParsedToolCall(name: name, arguments: json)
     }
 
-    private func typed(_ raw: String, as type: String?) -> Value {
+    /// `raw` as the schema's `type`: a string unless the type is another and `raw` parses (as JSON, or as
+    /// Python's literals) to a value.
+    private static func typed(_ raw: String, as type: String?) -> Value {
         if type == "string" || type == nil {
             return .string(raw)
         }
