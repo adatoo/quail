@@ -483,6 +483,20 @@ class RapidMLXEngine(Engine):
         )
 
 
+class LlamaServerSWAFullEngine(LlamaServerEngine):
+    """llama-server with a full-size sliding-window cache (`swa-full`), as quail-server keeps libllama's default.
+    For telling a numerical difference from that setting apart from Quail's own (#152). Chosen only by name: it
+    isn't in a default run."""
+
+    name = "llama-server-swa-full"
+    title = "llama-server (swa-full)"
+
+    def launch(self, model: Model, workdir: Path, port: int, key: str) -> Launch:
+        launch = super().launch(model, workdir, port, key)
+        launch.files["presets.ini"] += "swa-full = true\n"
+        return launch
+
+
 # --- The roster -------------------------------------------------------------------------------------------------------
 
 ENGINES: dict[str, Engine] = {
@@ -494,14 +508,19 @@ ENGINES: dict[str, Engine] = {
 }
 
 
+# Variants for one investigation, chosen only by name.
+VARIANTS: dict[str, Engine] = {engine.name: engine for engine in [LlamaServerSWAFullEngine()]}
+
+
 def select(names: str | None) -> list[Engine]:
     if not names:
         return list(ENGINES.values())
+    known = ENGINES | VARIANTS
     wanted = [n.strip() for n in names.split(",") if n.strip()]
-    unknown = [n for n in wanted if n not in ENGINES]
+    unknown = [n for n in wanted if n not in known]
     if unknown:
-        raise SystemExit(f"unknown engine(s) {', '.join(unknown)}; have: {', '.join(ENGINES)}")
-    return [ENGINES[n] for n in wanted]
+        raise SystemExit(f"unknown engine(s) {', '.join(unknown)}; have: {', '.join(known)}")
+    return [known[n] for n in wanted]
 
 
 # --- Helpers ----------------------------------------------------------------------------------------------------------
