@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.68.0] - 2026-10-02
+
+### Added
+
+- **Quail's own scores on 28 catalog models.** Each model card in Add Model now shows Maths, Knowledge and Tools percentages from Quail's tests of the download it offers, answering without thinking, on an M1 Max (ADR D-070). Gemma 4 31B and 26B-A4B lead on knowledge (90). Qwen3.6 35B-A3B, Qwen3.5 9B and Ternary Bonsai 27B lead on tools (92–94). Each figure is good to about ±5 points (maths, tools) or ±9 (knowledge). Full results and method are in `docs/benchmarks/2026-10-02-catalog-scores/`.
+
 ## [0.67.3] - 2026-10-02
 
 ### Fixed

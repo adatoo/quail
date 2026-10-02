@@ -74,7 +74,8 @@ enum ModelFacts {
     static func quailMethod(_ scores: Catalog.QuailScores) -> String {
         "Quail's own tests of this download, answering without thinking, on an M1 Max, "
             + "\(dayText(scores.asOf)): GSM8K maths (150 questions), MMLU-Pro knowledge (112) and BFCL tool calls "
-            + "(200). Each is good to about ±4 points, so closer scores are a tie."
+            + "(200). Samples this size make maths and tools good to about ±5 points and knowledge to about ±9, "
+            + "so smaller differences are a tie."
     }
 
     static let quailMethodURL = URL(string: "https://quail-ai.app/docs/models.html#scores")!

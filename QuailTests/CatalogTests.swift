@@ -310,6 +310,13 @@ struct CatalogTests {
                 #expect(arena.rating > 1000 && arena.rank >= 1 && arena.rank <= arena.outOf, "\(family.id): \(arena)")
             }
         }
+        // Quail's own scores (D-070 amendment): every chat family has them, or a note saying why not.
+        for family in catalog.families where ModelFacts.expectsRanking(family) {
+            #expect(family.quailScores != nil || family.quailNote != nil, "\(family.id) has no Quail scores or note")
+            if let scores = family.quailScores {
+                #expect([scores.maths, scores.knowledge, scores.tools].allSatisfy { (0 ... 100).contains($0) })
+            }
+        }
         // A family that names its leaderboard entry has its rating filled in by scripts/update-arena-ratings.
         let named = document.families.filter { $0.arena != nil }
         #expect(named.count == catalog.families.count { $0.arena != nil }, "an arena name without its rating")

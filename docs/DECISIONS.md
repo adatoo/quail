@@ -32,7 +32,7 @@ The Add Model sheet shows these in a card (`ModelFactsCard`) under the model's n
 - **How:** `task bench:scores` runs the D-063 harness's quality and tool-calling steps on Quail's server, with `bench/config/catalog-models.toml` (every chat family at its default download; `QUAIL_BENCH_MODELS` picks the file). It uses the night budget: GSM8K 150, MMLU-Pro 8 per subject (112) and BFCL 40 per category (200).
 - **Thinking off,** as in D-063: comparable across models and about a day's run, where letting each model think would take most of a week and put thinking and non-thinking answers on one scale. The user chose this. gpt-oss runs at its lowest reasoning effort, its template's nearest to off.
 - **Not scored:** the DeepSeek R1 distills, which always think, so a 512-token answer limit would cut them off. They carry a note saying so instead. So do the smoke test and the embedding model.
-- **Shown:** as "Maths · Knowledge · Tools" percentages, labelled as Quail's tests, with the method, the date and about ±4 points. They are never blended with Arena's ratings.
+- **Shown:** as "Maths · Knowledge · Tools" percentages, labelled as Quail's tests, with the method, the date and their margins: about ±5 points for maths and tools and ±9 for knowledge (95% intervals at these sample sizes; amended 2026-10-02 from ±4, which was one standard error). They are never blended with Arena's ratings.
 - `scripts/update-quail-scores RUN` writes them into the catalog.
 
 **Next:** alternatives worked out from size, fit, speed, strengths and these scores.
