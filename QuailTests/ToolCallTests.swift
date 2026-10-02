@@ -328,6 +328,52 @@ struct ToolCallTests {
         #expect(parser.push("Hello") == [.content("Hello")])
     }
 
+    @Test("Llama 3.1: <|python_tag|> starts a call, and calls joined by ; are each a call", arguments: [1, 4, 10000])
+    func bareJSONPythonTag(size: Int) {
+        // Llama 3.1 8B's real reply to a two-call request (bench, 2026-10-02); llama-server b11306 answers it with a
+        // 500.
+        let raw = #"<|python_tag|>{"name": "get_weather", "parameters": {"city": "Paris; France"}}; {"name": "add", "parameters": {"a": 1, "b": 2}}"#
+        let result = parse(chunked(raw, size), format: .bareJSON)
+        #expect(result.calls == [
+            ParsedToolCall(name: "get_weather", arguments: #"{"city": "Paris; France"}"#),
+            ParsedToolCall(name: "add", arguments: #"{"a": 1, "b": 2}"#),
+        ])
+        #expect(result.content == "")
+        let one = parse(chunked(#"<|python_tag|>{"name": "add", "parameters": {"a": 1}}"#, size), format: .bareJSON)
+        #expect(one.calls.count == 1 && one.content == "")
+        // One part that isn't a call, or something after the last call, and it's all text.
+        let bad = #"<|python_tag|>{"name": "add", "parameters": {}}; {"name": "other", "parameters": {}}"#
+        #expect(parse([bad], format: .bareJSON).calls.isEmpty)
+        #expect(parse([bad], format: .bareJSON).content == bad)
+        #expect(parse([#"{"name": "add", "parameters": {}} and more"#], format: .bareJSON).calls.isEmpty)
+        // A reply that merely starts like the tag streams as text once it isn't one.
+        #expect(parse(chunked("<|pyth no", size), format: .bareJSON).content == "<|pyth no")
+    }
+
+    @Test("Qwen XML: several functions in one block are several calls; a JSON body is the arguments")
+    func qwenXMLVariants() {
+        let two = "<tool_call>\n<function=get_weather>\n<parameter=city>\nParis\n</parameter>\n</function>\n"
+            + "<function=add>\n<parameter=a>\n1\n</parameter>\n</function>\n</tool_call>"
+        #expect(parse([two], format: .qwenXML).calls == [
+            ParsedToolCall(name: "get_weather", arguments: #"{"city":"Paris"}"#),
+            ParsedToolCall(name: "add", arguments: #"{"a":1}"#),
+        ])
+        // MiMo V2.6's real reply: JSON inside the function tag, two blocks (bench, 2026-10-02).
+        let mimo = #"<tool_call><function=get_weather>{"city": "Paris", "days": 2}</function></tool_call>"#
+            + #"<tool_call><function=add>{"a": 1, "b": 2}</function></tool_call>"#
+        #expect(parse(chunked(mimo, 5), format: .qwenXML).calls == [
+            ParsedToolCall(name: "get_weather", arguments: #"{"city":"Paris","days":2}"#),
+            ParsedToolCall(name: "add", arguments: #"{"a":1,"b":2}"#),
+        ])
+        // Text around the functions, an unknown tool among them, or a JSON body that doesn't parse: not a call.
+        #expect(parse(["<tool_call>hi <function=add></function></tool_call>"], format: .qwenXML).calls.isEmpty)
+        #expect(parse(
+            ["<tool_call><function=add>{\"a\": 1}</function><function=nope></function></tool_call>"],
+            format: .qwenXML
+        ).calls.isEmpty)
+        #expect(parse(["<tool_call><function=add>{\"a\": </function></tool_call>"], format: .qwenXML).calls.isEmpty)
+    }
+
     // MARK: Harmony
 
     private func harmony(
@@ -369,6 +415,16 @@ struct ToolCallTests {
         let two = "<|start|>assistant to=functions.add<|channel|>commentary json<|message|>{\"a\":1}<|call|><|channel|>final<|message|>Done<|return|>"
         #expect(harmony(two).calls.count == 1)
         #expect(harmony(two).content == "Done")
+        // The engine ends generation at <|call|> and keeps the token, so a call usually ends with the output:
+        // gpt-oss-20b's real reply (bench, 2026-10-02), which every call had come back from as text.
+        let real = "<|channel|>analysis<|message|>We need to call function add.<|end|><|start|>assistant"
+            + "<|channel|>commentary to=functions.add <|constrain|>json<|message|>{\"a\":1,\"b\":2}"
+        for size in [1, 6, 10000] {
+            let result = harmony(real, size: size)
+            #expect(result.calls == [ParsedToolCall(name: "add", arguments: #"{"a":1,"b":2}"#)])
+            #expect(result.content == "")
+            #expect(result.reasoning == "We need to call function add.")
+        }
         // Invalid JSON arguments and a cut-off call are text.
         #expect(harmony("<|channel|>commentary to=functions.add<|message|>{oops<|call|>").calls.isEmpty)
         #expect(harmony("<|channel|>commentary to=functions.add<|message|>{\"a\":").calls.isEmpty)

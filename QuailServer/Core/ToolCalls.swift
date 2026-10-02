@@ -143,9 +143,13 @@ struct ToolCallParser: Sendable {
                             }
                             break loop
                         }
-                        if body.hasPrefix("{") {
+                        if body.hasPrefix("{") || body.hasPrefix(Self.pythonTag) {
                             state = .bareCandidate
                             continue loop
+                        }
+                        // The tag may still be arriving.
+                        if !final, Self.pythonTag.hasPrefix(String(body)) {
+                            break loop
                         }
                     }
                     sawContent = true
@@ -178,8 +182,8 @@ struct ToolCallParser: Sendable {
                     let body = String(pending[..<range.lowerBound])
                     pending = String(pending[range.upperBound...])
                     state = .text
-                    if let call = parseTagged(body) {
-                        out.append(.toolCall(call))
+                    if let calls = parseTagged(body) {
+                        out += calls.map { .toolCall($0) }
                         // Whitespace between consecutive calls isn't content.
                         pending = String(pending.drop(while: { $0.isWhitespace }))
                     } else {
@@ -194,8 +198,8 @@ struct ToolCallParser: Sendable {
                 break loop
             case .bareCandidate:
                 guard final else { break loop }
-                if let call = parseBare(pending) {
-                    out.append(.toolCall(call))
+                if let calls = parseBare(pending) {
+                    out += calls.map { .toolCall($0) }
                 } else {
                     content(pending)
                 }
@@ -226,11 +230,12 @@ struct ToolCallParser: Sendable {
 
     // MARK: Parsing
 
-    private func parseTagged(_ body: String) -> ParsedToolCall? {
+    /// The calls in one tagged block, or `nil` when it isn't a well-formed call to an offered tool.
+    private func parseTagged(_ body: String) -> [ParsedToolCall]? {
         switch format {
-        case .hermesJSON: Self.callFromJSON(body, allowed: toolNames)
+        case .hermesJSON: Self.callFromJSON(body, allowed: toolNames).map { [$0] }
         case .qwenXML: parseXML(body)
-        case .gemma4: parseGemma4(body)
+        case .gemma4: parseGemma4(body).map { [$0] }
         default: nil
         }
     }
@@ -249,8 +254,59 @@ struct ToolCallParser: Sendable {
         return ParsedToolCall(name: name, arguments: json)
     }
 
-    private func parseBare(_ text: String) -> ParsedToolCall? {
-        Self.callFromJSON(text, allowed: toolNames)
+    /// Llama 3.1 marks a call with `<|python_tag|>` and writes several as JSON objects joined by `;`:
+    /// `<|python_tag|>{"name": "f", "parameters": {…}}; {"name": "f", …}`. Every one must be a call.
+    static let pythonTag = "<|python_tag|>"
+
+    private func parseBare(_ text: String) -> [ParsedToolCall]? {
+        var rest = Substring(text).drop(while: { $0.isWhitespace })
+        if rest.hasPrefix(Self.pythonTag) {
+            rest = rest.dropFirst(Self.pythonTag.count)
+        }
+        var calls: [ParsedToolCall] = []
+        while true {
+            rest = rest.drop(while: { $0.isWhitespace })
+            guard let object = Self.jsonObjectPrefix(of: rest),
+                  let call = Self.callFromJSON(String(object), allowed: toolNames)
+            else { return nil }
+            calls.append(call)
+            rest = rest[object.endIndex...].drop(while: { $0.isWhitespace })
+            if rest.isEmpty {
+                return calls
+            }
+            guard rest.first == ";" else { return nil }
+            rest = rest.dropFirst()
+        }
+    }
+
+    /// The balanced `{…}` at the start of `text`, strings and their escapes respected.
+    static func jsonObjectPrefix(of text: Substring) -> Substring? {
+        guard text.first == "{" else { return nil }
+        var depth = 0, inString = false, escaped = false
+        for index in text.indices {
+            let character = text[index]
+            if inString {
+                if escaped {
+                    escaped = false
+                } else if character == "\\" {
+                    escaped = true
+                } else if character == "\"" {
+                    inString = false
+                }
+                continue
+            }
+            switch character {
+            case "\"": inString = true
+            case "{", "[": depth += 1
+            case "}", "]":
+                depth -= 1
+                if depth == 0 {
+                    return text[...index]
+                }
+            default: break
+            }
+        }
+        return nil
     }
 
     /// `{"name": "f", "arguments": {…}}` (Hermes) or `"parameters"` (Llama 3); `arguments` may itself
@@ -269,15 +325,41 @@ struct ToolCallParser: Sendable {
         return ParsedToolCall(name: name, arguments: json)
     }
 
+    /// Each `<function=NAME>…</function>` in the block: one or more, as some models put several calls in one
+    /// `<tool_call>`. Anything else in the block but whitespace makes it not a call.
+    private func parseXML(_ body: String) -> [ParsedToolCall]? {
+        var calls: [ParsedToolCall] = []
+        var rest = Substring(body)
+        while let open = rest.range(of: "<function=") {
+            guard rest[..<open.lowerBound].allSatisfy(\.isWhitespace),
+                  let close = rest.range(of: "</function>", range: open.upperBound ..< rest.endIndex),
+                  let call = parseFunction(rest[open.lowerBound ..< close.upperBound])
+            else { return nil }
+            calls.append(call)
+            rest = rest[close.upperBound...]
+        }
+        guard !calls.isEmpty, rest.allSatisfy(\.isWhitespace) else { return nil }
+        return calls
+    }
+
     /// `<function=NAME>` then `<parameter=KEY>` blocks; a value is a string unless the tool's schema
-    /// says otherwise and it parses as that.
-    private func parseXML(_ body: String) -> ParsedToolCall? {
+    /// says otherwise and it parses as that. A body that is a JSON object instead (MiMo V2.6 writes
+    /// `<function=f>{"a": 1}</function>`) is the arguments as written.
+    private func parseFunction(_ block: Substring) -> ParsedToolCall? {
+        let body = String(block)
         guard let open = body.range(of: "<function="),
               let nameEnd = body.range(of: ">", range: open.upperBound ..< body.endIndex),
               let close = body.range(of: "</function>", range: nameEnd.upperBound ..< body.endIndex)
         else { return nil }
         let name = String(body[open.upperBound ..< nameEnd.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
         guard toolNames.contains(name) else { return nil }
+
+        let inner = body[nameEnd.upperBound ..< close.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
+        if inner.hasPrefix("{"), !inner.contains("<parameter=") {
+            guard let value = try? OrderedJSON.parse(inner), case .object = value,
+                  let json = try? OrderedJSON.serialize(value) else { return nil }
+            return ParsedToolCall(name: name, arguments: json)
+        }
 
         var arguments = OrderedDictionary<ObjectKey, Value>()
         var rest = body[nameEnd.upperBound ..< close.lowerBound]

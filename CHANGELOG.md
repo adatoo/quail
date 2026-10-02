@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.67.3] - 2026-10-02
+
+### Fixed
+
+- **Tool calls from gpt-oss, Llama 3.1 and MiMo V2.6 now come back as tool calls** on the GGUF server, rather than as text (ADR D-040 amendment). Quail's own benchmark found them:
+  - **gpt-oss:** every call came back as plain text, because the token ending a call never reached Quail's parser.
+  - **Llama 3.1:** a call begins with `<|python_tag|>`, and several are joined by `;`.
+  - **MiMo V2.6:** its arguments are JSON inside the function tag.
+  - Models that put several calls in one `<tool_call>` block now get them all.
+
 ## [0.67.2] - 2026-10-01
 
 ### Changed
