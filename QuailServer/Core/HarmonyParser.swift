@@ -6,8 +6,8 @@ import Foundation
 /// answer, and `commentary to=functions.NAME` is a tool call whose body is its JSON arguments.
 ///
 /// This relies on the engine decoding the format's special tokens into the text, as llama.cpp does
-/// for these models; it's written from the format's specification and its chat template, and has
-/// not yet been run on a real gpt-oss model's output (ADR D-040).
+/// for these models, except the one that ends generation (`<|call|>`, `<|return|>`), which the
+/// engine keeps to itself. Checked against gpt-oss-20b's real output (ADR D-040 amendment).
 struct HarmonyParser: Sendable {
     private enum Kind: Equatable {
         case reasoning
@@ -46,10 +46,15 @@ struct HarmonyParser: Sendable {
 
     mutating func flush() -> [ChatDelta] {
         var out = drain(final: true)
-        // Cut off inside a message: a half call isn't a call; give it back as text.
+        // The engine ends generation at `<|call|>`, an end-of-generation token, and doesn't pass it on, so a call
+        // usually ends here rather than at the tag: arguments that are whole JSON are the call (checked on
+        // gpt-oss-20b, where every call had come back as text). A message cut off part way isn't a call; give it
+        // back as text.
         if case let .body(kind) = state {
             switch kind {
-            case .call, .unknownCall: if !arguments.isEmpty {
+            case .call:
+                finishBody(add: { out.append($0) })
+            case .unknownCall: if !arguments.isEmpty {
                     out.append(.content(arguments))
                 }
             default: break
