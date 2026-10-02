@@ -253,7 +253,7 @@ tasks:
       - scripts/check-site website
 
   site:screenshots:
-    desc: Render the website's screenshots of the Quail window, light and dark, into website/assets/img
+    desc: Render offscreen screenshots of the Quail window, light and dark, into website/assets/img (the site has real ones since 2026-10-03; this replaces them)
     vars:
       SHOTS: '{{.ROOT_DIR}}/DerivedData/website-shots'
     cmds:

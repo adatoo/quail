@@ -10,6 +10,10 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+### Changed
+
+- The website's picture of the Quail window is now a screenshot of the real app, serving a model, in light and dark mode. It used to be rendered offscreen.
+
 ## [0.72.2] - 2026-10-03
 
 ### Added

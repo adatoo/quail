@@ -267,7 +267,7 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
 - [x] Enforce HTTPS, once GitHub issued the certificate.
 - [x] `QuailWebsiteURL`, the cask's `homepage`, a README link, and the repository's homepage and description.
 - [x] Both domains verified on the personal GitHub account (`adatoo`, Settings → Pages), so no other account can claim them: a `_github-pages-challenge-adatoo` TXT record in each Cloudflare zone, DNS only. Keep them.
-- [ ] Replace the offscreen screenshots with real ones from a running app when convenient.
+- [x] Replace the offscreen screenshots with real ones from a running app *(2026-10-03: the Server page of a Debug build on a scratch `QUAIL_DATA_ROOT`, serving Qwen3.6 35B-A3B on port 8080, captured with `screencapture -l` in light and dark mode)*.
 
 ## Benchmarks against Ollama, oMLX and Rapid-MLX (D-063)
 
