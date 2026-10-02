@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.71.0] - 2026-10-02
+
 ### Added
 
 - **`quail bench --url`** times any server that speaks OpenAI's chat completions (Ollama, LM Studio, llama-server, oMLX, or Quail on another Mac) from the terminal, without the app (ADR D-064):
