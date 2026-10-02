@@ -3,7 +3,8 @@ import Darwin
 import Foundation
 
 /// `quail bench [model]` — run the fixed benchmark suite in the app and
-/// print the result (ADR D-023). `--history` lists saved results.
+/// print the result (ADR D-023). `--history` lists saved results. With `--url`, the CLI times any
+/// OpenAI-compatible server itself, without the app (ADR D-064).
 struct Bench: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Benchmark a model: prompt processing, generation speed, time to first token, load time.",
@@ -11,6 +12,12 @@ struct Bench: AsyncParsableCommand {
         Runs the fixed quail-bench-1 suite on the running server (about a minute \
         for a small model) and saves the result in Quail. Whatever models were \
         loaded before are loaded again afterwards.
+
+        With --url, times any server that speaks OpenAI's chat completions \
+        (Quail, llama-server, Ollama, LM Studio, oMLX, …) from this command, \
+        as the quail-bench-url-1 suite. It doesn't need Quail running and saves \
+        nothing. Its numbers are timed from the client, so they aren't \
+        comparable with quail-bench-1's.
         """
     )
 
@@ -19,8 +26,15 @@ struct Bench: AsyncParsableCommand {
 
     @Flag(help: "Print the full result as JSON.") var json = false
     @Flag(help: "List saved results instead of running.") var history = false
+    @Option(help: "Benchmark this server instead, e.g. http://127.0.0.1:11434 (its /v1 is implied).")
+    var url: String?
+    @Option(help: "With --url: the server's API key, sent as a Bearer token.")
+    var apiKey: String?
 
     func run() async throws {
+        if let url {
+            return try await runAgainst(url)
+        }
         if history {
             let response = try await AppLink.request(ControlRequest(command: .benchHistory))
             try AppLink.check(response)
@@ -52,6 +66,63 @@ struct Bench: AsyncParsableCommand {
             return try print(String(decoding: BenchmarkResult.encoder().encode(result), as: UTF8.self))
         }
         print(Self.summary(result))
+    }
+
+    // MARK: - Another server (ADR D-064)
+
+    private func runAgainst(_ text: String) async throws {
+        guard let base = OpenAIBenchmarkClient.base(from: text) else {
+            throw CLIError("\(text) isn't a server address. Give one like http://127.0.0.1:8080.")
+        }
+        let client = OpenAIBenchmarkClient(base: base, apiKey: apiKey)
+        let target: String
+        if let model {
+            target = model
+        } else {
+            guard let first = try await client.models().first else { throw URLBenchmarkError.noModels }
+            target = first
+        }
+        let progress: @Sendable (String, Double) async -> Void = { step, fraction in
+            guard isatty(STDERR_FILENO) != 0 else { return }
+            FileHandle.standardError.write(Data("\r\u{1B}[2K\(Int((fraction * 100).rounded()))%  \(step)".utf8))
+        }
+        let result = try await URLBenchmarkRunner(client: client).run(
+            model: target, url: base.absoluteString, quailVersion: AppLink.appVersion, progress: progress
+        )
+        Self.clearLine()
+        if json {
+            return try print(String(decoding: BenchmarkResult.encoder().encode(result), as: UTF8.self))
+        }
+        print(Self.summary(result))
+    }
+
+    static func summary(_ result: URLBenchmarkResult) -> String {
+        let measured = result.measurements
+        func line(_ label: String, _ stat: BenchmarkResult.Stat?, _ unit: String, _ digits: Int = 1) -> String {
+            let name = label.padding(toLength: 22, withPad: " ", startingAt: 0)
+            guard let stat else { return "\(name)—" }
+            let value = String(format: "%.\(digits)f \(unit)", stat.median)
+            let range = String(format: "(%.\(digits)f–%.\(digits)f)", stat.min, stat.max)
+            return "\(name)\(value.padding(toLength: 16, withPad: " ", startingAt: 0))\(Output.dim(range))"
+        }
+        func size(_ label: String) -> String {
+            result.promptTokens[label].map { " (\($0))" } ?? ""
+        }
+        var lines = [
+            "\(result.model) at \(result.url)",
+            Output.dim("\(result.suite) · timed from the client"),
+            "",
+            line("Prompt, 512" + size("512"), measured.prompt512, "tok/s"),
+            line("Prompt, 4096" + size("4096"), measured.prompt4096, "tok/s"),
+            line("Generate, 256 tokens", measured.generation256, "tok/s"),
+            line("Time to first token", measured.timeToFirstTokenMs, "ms", 0),
+            line("Returning turn", measured.returningTurnMs, "ms", 0),
+            line("Four at once, total", measured.concurrent4, "tok/s"),
+        ]
+        for note in result.notes + measured.skipped {
+            lines.append("Note: \(note)")
+        }
+        return lines.joined(separator: "\n")
     }
 
     // MARK: - Output
