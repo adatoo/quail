@@ -66,6 +66,16 @@
 </table>
 <p>Each result also records the Mac, the model file, the engine and its settings, and the conditions: thermal state, Low Power Mode, battery, and other models loaded.</p>
 
+<h2 id="url">Another server</h2>
+<p><code>quail bench --url http://127.0.0.1:11434 [model]</code> times any server that speaks OpenAI's chat completions (Ollama, LM Studio, llama-server, oMLX, or Quail on another Mac) from the terminal, without the app. Add <code>--api-key</code> if the server needs one. With no model named, it uses the first one the server lists.</p>
+<p>It runs the same tests except Load, as a suite of its own, <code>quail-bench-url-1</code>, because it can't see inside the server:</p>
+<ul>
+<li>The prompts are text. They are sized from the server's own token counts, so a "512" prompt may come to 509 or 517; the result says which.</li>
+<li>Times are taken in the terminal, so prompt speed includes the trip to the server and the first token.</li>
+<li>A server that ignores the request to write every token asked for (Ollama, oMLX, Rapid-MLX) may stop early; the result says so.</li>
+</ul>
+<p>Its numbers aren't compared with <code>quail-bench-1</code>'s, and nothing is saved. <code>--json</code> prints the full result.</p>
+
 <h2 id="compare">Compare</h2>
 <p>Select two results to compare them: the older is the baseline, and each figure reads “1.23× faster” or “19% slower”. Right-click to set a different baseline. <span class="path">Copy as Markdown</span> and <span class="path">Export JSON…</span> share results. After a benchmark, the Models page shows the measured speed next to each model.</p>
 

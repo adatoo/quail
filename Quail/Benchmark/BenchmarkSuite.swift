@@ -38,19 +38,7 @@ enum BenchmarkSuite {
     /// The source text for prompts. Tokenized per model (token ids are
     /// model-specific), then repeated and cut to exactly the size needed —
     /// prompts are sent as token ids, so the count is exact.
-    static let passage = """
-    The lighthouse keeper kept a log of every ship that passed the point, \
-    noting the hour, the weather, the direction of the wind and the colour \
-    of the water. Over forty years the entries grew into a record of the \
-    coast itself: storms that moved the sandbars, winters when the harbour \
-    froze, summers when the fishing boats came home early because the \
-    shoals had gone somewhere else. Scientists later used the log to study \
-    how the currents had shifted, and historians used it to date the \
-    wrecks that divers found along the reef. The keeper never thought of \
-    it as data. To him it was simply the day's work, written down in the \
-    same careful hand each evening before he climbed the stairs to light \
-    the lamp.
-    """
+    static let passage = BenchmarkPassage.text
 
     /// `count` tokens made by repeating `passageTokens`.
     static func promptTokens(from passageTokens: [Int], count: Int) -> [Int] {
