@@ -37,7 +37,7 @@ These are the numbers behind the "Maths · Knowledge · Tools" line on each mode
 | Gemma 4 12B (vision) | 94 ± 4 | 81 ± 7 | 88 | 39/40 | 36/40 | 35/40 | 34/40 | 32/40 | 0.66.0 |
 | Gemma 4 26B-A4B (MoE, vision) | 95 ± 4 | 90 ± 6 | 90 | 39/40 | 37/40 | 34/40 | 34/40 | 36/40 | 0.66.0 |
 | Gemma 4 31B (vision) | 97 ± 3 | 90 ± 6 | 90 | 39/40 | 37/40 | 35/40 | 36/40 | 34/40 | 0.66.0 |
-| Llama 3.1 8B Instruct | 85 ± 6 | 46 ± 9 | 35 | 18/40 | 10/40 | 16/40 | 12/40 | 14/40 | 0.67.3 |
+| Llama 3.1 8B Instruct | 85 ± 6 | 46 ± 9 | 70 | 38/40 | 32/40 | 29/40 | 28/40 | 14/40 | 0.69.0 |
 | gpt-oss 20B (MoE) | 94 ± 4 | 46 ± 8 | 51 | 37/40 | 34/40 | 0/40 | 0/40 | 31/40 | 0.67.3 |
 | Nemotron 3.5 Lightning 30B-A3B | 85 ± 6 | 62 ± 9 | 56 | 32/40 | 30/40 | 4/40 | 11/40 | 36/40 | 0.67.3 |
 | Granite 4.2 30B | 95 ± 4 | 62 ± 9 | 80 | 39/40 | 38/40 | 30/40 | 32/40 | 20/40 | 0.67.3 |
@@ -62,7 +62,7 @@ The maths and knowledge tests ran on Quail 0.66.0 for every model. Tool calling 
 On 0.66.0 four models' tool calls came back wrong. In each case, the raw reply was compared with what the llama-server bundled with Quail made of the same output.
 
 - **gpt-oss 20B** scored 0 on every call category. The engine ends generation at `<|call|>` and doesn't pass the token on, so the Harmony parser returned each call's arguments as text. It's fixed in #167 (0.67.3), and gpt-oss now matches llama-server case for case: 37, 34, 0, 0 and 31 of 40.
-- **Llama 3.1 8B** also scored 0 on every call category. It writes `<|python_tag|>{…}; {…}`, which Quail's parser didn't accept. After #167 it scores 18, 10, 16, 12 and 14 of 40, against llama-server's 24, 14, 0, 0 and 15. llama-server rejects its two-call replies with a 500. Most remaining failures on both servers are numbers written as strings (`"base": "10"`). Quail doesn't yet convert those to the tool's types for Llama-style calls; that's a planned fix.
+- **Llama 3.1 8B** also scored 0 on every call category. It writes `<|python_tag|>{…}; {…}`, which Quail's parser didn't accept. After #167 it scores 18, 10, 16, 12 and 14 of 40, against llama-server's 24, 14, 0, 0 and 15. llama-server rejects its two-call replies with a 500. Most remaining failures on both servers are numbers written as strings (`"base": "10"`). Quail now converts those to the tool's types (#169, 0.68.1). Re-run on 0.69.0 (run `20261002-214418-scores`), it scores 38, 32, 29, 28 and 14 of 40: 70% for tools, up from 35%. Maths and knowledge came out the same (85 and 46). Irrelevance stays at 14 of 40, because it still calls a tool when none fits.
 - **MiMo V2.6 9B** writes JSON inside `<function=…>`, which parsed as an empty call. After #167 it scores 23, 36, 31, 33 and 34 of 40, against llama-server's 25, 36, 30, 33 and 34.
 - **Granite 4.2, Nemotron 3.5 and the 4B Bonsais** score the same through llama-server, give or take a case. Their low parallel and multi-call scores are the models' own. For example, asked for two calls, Granite 4.2 8B makes one on both servers.
 
