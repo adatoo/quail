@@ -2,6 +2,45 @@
 
 Short ADRs. Newest first. Each states the decision, the alternatives, and what would make us revisit it.
 
+## D-071 · 2026-10-02 · The fit estimate counts each layer's cache
+
+**Decision:** `FitEstimator` sums the KV cache over the layers that keep one, each at its own size, instead of `2 · L · H_kv · d · b · C` over every layer. `ModelShape.kvLayers` holds the groups of alike layers. It's `nil` for a model whose layers are all alike, which keeps the old formula and the same numbers.
+- **GGUF**, from the keys libllama reads:
+  - `attention.head_count_kv` per layer. Hybrids write 0 for a layer without attention; the first element was taken before, so Nemotron's cache counted as nothing.
+  - `attention.sliding_window_pattern`, with `key_length_swa`/`value_length_swa` for those layers.
+  - `full_attention_interval`: a Qwen3.5-family hybrid's linear-attention layers keep none.
+  - `attention.shared_kv_layers`: layers that reuse an earlier one's cache keep none.
+  - A sliding-window layer still holds the whole context: quail-server keeps libllama's full-size window cache (`swa_full`, D-048 amendment).
+- **MLX**, from `config.json`:
+  - `layer_types`, `sliding_window` and Gemma 3's `sliding_window_pattern`. A sliding-window layer holds at most its window, as mlx-swift-lm's and mlx-lm's rotating cache does. It stays at full precision under a quantized setting, since MLX doesn't quantize a rotating cache (D-057).
+  - Gemma 4's `num_global_key_value_heads` and `global_head_dim`.
+  - `full_attention_interval`, Nemotron H's `layers_block_type` or `hybrid_override_pattern`, and `num_kv_shared_layers`.
+- The largest context that fits is found by halving the range, since a windowed layer's cost stops growing at its window.
+- **Shapes cached from Hugging Face** carry a version (`ModelShapeCache.version`, now 2), so those cached before are read again.
+
+**Why:** the estimate over-counted every catalog model that mixes layer types. Estimated against real KV per token:
+
+| Models | GGUF | MLX |
+|---|---|---|
+| Gemma 4 (12B, 26B-A4B, 31B) | 2.2× | 12–24× |
+| Qwen3.5 family (Qwen3.5, 3.6, 3.8, MiMo, Ornith, the 27B Bonsais) | 4× | 4× |
+| gpt-oss, Muse Glimmer | exact | 2–4× |
+
+Gemma 4 31B at 32K on MLX came to 32 GB of cache against about 2.7 GB. Qwen3.8 27B at 32K came to 8.6 GB against 2.1 GB, which decides the verdict on a 16–32 GB Mac. The error was always high, so nothing was let through that didn't fit. But Automatic picked smaller contexts than the Mac could hold, and verdicts said Tight where a model was Comfortable.
+
+**Verified** from the growth of quail-server's dirty memory (`footprint`) with the context. On the M4 Pro (64 GB), with 0.67.0, between two sizes:
+- Gemma 4 26B-A4B (GGUF), 8K to 32K: 225.3 KB a token, against 225,280 bytes from the new formula and 491,520 from the old.
+- Qwen3.6 35B-A3B (GGUF), 32K to 128K: 20.48 KB a token, against 20,480 and 81,920.
+- Gemma 4 31B (GGUF) on the bench M1 Max (64 GB, Metal ceiling 55.7 GB), quail-server 0.67.3, every slot given a 6,000-token prompt at once: 14 GiB (15.0 GB) at 16K over two slots and 28 GiB (30.1 GB) at 32K over four, as `footprint` rounds them, against 14.8 and 29.5 GB of cache from the new formula (the old one said 32 and 64 GB). Both ran. Four slots of 8K had run this Mac's GPU out of memory on 0.66.0 during the catalog scores (D-070 amendment); that no longer happens.
+
+The MLX window cap is from mlx-swift-lm's `makeHybridAttentionKVCache` and Quail's own `Gemma4Text`, not measured.
+
+**Not counted:** the linear-attention and Mamba layers' fixed state (about 250 MB for Qwen3.6 with four slots), and the compute buffers. Both are left to O. The 26B-A4B measurement put everything outside the cache at about 1.1 GB, under O's 1.5 GB. For Gemma 4 31B on the M1 Max, 32K is now Tight (49.4 GB of the 55.7 GB ceiling) rather than over it, and Automatic picks 16K, the largest under 70%.
+
+**Alternatives:** count only full-attention layers (DECISIONS' MLX config note of 2026-09-26): simpler, but wrong for GGUF's full-size window cache and Gemma 4's different head sizes. Measure each model after loading (§7's calibration): still wanted, but the estimate has to be right before a download.
+
+**Revisit if:** quail-server turns `swa_full` off (GGUF windowed layers would then hold their window, as MLX's do), or an architecture with another kind of layer arrives (MLA, as DeepSeek V3 writes `kv_lora_rank`).
+
 ## D-070 · 2026-10-01 · Helping people choose a model: release dates, model cards, and Arena's ratings
 
 **Decision:** Each curated catalog family carries what helps someone choose it, all optional in the schema so older apps read the catalog unchanged:
@@ -1479,7 +1518,7 @@ Every ratio is inside the tolerances (5% for speed, 10% for time to first token)
 
 **Decision (verdict boundary):** `FitEstimator.estimate` returns `.wontFit` exactly when `model.weightBytes > ceiling` — weights alone against the full GPU working-set ceiling, per ARCHITECTURE.md §7's literal wording ("Won't fit (weights alone exceed the ceiling)"). This is *not* the same as "doesn't fit at any context": a model whose weights are just under the ceiling but whose weights-plus-runtime-overhead exceed it instead produces `.tight(reducedContextSize: 0)` — still unusable in practice, but a distinct, much rarer edge case from weights themselves not fitting. `Comfortable` is a separate, tighter threshold (70% of ceiling) than the fits/doesn't-fit boundary (100% of ceiling) that separates `.tight` from `.wontFit`.
 **Alternatives:** Define `.wontFit` as `weightBytes + overheadBytes > ceiling` (rejected — contradicts ARCHITECTURE.md's own wording, and conflates two different failure modes: "this model is fundamentally too big" vs. "this model plus a fixed per-runtime tax doesn't quite fit").
-**MLX configs (amended 2026-09-26):** multimodal MLX architectures (Qwen3.5 and later, Gemma 4) keep the language model's settings under `text_config`; `MLXMetadata` now reads each field at the top level first and from `text_config` otherwise, accepts the other names for expert counts (`num_experts`, `top_k_experts`, `experts_per_token`), and reads `max_position_embeddings` as the trained context. All 14 MLX repos in the catalog now give a shape (5 gave none). The KV estimate still counts every layer, although these models give only some layers a full cache (linear attention in three of four layers for Qwen3.6, sliding-window layers for Gemma 4); that overestimates their memory, and does so the same way for GGUF, so the two formats stay comparable. Counting only the full-attention layers, for both, would sharpen it. **Shapes read from Hugging Face are cached** in `Application Support/Quail/Cache/model-shapes.json` for 30 days (`ModelShapeCache`), keyed by repo and file, so the Add Model list's badges come from disk after the first lookup; verdicts are still computed fresh from the cached shape for this Mac.
+**MLX configs (amended 2026-09-26):** multimodal MLX architectures (Qwen3.5 and later, Gemma 4) keep the language model's settings under `text_config`; `MLXMetadata` now reads each field at the top level first and from `text_config` otherwise, accepts the other names for expert counts (`num_experts`, `top_k_experts`, `experts_per_token`), and reads `max_position_embeddings` as the trained context. All 14 MLX repos in the catalog now give a shape (5 gave none). The KV estimate still counts every layer, although these models give only some layers a full cache (linear attention in three of four layers for Qwen3.6, sliding-window layers for Gemma 4); that overestimates their memory, and does so the same way for GGUF, so the two formats stay comparable. Counting only the full-attention layers, for both, would sharpen it. *(Done per layer in D-071, 2026-10-02.)* **Shapes read from Hugging Face are cached** in `Application Support/Quail/Cache/model-shapes.json` for 30 days (`ModelShapeCache`), keyed by repo and file, so the Add Model list's badges come from disk after the first lookup; verdicts are still computed fresh from the cached shape for this Mac.
 **Revisit if:** a `reducedContextSize` of 0 (or some other clearly-unusable-but-technically-`.tight` value) turns out to need surfacing differently in the UI than a normal Tight verdict — at that point `.tight` may need a sub-case, or the UI layer (not `FitEstimator`) may just special-case a reduced context under some floor (e.g. 512 tokens) as effectively `.wontFit` for display purposes.
 
 **Decision (GGUF fields beyond the literal ARCHITECTURE §7 list):** `GGUFMetadata` also reads `<arch>.attention.key_length`/`value_length` and `<arch>.expert_count`/`expert_used_count`, none of which ARCHITECTURE.md §7's table names explicitly (it only lists `block_count`, `head_count_kv`, `embedding_length`, file size). Confirmed these keys are real, present in llama.cpp's own build (`strings Vendor/llama.cpp/libllama-common.0.4.1.dylib | grep '^%s\.attention\.\|^%s\.expert'`) before adding them.

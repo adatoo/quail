@@ -113,17 +113,41 @@ struct GGUFMetadataTests {
         #expect(metadata.embeddingLength == 4096)
     }
 
-    @Test("head_count_kv written as a per-layer array takes the first element")
-    func headCountKVArrayTakesFirstElement() throws {
+    @Test("head_count_kv written per layer is kept per layer, and its largest value is the head count")
+    func headCountKVArrayIsKeptPerLayer() throws {
         var fixture = GGUFFixtureBuilder()
-        fixture.addString("general.architecture", "llama")
-        fixture.addUInt32Array("llama.attention.head_count_kv", [8, 8, 4, 4])
+        fixture.addString("general.architecture", "nemotron_h_moe")
+        // Nemotron H writes 0 for a Mamba or MLP layer; the first layer isn't attention.
+        fixture.addUInt32Array("nemotron_h_moe.attention.head_count_kv", [0, 0, 2, 0])
         let url = try fixture.write()
         defer { try? FileManager.default.removeItem(at: url) }
 
         let metadata = try GGUFMetadata.read(from: url)
 
-        #expect(metadata.headCountKV == 8)
+        #expect(metadata.headCountKV == 2)
+        #expect(metadata.headCountKVPerLayer == [0, 0, 2, 0])
+    }
+
+    @Test("reads the sliding-window keys: window, per-layer pattern, _swa head sizes, interval, shared layers")
+    func readsSlidingWindowKeys() throws {
+        var fixture = GGUFFixtureBuilder()
+        fixture.addString("general.architecture", "gemma4")
+        fixture.addUInt32("gemma4.attention.sliding_window", 1024)
+        fixture.addBoolArray("gemma4.attention.sliding_window_pattern", [true, true, false])
+        fixture.addUInt32("gemma4.attention.key_length_swa", 256)
+        fixture.addUInt32("gemma4.attention.value_length_swa", 256)
+        fixture.addUInt32("gemma4.attention.shared_kv_layers", 0)
+        fixture.addUInt32("gemma4.full_attention_interval", 4)
+        let url = try fixture.write()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let metadata = try GGUFMetadata.read(from: url)
+
+        #expect(metadata.slidingWindow == 1024)
+        #expect(metadata.slidingWindowPattern == [true, true, false])
+        #expect(metadata.keyLengthSWA == 256 && metadata.valueLengthSWA == 256)
+        #expect(metadata.sharedKVLayers == 0)
+        #expect(metadata.fullAttentionInterval == 4)
     }
 
     @Test("keys for a different architecture are ignored")

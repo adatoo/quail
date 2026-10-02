@@ -30,6 +30,17 @@ struct ModelShapeCacheTests {
         #expect(reopened.shape(for: key) == nil)
     }
 
+    @Test("a shape stored before the cache had a version is read again, so it gains its per-layer cache")
+    func unversionedEntryIsAMiss() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("shapes-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let key = ModelShapeCache.key(repo: "org/m", format: .gguf, file: "m.gguf")
+        // As 0.68 wrote it: no version, no kvLayers.
+        let old = #"{"\#(key)": {"shape": {"weightBytes": 5000000000, "layerCount": 36, "kvHeadCount": 8, "headDim": 128}, "fetchedAt": \#(Date().timeIntervalSinceReferenceDate)}}"#
+        try Data(old.utf8).write(to: file)
+        #expect(ModelShapeCache(url: file).shape(for: key) == nil)
+    }
+
     @Test("a cached catalog family gets its verdict without asking Hugging Face")
     func catalogFitUsesTheCache() async throws {
         let cache = ModelShapeCache(url: nil)
