@@ -71,9 +71,20 @@ struct BenchmarkTests {
         #expect(output.measurements.prompt4096 == nil)
         #expect(output.measurements.returningTurnMs == nil)
         #expect(output.measurements.skipped.count == 2)
-        #expect(output.otherModelsLoaded == ["Other"])
+        // Loading Target unloaded Other (one model at a time), so nothing else shared the Mac while measuring.
+        #expect(output.otherModelsLoaded.isEmpty)
         #expect(await client.states["Other"] == "loaded")
         #expect(await client.states["Target"] == "unloaded")
+    }
+
+    @Test("models still loaded beside the measured one are noted; one the load unloaded isn't")
+    func otherModelsDuringTheRun() async throws {
+        let client = FakeBenchmarkClient(
+            states: ["Target": "unloaded", "Other": "loaded"], contextSize: 32768, keepsOthersLoaded: true
+        )
+        let output = try await BenchmarkRunner(client: client, pollInterval: .milliseconds(1))
+            .run(model: "Target") { _, _ in }
+        #expect(output.otherModelsLoaded == ["Other"])
     }
 
     @Test("a model that was loaded before stays loaded")
@@ -261,9 +272,13 @@ actor FakeBenchmarkClient: BenchmarkClient {
     private var hangs = false
     private(set) var isHanging = false
 
-    init(states: [String: String], contextSize: Int) {
+    /// Whether loading a model leaves the others loaded (a server with `--models-max` above 1).
+    private let keepsOthersLoaded: Bool
+
+    init(states: [String: String], contextSize: Int, keepsOthersLoaded: Bool = false) {
         self.states = states
         self.contextSize = contextSize
+        self.keepsOthersLoaded = keepsOthersLoaded
     }
 
     /// Makes the next completion wait (until cancelled) instead of answering.
@@ -292,7 +307,7 @@ actor FakeBenchmarkClient: BenchmarkClient {
             states[model] = "failed"
             return
         }
-        for key in states.keys where states[key] == "loaded" {
+        for key in states.keys where states[key] == "loaded" && !keepsOthersLoaded {
             states[key] = "unloaded"
         }
         states[model] = "loaded"

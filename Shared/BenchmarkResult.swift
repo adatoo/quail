@@ -84,7 +84,10 @@ struct BenchmarkResult: Codable, Sendable, Equatable, Identifiable {
                 warnings.append("ran on battery")
             }
             if !otherModelsLoaded.isEmpty {
-                warnings.append("other models were loaded: \(otherModelsLoaded.joined(separator: ", "))")
+                warnings.append(
+                    "\(otherModelsLoaded.joined(separator: ", ")) stayed loaded during the run, sharing memory and the "
+                        + "GPU, so these numbers may be lower than the model alone would give"
+                )
             }
             return warnings
         }
