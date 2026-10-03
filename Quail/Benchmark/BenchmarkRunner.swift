@@ -21,10 +21,9 @@ struct BenchmarkRunner: Sendable {
         let before = try await client.modelStates()
         guard before[model] != nil else { throw BenchmarkError.unknownModel(model) }
         let loadedBefore = before.filter { $0.value == "loaded" }.map(\.key).sorted()
-        let others = loadedBefore.filter { $0 != model }
 
         do {
-            let output = try await measure(model: model, others: others, progress: progress)
+            let output = try await measure(model: model, progress: progress)
             await progress("Restoring loaded models…", 0.98)
             try await restore(model: model, loadedBefore: loadedBefore)
             return output
@@ -38,7 +37,6 @@ struct BenchmarkRunner: Sendable {
 
     private func measure(
         model: String,
-        others: [String],
         progress: @Sendable (String, Double) async -> Void
     ) async throws -> Output {
         var measurements = BenchmarkResult.Measurements()
@@ -57,6 +55,9 @@ struct BenchmarkRunner: Sendable {
         let loadStart = ContinuousClock.now
         try await loadAndWait(model)
         measurements.loadSeconds = .of([Self.seconds(ContinuousClock.now - loadStart)])
+        // Which other models share the Mac while this one is measured: those still loaded now, not those loaded
+        // before the run. A server that keeps one model at a time has already unloaded them to load this one.
+        var others = try await loadedOthers(than: model)
 
         let short = BenchmarkSuite.promptTokens(from: passage, count: BenchmarkSuite.generationPromptTokens)
         for run in 0 ..< BenchmarkSuite.warmupRuns {
@@ -174,7 +175,12 @@ struct BenchmarkRunner: Sendable {
         }
         measurements.concurrent4 = .of(totals)
 
-        return Output(measurements: measurements, properties: properties, otherModelsLoaded: others)
+        try await others.formUnion(loadedOthers(than: model))
+        return Output(measurements: measurements, properties: properties, otherModelsLoaded: others.sorted())
+    }
+
+    private func loadedOthers(than model: String) async throws -> Set<String> {
+        try await Set(client.modelStates().filter { $0.key != model && $0.value == "loaded" }.map(\.key))
     }
 
     /// Back to how it was: unload the benchmarked model unless it was

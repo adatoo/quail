@@ -511,6 +511,8 @@ struct UISnapshotTests {
         new.engine.runtime = "Quail server"
         new.measurements.returningTurnMs = .of([180, 201, 230])
         new.measurements.concurrent4 = .of([55, 56])
+        // A note on the run: the orange triangle, with a hover and a popover.
+        new.conditions.otherModelsLoaded = ["Qwen3.6-35B-A3B-UD-Q4_K_M"]
         let (appState, scratch) = try await makeAppState(results: [new, old])
         defer { try? FileManager.default.removeItem(at: scratch) }
         try await renderWindow(appState, page: .benchmark, name: "benchmark")

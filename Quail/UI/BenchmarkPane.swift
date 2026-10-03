@@ -197,9 +197,7 @@ struct BenchmarkPane: View {
                             .help("Run on \(result.engine.runtime)\(result.engine.build.map { " (\($0))" } ?? "")")
                         let notes = result.conditions.warnings + result.measurements.skipped
                         if !notes.isEmpty {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                                .help(notes.joined(separator: "\n"))
+                            BenchmarkNotesButton(notes: notes)
                         }
                     }
                 }
@@ -369,6 +367,38 @@ private struct ComparisonStrip: View {
         case .faster: .green
         case .slower: .orange
         case .same: .secondary
+        }
+    }
+}
+
+/// The orange triangle beside a run that may not compare cleanly with others (another model loaded, a hot or
+/// battery-powered Mac, a step skipped): the reasons on hover, and in a popover on a click, since a tooltip inside
+/// a table row doesn't always appear.
+private struct BenchmarkNotesButton: View {
+    let notes: [String]
+    @State private var showing = false
+
+    var body: some View {
+        Button {
+            showing.toggle()
+        } label: {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+        }
+        .buttonStyle(.plain)
+        .help("May not compare cleanly: \(notes.joined(separator: "; ")). Click for details.")
+        .accessibilityLabel("Notes on this run")
+        .popover(isPresented: $showing, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("This run may not compare cleanly")
+                    .font(.headline)
+                ForEach(notes, id: \.self) { note in
+                    Label(note.prefix(1).uppercased() + note.dropFirst() + ".", systemImage: "info.circle")
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(14)
+            .frame(width: 320, alignment: .leading)
         }
     }
 }

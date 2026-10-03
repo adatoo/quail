@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.74.1] - 2026-10-03
+
+### Fixed
+
+- **Benchmark no longer flags a run for a model that wasn't there.** A run was marked "other models were loaded" when any other model was loaded before it started, even though with one model at a time (the default) loading the benchmarked model unloads the others. It now notes only models still loaded while it measures.
+- **The orange triangle on a benchmark run says what it means.** Hover over it for the reasons, or click it for a popover that lists them. Before, its tooltip often didn't appear inside the table. The note also says why it matters: another loaded model shares memory and the GPU, so the numbers may be lower.
+
 ## [0.74.0] - 2026-10-03
 
 ### Added
