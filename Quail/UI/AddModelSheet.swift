@@ -258,13 +258,20 @@ struct AddModelSheet: View {
                 }
                 let shownAbove = Set(recommendedFamilies.map(\.id) + rapidPicks.map(\.family.id))
                 let rest = visibleFamilies.filter { !(query.isEmpty && shownAbove.contains($0.id)) }
-                let listed = rest.filter { $0.rapidMLX == nil }
-                let more = rest.filter { $0.rapidMLX != nil }
+                let listed = rest.filter { $0.rapidMLX == nil && $0.task == .chat }
+                // Served at /v1/embeddings and /v1/rerank rather than chat (ADR D-072), so listed apart.
+                let retrieval = rest.filter { $0.task != .chat }
+                let more = rest.filter { $0.rapidMLX != nil && $0.task == .chat }
                 Section(query.isEmpty ? "All Models" : "Matches") {
                     ForEach(listed) { familyRow($0) }
                     if rest.isEmpty {
                         Text("No catalog models match.")
                             .foregroundStyle(.secondary)
+                    }
+                }
+                if !retrieval.isEmpty {
+                    Section("For Search: Embeddings and Reranking") {
+                        ForEach(retrieval) { familyRow($0) }
                     }
                 }
                 if !more.isEmpty {
@@ -338,7 +345,7 @@ struct AddModelSheet: View {
         if let active = family.activeParamsB {
             parts.append("\(Self.formatParams(active))B active")
         }
-        if let role = family.role, !["general", "coding", "reasoning", "embedding"].contains(role) {
+        if let role = family.role, !["general", "coding", "reasoning", "embedding", "rerank"].contains(role) {
             parts.append(role)
         }
         let formats = [family.gguf != nil ? "GGUF" : nil, family.mlx != nil ? "MLX" : nil].compactMap(\.self)
@@ -361,6 +368,8 @@ struct AddModelSheet: View {
 
     private var filteredFamilies: [Catalog.Family] {
         appState.catalog.families.filter { family in
+            // A task this version can't serve (from a newer remote catalog) isn't offered.
+            guard family.task != nil else { return false }
             let formatMatches = switch filter {
             case .all: true
             case .gguf: family.gguf != nil

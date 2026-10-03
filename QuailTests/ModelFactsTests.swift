@@ -103,5 +103,8 @@ struct ModelFactsTests {
         #expect(!ModelFacts.expectsRanking(family))
         family.role = "smoke-test"
         #expect(!ModelFacts.expectsRanking(family))
+        family.role = "general"
+        family.taskName = "rerank"
+        #expect(!ModelFacts.expectsRanking(family))
     }
 }

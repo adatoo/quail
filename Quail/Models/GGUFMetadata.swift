@@ -67,6 +67,13 @@ struct GGUFMetadata: Sendable, Equatable {
     /// caps the per-model context setting (a larger `ctx-size` makes
     /// llama.cpp warn and quality degrade past it).
     var contextLength: Int?
+    /// `<arch>.pooling_type`: llama.cpp's pooling for an embedding model (1 mean, 2 CLS, 3 last, 4 rank); absent
+    /// for a chat model. `ModelTask.detected(in:)` reads it.
+    var poolingType: Int?
+    /// `<arch>.classifier.output_labels` is present: a reranker's classification head.
+    var hasClassifier = false
+    /// `<arch>.attention.causal`: false for an encoder (BERT and its kin), which embeds rather than chats.
+    var causalAttention: Bool?
 
     enum GGUFReadError: Error, Equatable {
         case notAGGUFFile
@@ -203,6 +210,15 @@ struct GGUFMetadata: Sendable, Equatable {
                     continue
                 case "\(arch).context_length":
                     result.contextLength = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).pooling_type":
+                    result.poolingType = try cursor.readScalarAsInt(type: type)
+                    continue
+                case "\(arch).classifier.output_labels":
+                    result.hasClassifier = true
+                case "\(arch).attention.causal":
+                    let value = try type == 7 ? Int(cursor.readUInt8()) : cursor.readScalarAsInt(type: type)
+                    result.causalAttention = value != 0
                     continue
                 default:
                     break

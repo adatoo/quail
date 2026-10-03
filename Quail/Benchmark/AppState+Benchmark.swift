@@ -6,7 +6,9 @@ extension AppState {
     /// under the Quail server.
     var benchmarkableModels: [String] {
         _ = storeRevision // re-read when the store changes
-        return modelStore.loadCatalog().entries.filter { canServe($0.format) }.map(\.id).sorted()
+        // The benchmark generates text, so it needs a chat model (ADR D-072).
+        return modelStore.loadCatalog().entries.filter { canServe($0.format) && $0.modelTask == .chat }
+            .map(\.id).sorted()
     }
 
     /// "GGUF" or "MLX", for labelling a model in the Benchmark pane.

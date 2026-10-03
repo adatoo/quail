@@ -37,7 +37,17 @@ struct InstalledModel: Sendable, Equatable, Codable, Identifiable {
     var trainedContext: Int? = nil
     /// The user's KV cache choice (ADR D-057); `nil` means full precision.
     var userKVCache: KVCacheSetting? = nil
+    /// What it's for (ADR D-072), as `ModelTask`'s raw value; nil for a chat model, so files written before tasks
+    /// existed still read. From the catalog family it was downloaded as, or else from its header or files.
+    var task: String? = nil
+    /// An embedding model's pooling when its header doesn't say (from the catalog), for `presets.ini`.
+    var pooling: String? = nil
     var addedAt: Date
+
+    /// A task this version doesn't know reads as chat: it can't be anything else here.
+    var modelTask: ModelTask {
+        task.flatMap(ModelTask.init(rawValue:)) ?? .chat
+    }
 
     var effectiveKVCache: KVCacheSetting {
         userKVCache ?? .full

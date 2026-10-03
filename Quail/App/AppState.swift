@@ -554,8 +554,9 @@ final class AppState {
         let device = DeviceInfo.current()
         let runtime = config.runtimeID
         let bandwidth = ChipBandwidthTable.loadFromBundle()
+        let families = catalog.families
         let refreshed = await Task.detached(priority: .utility) {
-            store.refreshedCatalog(device: device, ggufRuntime: runtime, bandwidthTable: bandwidth)
+            store.refreshedCatalog(device: device, ggufRuntime: runtime, bandwidthTable: bandwidth, families: families)
         }.value
         // Every model on disk, GGUF and MLX alike: this once scanned GGUF files only, so an MLX
         // default was "missing" and cleared on every Start.

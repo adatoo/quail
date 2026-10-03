@@ -58,7 +58,7 @@ struct ModelSettingsView: View {
                 }
             }
 
-            if servable {
+            if servable, entry.modelTask == .chat {
                 Toggle(
                     "Load when the server starts",
                     isOn: Binding(get: { isDefault }, set: { _ in onToggleDefault() })
@@ -74,7 +74,7 @@ struct ModelSettingsView: View {
             Divider()
 
             HStack {
-                if servable {
+                if servable, entry.modelTask == .chat {
                     Button("Benchmark…", action: onBenchmark)
                 }
                 Spacer()

@@ -42,6 +42,7 @@ final class PingRunner {
     private let base: URL
     private let apiKey: String?
     private let preferredModelID: String?
+    private let nonChatModelIDs: Set<String>
     private let urlSession: URLSession
 
     enum PingError: Error, Sendable, Equatable, CustomStringConvertible {
@@ -65,12 +66,14 @@ final class PingRunner {
         base: URL,
         apiKey: String?,
         preferredModelID: String? = nil,
+        nonChatModelIDs: Set<String> = [],
         urlSession: URLSession = .shared
     ) {
         self.runtime = runtime
         self.base = base
         self.apiKey = apiKey
         self.preferredModelID = preferredModelID
+        self.nonChatModelIDs = nonChatModelIDs
         self.urlSession = urlSession
     }
 
@@ -81,8 +84,14 @@ final class PingRunner {
     /// the default `modelsMax` of 1, that request made the router *evict*
     /// the user's actual default model to load it. A test shouldn't change
     /// what's loaded.
-    static func choose(from models: [ServedModel], preferred: String?) -> ServedModel? {
-        models.first { $0.status.value == "loaded" }
+    ///
+    /// Only a chat model can answer the first-token step (ADR D-072): those the server marks otherwise, and
+    /// `nonChat` (what the app's store knows, for a runtime that doesn't say), are passed over.
+    static func choose(
+        from models: [ServedModel], preferred: String?, nonChat: Set<String> = []
+    ) -> ServedModel? {
+        let models = models.filter { $0.isChatModel && !nonChat.contains($0.id) }
+        return models.first { $0.status.value == "loaded" }
             ?? models.first { $0.status.value == "loading" }
             ?? models.first { $0.id == preferred }
             ?? models.first
@@ -104,7 +113,12 @@ final class PingRunner {
         var chosenID: String?
         modelLoaded = await Self.timed {
             let models = try await self.runtime.listModels(base: self.base, apiKey: self.apiKey)
-            guard let chosen = Self.choose(from: models, preferred: self.preferredModelID) else {
+            guard let chosen = Self.choose(
+                from: models,
+                preferred: self.preferredModelID,
+                nonChat: self.nonChatModelIDs
+            )
+            else {
                 throw PingError.noModelLoaded
             }
             chosenID = chosen.id

@@ -169,6 +169,11 @@ extension AppState {
                     "\(entry.id) is an MLX model, which the llama.cpp runtime can't serve — choose Quail server in Quail → Server."
                 )
             }
+            guard entry.modelTask == .chat else {
+                return .failure(
+                    "\(entry.id) is \(entry.modelTask == .rerank ? "a reranking" : "an embedding") model, so it can't be the default: that's the model chat and coding tools use. It's served at /v1/\(entry.modelTask == .rerank ? "rerank" : "embeddings") once loaded."
+                )
+            }
             setDefaultModel(entry.id)
             var message = "Default model: \(entry.id) — loads on Start."
             if serverController.phase == .ready {

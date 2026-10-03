@@ -180,6 +180,7 @@
 		9A5972B30A98BFE94BF8A2F5 /* CatalogRefresher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EABED4CD61813C8D19A53F6 /* CatalogRefresher.swift */; };
 		9BA89E6CC49939D1477F05B9 /* AppState+ModelCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53A72A6F7D8EE4BD08312D17 /* AppState+ModelCommands.swift */; };
 		9CE8690BCAE0D649A38CA5E3 /* CopyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7496A6E8BB25EED47DA5A61 /* CopyButton.swift */; };
+		9CF7AA356002EF8956CF581B /* ModelTaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC8BCA8866233089E6FCA0B /* ModelTaskTests.swift */; };
 		9D7E310BC0A851564856F006 /* OrderedJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5841043F06995332D2619E0F /* OrderedJSON.swift */; };
 		9DBFBEC4B8853A3AF50F2094 /* ChatStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76F6DC889B736AA2A68EF461 /* ChatStream.swift */; };
 		9E7A072989A42AFD0CF6C555 /* HFDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49BE1EF5FB53B825FC562F0 /* HFDownloader.swift */; };
@@ -192,6 +193,7 @@
 		A829E4289A062DC194D7824A /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 5875AC0BF37496E275314878 /* MLXLMCommon */; };
 		A8A6A98FC3D7E7CB17C0FFDE /* Eval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68FA5A438C3DE8314AB6EED4 /* Eval.swift */; };
 		A97EF1AD2BF0945DC2C70167 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20F94A74BAAC0F3DE593F67 /* SecretStore.swift */; };
+		AAAFD789C52B9C0149AD5A9A /* ModelTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0066804A84DC9120D027976E /* ModelTask.swift */; };
 		ACB2557B72F13D0C5D311907 /* ChatTemplateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D441338F83358942B9CB6202 /* ChatTemplateTests.swift */; };
 		AD84B88BEFC224DCB3B822A2 /* ModelInstallControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60CD26ED650B7D72E7C62559 /* ModelInstallControllerTests.swift */; };
 		AE037952D6FC9021E92CE937 /* ScriptedEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9886733B6A9B2533AE9EA20A /* ScriptedEngine.swift */; };
@@ -288,6 +290,7 @@
 		F87A6804F5FE769DA65FAF73 /* MLXModelCopiesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E69C016B914765E6C80CE44D /* MLXModelCopiesTests.swift */; };
 		F8F2BC616F78A5CD751E0EB6 /* ControlProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4279E9EF2E774CD49728C388 /* ControlProtocol.swift */; };
 		F96A9D87B8D11203CA621C5B /* libQuailServerLlama.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D660F1A52A0F7FB2BE791117 /* libQuailServerLlama.a */; };
+		F9CCB35565AC159D319C6F72 /* ModelTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7EFEA07645C7B7B1E49B359 /* ModelTask.swift */; };
 		FAA1A9A119A8B0F8C1CDCB8C /* AppLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DD4E2DDDB747A1DC4476B84 /* AppLink.swift */; };
 		FAAC603389E9A8652CD31502 /* Runtime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF75DEC1D436363C620CA16 /* Runtime.swift */; };
 		FB3B997A5212DB72C0C05530 /* llama.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 14B9109BAA6AC2A10860B699 /* llama.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -371,6 +374,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0066804A84DC9120D027976E /* ModelTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTask.swift; sourceTree = "<group>"; };
 		0172F426DB7DE0BD44BE2CFA /* ConnectionTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionTester.swift; sourceTree = "<group>"; };
 		027FC3DED8EE5BC8F7D17E77 /* BenchmarkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkStore.swift; sourceTree = "<group>"; };
 		03740276A6FADF2B005D9564 /* PrismHadamardManifestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrismHadamardManifestTests.swift; sourceTree = "<group>"; };
@@ -505,6 +509,7 @@
 		76F6DC889B736AA2A68EF461 /* ChatStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStream.swift; sourceTree = "<group>"; };
 		780A3FA03B7D859B92701325 /* LlamaEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaEngine.swift; sourceTree = "<group>"; };
 		78CD790E6597FC0FD57BD36A /* LineEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineEditor.swift; sourceTree = "<group>"; };
+		7AC8BCA8866233089E6FCA0B /* ModelTaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTaskTests.swift; sourceTree = "<group>"; };
 		7AEDCC282A2E5255B000D877 /* HTTPServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPServerTests.swift; sourceTree = "<group>"; };
 		7C29DC0715805F71AA1A5599 /* Ping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ping.swift; sourceTree = "<group>"; };
 		7D5C298F9956FEEED5E539F2 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
@@ -556,6 +561,7 @@
 		A4368A606DEFB22770638930 /* MLXTrace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXTrace.swift; sourceTree = "<group>"; };
 		A48175A7378C6CF2563B3BBE /* Engine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine.swift; sourceTree = "<group>"; };
 		A5D55B74D0F0DEE9D8487696 /* WebUIStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUIStyle.swift; sourceTree = "<group>"; };
+		A7EFEA07645C7B7B1E49B359 /* ModelTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTask.swift; sourceTree = "<group>"; };
 		A84BE81602CEDFD65ACF3F81 /* ModelRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelRouterTests.swift; sourceTree = "<group>"; };
 		AA3D92A1F5F68AF67D5B929E /* ChatTargetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTargetTests.swift; sourceTree = "<group>"; };
 		AABCEAF3390F50EB45A904AB /* JSONSchemaGrammarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONSchemaGrammarTests.swift; sourceTree = "<group>"; };
@@ -791,6 +797,7 @@
 				3C6227C161B4D56E8C8579D2 /* ModelShapeCacheTests.swift */,
 				97B32A723E276ED3F733ACB2 /* ModelStoreTests.swift */,
 				6FDAA991999D6BCD802F8BC2 /* ModelStrengthTests.swift */,
+				7AC8BCA8866233089E6FCA0B /* ModelTaskTests.swift */,
 				9EBDB73811775706BD7DDA60 /* NoticesDocumentTests.swift */,
 				F6430CBAD1F05B2810D5D718 /* OfflineTests.swift */,
 				405D35056F3C4B86A01029E4 /* OrderedJSONTests.swift */,
@@ -859,6 +866,7 @@
 				4AEAD8426C451AC44DB9D563 /* ModelShapeCache.swift */,
 				7E932070B21FCE331F0977B5 /* ModelStore.swift */,
 				69A25554D17D2BCD2BD4C3E5 /* ModelStrength.swift */,
+				A7EFEA07645C7B7B1E49B359 /* ModelTask.swift */,
 				17811CEFC92F66515BE81A60 /* RapidMLXCatalog.swift */,
 				291564F24C33308671BAC5F1 /* Recommender.swift */,
 				3A8B23AB0C07C6FC0127D2D0 /* StoreCatalog.swift */,
@@ -936,6 +944,7 @@
 				765F245F5544D7D2A7A43437 /* MLXVision.swift */,
 				7DF2791AEA49107BAE0D5767 /* ModelEntry.swift */,
 				DB7A7DD97C1C21E7D0DACFA0 /* ModelRouter.swift */,
+				0066804A84DC9120D027976E /* ModelTask.swift */,
 				5F9589F8178FEC351009E5D4 /* MuseGlimmerParser.swift */,
 				EFEBD8D0A3C37BB5E843993D /* OnceFlag.swift */,
 				5841043F06995332D2619E0F /* OrderedJSON.swift */,
@@ -1593,6 +1602,7 @@
 				1610EC76223052FC860F7AB8 /* ModelShapeCache.swift in Sources */,
 				3D0EB48D9129E71E6B3A43E2 /* ModelStore.swift in Sources */,
 				6FECB9D424D28805A727607F /* ModelStrength.swift in Sources */,
+				F9CCB35565AC159D319C6F72 /* ModelTask.swift in Sources */,
 				F5F1627431AF9E772BD5AF5C /* ModelsPane.swift in Sources */,
 				20C1F443CCB7C5D0724DA91A /* NoticesDocument.swift in Sources */,
 				BED22FFFB20D34B664E9C021 /* Paths.swift in Sources */,
@@ -1695,6 +1705,7 @@
 				6CCE0B3F5943790A183E288A /* ModelShapeCacheTests.swift in Sources */,
 				125123BCBFABCB9EB4A53BEA /* ModelStoreTests.swift in Sources */,
 				EFB17EAA1ECADCAA6C61589A /* ModelStrengthTests.swift in Sources */,
+				9CF7AA356002EF8956CF581B /* ModelTaskTests.swift in Sources */,
 				ECC771782B965593ACEBA105 /* NoticesDocumentTests.swift in Sources */,
 				E4C9A4C2C56C0B6835D6B82A /* OfflineTests.swift in Sources */,
 				EF4700D1ECBB1B1EB3523DB5 /* OrderedJSONTests.swift in Sources */,
@@ -1761,6 +1772,7 @@
 				0EA094A65B69B8AC91DF25C9 /* MLXVision.swift in Sources */,
 				CCC3F9AD44854E176B1605E3 /* ModelEntry.swift in Sources */,
 				9A443B62A88E925F6AA9BA20 /* ModelRouter.swift in Sources */,
+				AAAFD789C52B9C0149AD5A9A /* ModelTask.swift in Sources */,
 				3B86DBFF872A048E1BC3F9FA /* MuseGlimmerParser.swift in Sources */,
 				DD4636F17C7A1A122976047C /* OnceFlag.swift in Sources */,
 				9D7E310BC0A851564856F006 /* OrderedJSON.swift in Sources */,
@@ -1904,7 +1916,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 141;
+				CURRENT_PROJECT_VERSION = 142;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1929,7 +1941,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.72.4;
+				MARKETING_VERSION = 0.73.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2085,7 +2097,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 141;
+				CURRENT_PROJECT_VERSION = 142;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2104,7 +2116,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.72.4;
+				MARKETING_VERSION = 0.73.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
