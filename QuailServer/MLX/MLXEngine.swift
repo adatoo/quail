@@ -1162,7 +1162,7 @@ private struct ModelFiles {
 
 /// swift-transformers' tokenizer, presented as the one `mlx-swift-lm` asks for. The chat template is the
 /// server's own (`ChatTemplate`), so this one is never asked to apply it.
-private struct TokenizerBridge: MLXLMCommon.Tokenizer {
+struct TokenizerBridge: MLXLMCommon.Tokenizer {
     let inner: any Tokenizers.Tokenizer
 
     func encode(text: String, addSpecialTokens: Bool) -> [Int] {
@@ -1201,7 +1201,7 @@ private struct TokenizerBridge: MLXLMCommon.Tokenizer {
     }
 }
 
-private struct TokenizerBridgeLoader: TokenizerLoader {
+struct TokenizerBridgeLoader: TokenizerLoader {
     func load(from directory: URL) async throws -> any MLXLMCommon.Tokenizer {
         try await TokenizerBridge(inner: AutoTokenizer.from(modelFolder: directory))
     }

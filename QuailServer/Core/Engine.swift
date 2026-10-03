@@ -67,6 +67,37 @@ public extension Engine {
     }
 }
 
+/// The engine for a model that doesn't chat (ADR D-072): an embedding model's vectors, or a reranker's scores.
+/// `/v1/embeddings` and `/v1/rerank` use it; the chat routes never reach one, since they refuse a model of another
+/// task first.
+public protocol EmbeddingEngine: Engine {
+    /// One pooled vector per input, in the inputs' order; L2-normalized when `normalize` (llama-server's default).
+    func embed(_ inputs: [[Int]], normalize: Bool) async throws -> [[Float]]
+    /// Each document's relevance to the query, in the documents' order.
+    func rerank(query: String, documents: [String]) async throws -> [RerankScore]
+}
+
+/// A reranker's score for one document, and the tokens the query and document took together.
+public struct RerankScore: Equatable, Sendable {
+    public var score: Double
+    public var tokens: Int
+
+    public init(score: Double, tokens: Int) {
+        self.score = score
+        self.tokens = tokens
+    }
+}
+
+public extension EmbeddingEngine {
+    func chatTemplate() async -> String? {
+        nil
+    }
+
+    func generate(_: GenerationRequest) -> AsyncThrowingStream<GenerationEvent, any Error> {
+        AsyncThrowingStream { $0.finish(throwing: EngineError.invalidRequest("this model doesn't generate text")) }
+    }
+}
+
 /// Makes the engine for a model, or throws if this build has none for its kind.
 public typealias EngineFactory = @Sendable (ModelEntry) throws -> any Engine
 

@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.74.0] - 2026-10-03
+
+### Added
+
+- **Embeddings and reranking.** Quail's server answers `/v1/embeddings` (OpenAI's) and `/v1/rerank` (Jina's and TEI's shapes, as llama-server's) for GGUF and MLX models (#181, ADR D-072 amendment).
+  - RAG tools, editors that index code, vector databases and memory tools can use Quail.
+  - The vectors match llama-server's for the same file, to a cosine of 1.0. `dimensions`, `encoding_format: "base64"` and token-id inputs work.
+  - Add Model's "For Search" section adds Qwen3 Embedding 0.6B, EmbeddingGemma 300M, Qwen3 Reranker 0.6B and BGE Reranker v2 M3, beside Nomic Embed.
+  - Connect has Embeddings and Reranking entries, each with a Test button that picks from those models.
+
 ## [0.73.0] - 2026-10-03
 
 ### Added

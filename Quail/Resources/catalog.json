@@ -583,9 +583,79 @@
       "task": "embedding",
       "released": "2024-02-14",
       "modelCard": "nomic-ai/nomic-embed-text-v1.5",
-      "summary": "Turns text into vectors for search and retrieval (RAG); not a chat model.",
+      "summary": "Turns English text into vectors for search and retrieval (RAG); not a chat model. Start each query with \"search_query: \" and each document with \"search_document: \".",
       "variants": {
         "gguf": { "repo": "nomic-ai/nomic-embed-text-v1.5-GGUF", "quants": ["f16", "Q8_0"], "default": "f16" }
+      }
+    },
+    {
+      "id": "qwen3-embedding-0.6b",
+      "name": "Qwen3 Embedding 0.6B",
+      "paramsB": 0.6,
+      "role": "embedding",
+      "rank": 1,
+      "license": "Apache-2.0",
+      "strengths": ["embedding", "multilingual"],
+      "task": "embedding",
+      "pooling": "last",
+      "released": "2025-06-05",
+      "modelCard": "Qwen/Qwen3-Embedding-0.6B",
+      "summary": "Turns text in over 100 languages, and code, into vectors for search and retrieval; not a chat model. For the best results, start each query with an instruction (\"Instruct: Given a web search query, retrieve relevant passages\\nQuery: \"), and send documents as they are.",
+      "variants": {
+        "gguf": { "repo": "Qwen/Qwen3-Embedding-0.6B-GGUF", "quants": ["Q8_0", "f16"], "default": "Q8_0" },
+        "mlx": { "repo": "mlx-community/Qwen3-Embedding-0.6B-8bit" }
+      }
+    },
+    {
+      "id": "embeddinggemma-300m",
+      "name": "EmbeddingGemma 300M",
+      "paramsB": 0.3,
+      "role": "embedding",
+      "rank": 2,
+      "license": "Gemma",
+      "strengths": ["embedding", "multilingual"],
+      "task": "embedding",
+      "released": "2025-09-04",
+      "modelCard": "google/embeddinggemma-300m",
+      "summary": "A small multilingual embedding model from Google, for search and retrieval; not a chat model. Start each query with \"task: search result | query: \" and each document with \"title: none | text: \".",
+      "variants": {
+        "gguf": { "repo": "ggml-org/embeddinggemma-300M-GGUF", "quants": ["Q8_0"], "default": "Q8_0" },
+        "mlx": { "repo": "mlx-community/embeddinggemma-300m-8bit" }
+      }
+    },
+    {
+      "id": "qwen3-reranker-0.6b",
+      "name": "Qwen3 Reranker 0.6B",
+      "paramsB": 0.6,
+      "role": "rerank",
+      "rank": 1,
+      "license": "Apache-2.0",
+      "strengths": ["multilingual"],
+      "task": "rerank",
+      "pooling": "rank",
+      "released": "2025-06-05",
+      "modelCard": "Qwen/Qwen3-Reranker-0.6B",
+      "summary": "Scores how well each document answers a query, to put the best search results first (/v1/rerank); not a chat model. Its scores run from 0 to 1.",
+      "variants": {
+        "gguf": { "repo": "ggml-org/Qwen3-Reranker-0.6B-Q8_0-GGUF", "quants": ["Q8_0"], "default": "Q8_0" },
+        "mlx": { "repo": "mlx-community/Qwen3-Reranker-0.6B-4bit" }
+      }
+    },
+    {
+      "id": "bge-reranker-v2-m3",
+      "name": "BGE Reranker v2 M3",
+      "paramsB": 0.57,
+      "role": "rerank",
+      "rank": 2,
+      "license": "Apache-2.0",
+      "strengths": ["multilingual"],
+      "task": "rerank",
+      "pooling": "rank",
+      "released": "2024-03-15",
+      "modelCard": "BAAI/bge-reranker-v2-m3",
+      "summary": "A multilingual reranker from BAAI: scores how well each document answers a query (/v1/rerank); not a chat model. Its scores are unscaled: higher is more relevant.",
+      "variants": {
+        "gguf": { "repo": "gpustack/bge-reranker-v2-m3-GGUF", "quants": ["Q8_0", "Q4_K_M"], "default": "Q8_0" }
       }
     }
   ]

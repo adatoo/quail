@@ -83,7 +83,7 @@ final class CancelFlag: @unchecked Sendable {
 
 /// Backend start-up, once per process, and the log filter: llama.cpp is chatty at info level, and the
 /// server's own log is where a user looks, so only warnings and errors get through.
-private enum Backend {
+enum Backend {
     static let started: Void = {
         // The filter goes in first: ggml's Metal set-up logs from `llama_backend_init` itself.
         if ProcessInfo.processInfo.environment["QUAIL_LLAMA_VERBOSE"] == nil {
@@ -337,50 +337,25 @@ final class LlamaRuntime: @unchecked Sendable {
     }
 
     func text(of token: llama_token) -> String {
-        guard token >= 0, let piece = llama_vocab_get_text(vocab, token) else { return "" }
-        return String(cString: piece)
+        LlamaVocab.text(of: token, in: vocab)
     }
 
     // MARK: Text and tokens
 
     func tokenize(_ text: String, addSpecial: Bool, parseSpecial: Bool) throws -> [Int] {
         guard let vocab else { throw EngineError.notLoaded }
-        let bytes = Array(text.utf8)
-        var tokens = [llama_token](repeating: 0, count: max(16, bytes.count / 2 + 8))
-        var count = llama_tokenize(
-            vocab, bytes.map { CChar(bitPattern: $0) }, Int32(bytes.count),
-            &tokens, Int32(tokens.count), addSpecial, parseSpecial
-        )
-        if count < 0, count != .min {
-            tokens = [llama_token](repeating: 0, count: Int(-count))
-            count = llama_tokenize(
-                vocab, bytes.map { CChar(bitPattern: $0) }, Int32(bytes.count),
-                &tokens, Int32(tokens.count), addSpecial, parseSpecial
-            )
-        }
-        guard count >= 0 else { throw EngineError.generationFailed("the text is too long to tokenize") }
-        return tokens.prefix(Int(count)).map(Int.init)
+        return try LlamaVocab.tokenize(text, in: vocab, addSpecial: addSpecial, parseSpecial: parseSpecial)
     }
 
     /// The text of tokens, special tokens included (what llama-server's `/detokenize` returns).
     func detokenize(_ tokens: [Int]) throws -> String {
-        guard vocab != nil else { throw EngineError.notLoaded }
-        var bytes: [UInt8] = []
-        for token in tokens {
-            bytes += piece(of: llama_token(truncatingIfNeeded: token))
-        }
-        return String(decoding: bytes, as: UTF8.self)
+        guard let vocab else { throw EngineError.notLoaded }
+        return LlamaVocab.detokenize(tokens, in: vocab)
     }
 
     /// One token's bytes. A token can be part of a multi-byte character, so this is bytes, not text.
     func piece(of token: llama_token) -> [UInt8] {
-        var buffer = [CChar](repeating: 0, count: 64)
-        var count = llama_token_to_piece(vocab, token, &buffer, Int32(buffer.count), 0, true)
-        if count < 0 {
-            buffer = [CChar](repeating: 0, count: Int(-count))
-            count = llama_token_to_piece(vocab, token, &buffer, Int32(buffer.count), 0, true)
-        }
-        return buffer.prefix(max(0, Int(count))).map { UInt8(bitPattern: $0) }
+        LlamaVocab.piece(of: token, in: vocab)
     }
 
     // MARK: Generation
@@ -613,5 +588,51 @@ struct UTF8Assembler {
             return needed > seen ? seen : 0
         }
         return 0
+    }
+}
+
+/// Text and tokens through a model's vocabulary, for both GGUF engines (chat and embedding).
+enum LlamaVocab {
+    static func text(of token: llama_token, in vocab: OpaquePointer?) -> String {
+        guard token >= 0, let piece = llama_vocab_get_text(vocab, token) else { return "" }
+        return String(cString: piece)
+    }
+
+    static func tokenize(
+        _ text: String, in vocab: OpaquePointer, addSpecial: Bool, parseSpecial: Bool
+    ) throws -> [Int] {
+        let bytes = Array(text.utf8)
+        var tokens = [llama_token](repeating: 0, count: max(16, bytes.count / 2 + 8))
+        var count = llama_tokenize(
+            vocab, bytes.map { CChar(bitPattern: $0) }, Int32(bytes.count),
+            &tokens, Int32(tokens.count), addSpecial, parseSpecial
+        )
+        if count < 0, count != .min {
+            tokens = [llama_token](repeating: 0, count: Int(-count))
+            count = llama_tokenize(
+                vocab, bytes.map { CChar(bitPattern: $0) }, Int32(bytes.count),
+                &tokens, Int32(tokens.count), addSpecial, parseSpecial
+            )
+        }
+        guard count >= 0 else { throw EngineError.generationFailed("the text is too long to tokenize") }
+        return tokens.prefix(Int(count)).map(Int.init)
+    }
+
+    static func detokenize(_ tokens: [Int], in vocab: OpaquePointer) -> String {
+        var bytes: [UInt8] = []
+        for token in tokens {
+            bytes += piece(of: llama_token(truncatingIfNeeded: token), in: vocab)
+        }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    static func piece(of token: llama_token, in vocab: OpaquePointer?) -> [UInt8] {
+        var buffer = [CChar](repeating: 0, count: 64)
+        var count = llama_token_to_piece(vocab, token, &buffer, Int32(buffer.count), 0, true)
+        if count < 0 {
+            buffer = [CChar](repeating: 0, count: Int(-count))
+            count = llama_token_to_piece(vocab, token, &buffer, Int32(buffer.count), 0, true)
+        }
+        return buffer.prefix(max(0, Int(count))).map { UInt8(bitPattern: $0) }
     }
 }

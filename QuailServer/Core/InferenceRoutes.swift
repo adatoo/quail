@@ -2,7 +2,8 @@ import Foundation
 import Jinja
 
 /// The routes that run a model: `/v1/completions` (the benchmark's), `/tokenize`, `/detokenize`
-/// and `/props`. Written once over the `Engine` seam, so GGUF and MLX models answer the same way.
+/// and `/props`, and for models that don't chat `/v1/embeddings` and `/v1/rerank` (`EmbeddingRoutes.swift`).
+/// Written once over the `Engine` seam, so GGUF and MLX models answer the same way.
 struct InferenceRoutes: Sendable {
     let router: ModelRouter
     let log: ServerLog
@@ -25,6 +26,10 @@ struct InferenceRoutes: Sendable {
             await guarded(request, method: "POST", style: .anthropic) { try await countTokens(request) }
         case "/v1/responses", "/responses":
             await guarded(request, method: "POST") { try await responses(request) }
+        case "/v1/embeddings":
+            await guarded(request, method: "POST") { try await embeddings(request) }
+        case "/v1/rerank", "/rerank", "/v1/reranking", "/reranking":
+            await guarded(request, method: "POST") { try await rerank(request) }
         case "/tokenize":
             await guarded(request, method: "POST") { try await tokenize(request) }
         case "/detokenize":

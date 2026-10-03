@@ -272,6 +272,28 @@
       "snippet": "import OpenAI from 'openai';\n\nconst client = new OpenAI({\n  baseURL: '{{baseURL}}/v1',\n  apiKey: '{{apiKey}}',\n});\n\nconst completion = await client.chat.completions.create({\n  model: '{{model}}',\n  messages: [{ role: 'user', content: 'Hello!' }],\n});\nconsole.log(completion.choices[0].message.content);",
       "docsURL": "https://github.com/openai/openai-node",
       "notes": "apiKey must be non-empty even when the server has none."
+    },
+    {
+      "id": "embeddings",
+      "name": "Embeddings",
+      "category": "sdk",
+      "api": "openai-embeddings",
+      "where": "Terminal",
+      "format": "shell",
+      "snippet": "curl {{baseURL}}/v1/embeddings \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Authorization: Bearer {{apiKey}}\" \\\n  -d '{\n    \"model\": \"{{model}}\",\n    \"input\": [\"The first text\", \"The second\"]\n  }'",
+      "docsURL": "https://platform.openai.com/docs/api-reference/embeddings",
+      "notes": "Any OpenAI client's embeddings call works too, with base URL {{baseURL}}/v1: RAG tools, editors' codebase indexing, vector databases. Vectors come back normalized. \"dimensions\" shortens them for models trained for it (Qwen3 Embedding, EmbeddingGemma, Nomic), and \"encoding_format\": \"base64\" sends them as bytes."
+    },
+    {
+      "id": "rerank",
+      "name": "Reranking",
+      "category": "sdk",
+      "api": "rerank",
+      "where": "Terminal",
+      "format": "shell",
+      "snippet": "curl {{baseURL}}/v1/rerank \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Authorization: Bearer {{apiKey}}\" \\\n  -d '{\n    \"model\": \"{{model}}\",\n    \"query\": \"What is the capital of France?\",\n    \"documents\": [\"Paris is the capital of France.\", \"Bananas are yellow.\"],\n    \"top_n\": 1\n  }'",
+      "docsURL": "https://github.com/ggml-org/llama.cpp/tree/master/tools/server#post-reranking-rerank-documents-according-to-a-given-query",
+      "notes": "The answer lists the documents best first, by \"relevance_score\", as Jina's and llama-server's rerank do. Send \"texts\" instead of \"documents\" for TEI's shape. Tools with a Jina or Cohere-style reranker setting can use {{baseURL}}/v1/rerank."
     }
   ]
 }

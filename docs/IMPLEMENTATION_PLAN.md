@@ -274,7 +274,7 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
 Agreed 2026-10-03, after comparing Quail with Nativ: serve the kinds of model Nativ serves, through standard APIs, without a chat, image or audio UI in the app (ADR D-072 narrows D-001). Each step is its own PR, and each updates its row on the compare page (#187).
 
 1. [x] **Model tasks** (#180, D-072): every model is `chat`, `embedding` or `rerank`, from the catalog or its own header and files. The presets say so in llama-server's keys. Only chat models are the default, pinged, benchmarked or offered for chat.
-2. [ ] **`/v1/embeddings` and `/v1/rerank`** (#181) on both engines.
+2. [x] **`/v1/embeddings` and `/v1/rerank`** (#181) on both engines (D-072 amendment): the same vectors as llama-server, to a cosine of 1.0.
 3. [ ] **`/v1/audio/transcriptions`**, with multipart request bodies (#182).
 4. [ ] **`/v1/audio/speech`** (#183).
 5. [ ] **Quail as an MCP server** (#184).

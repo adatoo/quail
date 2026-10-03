@@ -42,8 +42,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "0.73.0"
-    CURRENT_PROJECT_VERSION: "142"
+    MARKETING_VERSION: "0.74.0"
+    CURRENT_PROJECT_VERSION: "143"
     ENABLE_HARDENED_RUNTIME: YES
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_LSUIElement: YES
@@ -256,6 +256,11 @@ targets:
         product: MLXLMCommon
       - package: MLXSwiftLM
         product: MLXVLM
+      # Models that don't chat (ADR D-072): embeddings, and rerankers.
+      - package: MLXSwiftLM
+        product: MLXEmbedders
+      - package: MLXSwiftLM
+        product: MLXRerankers
       - package: SwiftTransformers
         product: Tokenizers
       # A static library doesn't carry its package products to whatever links it.
