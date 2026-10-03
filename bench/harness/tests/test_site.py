@@ -15,7 +15,7 @@ class SiteTests(unittest.TestCase):
                 self.assertTrue(cell["source"].startswith("https://"), (row["feature"], key))
         html = site.features_html(features)
         self.assertEqual(html.count("<tr>"), len(features["row"]) + 1)
-        self.assertEqual(html.count('class="src"'), 4 * len(features["row"]))
+        self.assertEqual(html.count('class="src"'), len(site.COLUMNS) * len(features["row"]))
 
     def test_only_the_marked_block_changes(self):
         page = "<h1>Keep</h1>\n<!-- bench:results -->\nold\n<!-- /bench:results -->\n<p>Keep too</p>"

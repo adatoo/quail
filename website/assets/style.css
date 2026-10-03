@@ -380,7 +380,7 @@ section.band .sub {
   max-width: var(--prose);
 }
 
-/* The comparison page: wider than a docs page, for a five-column table. */
+/* The comparison page: wider than a docs page, for a six-column table. */
 .prose.wide {
   max-width: var(--max);
   padding-top: 32px;

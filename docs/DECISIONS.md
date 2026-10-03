@@ -505,6 +505,11 @@ The report's caveats come from it.
   - **Quality:** Gemma 4 scores a few points lower on Quail on both lanes, in both runs (#152). The other models show no significant difference.
 - **The website** gets these results through PR #131, after the owner has seen the page.
 
+**Amended 2026-10-03 (Nativ, and three more rows):** the feature table adds Nativ 0.3.11 (Blaizzy/nativ, a SwiftUI app around the Python `mlx-vlm` server).
+- **Sources:** each Nativ cell links its repo at tag `v0.3.11`, or, where the behaviour is `mlx-vlm`'s, `mlx-vlm` at `v0.7.4`. Nativ asks for `mlx-vlm>=0.7.0`, and 0.7.4 reached PyPI a minute before Nativ 0.3.11's release build started.
+- **New rows,** for all five projects at the pinned versions: Image generation, Speech (transcription and speech), and MCP. They are where Nativ, oMLX and Rapid-MLX are ahead of Quail. Quail's cells link the issues that plan each one (#182–#186).
+- **Not measured:** Nativ isn't in either lane yet (#188), and the page says so.
+
 ## D-062 · 2026-09-28 · A website: hand-written HTML in `website/`, on GitHub Pages
 
 **Situation:** Quail had no home page, only a README. The owner wants the app to link to one before 1.0, with docs the app's long captions can point at instead of explaining everything in place. They bought `quail-ai.app` and `quail-ai.com`, both on Cloudflare DNS.
