@@ -2327,8 +2327,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
 			requirement = {
-				kind = revision;
-				revision = 0dcfe2f8a7439e576647c0deb9f32cce931d634a;
+				kind = exactVersion;
+				version = 3.32.3;
 			};
 		};
 		CC847FBCAEA00D896F64EE76 /* XCRemoteSwiftPackageReference "swift-jinja" */ = {

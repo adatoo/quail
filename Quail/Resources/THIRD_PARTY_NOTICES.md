@@ -5,15 +5,15 @@ Quail includes the software below. Each project's licence text, and any notice i
 | Component | Version | Licence | Shipped in |
 | --- | --- | --- | --- |
 | EventSource | 1.5.1 | MIT | quail-server (through swift-huggingface) |
-| fmt (inside mlx-swift) | 0.32.2 | MIT with an exception for embedded use | quail-server (through mlx-swift-lm) |
+| fmt (inside mlx-swift) | 0.32.3 | MIT with an exception for embedded use | quail-server (through mlx-swift-lm) |
 | llama.cpp | b11306 | MIT | quail-server and the bundled llama-server |
-| metal-cpp (inside mlx-swift) | 0.32.2 | Apache-2.0 | quail-server (through mlx-swift-lm) |
-| mlx (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
-| mlx-c (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
-| mlx-swift | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
-| mlx-swift-lm | 0dcfe2f8a743 | MIT | quail-server, which also carries adapted copies of some of its model files, one of them from its open pull request #630 (QuailServer/MLX/Models, ADR D-066) |
+| metal-cpp (inside mlx-swift) | 0.32.3 | Apache-2.0 | quail-server (through mlx-swift-lm) |
+| mlx (inside mlx-swift) | 0.32.3 | MIT | quail-server (through mlx-swift-lm) |
+| mlx-c (inside mlx-swift) | 0.32.3 | MIT | quail-server (through mlx-swift-lm) |
+| mlx-swift | 0.32.3 | MIT | quail-server (through mlx-swift-lm) |
+| mlx-swift-lm | 3.32.3 | MIT | quail-server, which also carries adapted copies of some of its model files, one of them from its open pull request #630 (QuailServer/MLX/Models, ADR D-066) |
 | mlx-vlm (the fused GatedDeltaNet kernel's reduction structure) | pull request 2105 (not merged) | MIT | quail-server (adapted, through the Rapid-MLX fused GatedDeltaNet decode kernel) |
-| nlohmann/json (inside mlx-swift) | 0.32.2 | MIT | quail-server (through mlx-swift-lm) |
+| nlohmann/json (inside mlx-swift) | 0.32.3 | MIT | quail-server (through mlx-swift-lm) |
 | Rapid-MLX fused GatedDeltaNet decode kernel | 0.15.2 | Apache-2.0 | quail-server (adapted, in QuailServer/MLX/Models/Qwen35.swift; ADR D-066) |
 | Rapid-MLX model catalog | 0.14.3 | Apache-2.0 | Quail (the MLX model list in Add Model, data only; scripts/import-rapid-mlx, ADR D-058) |
 | Sparkle | 2.10.0 | MIT and the licences of its bundled components (text below) | Quail (the direct-download build only) |
@@ -54,7 +54,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## fmt (inside mlx-swift) 0.32.2
+## fmt (inside mlx-swift) 0.32.3
 
 https://github.com/ml-explore/mlx-swift  
 Licence: MIT with an exception for embedded use
@@ -118,7 +118,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## metal-cpp (inside mlx-swift) 0.32.2
+## metal-cpp (inside mlx-swift) 0.32.3
 
 https://github.com/ml-explore/mlx-swift  
 Licence: Apache-2.0
@@ -328,7 +328,7 @@ Licence: Apache-2.0
    limitations under the License.
 ```
 
-## mlx (inside mlx-swift) 0.32.2
+## mlx (inside mlx-swift) 0.32.3
 
 https://github.com/ml-explore/mlx-swift  
 Licence: MIT
@@ -357,21 +357,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## mlx-c (inside mlx-swift) 0.32.2
+## mlx-c (inside mlx-swift) 0.32.3
 
 https://github.com/ml-explore/mlx-swift  
 Licence: MIT
 
 Licence text: number 4 at the end of this file.
 
-## mlx-swift 0.32.2
+## mlx-swift 0.32.3
 
 https://github.com/ml-explore/mlx-swift  
 Licence: MIT
 
 Licence text: number 4 at the end of this file.
 
-## mlx-swift-lm 0dcfe2f8a743
+## mlx-swift-lm 3.32.3
 
 https://github.com/ml-explore/mlx-swift-lm  
 Licence: MIT
@@ -429,7 +429,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## nlohmann/json (inside mlx-swift) 0.32.2
+## nlohmann/json (inside mlx-swift) 0.32.3
 
 https://github.com/ml-explore/mlx-swift  
 Licence: MIT

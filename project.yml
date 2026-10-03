@@ -31,12 +31,9 @@ packages:
     exactVersion: 1.3.0
   # ADR D-028/D-044: the MLX engine (the quail-server tool only; a static library can't be handed a package's C modules). mlx-swift-lm brings mlx-swift and the
   # model implementations; swift-transformers' Tokenizers reads tokenizer.json from the model folder.
-  # Pinned to a commit on main until a release takes mlx-swift 0.32.2 (MLX 0.32.2): 3.31.4 caps mlx-swift below 0.32,
-  # and MLX 0.31.1 makes a batched decoding step about a third slower (#139, ADR D-044 amendment). #149 tracks moving
-  # to the release; .github/workflows/mlx-release-watch.yml flags it weekly.
   MLXSwiftLM:
     url: https://github.com/ml-explore/mlx-swift-lm
-    revision: 0dcfe2f8a7439e576647c0deb9f32cce931d634a
+    exactVersion: 3.32.3
   SwiftTransformers:
     url: https://github.com/huggingface/swift-transformers
     exactVersion: 1.3.4

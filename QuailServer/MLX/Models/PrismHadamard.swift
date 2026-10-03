@@ -3,6 +3,9 @@
 // (ADR D-066 amendment, D-069): Bonsai 2 27B, PrismML's Hadamard-rotated ternary Qwen3.6 27B
 // (`model_type: prism_hadamard_qwen35`), which the pinned mlx-swift-lm doesn't load.
 //
+// Checked against mlx-swift-lm 3.32.3, the release pinned (2026-09-30): its only changes since 0dcfe2f8a are
+// mlx-swift 0.32.3 and tests, so nothing here changes.
+//
 // Changes from the source:
 // - Built on Quail's own Qwen3.5 copy (`QQwen35Model`, Qwen35.swift) rather than mlx-swift-lm's, so the pack gets
 //   its compiled functions and fused decode kernel. That copy keeps the GatedDeltaNet input projections apart, as

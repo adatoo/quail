@@ -10,6 +10,9 @@
 // - Types are prefixed `Q` so they don't meet mlx-swift-lm's own; the configuration is the library's, which is public.
 // - `filterLMHeadWeights` is package access in MLXLMCommon, so its two lines are here.
 //
+// Checked against mlx-swift-lm 3.32.3, the release pinned (2026-09-30): its only changes since 0dcfe2f8a are
+// mlx-swift 0.32.3 and tests, so nothing here changes.
+//
 // When mlx-swift-lm's pin moves, `MLXModelCopiesTests` fails until the source file has been compared with this one at
 // the new pin and this header names it.
 
