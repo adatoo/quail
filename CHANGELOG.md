@@ -10,6 +10,8 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.72.4] - 2026-10-03
+
 ### Fixed
 
 - **Quail's server starts again on macOS 14, 15 and 26.0–26.3.** Since 0.61.8, it was built against mlx-swift 0.32.2, which uses a system call that only exists from macOS 26.4. On earlier macOS the server stopped at launch, before serving anything. It now builds against mlx-swift 0.32.3, through mlx-swift-lm 3.32.3, its first release to take it. That puts the pin back on a release (#149, ADR D-044 amendment). Speeds are unchanged.
