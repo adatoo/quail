@@ -81,14 +81,22 @@ struct InferenceRoutes: Sendable {
     }
 
     /// The model a request names: `model` in the body, or `?model=` for the GET routes. A router
-    /// has no default, so a request that names none is refused (llama-server's behaviour).
-    func modelID(body: Value?, request: HTTPRequest) async throws -> String {
+    /// has no default, so a request that names none is refused (llama-server's behaviour). A model of
+    /// another task than the route's is refused too, naming the route that serves it (ADR D-072); `task`
+    /// nil takes a model of any task (`/tokenize`, `/props`).
+    func modelID(body: Value?, request: HTTPRequest, task: ModelTask? = .chat) async throws -> String {
         var id = body?["model"]?.stringValue
         if id == nil, let query = URLComponents(string: request.target)?.queryItems {
             id = query.first { $0.name == "model" }?.value
         }
         guard let id, !id.isEmpty else { throw RequestError.invalid("model name is missing from the request") }
-        guard await router.snapshot(id) != nil else { throw RequestError.invalid("model '\(id)' not found") }
+        guard let snapshot = await router.snapshot(id) else { throw RequestError.invalid("model '\(id)' not found") }
+        if let task, snapshot.entry.task != task {
+            let actual = snapshot.entry.task
+            throw RequestError.invalid(
+                "model '\(id)' is \(actual.noun), not \(task.noun): send it to \(actual.route)"
+            )
+        }
         return id
     }
 
@@ -551,7 +559,7 @@ struct InferenceRoutes: Sendable {
 
     private func tokenize(_ request: HTTPRequest) async throws -> HTTPResponse {
         let body = try jsonBody(request)
-        let id = try await modelID(body: body, request: request)
+        let id = try await modelID(body: body, request: request, task: nil)
         guard let content = body["content"]?.stringValue else { return .json(200, ["tokens": [Int]()]) }
         let addSpecial = body["add_special"]?.boolValue ?? false
         let parseSpecial = body["parse_special"]?.boolValue ?? true
@@ -573,7 +581,7 @@ struct InferenceRoutes: Sendable {
 
     private func detokenize(_ request: HTTPRequest) async throws -> HTTPResponse {
         let body = try jsonBody(request)
-        let id = try await modelID(body: body, request: request)
+        let id = try await modelID(body: body, request: request, task: nil)
         let tokens = body["tokens"]?.arrayValue?.compactMap(\.intValue) ?? []
         return try await router.withEngine(id) { engine in
             try await HTTPResponse.json(200, ["content": engine.detokenize(tokens)])
@@ -598,7 +606,7 @@ struct InferenceRoutes: Sendable {
             ]
             return Self.json(overview)
         }
-        let id = try await modelID(body: nil, request: request)
+        let id = try await modelID(body: nil, request: request, task: nil)
         let snapshot = await router.snapshot(id)
         return try await router.withEngine(id) { engine in
             let info = await engine.info()

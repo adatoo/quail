@@ -23,6 +23,7 @@ struct RouteHarness {
     let world = ScriptedWorld()
 
     init(
+        entries: [ModelEntry] = [.fake("Alpha")],
         pieces: [String] = ["Hello", "!"],
         template: String? = RouteHarness.template("qwen3"),
         apiKey: String? = nil,
@@ -36,7 +37,7 @@ struct RouteHarness {
         let world = world
         let log = ServerLog(toStandardError: false)
         let router = ModelRouter(
-            entries: [.fake("Alpha")],
+            entries: entries,
             modelsMax: 1,
             makeEngine: { _ in
                 var engine = ScriptedEngine(world: world)

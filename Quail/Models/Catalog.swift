@@ -40,6 +40,13 @@ struct Catalog: Sendable, Equatable {
         /// What the model is good for, as the catalog curates it — raw strings, like `role`, so a
         /// remote catalog can add one; `ModelStrength.strengths(of:)` reads them (ADR D-052).
         var strengths: [String] = []
+        /// What the model is for (ADR D-072), as the catalog says: "chat" when absent. A raw string like `role`, so
+        /// a remote catalog can name a task this app doesn't serve yet; `task` is then nil and the family isn't
+        /// offered.
+        var taskName: String?
+        /// An embedding model's pooling, when its header doesn't say (llama.cpp's `--pooling`: mean, cls, last,
+        /// rank).
+        var pooling: String?
         var gguf: GGUFVariant?
         var mlx: MLXVariant?
         var isCurated: Bool
@@ -60,6 +67,11 @@ struct Catalog: Sendable, Equatable {
         var quailScores: QuailScores?
         /// Why it has no Quail scores ("It always thinks…"), or a caveat shown beside them.
         var quailNote: String?
+
+        /// nil for a task this version of Quail can't serve.
+        var task: ModelTask? {
+            taskName.map { ModelTask(rawValue: $0) } ?? .chat
+        }
 
         /// A repo the user pasted, as opposed to one a catalog lists.
         var isUserAdded: Bool {
@@ -203,6 +215,8 @@ struct Catalog: Sendable, Equatable {
             var rank: Int?
             var license: String?
             var strengths: [String]?
+            var task: String?
+            var pooling: String?
             var released: String?
             var modelCard: String?
             var summary: String?
@@ -273,6 +287,8 @@ struct Catalog: Sendable, Equatable {
                         rank: raw.rank,
                         license: raw.license,
                         strengths: raw.strengths ?? [],
+                        taskName: raw.task,
+                        pooling: raw.pooling,
                         gguf: raw.variants.gguf.map { GGUFVariant(
                             repo: $0.repo,
                             quants: $0.quants,

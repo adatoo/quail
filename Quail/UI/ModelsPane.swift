@@ -693,7 +693,7 @@ private struct ModelRow: View {
                                 NSPasteboard.general.setString(entry.id, forType: .string)
                             }
                             Button("Model Settings…") { showSettings = true }
-                            if servable {
+                            if servable, entry.modelTask == .chat {
                                 Button("Benchmark…", action: onBenchmark)
                             }
                             Divider()
@@ -717,6 +717,13 @@ private struct ModelRow: View {
                 }
                 HStack(spacing: 10) {
                     Badge(text: entry.format == .gguf ? "GGUF" : "MLX", color: entry.format == .gguf ? .blue : .purple)
+                    if entry.modelTask != .chat {
+                        // Not a chat model (ADR D-072): what it's for, and where it's served.
+                        Badge(text: entry.modelTask.label, color: .teal)
+                            .help(entry.modelTask == .rerank
+                                ? "Scores documents against a query at /v1/rerank — not a chat model."
+                                : "Turns text into vectors at /v1/embeddings — not a chat model.")
+                    }
                     Text(ByteCountFormatter.string(fromByteCount: entry.bytes, countStyle: .file))
                         .monospacedDigit()
                     // What the settings popover changes, and a way into it.
@@ -781,7 +788,8 @@ private struct ModelRow: View {
             }
             // Usable while stopped (unlike Load) — it just sets what gets written into presets.ini on the next
             // Start, for a model the chosen runtime serves.
-            if servable {
+            // The default is the model chat and coding tools get, so only a chat model can be it.
+            if servable, entry.modelTask == .chat {
                 Button(action: onToggleDefault) {
                     Image(systemName: isDefault ? "star.fill" : "star")
                         .foregroundStyle(isDefault ? .yellow : .secondary)

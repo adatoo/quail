@@ -470,7 +470,8 @@ extension WebUI {
     async function refreshModels() {
       try {
         const res = await api("/v1/models");
-        models = (await res.json()).data || [];
+        // Only models that chat: an embedding or reranking model can't answer here (ADR D-072).
+        models = ((await res.json()).data || []).filter((m) => !m.task || m.task === "chat");
         const previous = els.model.value;
         els.model.replaceChildren();
         for (const model of models) {

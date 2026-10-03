@@ -54,6 +54,12 @@ public struct ModelEntry: Equatable, Sendable {
     /// llama.cpp's flash attention (`flash-attn`: on, off or auto); nil leaves it to llama.cpp, which a quantized
     /// V cache needs on.
     public var flashAttention: Bool?
+    /// What the model is for (ADR D-072): the preset's `embeddings`/`reranking`, or for an MLX folder without
+    /// one, what its files say (`MLXEmbeddingDetector`). A GGUF without a preset is taken for a chat model, as
+    /// llama-server takes it.
+    public var task: ModelTask = .chat
+    /// An embedding model's pooling (`pooling`); nil takes the model's own.
+    public var pooling: PoolingType?
 
     /// Bits per element for an MLX KV cache, which quantizes keys and values alike: set only when both are
     /// quantized, to the larger of the two.
@@ -81,6 +87,11 @@ enum ModelDiscovery {
         "cache-type-k",
         "cache-type-v",
         "flash-attn",
+        "embedding",
+        "embeddings",
+        "reranking",
+        "rerank",
+        "pooling",
     ]
 
     /// Scans the model folders, then lays the presets over the result. A preset
@@ -125,7 +136,9 @@ enum ModelDiscovery {
                 where fm.fileExists(atPath: directory.appendingPathComponent("config.json").path)
             {
                 let id = directory.lastPathComponent
-                byID[id] = ModelEntry(id: id, kind: .mlx, path: directory, createdAt: modificationDate(directory))
+                var entry = ModelEntry(id: id, kind: .mlx, path: directory, createdAt: modificationDate(directory))
+                entry.task = MLXEmbeddingDetector.task(of: directory)
+                byID[id] = entry
             }
         }
 
@@ -134,12 +147,16 @@ enum ModelDiscovery {
             if let path = preset.string("model") {
                 let url = URL(fileURLWithPath: path)
                 let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
-                entry = byID[preset.id] ?? ModelEntry(
+                let scanned = byID[preset.id]
+                entry = scanned ?? ModelEntry(
                     id: preset.id,
                     kind: isDirectory ? .mlx : .gguf,
                     path: url,
                     createdAt: modificationDate(url)
                 )
+                if scanned?.path != url {
+                    entry.task = isDirectory ? MLXEmbeddingDetector.task(of: url) : .chat
+                }
                 entry.path = url
                 entry.kind = isDirectory ? .mlx : .gguf
             } else if let scanned = byID[preset.id] {
@@ -169,6 +186,20 @@ enum ModelDiscovery {
                     entry[keyPath: path] = type == .f16 ? nil : type
                 } else {
                     unknownValues.append("\(key)=\(text)")
+                }
+            }
+            // llama-server's keys, under either of its spellings (`--embedding`/`--embeddings`, `--rerank`/
+            // `--reranking`); a reranker pools with its classification head unless the preset says otherwise.
+            if preset.bool("reranking") ?? preset.bool("rerank") ?? false {
+                entry.task = .rerank
+            } else if let embedding = preset.bool("embeddings") ?? preset.bool("embedding") {
+                entry.task = embedding ? .embedding : .chat
+            }
+            if let text = preset.string("pooling") {
+                if let pooling = PoolingType(rawValue: text.lowercased()) {
+                    entry.pooling = pooling
+                } else {
+                    unknownValues.append("pooling=\(text)")
                 }
             }
             if let flash = preset.string("flash-attn")?.lowercased() {

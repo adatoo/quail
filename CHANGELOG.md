@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.73.0] - 2026-10-03
+
+### Added
+
+- **Quail knows which models don't chat.** Embedding and reranking models are recognised from the catalog, or from the model itself: a GGUF's header (`pooling_type`, a classifier) or an MLX folder's sentence-transformers files (ADR D-072).
+  - The Models page labels them "Embeddings" or "Reranking". They can't be the default model, and Ping, Benchmark, Connect and the chat page pass over them.
+  - Add Model lists them in a section of their own, "For Search: Embeddings and Reranking", and recommendations stay chat models.
+  - `presets.ini` marks them with llama-server's own keys (`embeddings`, `reranking`, `pooling`). On llama-server, a GGUF embedding model now answers `/v1/embeddings`. Quail's server serves them in the next release (#181).
+  - Quail's server lists each model's `task` in `/v1/models`. A chat request sent to an embedding model is refused with a message that names the route to use.
+
 ## [0.72.4] - 2026-10-03
 
 ### Fixed

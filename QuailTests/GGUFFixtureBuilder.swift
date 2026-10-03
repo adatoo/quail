@@ -45,6 +45,11 @@ struct GGUFFixtureBuilder {
         }))
     }
 
+    /// A `bool`, as `<arch>.attention.causal` is written.
+    mutating func addBool(_ key: String, _ value: Bool) {
+        keys.append((key, 7, { Data([value ? 1 : 0]) }))
+    }
+
     /// A `uint32` array, for exercising the "array stands in for a
     /// scalar" and "skip an array we don't care about" paths.
     mutating func addUInt32Array(_ key: String, _ values: [UInt32]) {

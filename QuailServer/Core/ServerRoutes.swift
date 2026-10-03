@@ -247,7 +247,7 @@ private struct ModelJSON: Encodable {
 
     struct Architecture: Encodable {
         let inputModalities: [String]
-        let outputModalities = ["text"]
+        let outputModalities: [String]
 
         enum CodingKeys: String, CodingKey {
             case inputModalities = "input_modalities"
@@ -266,6 +266,9 @@ private struct ModelJSON: Encodable {
     let source: String
     /// `gguf` or `mlx`, which the chat page uses to show which settings apply (not in llama-server's list).
     let format: String
+    /// `chat`, `embedding` or `rerank` (ADR D-072; not in llama-server's list): the chat page and the app's Ping
+    /// leave out models that can't chat.
+    let task: String
     let canRemove = false
     /// Quail's own additions for the chat page's picker (not in llama-server's list): bytes on disk, the
     /// context it loads with, and whether it loads at startup (the app's default model).
@@ -276,7 +279,7 @@ private struct ModelJSON: Encodable {
     enum CodingKeys: String, CodingKey {
         case id, aliases, tags, object
         case ownedBy = "owned_by"
-        case created, status, architecture, source, format
+        case created, status, architecture, source, format, task
         case canRemove = "can_remove"
         case sizeBytes = "size_bytes"
         case contextSize = "context_size"
@@ -291,7 +294,16 @@ private struct ModelJSON: Encodable {
         sizeBytes = snapshot.entry.sizeBytes
         contextSize = snapshot.entry.contextSize
         loadOnStartup = snapshot.entry.loadOnStartup
-        architecture = Architecture(inputModalities: snapshot.entry.supportsImages ? ["text", "image"] : ["text"])
+        task = snapshot.entry.task.rawValue
+        let output = switch snapshot.entry.task {
+        case .chat: ["text"]
+        case .embedding: ["embedding"]
+        case .rerank: ["score"]
+        }
+        architecture = Architecture(
+            inputModalities: snapshot.entry.supportsImages ? ["text", "image"] : ["text"],
+            outputModalities: output
+        )
         // llama-server reports a failed load as "unloaded" plus `failed`, which
         // is what `ServedModel` decodes.
         switch snapshot.state {

@@ -143,19 +143,32 @@ struct ModelStore: Sendable, Equatable {
     /// resulting `FitEstimator.automaticContextSize` is stored as the
     /// row's `contextSize` (ADR D-020) — what `presets.ini` uses unless the
     /// user picked a size (`userContextSize`, never touched here).
+    ///
+    /// Each row's task (ADR D-072) comes from the catalog family it was downloaded as, when `families` lists it,
+    /// or else from the model's own header or files (`ModelTask.detected`).
     func refreshedCatalog(
         device: DeviceInfo,
         ggufRuntime: RuntimeID,
         bandwidthTable _: [String: Double],
+        families: [Catalog.Family] = [],
         now: Date = .init()
     ) -> StoreCatalog {
         var result = loadCatalog()
         var remaining: Set<String> = Set(result.entries.map(\.id))
+        let familiesByID = Dictionary(families.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        func applyTask(_ detected: (task: ModelTask, pooling: String?)?, to id: String) {
+            guard let index = result.entries.firstIndex(where: { $0.id == id }) else { return }
+            let curated = result.entries[index].family.flatMap { familiesByID[$0] }
+            let task = curated?.task ?? detected?.task ?? .chat
+            result.entries[index].task = task == .chat ? nil : task.rawValue
+            result.entries[index].pooling = task == .chat ? nil : curated?.pooling ?? detected?.pooling
+        }
 
         for file in installedGGUFFiles() {
             let id = file.deletingPathExtension().lastPathComponent
             let bytes = fileSize(of: file)
-            let shape = (try? GGUFMetadata.read(from: file)).flatMap { ModelShape.from(gguf: $0, weightBytes: bytes) }
+            let metadata = try? GGUFMetadata.read(from: file)
+            let shape = metadata.flatMap { ModelShape.from(gguf: $0, weightBytes: bytes) }
             let kvCache = result.entries.first { $0.id == id }?.effectiveKVCache ?? .full
             let contextSize = shape.flatMap {
                 FitEstimator.automaticContextSize(model: $0, device: device, runtime: ggufRuntime, kvCache: kvCache)
@@ -173,6 +186,7 @@ struct ModelStore: Sendable, Equatable {
                     )
                 )
             }
+            applyTask(metadata.flatMap(ModelTask.detected(in:)), to: id)
         }
 
         for directory in installedMLXDirectories() {
@@ -199,6 +213,7 @@ struct ModelStore: Sendable, Equatable {
                     )
                 )
             }
+            applyTask(ModelTask.detected(inMLXDirectory: directory).map { ($0, nil) }, to: id)
         }
 
         result.entries.removeAll { remaining.contains($0.id) }
@@ -315,6 +330,7 @@ struct ModelStore: Sendable, Equatable {
                 ini += "mmproj = \(projector.path)\n"
             }
             ini += Self.kvCacheLines(entry?.effectiveKVCache ?? .full, flashAttention: true)
+            ini += (entry?.modelTask ?? .chat).presetLines(pooling: entry?.pooling)
             if alias == defaultModelID {
                 ini += "load-on-startup = true\n"
             }
@@ -330,6 +346,7 @@ struct ModelStore: Sendable, Equatable {
                     ini += "ctx-size = \(contextSize)\n"
                 }
                 ini += Self.kvCacheLines(entry?.effectiveKVCache ?? .full, flashAttention: false)
+                ini += (entry?.modelTask ?? .chat).presetLines(pooling: entry?.pooling)
                 if id == defaultModelID {
                     ini += "load-on-startup = true\n"
                 }

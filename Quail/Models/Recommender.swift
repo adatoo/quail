@@ -10,8 +10,8 @@ import Foundation
 enum Recommender {
     /// Roles that "recommended" doesn't mean, even if they'd otherwise
     /// land in a machine's tier — a 0.6B smoke-test model is never what
-    /// a user browsing for a general model wants, and an embedding model
-    /// isn't something Quail's router serves for chat.
+    /// a user browsing for a general model wants. Models that don't chat
+    /// (embedding, reranking; ADR D-072) are left out by their task.
     private static let excludedRoles: Set<String> = ["smoke-test", "embedding"]
 
     /// At most this many recommendations — the full list is right below.
@@ -38,7 +38,7 @@ enum Recommender {
         return catalog.families
             .filter(\.isCurated)
             .filter { family in formats.contains { family.repo(for: $0) != nil } }
-            .filter { !excludedRoles.contains($0.role ?? "") }
+            .filter { !excludedRoles.contains($0.role ?? "") && $0.task == .chat }
             .filter { family in
                 guard let params = family.paramsB else { return false }
                 return params <= maxParams

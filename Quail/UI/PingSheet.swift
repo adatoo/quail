@@ -69,7 +69,8 @@ struct PingSheet: View {
             runtime: appState.runtime,
             base: base,
             apiKey: appState.serverController.apiKey,
-            preferredModelID: appState.config.defaultModelID
+            preferredModelID: appState.config.defaultModelID,
+            nonChatModelIDs: Set(appState.modelStore.loadCatalog().entries.filter { $0.modelTask != .chat }.map(\.id))
         )
         self.runner = runner
         await runner.run()

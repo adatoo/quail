@@ -82,6 +82,13 @@ struct Health: Sendable, Equatable, Decodable {
 struct ServedModel: Sendable, Equatable, Identifiable, Decodable {
     let id: String
     let status: Status
+    /// quail-server's own (ADR D-072): `chat`, `embedding` or `rerank`. llama-server doesn't say.
+    var task: String? = nil
+
+    /// Whether it can answer a chat request, as far as the server says.
+    var isChatModel: Bool {
+        (task ?? "chat") == "chat"
+    }
 
     struct Status: Sendable, Equatable, Decodable {
         /// One of "unloaded" | "loading" | "loaded" | "downloading" |

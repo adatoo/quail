@@ -45,7 +45,7 @@ Smoke test after any change to Server/ or Runtimes/: place a small GGUF in the s
 
 ## Things not to do
 
-- Don't add a chat window to the app, an agent mode, or image/audio features. Link to the runtime's web UI instead; `quail-server` serves one small page of its own at `/` (D-042), and it stays small.
+- Don't add a chat window to the app, an agent mode, or an image or audio UI. Link to the runtime's web UI instead; `quail-server` serves one small page of its own at `/` (D-042), and it stays small. Serving other kinds of model through standard APIs (embeddings, reranking, and later speech and images) is in scope; the app only downloads and manages them (D-072).
 - Don't bundle Python or wheels.
 - Don't write outside `Application Support/Quail`, `Logs/Quail`, and the user-chosen model store.
 - Don't commit `Vendor/`, signing identities, or `.p12` files.

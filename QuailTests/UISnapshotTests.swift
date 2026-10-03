@@ -26,6 +26,11 @@ struct UISnapshotTests {
         for name in ["Qwen3-8B-Q4_K_M", "Qwen3.6-35B-A3B-UD-Q4_K_M"] {
             try Data(repeating: 0, count: 1024).write(to: models.appendingPathComponent("gguf/\(name).gguf"))
         }
+        // An embedding model, known by its header (ADR D-072).
+        var embedder = GGUFFixtureBuilder()
+        embedder.addString("general.architecture", "nomic-bert")
+        embedder.addUInt32("nomic-bert.pooling_type", 1)
+        try embedder.write(to: models.appendingPathComponent("gguf/nomic-embed-text-v1.5.f16.gguf"), minBytes: 4096)
         let mlx = models.appendingPathComponent("mlx/mlx-community--Qwen3-8B-4bit", isDirectory: true)
         try FileManager.default.createDirectory(at: mlx, withIntermediateDirectories: true)
         try Data(#"{"model_type":"qwen3"}"#.utf8).write(to: mlx.appendingPathComponent("config.json"))

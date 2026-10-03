@@ -19,7 +19,7 @@ Quail is a Postgres.app for local LLM servers: a menu bar item that starts a run
 
 **Out of scope (v1)**
 
-- Chat, agents, image or audio generation — the runtimes' own web UIs are linked instead
+- A chat, agent, image or audio UI in the app — the runtimes' own web UIs are linked instead. Serving those models through standard APIs is in scope (D-072): embeddings and reranking now, speech and images later.
 - Running more than one runtime concurrently
 - Linux or Intel Macs; Apple Silicon only
 - Mac App Store publication (D-053)
@@ -81,7 +81,7 @@ protocol Runtime: Sendable {
 
 llama.cpp is bundled and always available; oMLX and Rapid-MLX are optional installs. Each adapter is a few hundred lines mapping the `Runtime` protocol onto that runtime's flags and endpoints.
 
-Phase 3 replaces the vendored `llama-server` with a server Quail builds and ships itself: **`quail-server`**, one child-process binary with two engines behind an `Engine` protocol — `libllama` (from llama.cpp's own xcframework release asset) for GGUF and Apple's `mlx-swift-lm` for MLX safetensors. The router (load/unload/`modelsMax`), chat-template rendering (swift-jinja, one renderer for both formats), tool-call parsing, `/v1/chat/completions`, `/v1/messages`, `/v1/responses`, `/tokenize`, `timings` and one small web page of our own (D-042) are written once and shared. It keeps the llama-server API shapes, so `Runtime`, the benchmark, `quail chat` and every Connect snippet work unchanged. See ADR D-027 (why this superseded D-014's separate MLX server, with the spike evidence) and D-028 (dependencies and build requirements). The vendored `llama-server` stays the default until `quail-server` passes the parity gate in Phase 3 step 7; the table below describes it, along with the two uv-installed Python runtimes (oMLX, Rapid-MLX), which are deferred until a benchmark shows they earn their place.
+Phase 3 replaces the vendored `llama-server` with a server Quail builds and ships itself: **`quail-server`**, one child-process binary with two engines behind an `Engine` protocol — `libllama` (from llama.cpp's own xcframework release asset) for GGUF and Apple's `mlx-swift-lm` for MLX safetensors. The router (load/unload/`modelsMax`), chat-template rendering (swift-jinja, one renderer for both formats), tool-call parsing, `/v1/chat/completions`, `/v1/messages`, `/v1/responses`, `/v1/embeddings` and `/v1/rerank` (D-072), `/tokenize`, `timings` and one small web page of our own (D-042) are written once and shared. It keeps the llama-server API shapes, so `Runtime`, the benchmark, `quail chat` and every Connect snippet work unchanged. See ADR D-027 (why this superseded D-014's separate MLX server, with the spike evidence) and D-028 (dependencies and build requirements). The vendored `llama-server` stays the default until `quail-server` passes the parity gate in Phase 3 step 7; the table below describes it, along with the two uv-installed Python runtimes (oMLX, Rapid-MLX), which are deferred until a benchmark shows they earn their place.
 
 | | llama.cpp `llama-server` | oMLX | Rapid-MLX |
 | --- | --- | --- | --- |

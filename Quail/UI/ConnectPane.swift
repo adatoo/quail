@@ -64,7 +64,7 @@ struct ConnectPane: View {
         _ = appState.storeRevision // re-read when the store changes
         // The store's catalog, not a GGUF scan, so MLX models are offered too.
         return appState.modelStore.loadCatalog().entries
-            .filter { appState.canServe($0.format) }
+            .filter { appState.canServe($0.format) && $0.modelTask == .chat }
             .map(\.id)
     }
 

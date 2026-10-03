@@ -80,9 +80,9 @@ enum ModelFacts {
 
     static let quailMethodURL = URL(string: "https://quail-ai.app/docs/models.html#scores")!
 
-    /// Whether "not publicly ranked" is worth saying: an embedding model or a smoke test isn't a chat model, so
-    /// the text leaderboard was never going to list it.
+    /// Whether "not publicly ranked" is worth saying: an embedding or reranking model, or a smoke test, isn't a
+    /// chat model, so the text leaderboard was never going to list it.
     static func expectsRanking(_ family: Catalog.Family) -> Bool {
-        family.isCurated && !["embedding", "smoke-test"].contains(family.role ?? "")
+        family.isCurated && family.task == .chat && !["embedding", "smoke-test"].contains(family.role ?? "")
     }
 }
