@@ -1,8 +1,8 @@
 import Foundation
 
 /// The Connect tab's Test button: one tiny real request over the API the
-/// tool will actually use — `/v1/chat/completions`, `/v1/responses` or the
-/// Anthropic-style `/v1/messages` — with the exact base URL, key and model
+/// tool will actually use — `/v1/chat/completions`, `/v1/responses`, the
+/// Anthropic-style `/v1/messages`, `/v1/embeddings` or `/v1/rerank` — with the exact base URL, key and model
 /// the snippet shows. A pass means the snippet's values work, not just that
 /// the server is up.
 enum ConnectionTester {
@@ -29,6 +29,12 @@ enum ConnectionTester {
             request = URLRequest(url: values.baseURL.appending(path: "v1/messages"))
             body = ["model": values.model, "max_tokens": 1, "messages": [["role": "user", "content": "Hi"]]]
             request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        case .openAIEmbeddings:
+            request = URLRequest(url: values.baseURL.appending(path: "v1/embeddings"))
+            body = ["model": values.model, "input": "Hi"]
+        case .rerank:
+            request = URLRequest(url: values.baseURL.appending(path: "v1/rerank"))
+            body = ["model": values.model, "query": "Hi", "documents": ["Hello"]]
         }
         request.httpMethod = "POST"
         request.timeoutInterval = 120 // a first request may load the model

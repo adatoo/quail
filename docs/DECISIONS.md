@@ -27,6 +27,23 @@ Every model now has a **task**: `chat`, `embedding` or `rerank`.
 
 **Revisit if:** a model of one task needs another (an embedding model that also chats), or speech and image models need a field the presets can't carry.
 
+**Amended 2026-10-03 (serving them, #181):** `quail-server` serves `/v1/embeddings` and `/v1/rerank` (also at `/rerank`, `/v1/reranking` and `/reranking`) for both formats, through an `EmbeddingEngine` beside the chat engines. `main.swift` picks it by the model's task.
+- **GGUF (`LlamaEmbeddingEngine`):**
+  - libllama's embedding mode, as llama-server's `--embeddings` and `--reranking` use it, with the preset's pooling or the model's own.
+  - Inputs are packed into as few forward passes as fit, each input its own sequence, and read back with `llama_get_embeddings_seq`.
+  - One pass holds a whole input (`n_ubatch` = `n_batch` = the context, 8,192 tokens unless the preset says), because an encoder can't split one. An input longer than that is a 400.
+  - A reranker joins query and document as llama-server does: the GGUF's own `rerank` template, or else `[BOS] query [EOS] [SEP] document [EOS]`. Its score is the ranking head's first output, unscaled.
+- **MLX (`MLXEmbeddingEngine`):**
+  - mlx-swift-lm's `MLXEmbedders` and `MLXRerankers` products, from the release already pinned, so there's no new package.
+  - Inputs run one at a time, with no padding, because padding needs a mask every family reads the same way.
+  - A model that pools itself (EmbeddingGemma) gives its own vector.
+  - MLX downloads are flat, so `1_Pooling/config.json` isn't fetched. The catalog's `pooling` covers the families that need one.
+- **Shapes and defaults are llama-server's:**
+  - OpenAI's embeddings response. Vectors are L2-normalized unless `embd_normalize: -1`. `encoding_format: base64` sends float32 bytes. `dimensions` cuts the vector and normalizes it again.
+  - Rerank answers in Jina's shape (`relevance_score`, best first, `top_n`), or as TEI's bare array when sent `texts`.
+- **Checked:** against llama-server b11306 on the same GGUF files, the vectors were the same to a cosine of 1.0 (nomic-embed v1.5 Q4_0, Qwen3-Embedding 0.6B Q8_0), and the rerank scores agreed to 4e-4 (bge-reranker-v2-m3, Qwen3-Reranker 0.6B). On MLX, Qwen3-Embedding 0.6B at 8-bit matched the GGUF Q8_0 to a cosine of 0.9995; the `mxfp8` build only to 0.975, so the catalog offers the 8-bit one. Qwen3-Reranker 0.6B (MLX, 4-bit) ranked the same documents in the same order.
+- **Catalog:** Qwen3 Embedding 0.6B and EmbeddingGemma 300M (GGUF and MLX), Qwen3 Reranker 0.6B (GGUF and MLX), and BGE Reranker v2 M3 (GGUF). Connect has Embeddings and Reranking entries with a Test button.
+
 ## D-065 · 2026-10-02 · `quail eval tools`: a quick check that tool calling works
 
 **Decision:** `quail eval tools [model] [--url URL] [--api-key KEY] [--json]` sends 16 hand-written tool-calling requests (`ToolEval`, `Shared/ToolEval.swift`, suite `quail-tools-1`) to Quail's server, or to any OpenAI-compatible one with `--url`, and checks each reply:

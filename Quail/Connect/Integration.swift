@@ -27,6 +27,18 @@ struct Integration: Sendable, Equatable, Identifiable, Decodable {
         case openAIChat = "openai-chat"
         case openAIResponses = "openai-responses"
         case anthropic
+        /// `/v1/embeddings` and `/v1/rerank` (ADR D-072), for an embedding or reranking model.
+        case openAIEmbeddings = "openai-embeddings"
+        case rerank
+
+        /// The kind of model the API needs, so the model picker offers only those.
+        var task: ModelTask {
+            switch self {
+            case .openAIChat, .openAIResponses, .anthropic: .chat
+            case .openAIEmbeddings: .embedding
+            case .rerank: .rerank
+            }
+        }
     }
 
     enum Format: String, Sendable, Decodable {

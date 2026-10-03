@@ -52,7 +52,14 @@ struct ConnectPane: View {
                 model = appState.config.defaultModelID ?? installedModels.first ?? ""
             }
         }
-        .onChange(of: selectedID) { _, _ in testOutcome = nil }
+        .onChange(of: selectedID) { _, _ in
+            testOutcome = nil
+            // Embeddings and reranking take another kind of model than chat (ADR D-072).
+            if !installedModels.contains(model) {
+                model = installedModels.contains(appState.config.defaultModelID ?? "")
+                    ? appState.config.defaultModelID ?? "" : installedModels.first ?? ""
+            }
+        }
         .onChange(of: model) { _, _ in testOutcome = nil }
     }
 
@@ -60,12 +67,22 @@ struct ConnectPane: View {
         Self.integrations.first { $0.id == selectedID }
     }
 
+    /// The models the chosen tool can use: chat models, or for embeddings and reranking those kinds.
     private var installedModels: [String] {
         _ = appState.storeRevision // re-read when the store changes
+        let task = selected?.api.task ?? .chat
         // The store's catalog, not a GGUF scan, so MLX models are offered too.
         return appState.modelStore.loadCatalog().entries
-            .filter { appState.canServe($0.format) && $0.modelTask == .chat }
+            .filter { appState.canServe($0.format) && $0.modelTask == task }
             .map(\.id)
+    }
+
+    private static func noModelsText(for task: ModelTask) -> String {
+        switch task {
+        case .chat: "No models installed."
+        case .embedding: "No embedding model installed."
+        case .rerank: "No reranking model installed."
+        }
     }
 
     /// The context `model` will run at (what presets.ini says).
@@ -102,7 +119,7 @@ struct ConnectPane: View {
                 if installedModels.isEmpty {
                     LabeledContent("Model") {
                         HStack {
-                            Text("No models installed.").foregroundStyle(.secondary)
+                            Text(Self.noModelsText(for: integration.api.task)).foregroundStyle(.secondary)
                             Button("Add Model…") {
                                 appState.addModelRequested = true
                                 appState.mainPage = .models
@@ -310,6 +327,8 @@ private extension Integration.API {
         case .openAIChat: "OpenAI Chat Completions"
         case .openAIResponses: "OpenAI Responses"
         case .anthropic: "Anthropic Messages"
+        case .openAIEmbeddings: "OpenAI Embeddings"
+        case .rerank: "Rerank (Jina and TEI)"
         }
     }
 }

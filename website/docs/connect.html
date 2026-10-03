@@ -76,6 +76,7 @@ quail launch opencode -- run "fix the tests"   # arguments after -- go to the to
   <tr><td>Continue, Zed</td><td>OpenAI Chat Completions</td><td></td></tr>
   <tr><td>Open WebUI, LibreChat</td><td>OpenAI Chat Completions</td><td></td></tr>
   <tr><td>curl, Python, JavaScript</td><td>OpenAI Chat Completions</td><td></td></tr>
+  <tr><td>Embeddings, Reranking</td><td>OpenAI Embeddings, Rerank</td><td>An embedding or reranking model</td></tr>
 </table>
 <p>If a model's context is smaller than a tool needs, the Connect page says so; raise it in the model's settings (see <a href="models.html#settings">Models</a>) and restart the server.</p>
 
@@ -91,6 +92,18 @@ quail launch opencode -- run "fix the tests"   # arguments after -- go to the to
   -H "Content-Type: application/json" \
   -d '{"model": "Qwen3-8B-Q4_K_M", "messages": [{"role": "user", "content": "Hello"}]}'</code></pre>
 <p>The address and key are on the Server page, and <code>quail config --show-key</code> prints them.</p>
+
+<h2 id="embeddings">Embeddings and reranking</h2>
+<p>For search and retrieval (RAG), editors that index your code, and memory tools, Quail serves embedding and reranking models too, GGUF and MLX alike. Add one from the "For Search" section of Add Model: Qwen3 Embedding, EmbeddingGemma or Nomic Embed, and Qwen3 Reranker or BGE Reranker. They don't chat, so they're never the default model.</p>
+<pre><code>curl http://127.0.0.1:8080/v1/embeddings \
+  -H "Authorization: Bearer $QUAIL_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "Qwen3-Embedding-0.6B-Q8_0", "input": ["The first text", "The second"]}'</code></pre>
+<ul>
+  <li><strong><code>/v1/embeddings</code></strong> is OpenAI's: <code>input</code> is a string, a list of strings, or token ids. Vectors come back normalized. <code>dimensions</code> shortens them for models trained for it, and <code>encoding_format: "base64"</code> sends them as bytes.</li>
+  <li><strong><code>/v1/rerank</code></strong> takes a <code>query</code> and <code>documents</code> and lists them best first by <code>relevance_score</code>, as Jina's and llama-server's do; send <code>texts</code> for TEI's shape. <code>top_n</code> keeps the best few.</li>
+  <li>Several models ask for a prefix on queries and documents, such as Nomic's <code>search_query: </code>. Add Model shows each one's.</li>
+</ul>
     </main>
   </div>
 

@@ -5,7 +5,7 @@
 checked = "2026-09-29"
 
 [versions]
-quail = "0.62"
+quail = "0.74"
 ollama = "0.34.4"
 omlx = "0.6.4"
 rapid-mlx = "0.15.2"
@@ -75,7 +75,7 @@ rapid-mlx = { text = "MTP, DFlash and more; on by default for some models", sour
 
 [[row]]
 feature = "Embeddings"
-quail = { text = "No", source = "https://github.com/adatoo/quail/blob/main/QuailServer/Core/InferenceRoutes.swift" }
+quail = { text = "Yes, and reranking, on GGUF and MLX", source = "https://quail-ai.app/docs/connect.html#embeddings" }
 ollama = { text = "Yes", source = "https://github.com/ollama/ollama/blob/v0.34.4/docs/api/openai-compatibility.mdx?plain=1#L304" }
 omlx = { text = "Yes, and reranking", source = "https://github.com/jundot/omlx/blob/v0.6.4/README.md?plain=1#L276" }
 rapid-mlx = { text = "With an optional extra", source = "https://github.com/raullenchai/Rapid-MLX/blob/v0.15.2/docs/guides/embeddings.md" }
