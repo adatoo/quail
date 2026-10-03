@@ -14,7 +14,7 @@ from pathlib import Path
 from . import config
 
 PAGE = config.REPO / "website" / "compare.html"
-COLUMNS = [("quail", "Quail"), ("ollama", "Ollama"), ("omlx", "oMLX"), ("rapid-mlx", "Rapid-MLX")]
+COLUMNS = [("quail", "Quail"), ("ollama", "Ollama"), ("omlx", "oMLX"), ("rapid-mlx", "Rapid-MLX"), ("nativ", "Nativ")]
 ENGINE_TITLES = {"quail-gguf": "Quail", "llama-server": "llama-server", "ollama-gguf": "Ollama",
                  "quail-mlx": "Quail", "omlx": "oMLX", "rapid-mlx": "Rapid-MLX", "ollama-mlx": "Ollama"}
 LANE_ENGINES = {"gguf": ["quail-gguf", "llama-server", "ollama-gguf"],

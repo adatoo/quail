@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.74.2] - 2026-10-03
+
+### Changed
+
+- **The website's Compare page includes Nativ.** Nativ is a SwiftUI Mac app around the Python `mlx-vlm` server. The page adds rows for image generation, speech and MCP, where Nativ, oMLX and Rapid-MLX are ahead of Quail. Every cell links its project's own source at the version shown. Nativ isn't in the measured results yet (#188). ADR D-063 amendment.
+
 ## [0.74.1] - 2026-10-03
 
 ### Fixed
