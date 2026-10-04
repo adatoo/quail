@@ -48,11 +48,35 @@ struct Launch: AsyncParsableCommand {
         for (key, value) in launch.env {
             setenv(key, fill(value), 1)
         }
-        let arguments = [launch.command] + launch.args.map(fill) + passthrough + (launch.trailingArgs ?? []).map(fill)
+        // A flag newer versions need and older ones refuse (opencode's --standalone) goes only to a version that has
+        // it.
+        let installed = launch.trailingArgsMinVersion == nil ? nil : Self.version(of: launch.command)
+        let trailing = ToolVersion.allows(installed: installed, minimum: launch.trailingArgsMinVersion)
+            ? (launch.trailingArgs ?? []).map(fill) : []
+        let arguments = [launch.command] + launch.args.map(fill) + passthrough + trailing
         let cArgs = arguments.map { strdup($0) } + [nil]
         execvp(launch.command, cArgs) // only returns on failure
         throw CLIError(
             "Couldn't run '\(launch.command)' — is it installed and on your PATH? (\(String(cString: strerror(errno))))"
         )
+    }
+
+    /// What `<command> --version` prints, found on the PATH as `execvp` will find it; nil if it can't be run.
+    static func version(of command: String) -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [command, "--version"]
+        let output = Pipe()
+        process.standardOutput = output
+        process.standardError = FileHandle.nullDevice
+        process.standardInput = FileHandle.nullDevice
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        return process.terminationStatus == 0 ? String(decoding: data, as: UTF8.self) : nil
     }
 }

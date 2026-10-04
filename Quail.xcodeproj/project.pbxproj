@@ -20,6 +20,7 @@
 		11FB586B5F0FC20874E4903F /* THIRD_PARTY_NOTICES.md in Resources */ = {isa = PBXBuildFile; fileRef = 4B7620C1F48401E649194658 /* THIRD_PARTY_NOTICES.md */; };
 		125123BCBFABCB9EB4A53BEA /* ModelStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B32A723E276ED3F733ACB2 /* ModelStoreTests.swift */; };
 		1330D9CE4E1FE9CD41348E08 /* Qwen35.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A8F96383D76232185BF9AF /* Qwen35.swift */; };
+		1357F466D7D4563792D1A0B7 /* ToolVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EF164F2009BD99A7E9AB5F6 /* ToolVersion.swift */; };
 		154B9A7BF658663A09873764 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 391271ECA995DA68CF47E1B8 /* AppDelegate.swift */; };
 		154CE8608C3CCEFED98C2A17 /* WebUIStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5D55B74D0F0DEE9D8487696 /* WebUIStyle.swift */; };
 		1610EC76223052FC860F7AB8 /* ModelShapeCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AEAD8426C451AC44DB9D563 /* ModelShapeCache.swift */; };
@@ -107,10 +108,12 @@
 		54F1C29A1585CEEF948C1343 /* ReasoningSplitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CCB8B5E9D47EE7AD4195B83 /* ReasoningSplitter.swift */; };
 		550CB4131001A5083F516E27 /* ConnectionTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0172F426DB7DE0BD44BE2CFA /* ConnectionTester.swift */; };
 		55224306EF484F31A87A2EB9 /* KVLayersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D09E1805478130BDD2557570 /* KVLayersTests.swift */; };
+		5565C22AD5F1F0CB942D278C /* ToolVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EF164F2009BD99A7E9AB5F6 /* ToolVersion.swift */; };
 		574C76D38AC7A07389D8A5AB /* AppState+Benchmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9DB205518D333390748171 /* AppState+Benchmark.swift */; };
 		58924A4F3EE841D42D8D721E /* DeviceInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50419AA3D40B6B9BAEDBF837 /* DeviceInfoTests.swift */; };
 		5999D1A93EE219EB816928FB /* QuailServerRuntimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9235B293BB2D882972965C8 /* QuailServerRuntimeTests.swift */; };
 		5B2606612639BB13E738FD43 /* URLBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99004B88F63F509573FC72C7 /* URLBenchmarkTests.swift */; };
+		5B4719AE1C425A0546021B14 /* ToolVersionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9CB53CB917885DA490C7B04 /* ToolVersionTests.swift */; };
 		5BB092A7C712C6797BBEC0DC /* ImageInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30012FAEC14691C7F90229C0 /* ImageInput.swift */; };
 		5FD8C123D7DA8E0ADD79122E /* ActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25DEDFC5E4896E20A3756AC /* ActivityMonitor.swift */; };
 		61785C3C948D97D8B3D625C4 /* ServerPreflightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4311B4B49CBCCEBD0B21D7 /* ServerPreflightTests.swift */; };
@@ -542,6 +545,7 @@
 		889878C42CB73D7EF3FDC188 /* ChatMessages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessages.swift; sourceTree = "<group>"; };
 		88F5DEC4C7B4DE6C134B8FE8 /* MLXEmbeddingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXEmbeddingEngine.swift; sourceTree = "<group>"; };
 		8ABBD0A16BBF556AE94F03D0 /* ServerLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLog.swift; sourceTree = "<group>"; };
+		8EF164F2009BD99A7E9AB5F6 /* ToolVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolVersion.swift; sourceTree = "<group>"; };
 		8F826A4B5EF28ACD198CCF74 /* ControlTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlTests.swift; sourceTree = "<group>"; };
 		8F873F541A7EEF4D5458D11C /* StoreHousekeepingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreHousekeepingTests.swift; sourceTree = "<group>"; };
 		8FB5B955BB1AE0A86C81AE9C /* EmbeddingRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddingRoutes.swift; sourceTree = "<group>"; };
@@ -631,6 +635,7 @@
 		D8CD21849DF52BA5CDB319AC /* FitEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitEstimator.swift; sourceTree = "<group>"; };
 		D8FAB3B74C84276EA092A9EE /* PromptLookupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptLookupTests.swift; sourceTree = "<group>"; };
 		D905EB57D799D0C674BB8BF3 /* MessagesRoutesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesRoutesTests.swift; sourceTree = "<group>"; };
+		D9CB53CB917885DA490C7B04 /* ToolVersionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolVersionTests.swift; sourceTree = "<group>"; };
 		DB7A7DD97C1C21E7D0DACFA0 /* ModelRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelRouter.swift; sourceTree = "<group>"; };
 		DB831B371971B98463F75E57 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DE33A51190D5756E19BE8E5B /* LocalSigning.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = LocalSigning.xcconfig; sourceTree = "<group>"; };
@@ -724,6 +729,7 @@
 				275CDD748714AE0692A9AEB4 /* LineSocket.swift */,
 				B3AA166B86233FC08A935A0C /* ModelNameMatch.swift */,
 				36EED01F342AA58A7E715523 /* ToolEval.swift */,
+				8EF164F2009BD99A7E9AB5F6 /* ToolVersion.swift */,
 				85EE2D7B55A92734626108F3 /* URLBenchmark.swift */,
 			);
 			path = Shared;
@@ -846,6 +852,7 @@
 				6B03427DF23641EF1208ED53 /* ThirdPartyNoticesTests.swift */,
 				9826208841DE3657E0AD70B9 /* ToolCallTests.swift */,
 				9C90DFCDF79FD115D7BEFEB9 /* ToolEvalTests.swift */,
+				D9CB53CB917885DA490C7B04 /* ToolVersionTests.swift */,
 				60DBCD25631515D95F070E94 /* UISnapshotTests.swift */,
 				A2FDCA443548EDD44BBF9441 /* UpdateSettingsTests.swift */,
 				99004B88F63F509573FC72C7 /* URLBenchmarkTests.swift */,
@@ -1550,6 +1557,7 @@
 				C7BE9DC773CE5E22799B9022 /* Output.swift in Sources */,
 				CC97103286266648C2786A8B /* Quail.swift in Sources */,
 				B39B1828BE6FA843203E982D /* ToolEval.swift in Sources */,
+				1357F466D7D4563792D1A0B7 /* ToolVersion.swift in Sources */,
 				B718A516FC348CF3D82C9A3F /* URLBenchmark.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1649,6 +1657,7 @@
 				B84F4491437A27D6FB98AA00 /* StrengthChips.swift in Sources */,
 				2FA2ABFEC4D8F930AC403615 /* SystemMonitor.swift in Sources */,
 				06E8CC28A03987379E765AE4 /* ToolEval.swift in Sources */,
+				5565C22AD5F1F0CB942D278C /* ToolVersion.swift in Sources */,
 				D0A5E8A7097EAE342EE19B43 /* URLBenchmark.swift in Sources */,
 				691CA3364A575B42F31D690A /* UpdateSettings.swift in Sources */,
 				53DD1884AA5E3AB83D2F4D95 /* Updater.swift in Sources */,
@@ -1763,6 +1772,7 @@
 				31FBD2F3CDFC6CD4C28F01E5 /* ThirdPartyNoticesTests.swift in Sources */,
 				2C219AA76009E638DB45F122 /* ToolCallTests.swift in Sources */,
 				54305ACF168B05A7185E114F /* ToolEvalTests.swift in Sources */,
+				5B4719AE1C425A0546021B14 /* ToolVersionTests.swift in Sources */,
 				F776FD285CA12050FB52D748 /* UISnapshotTests.swift in Sources */,
 				5B2606612639BB13E738FD43 /* URLBenchmarkTests.swift in Sources */,
 				24F75B47C2238DF2596240E0 /* UpdateSettingsTests.swift in Sources */,
@@ -1942,7 +1952,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 145;
+				CURRENT_PROJECT_VERSION = 146;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1967,7 +1977,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.74.2;
+				MARKETING_VERSION = 0.74.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2123,7 +2133,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 145;
+				CURRENT_PROJECT_VERSION = 146;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2142,7 +2152,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Arif Datoo. MIT Licence.";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.74.2;
+				MARKETING_VERSION = 0.74.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

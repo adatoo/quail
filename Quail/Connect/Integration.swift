@@ -76,6 +76,9 @@ struct Integration: Sendable, Equatable, Identifiable, Decodable {
         /// for tools whose flags must follow a subcommand — opencode's
         /// `--standalone` goes after `run`, not before it.
         let trailingArgs: [String]?
+        /// The tool version `trailingArgs` need; `quail launch` leaves them off an older one (opencode 1 has no
+        /// `--standalone`).
+        let trailingArgsMinVersion: String?
         /// File name → contents, written to a temp dir (`{{tempDir}}`).
         let files: [String: String]?
         /// Short names for `quail launch` ("claude" for "claude-code").

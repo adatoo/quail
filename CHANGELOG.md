@@ -10,6 +10,17 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [0.74.3] - 2026-10-04
+
+### Fixed
+
+- **`quail launch opencode` works with opencode 1.** It added `--standalone`, which only opencode 2 has, so opencode 1 stopped and printed its usage instead of starting. The flag now goes only to opencode 2 or later. Found on the fresh-Mac check, with opencode 1.18.34.
+- **`brew uninstall --zap quail-ai` keeps your models.** It trashed all of `~/Library/Application Support/Quail`, which holds the default model folder. It now trashes only Quail's own files there, and removes the folder only when it's empty (ADR D-033 amendment).
+
+### Changed
+
+- The fresh-Mac check (Phase 4 step 5b) passed on 0.74.2: Homebrew and DMG installs, notarization, a first model and Test, offline use, a Sparkle update, and GGUF, MLX and Claude Code through `quail launch`. That leaves only the 1.0.0 release on the road to 1.0.
+
 ## [0.74.2] - 2026-10-03
 
 ### Changed
