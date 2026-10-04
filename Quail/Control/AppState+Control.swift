@@ -247,7 +247,8 @@ extension AppState {
             env: recipe.env.mapValues(fill),
             files: (recipe.files ?? [:]).mapValues(fill),
             warnings: warnings,
-            trailingArgs: (recipe.trailingArgs ?? []).map(fill)
+            trailingArgs: (recipe.trailingArgs ?? []).map(fill),
+            trailingArgsMinVersion: recipe.trailingArgsMinVersion
         ))
     }
 }

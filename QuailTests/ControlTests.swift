@@ -111,6 +111,8 @@ struct AppStateControlTests {
         // after any `run …` the user passes.
         let opencode = try #require(appState.launchResponse(tool: "opencode", model: "Small").launch)
         #expect(opencode.trailingArgs == ["--standalone"])
+        // opencode 1 has no --standalone and stops at it, so the CLI leaves it off a version below 2.
+        #expect(opencode.trailingArgsMinVersion == "2")
         #expect(opencode.env["QUAIL_API_KEY"]?.isEmpty == false)
         let content = try #require(opencode.env["OPENCODE_CONFIG_CONTENT"])
         let config = try #require(

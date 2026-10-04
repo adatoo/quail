@@ -175,7 +175,14 @@ Mac App Store publication is cancelled (D-053). Completed steps in earlier phase
 4. Measured-speed calibration: store TTFT and tok/s per (model, chip) — delivered by Phase 2b's benchmark, shown on installed models; still to do: feed measurements back into estimates for models not yet benchmarked (e.g. a per-chip correction factor).
 5. **Cancelled — App Store submission** (D-053): no Store-specific helper signing, Sparkle removal or submission pipeline is planned.
 5a. [x] **Remove legacy Store build machinery.** *(Done 2026-09-28, D-053 amendment.)* In a separate cleanup, remove the App Store schemes/configurations, entitlements, compile guards and CI task; update AGENTS.md and contributor/build instructions together. Preserve the direct build's runtime behavior, signing, notarization and Sparkle updates. Until then, existing build checks remain in place.
-5b. [ ] **Developer distribution acceptance.** On a Mac that has never had Quail, record the app and macOS versions and each result:
+5b. [x] **Developer distribution acceptance.** On a Mac that has never had Quail, record the app and macOS versions and each result.
+    *(Passed 2026-10-04 on the M1 Max MacBook Pro, macOS 27.0.1, Quail 0.74.2. Quail had been removed from it entirely: the app, its files, the Keychain item and the cache, with the benchmark models moved aside. Results:*
+    - *1: the cask installed 0.74.2, the app opened with no Gatekeeper warning, and `quail --version` gave `0.74.2 (145)` in a new fish and zsh shell. Homebrew 6 calls the tap "Untrusted", but naming the cask in full trusts it, as the website does.*
+    - *2: from Safari's download of the DMG, only macOS's "downloaded from the internet" prompt. `spctl`: "Notarized Developer ID". `codesign --deep --strict` and `stapler validate` passed.*
+    - *3: Start needs a model first, so Add Model came first. It chose the MLX Qwen3 0.6B on Quail server, and Test passed.*
+    - *4: with Wi-Fi off, the server restarted, Test passed and Add Model said it was offline.*
+    - *5: 0.74.1 updated itself to 0.74.2 through Sparkle (EdDSA signature checked) and relaunched with the server running.*
+    - *6: a GGUF and an MLX Qwen3 0.6B both answered `quail chat`, and `quail launch claude -- -p …` answered. `quail launch opencode` failed with opencode 1.18.34: its `--standalone` exists only from opencode 2, so it's now left off older versions (`trailingArgsMinVersion`). Also found: the cask's `zap` trashed the default model store, now fixed (D-033 amendment).)*
     1. `brew install --cask adatoo/tap/quail-ai`: the app opens without a Gatekeeper warning, and `quail --version` works in a new terminal (the CLI on PATH).
     2. Uninstall (`brew uninstall --cask quail-ai`), then install from the latest release's DMG: opening the downloaded DMG and dragging the app to Applications gives no warning beyond macOS's "downloaded from the internet" prompt, and `spctl -a -vv /Applications/Quail.app` says "Notarized Developer ID".
     3. Start the server, add Qwen3 0.6B from Add Model, and run **Test…** (the menu, or the Server page): it passes.
@@ -257,7 +264,7 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
    - About's Release Notes / Report an Issue / Source and the `quail-server` version (Phase 4 step 6)
    - the cask's `homepage`
 6. [x] **README and repo:** *(done 2026-09-28, with the website as the repository's homepage)* drop "Pre-alpha" and the stale uv/oMLX/Rapid-MLX lines; set the GitHub description and homepage.
-7. [ ] **Phase 4 step 5b** on a Mac that has never had Quail.
+7. [x] **Phase 4 step 5b** on a Mac that has never had Quail. *(Passed 2026-10-04, Quail 0.74.2; see Phase 4.)*
 8. [ ] **1.0.0:** `PR_TITLE="chore: release 1.0.0" TARGET=1.0.0 task version:bump`, with a CHANGELOG section summarising the product.
 
 **The website (D-062), live at https://quail-ai.app since 2026-09-28:**

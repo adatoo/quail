@@ -147,6 +147,9 @@ struct ToolLaunch: Codable, Sendable, Equatable {
     var warnings: [String]
     /// After the user's own arguments; `nil` from an app older than 0.36.
     var trailingArgs: [String]?
+    /// The tool version `trailingArgs` need (`<command> --version`); older versions run without them. `nil` for
+    /// any version, or from an app older than 0.74.3.
+    var trailingArgsMinVersion: String? = nil
 }
 
 struct BenchProgress: Codable, Sendable, Equatable {
