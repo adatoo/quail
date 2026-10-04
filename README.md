@@ -22,7 +22,7 @@ or download the DMG from the [latest release](https://github.com/adatoo/quail/re
 - **One server for GGUF and MLX.** Quail server runs llama.cpp for GGUF and Apple's MLX for MLX models, from one model folder. llama.cpp's `llama-server` stays bundled as a fallback for GGUF.
 - **Knows what fits.** Every model gets a verdict for this Mac before you download it, with an estimated speed. Each model's context size and KV cache are labelled with how they fit.
 - **Finds models:** a curated catalog, recommendations for your memory, over a hundred MLX models, any Hugging Face GGUF repo, and the models other apps already downloaded.
-- **Connects your tools.** Copy-ready setup for Claude Code, Codex, opencode, Continue, Cline, Zed, Open WebUI and more, each with a Test. It speaks OpenAI Chat Completions and Responses, and Anthropic Messages.
+- **Connects your tools.** Copy-ready setup for Claude Code, Codex, opencode, Continue, Cline, Zed, Open WebUI and more, each with a Test. It speaks OpenAI Chat Completions, Responses and Embeddings, and Anthropic Messages, and reranks search results too.
 - **Includes a `quail` command,** like ollama: `quail pull`, `chat`, `launch claude`, `bench`, `ps`, `logs` and more.
 - **Benchmarks** a model on your own Mac, the same way every time, and compares runs.
 - **Keeps your data on your Mac.** It listens only to this Mac by default, requires an API key from the start, and works offline once models are downloaded (`task check:offline` proves it).
@@ -33,7 +33,7 @@ It has no chat window of its own: the server's chat page opens in your browser, 
 
 ## Status
 
-Beta, heading for 1.0: see the Road to 1.0 at the end of [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Every merge to `main` is a signed, notarized release that installed copies update to.
+1.0. What's planned next is at the end of [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md): serving speech, images and MCP through the API (#179). Every merge to `main` is a signed, notarized release that installed copies update to.
 
 ## Documents
 

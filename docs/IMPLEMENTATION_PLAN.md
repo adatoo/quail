@@ -265,7 +265,7 @@ Agreed 2026-09-28. Phases 1–3c are done and Phase 4 is done except step 5b. Wh
    - the cask's `homepage`
 6. [x] **README and repo:** *(done 2026-09-28, with the website as the repository's homepage)* drop "Pre-alpha" and the stale uv/oMLX/Rapid-MLX lines; set the GitHub description and homepage.
 7. [x] **Phase 4 step 5b** on a Mac that has never had Quail. *(Passed 2026-10-04, Quail 0.74.2; see Phase 4.)*
-8. [ ] **1.0.0:** `PR_TITLE="chore: release 1.0.0" TARGET=1.0.0 task version:bump`, with a CHANGELOG section summarising the product.
+8. [x] **1.0.0:** `PR_TITLE="chore: release 1.0.0" TARGET=1.0.0 task version:bump`, with a CHANGELOG section summarising the product.
 
 **The website (D-062), live at https://quail-ai.app since 2026-09-28:**
 - [x] Pages deploys from Actions, with the custom domain `quail-ai.app`.

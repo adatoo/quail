@@ -5,7 +5,7 @@
 checked = "2026-10-03"
 
 [versions]
-quail = "0.74"
+quail = "1.0"
 ollama = "0.34.4"
 omlx = "0.6.4"
 rapid-mlx = "0.15.2"
