@@ -10,6 +10,31 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-04
+
+### Quail 1.0
+
+Quail runs AI models on your Mac and gives your tools an API they already speak, from the menu bar. 1.0 is the first release we'd recommend without caveats. Every part below has shipped over the 0.x releases, and a fresh-Mac check passed on 0.74.2.
+
+- **One server for GGUF and MLX.** Quail server runs llama.cpp for GGUF and Apple's MLX for MLX models, from one model folder, with no Python inside. It serves OpenAI's Chat Completions, Responses and Embeddings, Anthropic's Messages (for Claude Code), and reranking.
+  - Several requests are decoded at once: llama.cpp slots on GGUF, batched decoding on MLX.
+  - Each conversation keeps its prompt cache, and MLX's survives a restart on disk.
+  - Prompt-lookup speculative decoding, an optional 8-bit or 4-bit KV cache, vision on both formats, and tool calling for the main model families.
+  - llama.cpp's own `llama-server` stays bundled as a fallback for GGUF.
+- **Measured against the others.** On the same Mac with the same weights, Quail is level with llama-server on GGUF and has the fastest first token of the MLX engines with several requests at once. Its answers score the same on maths, knowledge and tool calling. The full comparison is published, including where Quail is slower: [quail-ai.app/compare.html](https://quail-ai.app/compare.html).
+- **Knows what fits.** Every model gets a verdict for this Mac before you download it, with an estimated speed. It counts each layer's cache, and sizes the context automatically.
+- **Finds models:** a curated catalog with release dates, model cards, Arena ratings and Quail's own scores; recommendations for your Mac; Rapid-MLX's MLX catalog; any Hugging Face repo; and the models other apps already downloaded. Embedding and reranking models are in a section of their own.
+- **Connects your tools.** Copy-ready setup for Claude Code, Codex, opencode, Continue, Cline, Zed, Open WebUI and more, each with a Test. `quail launch` starts a coding agent already pointed at Quail.
+- **A `quail` command,** like ollama's: `pull`, `chat`, `launch`, `bench`, `eval tools`, `ps`, `logs` and more.
+- **Benchmarks** a model on your own Mac the same way every time, and compares runs against a baseline.
+- **Private by default.** It listens only to this Mac, needs an API key from the start, refuses requests from web pages you haven't allowed, and works offline once models are downloaded. It sends no usage data.
+- **Installs cleanly.** Homebrew or a signed, notarized DMG, then Sparkle updates. The website and docs are at [quail-ai.app](https://quail-ai.app).
+
+**Known gaps, tracked in the open:**
+- Gemma 4 scores a few points lower on Quail than on the other engines (#152).
+- On MLX, Rapid-MLX still makes 10–20% more tokens a second with several requests at once, and is a little faster alone on Qwen3.6 (#139, #141).
+- Serving speech, images and MCP is planned next (#179).
+
 ## [0.74.3] - 2026-10-04
 
 ### Fixed
