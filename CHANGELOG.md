@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-05
+
+### Fixed
+
+- The release tasks' default App Store Connect API key is the current one, `FPV8QQBDC7`. The previous default, `63BL7CBR43`, has been revoked, so a checkout with no `APPLE_API_KEY_ID` set tried a key Apple no longer accepts. CI was unaffected: it reads the key from its secrets.
+
 ## [1.0.0] - 2026-10-04
 
 ### Quail 1.0
