@@ -19,6 +19,7 @@
 #   PR_TITLE=… task version:valid-title           exit 0 if a Conventional Commits title
 #   PR_TITLE=… [PR_BODY=…] task version:check     is this branch's bump the one the title calls for?
 #   PR_TITLE=… [PR_BODY=…] task version:bump      make it so (or TARGET=patch|minor|major|X.Y.Z)
+#   [COMMIT=…] task version:last-commit          is the branch's last commit the bump alone? (default HEAD)
 #   task version:test                             the tests for all of the above
 #
 # QUAIL_ROOT points them at another checkout; QUAIL_BASE_VERSION / QUAIL_BASE_BUILD
@@ -186,6 +187,31 @@ tasks:
           fail "Tag v$actual already exists."
         fi
         echo "Version OK: $actual"
+
+  last-commit:
+    desc: "The branch's last commit (COMMIT=…, default HEAD) is the bump alone: project.yml and CHANGELOG.md, and the regenerated project"
+    cmds:
+      - |
+        {{.LIB}}
+        commit="${COMMIT:-HEAD}"
+        fail() {
+          echo "::error::$1"
+          echo
+          echo "The last commit on a branch is its version bump and nothing else (ADR D-024):"
+          echo "commit the change first, then: PR_TITLE=\"<PR title>\" task version:bump, write the"
+          echo "CHANGELOG entry, and commit only project.yml, Quail.xcodeproj/project.pbxproj and CHANGELOG.md."
+          exit 1
+        }
+        git -C "$ROOT" rev-parse -q --verify "$commit^{commit}" > /dev/null || fail "$commit isn't a commit."
+        subject="$(git -C "$ROOT" log -1 --format=%s "$commit")"
+        [ "$(git -C "$ROOT" rev-list --parents -n 1 "$commit" | wc -w)" -eq 2 ] \
+          || fail "The last commit (\"$subject\") is a merge; add the bump commit after it."
+        files="$(git -C "$ROOT" diff-tree --no-commit-id --name-only -r "$commit")"
+        other="$(printf '%s\n' "$files" | grep -vxE 'project\.yml|Quail\.xcodeproj/project\.pbxproj|CHANGELOG\.md' || true)"
+        [ -z "$other" ] || fail "The last commit (\"$subject\") also changes: $(printf '%s' "$other" | paste -sd ' ' -)."
+        printf '%s\n' "$files" | grep -qx 'project\.yml' || fail "The last commit (\"$subject\") doesn't bump project.yml."
+        printf '%s\n' "$files" | grep -qx 'CHANGELOG\.md' || fail "The last commit (\"$subject\") doesn't update CHANGELOG.md."
+        echo "Last commit OK: \"$subject\" is the bump alone."
 
   bump:
     desc: "Bump the version for this PR (PR_TITLE, or TARGET=patch|minor|major|X.Y.Z), cut the CHANGELOG, regenerate the project"
@@ -364,6 +390,32 @@ tasks:
 
         ( on_temp; export TARGET=1.0.0; T version:bump ) > /dev/null
         ok "1.0.0 is accepted from 0.x whatever the title" check 'feat: one point oh'
+
+        # --- The bump is the branch's last commit, alone (a throwaway repo)
+        repo="$tmp/repo"
+        g() { git -C "$repo" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
+        last() { ( export QUAIL_ROOT="$repo"; T version:last-commit ); }
+        mkdir -p "$repo/Quail.xcodeproj" && git init -q -b main "$repo"
+        printf 'v1\n' > "$repo/project.yml"; printf '# Changelog\n' > "$repo/CHANGELOG.md"
+        printf 'a\n' > "$repo/code.swift"; printf 'p\n' > "$repo/Quail.xcodeproj/project.pbxproj"
+        g add -A && g commit -qm base
+        g switch -qc work
+        printf 'b\n' > "$repo/code.swift"; g commit -qam 'fix: the change'
+        not "a branch ending in its change fails" last
+        printf 'v2\n' > "$repo/project.yml"; printf '# Changelog\n\n## [x]\n' > "$repo/CHANGELOG.md"
+        printf 'q\n' > "$repo/Quail.xcodeproj/project.pbxproj"; g commit -qam 'chore(release): bump version to x'
+        ok "a branch ending in the bump alone passes" last
+        printf 'v3\n' > "$repo/project.yml"; printf 'c\n' > "$repo/code.swift"
+        printf '# Changelog\n\n## [y]\n' > "$repo/CHANGELOG.md"; g commit -qam 'fix: bump and change together'
+        not "a bump mixed with a change fails" last
+        printf 'v4\n' > "$repo/project.yml"; g commit -qam 'chore(release): no changelog'
+        not "a bump without the CHANGELOG fails" last
+        g switch -qc side main; printf 'd\n' > "$repo/other.swift"; g add -A; g commit -qm side
+        g switch -q work; g merge -q --no-edit side
+        not "a merge as the last commit fails" last
+        ( export QUAIL_ROOT="$repo" COMMIT=nonsense; T version:last-commit ) > /dev/null 2>&1 \
+          && { echo "FAIL a missing commit (should have failed)"; failures=$((failures + 1)); } \
+          || echo "ok   a missing commit fails"
 
         echo
         if [ "$failures" -gt 0 ]; then

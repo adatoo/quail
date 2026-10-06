@@ -26,11 +26,16 @@ recorded there.
    | `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`, `revert:`, `style:` | patch |
    | `type!: …`, or `BREAKING CHANGE:` in the body | major (minor while 0.x) |
 
-4. Bump the version **in the PR**: `PR_TITLE="<PR title>" task version:bump`.
+4. Bump the version **in the PR, as its last commit, on its own**: commit
+   your work first, then run `PR_TITLE="<PR title>" task version:bump`.
    It sets `project.yml`'s `MARKETING_VERSION` and build number from `main`'s,
    cuts `CHANGELOG.md`'s `[Unreleased]` into the new version's section, and
-   regenerates the Xcode project. Commit the result. `1.0.0` is a deliberate
-   `TARGET=1.0.0 task version:bump`.
+   regenerates the Xcode project. Write the CHANGELOG entry under the new
+   section, and commit only `project.yml`, `Quail.xcodeproj/project.pbxproj`
+   and `CHANGELOG.md` (`chore(release): bump version to X.Y.Z`). If you need
+   another change after that, add it and make a fresh bump commit last again;
+   the `version` check fails if the last commit is anything but the bump
+   alone. `1.0.0` is a deliberate `TARGET=1.0.0 task version:bump`.
 5. Open the PR against `main` with auto-merge on (`gh pr merge --auto --merge`;
    the Auto-merge workflow does this too, as the quail-release App, once its
    `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY` secrets are set). It merges
@@ -44,7 +49,8 @@ recorded there.
 
 If `main` moves while your PR is open, merging it in conflicts on the version
 lines: take `main`'s side, re-run `PR_TITLE="<PR title>" task version:bump`,
-and commit — the `version` check tells you when it's needed.
+and commit the bump on its own after the merge, so it's still the last
+commit. The `version` check tells you when it's needed.
 
 ## Definition of done
 

@@ -2,8 +2,9 @@ name: Version
 
 # Every PR carries its own SemVer bump, matching its Conventional Commits
 # title (ADR D-024): feat → minor, anything else → patch, `!` → major
-# (minor while 0.x). Required on main next to build-and-test. `edited` is
-# here so changing the title re-checks.
+# (minor while 0.x), made as the branch's last commit, with nothing else in
+# it. Required on main next to build-and-test. `edited` is here so changing
+# the title re-checks.
 on:
   pull_request:
     branches: [main]
@@ -39,3 +40,9 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: task version:check
+
+      - name: Check the bump is the branch's last commit, alone
+        env:
+          # The PR's own head, not the merge commit pull_request checks out.
+          COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: task version:last-commit
