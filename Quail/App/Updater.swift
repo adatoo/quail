@@ -7,7 +7,8 @@ extension SPUUpdater: UpdateBackend {}
 
 /// The in-app updater (ADR D-032): checks the appcast each release attaches, on
 /// the schedule the General page's Updates section chooses, and installs with Sparkle's standard UI.
-/// Sparkle, checking the appcast on GitHub Releases (ADR D-032).
+/// What it's doing in between (checking, downloading, waiting to install) goes to
+/// `UpdateSettings.status`, which Settings and the menu show.
 ///
 /// Installing quits Quail through the ordinary `applicationShouldTerminate`, so the
 /// server stops cleanly first, then Sparkle swaps the app and relaunches it.
@@ -17,6 +18,7 @@ final class Updater {
     private let controller: SPUStandardUpdaterController
     private let delegate = UpdaterDelegate()
     private let userDriverDelegate = UserDriverDelegate()
+    private var canCheckObservation: NSKeyValueObservation?
 
     /// - Parameter start: `false` under unit tests, which host a real Quail.app —
     ///   starting Sparkle there would check the real feed on every test run.
@@ -27,9 +29,16 @@ final class Updater {
             userDriverDelegate: userDriverDelegate
         )
         settings = UpdateSettings(backend: controller.updater)
-        delegate.onCycleFinished = { [settings] in settings.refreshLastCheck() }
+        settings.activate = { NSApp.activate(ignoringOtherApps: true) }
+        delegate.settings = settings
         guard start else { return }
         controller.startUpdater()
+        // Sparkle ignores a check while it's busy in the background; the button follows it.
+        canCheckObservation = controller.updater.observe(\.canCheckForUpdates, options: [.initial, .new]) {
+            [settings] updater, _ in
+            // Sparkle changes it on the main thread, and SPUUpdater is main-actor isolated.
+            MainActor.assumeIsolated { settings.canCheckChanged(updater.canCheckForUpdates) }
+        }
         #if DEBUG
             // For testing an update end to end without waiting for the schedule:
             // `open Quail.app --args -QuailCheckForUpdatesOnLaunch YES`.
@@ -54,7 +63,7 @@ final class Updater {
 
 @MainActor
 private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
-    var onCycleFinished: (() -> Void)?
+    weak var settings: UpdateSettings?
 
     #if DEBUG
         /// Debug builds can point at another appcast (`-QuailUpdateFeed <url>`) to test an
@@ -64,30 +73,71 @@ private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
         }
     #endif
 
-    func updater(_: SPUUpdater, didFinishUpdateCycleFor _: SPUUpdateCheck, error _: (any Error)?) {
-        onCycleFinished?()
+    func updater(_: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        settings?.found(version: item.displayVersionString)
     }
 
-    #if DEBUG
-        /// `-QuailInstallUpdateAfterSeconds 25`: once an update is downloaded for install-on-quit,
-        /// install it after that delay through Sparkle's own path — the one "Install and Relaunch"
-        /// takes, in which Sparkle (not Quail) quits the app. For testing an update, with the
-        /// server running, and nobody clicking.
-        func updater(
-            _: SPUUpdater,
-            willInstallUpdateOnQuit _: SUAppcastItem,
-            immediateInstallationBlock: @escaping () -> Void
-        ) -> Bool {
-            let delay = UserDefaults.standard.double(forKey: "QuailInstallUpdateAfterSeconds")
-            guard delay > 0 else { return false }
-            NSLog("Quail: update downloaded; installing in %.0fs (debug flag)", delay)
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                NSLog("Quail: asking Sparkle to install now")
-                immediateInstallationBlock()
-            }
-            return true
+    func updater(_: SPUUpdater, willDownloadUpdate item: SUAppcastItem, with _: NSMutableURLRequest) {
+        settings?.downloading(version: item.displayVersionString)
+    }
+
+    func updaterDidNotFindUpdate(_: SPUUpdater) {
+        settings?.noUpdateFound()
+    }
+
+    func updater(_: SPUUpdater, failedToDownloadUpdate _: SUAppcastItem, error: any Error) {
+        settings?.downloadFailed(error.localizedDescription)
+    }
+
+    func updater(_: SPUUpdater, didAbortWithError error: any Error) {
+        let error = error as NSError
+        // Finding nothing and cancelling the password prompt both arrive as errors, but aren't failures.
+        let notFailures = [SUError.noUpdateError.rawValue, SUError.installationCanceledError.rawValue]
+        if error.domain == SUSparkleErrorDomain, notFailures.contains(OSStatus(error.code)) {
+            return
         }
-    #endif
+        settings?.failed(error.localizedDescription)
+    }
+
+    func updater(
+        _: SPUUpdater,
+        userDidMake choice: SPUUserUpdateChoice,
+        forUpdate _: SUAppcastItem,
+        state _: SPUUserUpdateState
+    ) {
+        if choice == .skip {
+            settings?.skipped()
+        }
+    }
+
+    func updater(_: SPUUpdater, didFinishUpdateCycleFor _: SPUUpdateCheck, error _: (any Error)?) {
+        settings?.cycleFinished()
+    }
+
+    /// A background download is ready (automatic install on). Quail takes charge of offering
+    /// it — "Restart to Install" in the menu and Settings — instead of Sparkle's reminder
+    /// alert; Sparkle still installs it when Quail quits either way. `immediateInstallationBlock`
+    /// is Sparkle's own "Install and Relaunch", in which Sparkle (not Quail) quits the app.
+    func updater(
+        _: SPUUpdater,
+        willInstallUpdateOnQuit item: SUAppcastItem,
+        immediateInstallationBlock: @escaping () -> Void
+    ) -> Bool {
+        settings?.readyToInstall(version: item.displayVersionString, install: immediateInstallationBlock)
+        #if DEBUG
+            // `-QuailInstallUpdateAfterSeconds 25`: install after that delay through the same path,
+            // for testing an update with the server running and nobody clicking.
+            let delay = UserDefaults.standard.double(forKey: "QuailInstallUpdateAfterSeconds")
+            if delay > 0 {
+                NSLog("Quail: update downloaded; installing in %.0fs (debug flag)", delay)
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    NSLog("Quail: asking Sparkle to install now")
+                    immediateInstallationBlock()
+                }
+            }
+        #endif
+        return true
+    }
 }
 
 /// Quail is a menu-bar agent with no Dock icon: a scheduled update's window can open

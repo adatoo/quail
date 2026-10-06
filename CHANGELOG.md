@@ -10,6 +10,16 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-06
+
+### Changed
+
+- Settings → Updates says what the updater is doing: when it last checked, Checking…, Downloading Quail x.y.z…, or that a downloaded version installs when Quail quits, with **Restart Now**. The menu offers "Restart to Install Quail x.y.z" when an update is ready. The automatic-install toggle explains that it downloads new versions in the background.
+
+### Fixed
+
+- Check for Updates no longer silently does nothing while an update downloads in the background. It's disabled then, and the status says why. It also brings Quail to the front, so Sparkle's window can't open behind other apps.
+
 ## [1.0.2] - 2026-10-06
 
 ### Fixed

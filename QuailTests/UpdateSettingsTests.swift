@@ -18,6 +18,7 @@ private final class FakeUpdateBackend: UpdateBackend {
     }
 
     var lastUpdateCheckDate: Date?
+    var canCheckForUpdates = true
     private(set) var checks = 0
     private(set) var writes = 0
 
@@ -124,5 +125,99 @@ struct UpdateSettingsTests {
         #expect(settings.lastCheck == nil) // not until Sparkle says it finished
         settings.refreshLastCheck()
         #expect(settings.lastCheck == when)
+    }
+
+    @Test("Check Now brings Quail forward first, then shows Checking until the cycle ends")
+    func checkNowActivatesAndShowsChecking() {
+        let backend = FakeUpdateBackend()
+        let settings = UpdateSettings(backend: backend)
+        var order: [String] = []
+        settings.activate = { order.append("activate \(backend.checks)") }
+
+        settings.checkNow()
+        #expect(order == ["activate 0"])
+        #expect(backend.checks == 1)
+        #expect(settings.status == .checking)
+        #expect(!settings.canCheckNow) // a second press while checking does nothing
+
+        settings.checkNow()
+        #expect(backend.checks == 1)
+
+        settings.cycleFinished()
+        #expect(settings.status == .idle)
+        #expect(settings.canCheckNow)
+    }
+
+    @Test("while Sparkle is busy in the background the button is disabled and pressing it does nothing")
+    func busyBackground() {
+        let backend = FakeUpdateBackend()
+        backend.canCheckForUpdates = false
+        let settings = UpdateSettings(backend: backend)
+        #expect(!settings.canCheckNow)
+
+        settings.checkNow()
+        #expect(backend.checks == 0)
+        #expect(settings.status == .idle)
+
+        settings.canCheckChanged(true)
+        #expect(settings.canCheckNow)
+    }
+
+    @Test("a check that finds nothing says up to date; one that fails says why")
+    func upToDateAndFailed() {
+        let settings = UpdateSettings(backend: FakeUpdateBackend())
+        settings.checkNow()
+        settings.noUpdateFound()
+        settings.cycleFinished()
+        #expect(settings.status == .upToDate)
+
+        settings.checkNow()
+        #expect(settings.status == .checking)
+        settings.failed("The network connection was lost.")
+        settings.cycleFinished()
+        #expect(settings.status == .failed("The network connection was lost."))
+    }
+
+    @Test("found, then downloading, then ready: Restart Now runs Sparkle's install")
+    func downloadToInstall() {
+        let settings = UpdateSettings(backend: FakeUpdateBackend())
+        settings.found(version: "1.0.2")
+        #expect(settings.status == .available(version: "1.0.2"))
+        #expect(settings.installNow == nil)
+
+        settings.downloading(version: "1.0.2")
+        #expect(settings.status == .downloading(version: "1.0.2"))
+
+        var installed = 0
+        settings.readyToInstall(version: "1.0.2") { installed += 1 }
+        #expect(settings.status == .readyToInstall(version: "1.0.2"))
+        settings.installNow?()
+        #expect(installed == 1)
+    }
+
+    @Test("a later check's result doesn't hide an update that's downloaded and waiting")
+    func readyStaysReady() {
+        let settings = UpdateSettings(backend: FakeUpdateBackend())
+        settings.readyToInstall(version: "1.0.2") {}
+        settings.checkNow()
+        #expect(settings.status == .readyToInstall(version: "1.0.2"))
+        settings.noUpdateFound()
+        settings.failed("offline")
+        settings.found(version: "1.0.2")
+        settings.cycleFinished()
+        #expect(settings.status == .readyToInstall(version: "1.0.2"))
+        #expect(settings.installNow != nil)
+    }
+
+    @Test("a failed download ends it; skipping a found version clears it")
+    func downloadFailedAndSkipped() {
+        let settings = UpdateSettings(backend: FakeUpdateBackend())
+        settings.downloading(version: "1.0.2")
+        settings.downloadFailed("The file couldn't be saved.")
+        #expect(settings.status == .failed("The file couldn't be saved."))
+
+        settings.found(version: "1.0.3")
+        settings.skipped()
+        #expect(settings.status == .idle)
     }
 }
