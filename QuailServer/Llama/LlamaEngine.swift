@@ -177,8 +177,11 @@ final class LlamaRuntime: @unchecked Sendable {
     }()
 
     deinit {
-        // Only reached if the engine is dropped without `unload`.
-        queue.sync { unload() }
+        // Only reached if the engine is dropped without `unload`. Called directly, not through `queue`:
+        // every block on `queue` holds `self`, so once the last reference goes nothing else can be
+        // touching the runtime, and the last reference is often a block's, released *on* `queue`,
+        // where `queue.sync` crashed (#199).
+        unload()
     }
 
     func run<T: Sendable>(_ work: @escaping @Sendable (LlamaRuntime) throws -> T) async throws -> T {
