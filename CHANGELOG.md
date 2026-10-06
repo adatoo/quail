@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-10-06
+
+### Changed
+
+- Every branch now ends with a commit holding only its version bump and CHANGELOG entry. The `version` check enforces it (`task version:last-commit`), and the arena-ratings workflow follows it (ADR D-024).
+
 ## [1.1.1] - 2026-10-06
 
 ### Fixed

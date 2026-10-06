@@ -72,9 +72,11 @@ jobs:
           title="chore(catalog): Arena ratings as of $as_of"
           perl -0pi -e "s/^## \\[Unreleased\\][ \\t]*\\n/## [Unreleased]\\n\\n### Changed\\n\\n- The catalog's Arena ratings, as of $as_of.\\n/m" CHANGELOG.md
           git switch -c "$branch"
-          PR_TITLE="$title" task version:bump
           git config user.name "quail-release[bot]"
           git config user.email "quail-release[bot]@users.noreply.github.com"
-          git commit -am "$title"
+          # The change, then the bump as its own last commit (ADR D-024).
+          git commit -m "$title" Quail/Resources/catalog.json
+          PR_TITLE="$title" task version:bump
+          git commit -am "chore(release): bump version for $title"
           git push -u origin "$branch"
           gh pr create --title "$title" --body "Monthly refresh of the catalog's Arena ratings (ADR D-070) by \`scripts/update-arena-ratings\`. The ratings are Arena's (© Arena), from \`lmarena-ai/leaderboard-dataset\` under CC BY 4.0."
