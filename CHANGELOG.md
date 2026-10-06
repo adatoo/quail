@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-06
+
+### Fixed
+
+- A release no longer fails because GitHub dropped the connection while attaching the DMG or the update feed. That is what kept 1.0.0 from becoming the latest release, so installed copies were never offered it (#196). The release job now attaches both with `task release:upload`, which retries up to five times.
+
 ## [1.0.1] - 2026-10-05
 
 ### Fixed

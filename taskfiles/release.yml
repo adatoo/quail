@@ -17,6 +17,8 @@
 #   task release:appcast  the Sparkle update feed for that DMG → build/appcast.xml
 #                         signing key: SPARKLE_ED_PRIVATE_KEY (CI; read from stdin, never written to disk),
 #                         else the login keychain (SPARKLE_KEY_ACCOUNT, default "ed25519")
+#   task release:upload   attach files to vX.Y.Z's GitHub release (FILES=…, VERSION=…), retrying a dropped
+#                         connection; --clobber, so a retry or re-run replaces a partial upload (needs gh, GH_TOKEN in CI)
 #   task release:cask     the Homebrew cask for that DMG → build/quail-ai.rb (from Config/quail-ai.rb.in)
 #   task release:cask:publish   push it to the tap's Casks/quail-ai.rb (TAP_TOKEN in CI, else your git credentials)
 #
@@ -278,6 +280,37 @@ tasks:
         grep -q "releases/download/$TAG/$(basename "$DMG")" "$FEED" || { echo "error: the appcast doesn't point at $TAG's DMG" >&2; exit 1; }
         cp "$FEED" '{{.BUILD_DIR}}/appcast.xml'
         echo "wrote {{.BUILD_DIR}}/appcast.xml"
+
+  upload:
+    desc: 'Attach files to the GitHub release vVERSION (FILES="a b", VERSION=…), retrying a dropped connection'
+    env:
+      VERSION: '{{.VERSION}}'
+      FILES: '{{.FILES}}'
+      ATTEMPTS: '{{.ATTEMPTS | default 5}}'
+    preconditions:
+      - sh: command -v gh
+        msg: 'gh is not installed — brew install gh'
+    cmds:
+      - |
+        [ -n "${VERSION:-}" ] || VERSION="$('{{.TASK_EXE}}' --silent -d '{{.ROOT_DIR}}' version:current)"
+        [ -n "${FILES:-}" ] || { echo "error: FILES is empty — pass FILES=\"build/appcast.xml …\"" >&2; exit 1; }
+        # FILES is split on spaces and globbed on purpose (FILES='build/Quail-*.dmg').
+        set -- $FILES
+        for f in "$@"; do [ -f "$f" ] || { echo "error: $f not found" >&2; exit 1; }; done
+        # GitHub sometimes drops the connection mid-upload ("other side closed"), which
+        # failed the 1.0.0 release (#196). --clobber replaces whatever a failed attempt left.
+        n=1
+        until gh release upload "v$VERSION" "$@" --clobber; do
+          if [ "$n" -ge "$ATTEMPTS" ]; then
+            echo "error: couldn't attach $* to v$VERSION after $ATTEMPTS attempts." >&2
+            exit 1
+          fi
+          wait=$((n * 15))
+          echo "upload failed (attempt $n of $ATTEMPTS); retrying in ${wait}s" >&2
+          sleep "$wait"
+          n=$((n + 1))
+        done
+        echo "attached $* to v$VERSION"
 
   cask:
     desc: 'The Homebrew cask for a release DMG (DMG=…, default build/Quail-<version>.dmg) → build/quail-ai.rb'
