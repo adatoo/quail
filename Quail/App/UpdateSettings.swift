@@ -47,6 +47,24 @@ enum UpdateFrequency: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Where the updater is, so Settings and the menu can say it instead of working out of sight.
+/// Sparkle's own windows still do the asking; this is what Quail shows between them.
+enum UpdateStatus: Equatable, Sendable {
+    /// Nothing to say beyond the last check.
+    case idle
+    /// A check someone asked for is running.
+    case checking
+    /// The last check found nothing newer.
+    case upToDate
+    /// A newer version was found and is waiting on the person (automatic install off).
+    case available(version: String)
+    /// Downloading in the background (automatic install on, or after Install).
+    case downloading(version: String)
+    /// Downloaded; installs the next time Quail quits, or now through `installNow`.
+    case readyToInstall(version: String)
+    case failed(String)
+}
+
 /// The part of Sparkle's `SPUUpdater` the settings use, so the mapping below can
 /// be tested with a fake.
 @MainActor
@@ -55,6 +73,9 @@ protocol UpdateBackend: AnyObject {
     var updateCheckInterval: TimeInterval { get set }
     var automaticallyDownloadsUpdates: Bool { get set }
     var lastUpdateCheckDate: Date? { get }
+    /// False while Sparkle is busy in the background (fetching the feed or downloading an
+    /// update), when `checkForUpdates()` is ignored.
+    var canCheckForUpdates: Bool { get }
     func checkForUpdates()
 }
 
@@ -89,6 +110,24 @@ final class UpdateSettings {
 
     private(set) var lastCheck: Date?
 
+    private(set) var status: UpdateStatus = .idle
+
+    /// Installs a downloaded update now: Sparkle quits Quail (through `applicationShouldTerminate`,
+    /// so the server stops first), swaps the app and relaunches it. Set only while `readyToInstall`.
+    private(set) var installNow: (() -> Void)?
+
+    private var backendCanCheck: Bool
+
+    /// Whether Check for Updates would do anything. Sparkle ignores it during a background
+    /// download, so the button is disabled then rather than silently doing nothing.
+    var canCheckNow: Bool {
+        backendCanCheck && status != .checking
+    }
+
+    /// Brings Quail forward before Sparkle opens a window: Quail has no Dock icon, so
+    /// otherwise the window can open behind whatever app is in front.
+    var activate: () -> Void = {}
+
     init(backend: any UpdateBackend) {
         self.backend = backend
         frequency = UpdateFrequency(
@@ -97,14 +136,83 @@ final class UpdateSettings {
         )
         installsAutomatically = backend.automaticallyDownloadsUpdates
         lastCheck = backend.lastUpdateCheckDate
+        backendCanCheck = backend.canCheckForUpdates
     }
 
     func checkNow() {
+        guard canCheckNow else { return }
+        activate()
+        switch status {
+        case .idle, .upToDate, .failed:
+            status = .checking
+        case .checking, .available, .downloading, .readyToInstall:
+            // Sparkle shows the update it already has rather than checking again.
+            break
+        }
         backend.checkForUpdates()
     }
 
     /// Called when Sparkle finishes a check, so "Last checked" moves on its own.
     func refreshLastCheck() {
         lastCheck = backend.lastUpdateCheckDate
+    }
+
+    // MARK: What Sparkle reports (from `Updater`'s delegate)
+
+    func canCheckChanged(_ canCheck: Bool) {
+        backendCanCheck = canCheck
+    }
+
+    func found(version: String) {
+        guard !isPastAvailable else { return }
+        status = .available(version: version)
+    }
+
+    func downloading(version: String) {
+        status = .downloading(version: version)
+    }
+
+    func readyToInstall(version: String, install: @escaping () -> Void) {
+        status = .readyToInstall(version: version)
+        installNow = install
+    }
+
+    func noUpdateFound() {
+        guard !isPastAvailable else { return }
+        status = .upToDate
+    }
+
+    func failed(_ message: String) {
+        guard !isPastAvailable else { return }
+        status = .failed(message)
+    }
+
+    /// A download that failed ends it, whatever came before.
+    func downloadFailed(_ message: String) {
+        status = .failed(message)
+        installNow = nil
+    }
+
+    /// The person chose Skip This Version: there's nothing to point at until the next check.
+    func skipped() {
+        guard case .available = status else { return }
+        status = .idle
+    }
+
+    /// The end of every check, found or not.
+    func cycleFinished() {
+        refreshLastCheck()
+        if status == .checking {
+            status = .idle
+        }
+    }
+
+    /// Once an update is downloading or downloaded, a later check's result doesn't replace it:
+    /// the download still installs when Quail quits.
+    private var isPastAvailable: Bool {
+        switch status {
+        case .downloading, .readyToInstall: true
+        default: false
+        }
     }
 }

@@ -143,7 +143,17 @@ struct MenuView: View {
         }
 
         if let updateSettings {
-            Button("Check for Updates…") { updateSettings.checkNow() }
+            switch updateSettings.status {
+            case let .readyToInstall(version):
+                if let installNow = updateSettings.installNow {
+                    Button("Restart to Install Quail \(version)", action: installNow)
+                }
+            case let .downloading(version):
+                Button("Downloading Quail \(version)…") {}.disabled(true)
+            default:
+                Button("Check for Updates…") { updateSettings.checkNow() }
+                    .disabled(!updateSettings.canCheckNow)
+            }
         }
 
         Divider()
