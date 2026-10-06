@@ -178,11 +178,12 @@ jobs:
           path: build/Quail-*.dmg
           retention-days: 90
 
+      # release:upload retries a dropped connection, which failed the 1.0.0 release (#196).
       - name: Attach DMG to the release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: v${{ needs.tag.outputs.version }}
-          files: build/Quail-*.dmg
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.tag.outputs.version }}
+        run: task release:upload FILES="build/Quail-$VERSION.dmg"
 
       # The update feed installed copies check (SUFeedURL: releases/latest/download/appcast.xml).
       # After the DMG is attached, so a feed problem never blocks the download itself.
@@ -198,10 +199,10 @@ jobs:
           task release:appcast
 
       - name: Attach the update feed to the release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: v${{ needs.tag.outputs.version }}
-          files: build/appcast.xml
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.tag.outputs.version }}
+        run: task release:upload FILES=build/appcast.xml
 
       # Only now does releases/latest, and so the feed installed copies read, point here.
       - name: Make it the latest release
