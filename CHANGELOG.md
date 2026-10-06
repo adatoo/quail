@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-06
+
+### Fixed
+
+- `quail-server` could crash when a GGUF engine was released while one of its requests was finishing. The last reference to the engine was dropped on the engine's own queue, and cleanup then waited on that same queue (#199). Cleanup now runs directly. This was also the cause of the intermittent `LlamaEngineTests.notLoaded()` crash.
+
 ## [1.1.0] - 2026-10-06
 
 ### Changed

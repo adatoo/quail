@@ -79,6 +79,23 @@ struct LlamaEngineTests {
         }
     }
 
+    @Test("a runtime whose last reference goes on its own queue unloads there without crashing (#199)")
+    func releasedOnItsOwnQueue() async {
+        // The queued block holds the runtime; dropping ours while it waits makes the block's release
+        // the last one, so `deinit` runs on the runtime's queue — where `queue.sync` used to crash.
+        let proceed = DispatchSemaphore(value: 0)
+        var runtime: LlamaRuntime? = LlamaRuntime(slotCount: 1)
+        weak let watched = runtime
+        runtime?.enqueue { _ in proceed.wait() }
+        runtime = nil
+        #expect(watched != nil) // the block still has it
+        proceed.signal()
+        for _ in 0 ..< 200 where watched != nil {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(watched == nil)
+    }
+
     @Test("before a model is loaded, the engine says so and unload is harmless")
     func notLoaded() async {
         let engine = LlamaEngine()
