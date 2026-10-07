@@ -35,6 +35,8 @@ It has no chat window of its own: the server's chat page opens in your browser, 
 
 1.0. What's planned next is at the end of [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md): serving speech, images and MCP through the API (#179). Every merge to `main` is a signed, notarized release that installed copies update to.
 
+Why Quail exists, and when Ollama or oMLX might suit you better: [the launch post](https://medium.com/@arif_84930/quail-a-deliberately-boring-local-model-server-for-the-mac-c70e11791985) (source in [docs/launch/](docs/launch/medium-article.md)).
+
 ## Documents
 
 | Doc | What it covers |
