@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-10-07
+
+### Added
+
+- The launch article, as published on Medium, with a map of where Quail sits among Ollama, LM Studio, oMLX, Rapid-MLX and Nativ (`docs/launch/`).
+
 ## [1.1.2] - 2026-10-06
 
 ### Changed
