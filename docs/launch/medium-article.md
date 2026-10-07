@@ -10,7 +10,14 @@ If you've ever installed Postgres.app, you know the feeling. You drag an elephan
 
 Running AI models locally on a Mac doesn't feel like that yet. You pick between a dozen apps and servers, each with its own store of models, its own chat window and its own idea of which tools it works with. Then you work out by trial and error whether a model even fits in your Mac's memory.
 
-I built Quail to make it boring. Today it's 1.0, free, and open source.
+I built Quail to make it boring. It has reached 1.0, and it's free and open source.
+
+```
+brew install --cask adatoo/tap/quail-ai
+quail launch claude
+```
+
+That's Claude Code running on a model on your own Mac. The rest of this post is why Quail works the way it does.
 
 ## The inspiration: Postgres.app
 
@@ -40,10 +47,8 @@ If you stop using Quail tomorrow, nothing you built depends on it. Your tools sp
 
 ## What it does today
 
-- **One server for GGUF and MLX.** Quail's own server runs llama.cpp for GGUF and Apple's MLX for MLX models, from one model folder, with no Python inside. Several requests are served at once, conversations keep their prompt cache, and vision and tool calling work across the main model families.
-- **It knows what fits before you download.** Every model gets a verdict for your Mac (comfortable, tight, won't fit) and an estimated speed, and its context is sized to your memory automatically.
-- **It finds models for you:** a curated catalog with release dates and scores, recommendations for your Mac, hundreds of MLX models, any Hugging Face repo, and the models other apps already downloaded.
-- **It connects your tools:** setup for about fifteen of them, each with a Test, plus `quail launch` for coding agents.
+- **One server for GGUF and MLX.** Quail's own server runs llama.cpp for GGUF and Apple's MLX for MLX models, from one model folder, with no Python inside. It serves several requests at once, and vision and tool calling work across the main model families.
+- **It knows what fits before you download.** Every model gets a verdict for your Mac (comfortable, tight, won't fit) and an estimated speed. A curated catalog recommends models for your memory, alongside over a hundred MLX models, any GGUF on Hugging Face, and the models other apps already downloaded.
 - **It measures itself:** a built-in benchmark, the same on every Mac, so you can compare models and settings.
 - **It's private by default.** It listens only to your Mac, requires an API key from the start, refuses requests from web pages you haven't allowed, works offline once models are downloaded, and sends no usage data.
 
@@ -51,9 +56,11 @@ If you stop using Quail tomorrow, nothing you built depends on it. Your tools sp
 
 It's a fair question: Ollama, LM Studio, Nativ, oMLX and Rapid-MLX all run models on a Mac, and most of them do it well. Here's where Quail fits, and where you'd be better served elsewhere.
 
+![Positioning map: six local-model tools by where you work and which Macs](positioning-map.png)
+
 - **If you want an all-in-one AI app**, use LM Studio, the established chat app, or Nativ, which adds image generation, voice and MCP tools in one window. Quail won't become that.
 - **If you need Linux or Windows**, use Ollama. Quail is Mac-only, on purpose.
-- **If you want every last token per second from MLX** with several requests at once, Rapid-MLX is still 10–20% ahead of Quail there, and I say so on Quail's own website.
+- **If you want every last token per second from MLX**, use Rapid-MLX. It's 7–10% faster than Quail on a single request and 10–20% faster with several at once, and I say so on Quail's own website.
 - **If you want a server for your Mac that your tools share**, as boring and dependable as Postgres.app, that's Quail. It's the only one of these that serves both GGUF and MLX from one native server with no Python, tells you what fits before you download, and starts locked down (an API key on, web pages refused) rather than open.
 
 I also didn't want to claim "fast" without proof. Quail is measured against llama.cpp's own server, Ollama, oMLX and Rapid-MLX on the same Mac, the same model files and the same prompts. On GGUF it's level with llama.cpp's server. On MLX it gives the fastest first token when several requests arrive at once. Its answers score the same on maths, knowledge and tool calling. Every result, including where Quail is slower, is published: [the comparison](https://quail-ai.app/compare.html).
@@ -90,9 +97,7 @@ That's it. It lives in your menu bar from now on, and updates itself.
 
 The market is crowded, but not in Quail's corner of it. Almost every alternative is either an app you work inside, or a server that isn't a Mac app. Quail is a Mac app whose whole job is to be a server for other tools, and that's the slot Postgres.app filled for databases.
 
-![Positioning map: six local-model tools by where you work and which Macs](positioning-map.png)
-
-Quail's corner holds two MLX-only Python servers; Ollama is the nearest rival but spans every OS.
+Quail's corner of the map (in the article above) holds two MLX-only Python servers; Ollama is the nearest rival but spans every OS.
 
 - **The real neighbours are Ollama, oMLX and Rapid-MLX, not Nativ.** Nativ and LM Studio are destinations: chat, images, voice, MCP in their own window. Quail deliberately isn't, so it doesn't compete with them; it can even serve them.
 - **Against Ollama:** Ollama is the default answer and runs on Linux and Windows. Quail's case is Mac-native GGUF and MLX from one server, secure defaults (key on, web pages refused; Ollama has neither), fit verdicts before download, and several requests at once by default.
@@ -109,3 +114,5 @@ Quail's corner holds two MLX-only Python servers; Ollama is the nearest rival bu
 - Quail: running a local AI model should be as boring as running a local database
 - Postgres.app, but for local AI models
 - I built a menu-bar server for local AI models, and published where it's slower
+
+**Before publishing:** check the Postgres.app quotes against postgresapp.com; add a menu-bar screenshot as the cover image; leave out the draft line and these notes.
