@@ -6,6 +6,10 @@ Draft of 4 October 2026 · Arif Datoo · edited in [Claude Docs](https://claude.
 
 *An open-source Mac app that serves local models to the tools you already use, and then gets out of the way.*
 
+![Quail's Server page in its Mac window. The server is running with a Qwen3.6 model loaded, at http://127.0.0.1:8080. Require API key is on, the network is set to This Mac only, and the runtime is Quail server for GGUF and MLX.](../../website/assets/img/quail-window-light.png)
+
+*Quail's Server page: running, with an API key required and reachable from this Mac only.*
+
 If you've ever installed Postgres.app, you know the feeling. You drag an elephant into Applications, click it, and there's a database. No installer, no config files, no services to chase down. When you need it, it's in the menu bar. When you don't, you forget it exists.
 
 Running models locally on a Mac is in good shape these days. Ollama, LM Studio, oMLX and others all work well, and most of them now come with a chat window, and often image generation, voice and agents too. I wanted the narrow version: a server and nothing else, as dull and dependable as Postgres.app.
@@ -56,7 +60,9 @@ If you stop using Quail tomorrow, nothing you built depends on it. Your tools sp
 
 Ollama, LM Studio, Nativ, oMLX and Rapid-MLX all run models on a Mac, and all of them can serve other apps. If you already use one and it works, that's a good reason to keep it.
 
-![Map of six local-model tools by what they bundle and which model files they run](positioning-map.png)
+![Map of six local-model tools. Across: from server only to all-in-one with chat, images, voice and agents. Down: GGUF and MLX, or MLX only. Top row, GGUF and MLX: Quail at the server-only end, Ollama near the middle (adds a chat app), LM Studio at the all-in-one end. Bottom row, MLX only: oMLX (menu-bar server with dashboard chat), Rapid-MLX (server plus an app with voice and images), Nativ at the all-in-one end.](positioning-map.png)
+
+*Checked on 3 October 2026 against each project's own docs and source. Every claim is sourced at quail-ai.app/compare.html.*
 
 - **Ollama does most of what Quail does.** It's a Mac app with no Python, it serves GGUF and MLX, it sets up coding tools with `ollama launch`, it has its own chat window, and it runs on Linux and Windows too. It's the safe default.
 - **oMLX is the closest to Quail in spirit:** a native menu-bar server for MLX models, with a dashboard and its own chat.
@@ -127,4 +133,4 @@ That's it. It lives in your menu bar from now on, and updates itself.
 - I built a menu-bar server for local AI models, and published where it's slower
 - Postgres.app, but for local AI models (only with the honest framing; HN will push back otherwise)
 
-**Before publishing:** add a menu-bar screenshot as the cover image; leave out the draft line and these notes.
+**Published:** 7 October 2026 on [Medium](https://medium.com/@arif_84930/quail-a-deliberately-boring-local-model-server-for-the-mac-c70e11791985), with the Server page screenshot as the cover image. The draft line and these notes were left out.
