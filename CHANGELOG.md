@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-10-07
+
+### Added
+
+- The README and the website's home page link the launch post, including when Ollama or oMLX might suit you better.
+
 ## [1.1.3] - 2026-10-07
 
 ### Added
