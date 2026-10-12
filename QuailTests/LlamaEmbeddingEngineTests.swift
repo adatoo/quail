@@ -17,6 +17,28 @@ struct LlamaEmbeddingEngineTests {
     private static let embedModel = model("QUAIL_TEST_EMBED_MODEL")
     private static let rerankModel = model("QUAIL_TEST_RERANK_MODEL")
 
+    @Test("a runtime whose last reference goes on its own queue unloads there without crashing (#199)")
+    func releasedOnItsOwnQueue() async {
+        // The queued block holds the runtime; dropping ours while it waits makes the block's release the last one,
+        // so `deinit` runs on the runtime's queue, where `queue.sync` crashed.
+        let proceed = DispatchSemaphore(value: 0)
+        var runtime: LlamaEmbeddingRuntime? = LlamaEmbeddingRuntime()
+        weak let watched = runtime
+        if let held = runtime {
+            held.queue.async {
+                proceed.wait()
+                withExtendedLifetime(held) {}
+            }
+        }
+        runtime = nil
+        #expect(watched != nil) // the block still has it
+        proceed.signal()
+        for _ in 0 ..< 200 where watched != nil {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(watched == nil)
+    }
+
     @Test(
         "vectors are unit length, and a related text is nearer than an unrelated one",
         .enabled(if: embedModel != nil)

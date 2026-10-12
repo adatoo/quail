@@ -69,7 +69,9 @@ final class LlamaEmbeddingRuntime: @unchecked Sendable {
     static let maxSequences = 32
 
     deinit {
-        queue.sync { unload() }
+        // Called directly, as `LlamaRuntime.deinit` does since #199: every block on `queue` holds `self`, so the
+        // last reference is often a block's, released on `queue`, where `queue.sync` crashes.
+        unload()
     }
 
     func run<T: Sendable>(_ work: @escaping @Sendable (LlamaEmbeddingRuntime) throws -> T) async throws -> T {

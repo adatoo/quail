@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-10-12
+
+### Fixed
+
+- **A GGUF embedding or reranking model dropped mid-request no longer crashes the server.** Its engine had the same `deinit` as the one #199 fixed for chat models: when the last reference went on its own queue, `queue.sync` aborted. It now unloads directly, as the chat engine does. A test puts the last reference on the queue; it crashes every time without the fix.
+
 ## [1.1.4] - 2026-10-07
 
 ### Added
