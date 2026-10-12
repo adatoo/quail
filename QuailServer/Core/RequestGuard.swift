@@ -1,8 +1,8 @@
 import Foundation
 
-/// Keeps a web page in the user's browser from driving the local server (ADR D-036).
+/// Keeps a web page in the user's browser from driving the local server (ADR-0036).
 ///
-/// The API key is off by default (D-010), and llama-server answers every cross-origin request
+/// The API key is off by default (ADR-0010), and llama-server answers every cross-origin request
 /// with `Access-Control-Allow-Origin: <whatever Origin said>` plus `Allow-Credentials`, so any
 /// page you visit could talk to your models. Two rules close that:
 ///

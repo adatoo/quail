@@ -1,6 +1,6 @@
 import Foundation
 
-/// Other catalog families worth a look beside one (ADR D-070 amendment): one about the same size that scores
+/// Other catalog families worth a look beside one (ADR-0070 amendment): one about the same size that scores
 /// higher in Quail's own tests, one that needs much less memory and is about as good, and one that's much faster
 /// on this Mac and about as good. Worked out from Quail's scores, the families' strengths, and this Mac's fit
 /// estimates (memory at the default context, and speed); never from Arena's ratings, which cover too few of them
@@ -20,7 +20,7 @@ enum ModelAlternatives {
     }
 
     /// Differences within these, in points, are a tie: the 95% intervals of Quail's scores at their sample sizes
-    /// (ADR D-070's amendment).
+    /// (ADR-0070's amendment).
     static let mathsMargin = 5
     static let knowledgeMargin = 9
     static let toolsMargin = 5

@@ -1,4 +1,4 @@
-"""The Mac under test: what else is running, how hot it is, and quieting it for a timed run (ADR D-063).
+"""The Mac under test: what else is running, how hot it is, and quieting it for a timed run (ADR-0063).
 
 Everything paused here is recorded in a state file first, and put back by `restore()` — on a normal exit, on
 Ctrl-C and on SIGTERM/SIGHUP, and by `task bench:restore` if the driver itself was killed.

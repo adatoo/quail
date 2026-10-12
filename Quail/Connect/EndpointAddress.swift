@@ -11,7 +11,7 @@ enum EndpointAddress {
         return host == "0.0.0.0" || host == "::" || host == "[::]"
     }
 
-    /// Who can reach a server listening on a host, as the Server page offers it (ADR D-061).
+    /// Who can reach a server listening on a host, as the Server page offers it (ADR-0061).
     enum Reach: String, CaseIterable, Identifiable {
         /// Loopback: only this Mac.
         case thisMac

@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import IOKit
 
-/// One reading of the Mac and the server, for the Activity window and the menu bar (ADR D-060 amendment).
+/// One reading of the Mac and the server, for the Activity window and the menu bar (ADR-0060 amendment).
 struct SystemSample: Equatable, Sendable {
     /// All cores together, 0–100.
     var cpuPercent: Double?

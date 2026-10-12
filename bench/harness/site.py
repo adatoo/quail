@@ -1,6 +1,6 @@
 """The website's comparison page (website/compare.html): the sourced feature table from config/features.toml, and,
 once a report exists, its headline results, each written between its markers so the rest of the hand-written page
-is left alone (ADR D-062, D-063)."""
+is left alone (ADR-0062, ADR-0063)."""
 
 from __future__ import annotations
 

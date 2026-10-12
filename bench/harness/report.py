@@ -1,10 +1,10 @@
-"""The report: a run folder's results as docs/benchmarks/<date>/ (ADR D-063).
+"""The report: a run folder's results as docs/benchmarks/<date>/ (ADR-0063).
 
 README.md has the hand-written summary (the notes file's `found`), the method, the versions, the results by lane
 (speed with the native baselines beside it, quality, tool calling), a generated "Where Quail is slower or worse"
 section, the caveats the smoke test and the engines' logs found (and the notes add), and how to reproduce it.
 summary.json has the same numbers for the website; raw/ keeps the results files the numbers came from; charts/
-has the SVGs. Speed numbers are medians across rounds; a difference is only called one when D-063 allows it (more
+has the SVGs. Speed numbers are medians across rounds; a difference is only called one when ADR-0063 allows it (more
 than 5% and more than the spread between rounds; for accuracies, an exact McNemar test on the same items).
 """
 
@@ -202,7 +202,7 @@ def counts(record: dict) -> tuple[int, int]:
 
 
 def speed_losses(rows: list[dict], model: config.Model) -> list[dict]:
-    """Each level where another engine in Quail's lane beats Quail by a margin D-063 lets the report claim: one
+    """Each level where another engine in Quail's lane beats Quail by a margin ADR-0063 lets the report claim: one
     record per model, lane, level, metric and engine, with the gap as a fraction."""
     cells = speed_cells(rows)
     out = []
@@ -241,7 +241,7 @@ def losses_lines(speed: list[dict], accuracy: list[str]) -> list[str]:
     if groups:
         out += ["Each cell names the engines that did better than Quail at that level, and by how much, as a share "
                 "of Quail's figure: higher throughput, or shorter times. Only gaps of more than 5% and more than the "
-                "spread between rounds count (D-063). Time between tokens is only compared with one request at a "
+                "spread between rounds count (ADR-0063). Time between tokens is only compared with one request at a "
                 "time.", ""]
     for (model_name, lane), losses in groups.items():
         levels = levels_of(losses)
@@ -260,7 +260,7 @@ def losses_lines(speed: list[dict], accuracy: list[str]) -> list[str]:
     out += [f"- {text}" for text in accuracy]
     if accuracy:
         out.append("")
-    return out or ["Nowhere by a margin D-063 lets this report claim.", ""]
+    return out or ["Nowhere by a margin ADR-0063 lets this report claim.", ""]
 
 
 def accuracy_losses(per_item: dict, model: config.Model, titles: dict) -> list[str]:
@@ -433,7 +433,7 @@ def report(run_dir: Path, smoke_dir: Path | None, out: Path, notes: Path | None 
 
     day = f"{run_dir.name[:4]}-{run_dir.name[4:6]}-{run_dir.name[6:8]}"
     lines = [f"# Quail against llama-server, Ollama, oMLX and Rapid-MLX — {day}", "",
-             "Measured by the comparison harness in `bench/` (ADR D-063): the same weights in every engine of a lane, "
+             "Measured by the comparison harness in `bench/` (ADR-0063): the same weights in every engine of a lane, "
              "the same prompts, the same settings, one server at a time.", ""]
     if conditions.get("not_quiet"):
         lines += ["> **Not a clean run:** " + "; ".join(conditions["not_quiet"]) + ". These numbers don't count.", ""]

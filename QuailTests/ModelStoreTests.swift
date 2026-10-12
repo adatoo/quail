@@ -341,7 +341,7 @@ struct ModelStoreTests {
         #expect(row.id == "Hand-Placed")
         #expect(row.format == .gguf)
         #expect(row.bytes == 1_048_576)
-        // Automatic context (ADR D-020): the largest of 32K/16K/8K that's
+        // Automatic context (ADR-0020): the largest of 32K/16K/8K that's
         // comfortable — 32K for a tiny model on a comfortable device.
         #expect(row.contextSize == 32768)
         #expect(row.sourceRepo == nil)

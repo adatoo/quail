@@ -1,6 +1,6 @@
 import Foundation
 
-/// The fixed benchmark, `quail-bench-1` (ADR D-023). Changing anything here
+/// The fixed benchmark, `quail-bench-1` (ADR-0023). Changing anything here
 /// — sizes, run counts, the passage, request settings — makes results
 /// incomparable with earlier ones, so it means a new `id`, never an edit.
 enum BenchmarkSuite {
@@ -19,7 +19,7 @@ enum BenchmarkSuite {
     static let measuredRuns = 3
     /// A returning conversation (added later, as optional results, so earlier results stay comparable): a
     /// prompt of this many tokens, cached, then the same prompt with `returningTurnNewTokens` more. Its time
-    /// to first token is what a chat or agent's next turn waits (ADR D-055, Phase 3c step 1).
+    /// to first token is what a chat or agent's next turn waits (ADR-0055, Phase 3c step 1).
     static let returningTurnPromptTokens = 2048
     static let returningTurnNewTokens = 64
     /// Requests sent at once, each generating `concurrentTokens`: their total speed shows what several callers
@@ -30,7 +30,7 @@ enum BenchmarkSuite {
     /// Every request: deterministic sampling, no prompt cache — otherwise a
     /// repeated prompt is "processed" in no time — and no speculative
     /// guessing, which the suite's repetitive text would turn into a
-    /// measure of the guessing instead of the model's speed (ADR D-055).
+    /// measure of the guessing instead of the model's speed (ADR-0055).
     static var requestSettings: [String: Any] {
         ["temperature": 0, "seed": 42, "cache_prompt": false, "speculative.n_max": 0]
     }

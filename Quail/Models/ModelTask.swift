@@ -1,6 +1,6 @@
 import Foundation
 
-/// What a model is for (ADR D-072): chat, turning text into vectors for search (embedding), or scoring documents
+/// What a model is for (ADR-0072): chat, turning text into vectors for search (embedding), or scoring documents
 /// against a query (rerank). Only chat models are offered as the default model, pinged, or listed in the chat
 /// page; the others are served on `/v1/embeddings` and `/v1/rerank`. `quail-server` has its own copy of this
 /// enum (`QuailServer/Core/ModelTask.swift`): the app doesn't link the server's code.

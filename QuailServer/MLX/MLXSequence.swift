@@ -3,7 +3,7 @@ import MLX
 import MLXLMCommon
 import QuailServerCore
 
-/// A request waiting for, or being served by, the MLX engine's one serving task (ADR D-056).
+/// A request waiting for, or being served by, the MLX engine's one serving task (ADR-0056).
 final class MLXJob: @unchecked Sendable {
     let request: GenerationRequest
     /// Set when the client goes away; the serving task checks it between steps.
@@ -87,7 +87,7 @@ final class MLXSequence {
     private let untrimmable: Bool
     private var inFlight: [[MLXArray]] = []
     private let step: Int
-    /// Bits the attention caches are quantized to once they hold anything (ADR D-057), or nil.
+    /// Bits the attention caches are quantized to once they hold anything (ADR-0057), or nil.
     private let kvBits: Int?
 
     let sampler: SeededSampler
@@ -308,7 +308,7 @@ final class MLXSequence {
     static let lookEvery = 8
     static let maxBackoff = 256
 
-    /// Decodes with no other sequence to batch with, and prompt-lookup speculation (ADR D-055, Phase 3c step 6)
+    /// Decodes with no other sequence to batch with, and prompt-lookup speculation (ADR-0055, Phase 3c step 6)
     /// when the request allows it. Returns true once the sequence has finished (or its client left), false when
     /// `shouldYield` asked it to stop so another sequence can join, with the cache holding `history` and the next
     /// token in `pending`.

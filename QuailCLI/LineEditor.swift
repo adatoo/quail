@@ -8,7 +8,7 @@ import Foundation
 ///
 /// Earlier messages are kept across chats in `Application Support/Quail/chat-history` (only this user
 /// can read it, the last 500), as `ollama run` keeps its own. The conversations themselves are not
-/// saved (ADR D-021).
+/// saved (ADR-0021).
 final class LineEditor {
     private typealias ReadLine = @convention(c) (UnsafePointer<CChar>?) -> UnsafeMutablePointer<CChar>?
     private typealias AddHistory = @convention(c) (UnsafePointer<CChar>?) -> Int32

@@ -3,7 +3,7 @@ import Testing
 @testable import Quail
 @testable import QuailServerCore
 
-/// Models that don't chat (ADR D-072): how a model's task is found, written into the presets, read back by the
+/// Models that don't chat (ADR-0072): how a model's task is found, written into the presets, read back by the
 /// server, and kept away from the routes and app features that need a chat model.
 @Suite("Model tasks")
 struct ModelTaskTests {

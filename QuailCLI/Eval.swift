@@ -2,7 +2,7 @@ import ArgumentParser
 import Darwin
 import Foundation
 
-/// `quail eval tools` (ADR D-065): checks that tool calling works for a model, on Quail's server or any other.
+/// `quail eval tools` (ADR-0065): checks that tool calling works for a model, on Quail's server or any other.
 struct Eval: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Check what a model can do on a server.",

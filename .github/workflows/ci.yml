@@ -15,11 +15,11 @@ jobs:
     name: build-and-test
     # GitHub-hosted, never self-hosted: the repo is public, so any fork's PR
     # runs this workflow, and on a self-hosted runner that means on our own
-    # Mac (ADR D-031). Standard hosted runners are free for public repos.
+    # Mac (ADR-0031). Standard hosted runners are free for public repos.
     runs-on: macos-26
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
-    # Every step is a task from Taskfile.yml (ADR D-030), so `task ci` on a
+    # Every step is a task from Taskfile.yml (ADR-0030), so `task ci` on a
     # laptop runs exactly this list.
     steps:
       - name: Checkout
@@ -30,7 +30,7 @@ jobs:
           sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
 
-      # mlx-swift compiles its Metal shaders during the build (ADR D-028/D-044); on Xcode 26 the
+      # mlx-swift compiles its Metal shaders during the build (ADR-0028/ADR-0044); on Xcode 26 the
       # Metal Toolchain is a separate download (about 840 MB) when the image doesn't carry it.
       - name: Metal Toolchain
         run: |

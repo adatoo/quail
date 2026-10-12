@@ -1,6 +1,6 @@
 extension WebUI {
     /// The page's own code: conversations in IndexedDB, settings in localStorage, the model picker, the
-    /// chat stream, and the sign-in ticket from the Quail app (ADR D-042). Every request goes through `api`,
+    /// chat stream, and the sign-in ticket from the Quail app (ADR-0042). Every request goes through `api`,
     /// to a path on this server.
     static let app = #"""
 
@@ -470,7 +470,7 @@ extension WebUI {
     async function refreshModels() {
       try {
         const res = await api("/v1/models");
-        // Only models that chat: an embedding or reranking model can't answer here (ADR D-072).
+        // Only models that chat: an embedding or reranking model can't answer here (ADR-0072).
         models = ((await res.json()).data || []).filter((m) => !m.task || m.task === "chat");
         const previous = els.model.value;
         els.model.replaceChildren();

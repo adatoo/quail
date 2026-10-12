@@ -1,0 +1,8 @@
+# ADR-0016: Multiple concurrent endpoints deferred to Phase 5, after MLX runtimes
+
+**Date:** 2026-09-23 · **Status:** Accepted
+
+**Decision:** Quail serves one endpoint (one `ServerController`, one host:port) at a time, same as today, through Phase 3 and 4. Running several endpoints at once — e.g. llama.cpp on one port and an MLX runtime on another, or a loopback endpoint alongside a LAN one with its own API key — is deferred to a new Phase 5, added to docs/IMPLEMENTATION_PLAN.md.
+**Why now, not folded into an existing phase:** raised as a question during the Phase 2 follow-up review (recommendations, Start gating, This Mac tab). Phase 2's router mode already serves *several models* concurrently (`modelsMax`) through one endpoint, which covers the common case; a second concurrent *endpoint* is a distinct feature — separate `ServerController`/`Config` plurality, port-collision validation, per-endpoint logs, a menu row per endpoint, and `FitEstimator` needing to account for RAM every other running endpoint's loaded models already hold.
+**Why after Phase 3, not before:** multiple endpoints are only useful once there's more than one runtime to spread across them — running two llama.cpp endpoints against the same model store has little value over router mode's own multi-model support. Ordering it after Phase 3 means the design starts from two real runtimes, not a guess at what a second one will need.
+**Revisit if:** a user need for concurrent endpoints (e.g. one trusted LAN endpoint plus one loopback-only) shows up before Phase 3 ships, in which case it should move earlier rather than wait on MLX runtimes that don't gate it.

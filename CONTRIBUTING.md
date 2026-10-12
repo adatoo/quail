@@ -8,7 +8,7 @@ everyone, maintainers included.
 Read [AGENTS.md](AGENTS.md) for conventions, build commands and the
 definition of done, then [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the design and
-what's next. [docs/DECISIONS.md](docs/DECISIONS.md) explains why things are
+what's next. [docs/adr/](docs/adr/README.md) explains why things are
 the way they are — add a new `D-nnn` entry whenever you change a decision
 recorded there.
 
@@ -18,7 +18,7 @@ recorded there.
 2. Keep commits scoped and use [Conventional Commits](https://www.conventionalcommits.org/)-style
    messages (`feat:`, `fix:`, `docs:`, `chore:`, `test:`).
 3. Give the PR a Conventional Commits **title** — it decides the version
-   bump (ADR D-024):
+   bump (ADR-0024):
 
    | Title | Bump |
    | --- | --- |
@@ -92,7 +92,7 @@ config may auto-start a real model. Debug builds honour `QUAIL_DATA_ROOT=/some/s
 gets relaunched — an updater drops the environment — `defaults write <bundle id> QuailDataRoot /some/scratch/dir`),
 which moves everything Quail writes there, including the control socket. Also build the test copy with its own
 bundle ID (`PRODUCT_BUNDLE_IDENTIFIER=com.datoos.quail.e2e`) so its preferences and login item stay separate.
-ADR D-032 lists the Debug-only launch flags for driving an update with nobody clicking.
+ADR-0032 lists the Debug-only launch flags for driving an update with nobody clicking.
 
 ## Reporting issues
 

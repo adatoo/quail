@@ -1,8 +1,8 @@
 name: Dependabot bump
 
-# Dependabot PRs need a version bump like every other PR (ADR D-024): this
+# Dependabot PRs need a version bump like every other PR (ADR-0024): this
 # commits a patch bump to the PR branch. Pushed as the quail-release GitHub
-# App (ADR D-046) so the push re-runs the required checks (a GITHUB_TOKEN push
+# App (ADR-0046) so the push re-runs the required checks (a GITHUB_TOKEN push
 # wouldn't). Dependabot's workflows read the Dependabot secret store, so the
 # App's RELEASE_APP_CLIENT_ID and RELEASE_APP_PRIVATE_KEY must be there.
 on:

@@ -2,7 +2,7 @@ import Foundation
 import llama
 import QuailServerCore
 
-/// The GGUF engine for models that don't chat (ADR D-072, #181): an embedding model's pooled vectors and a
+/// The GGUF engine for models that don't chat (ADR-0072, #181): an embedding model's pooled vectors and a
 /// reranker's scores, through libllama's embedding mode, as llama-server's `--embeddings` and `--reranking` do. One
 /// instance holds one model; its blocking C calls run on one queue of its own. Requests are served one batch at a
 /// time: an embedding is one forward pass, so there's nothing to interleave.

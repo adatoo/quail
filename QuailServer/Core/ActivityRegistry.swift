@@ -1,6 +1,6 @@
 import Foundation
 
-/// What the server is doing right now, request by request, for `GET /slots` (ADR D-060): the app's menu bar and
+/// What the server is doing right now, request by request, for `GET /slots` (ADR-0060): the app's menu bar and
 /// Activity window poll it to show a model loading, a prompt being read (with progress) and tokens being written.
 /// Records live only while their request does.
 public final class ActivityRegistry: @unchecked Sendable {
@@ -16,7 +16,7 @@ public final class ActivityRegistry: @unchecked Sendable {
     public struct Request: Sendable, Equatable {
         public let id: Int
         public let model: String
-        /// Who sent it (ADR D-067).
+        /// Who sent it (ADR-0067).
         public let client: RequestClient
         public var phase: Phase = .waitingForModel
         public var promptTotal = 0
@@ -50,7 +50,7 @@ public final class ActivityRegistry: @unchecked Sendable {
     }
 
     /// One client's work since the server started, finished requests and those in progress alike, so the app can
-    /// total any stretch of time by subtracting two readings (ADR D-067).
+    /// total any stretch of time by subtracting two readings (ADR-0067).
     public struct ClientTotals: Sendable, Equatable {
         /// The client, with the `User-Agent` of its latest request.
         public var client: RequestClient

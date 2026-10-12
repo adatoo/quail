@@ -2,7 +2,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 
-/// An attention layer's cache for several sequences decoded together (ADR D-056): keys and values are
+/// An attention layer's cache for several sequences decoded together (ADR-0056): keys and values are
 /// `[B, heads, T, dim]`, each sequence left-padded so every sequence's latest token sits in the same column.
 /// The model reads each sequence's position from `ropeOffset` and hides the padding through `makeMask`, the two
 /// hooks mlx-swift-lm's attention already goes through, so the model code runs unchanged over the batch.

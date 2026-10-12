@@ -26,7 +26,7 @@ struct UISnapshotTests {
         for name in ["Qwen3-8B-Q4_K_M", "Qwen3.6-35B-A3B-UD-Q4_K_M"] {
             try Data(repeating: 0, count: 1024).write(to: models.appendingPathComponent("gguf/\(name).gguf"))
         }
-        // An embedding model, known by its header (ADR D-072).
+        // An embedding model, known by its header (ADR-0072).
         var embedder = GGUFFixtureBuilder()
         embedder.addString("general.architecture", "nomic-bert")
         embedder.addUInt32("nomic-bert.pooling_type", 1)
@@ -96,7 +96,7 @@ struct UISnapshotTests {
         )
     }
 
-    @Test("Add Model: release date, model card, Arena rating, and a newer model (ADR D-070)")
+    @Test("Add Model: release date, model card, Arena rating, and a newer model (ADR-0070)")
     func addModelSheetFacts() async throws {
         let (appState, scratch) = try await makeAppState()
         defer { try? FileManager.default.removeItem(at: scratch) }
@@ -280,7 +280,7 @@ struct UISnapshotTests {
         )
     }
 
-    @Test("Activity window, a load waiting for a busy model to finish (ADR D-068)")
+    @Test("Activity window, a load waiting for a busy model to finish (ADR-0068)")
     func activityWindowWaiting() async throws {
         let (appState, scratch) = try await makeAppState()
         defer { try? FileManager.default.removeItem(at: scratch) }

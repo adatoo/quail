@@ -1,10 +1,10 @@
 import Foundation
 
 /// What a model is good for, shown as chips in the Add Model sheet and the Models list so people
-/// can choose knowingly (ADR D-052). Curated per family in `catalog.json`'s `strengths`, except
+/// can choose knowingly (ADR-0052). Curated per family in `catalog.json`'s `strengths`, except
 /// `vision`, which comes from the catalog's own facts: a GGUF download with a vision projector, or an
 /// MLX variant marked `vision` (a Qwen3.5-family or Gemma 4 model, whose vision half Quail's MLX engine loads —
-/// D-047 amendment).
+/// ADR-0047 amendment).
 enum ModelStrength: String, CaseIterable, Identifiable, Sendable {
     case chat
     case coding

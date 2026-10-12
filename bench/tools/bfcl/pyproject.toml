@@ -1,4 +1,4 @@
-# The Berkeley Function-Calling Leaderboard's evaluator for the comparison harness's tool-calling runs (ADR D-063),
+# The Berkeley Function-Calling Leaderboard's evaluator for the comparison harness's tool-calling runs (ADR-0063),
 # pinned. It talks to the harness's request shim (harness/shim.py) as an OpenAI-compatible endpoint.
 # `task bench:setup` makes the environment.
 [project]

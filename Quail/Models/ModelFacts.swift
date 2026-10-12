@@ -1,7 +1,7 @@
 import Foundation
 
 /// What Quail tells you about a catalog family to help you choose it: when it came out, where its maker
-/// describes it, what replaced it, and how it ranks publicly (ADR D-070). Worded here so the Add Model
+/// describes it, what replaced it, and how it ranks publicly (ADR-0070). Worded here so the Add Model
 /// sheet and the Models list say the same thing.
 enum ModelFacts {
     /// A family released within this many days gets a "New" badge.

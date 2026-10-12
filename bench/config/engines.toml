@@ -1,4 +1,4 @@
-# The engines compared (ADR D-063) and where each comes from. Every one runs with a scratch HOME and its own
+# The engines compared (ADR-0063) and where each comes from. Every one runs with a scratch HOME and its own
 # scratch model and cache folders, so nothing here touches a real Quail, Ollama, oMLX or Rapid-MLX setup.
 
 # Quail's own server, both engines, from a signed Release build (a Debug build is unoptimised Swift and is

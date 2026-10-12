@@ -61,7 +61,7 @@ tasks:
 
         echo "embed:llama: staged and signed $SIGNED files from Vendor/llama.cpp into $DEST"
 
-        # The library quail-server's GGUF engine links (ADR D-043). Thinned to arm64 (shipped builds
+        # The library quail-server's GGUF engine links (ADR-0043). Thinned to arm64 (shipped builds
         # are Apple silicon only) and signed like the rest; quail-server finds it through the
         # @executable_path/../Frameworks rpath project.yml gives it.
         FRAMEWORK="${SRCROOT}/Vendor/llama.xcframework/macos-arm64_x86_64/llama.framework"
@@ -120,7 +120,7 @@ tasks:
         mkdir -p "$DEST"
         cp -f "$SRC" "$DEST/quail-server"
 
-        # The MLX engine's Metal shaders (ADR D-044): mlx-swift builds them into a SwiftPM resource
+        # The MLX engine's Metal shaders (ADR-0044): mlx-swift builds them into a SwiftPM resource
         # bundle. Inside an app the library looks for it in Contents/Resources (the main bundle of a
         # tool in Contents/MacOS is the app); a bare mlx.metallib in Contents/MacOS would also load
         # but codesign refuses an unsigned file there. A server that can't find the shaders aborts the

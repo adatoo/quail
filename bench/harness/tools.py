@@ -1,4 +1,4 @@
-"""The tool-calling benchmark: BFCL's function-calling categories through the request shim (ADR D-063).
+"""The tool-calling benchmark: BFCL's function-calling categories through the request shim (ADR-0063).
 
 Five categories that don't need executable backends or multiple turns: simple (Python), multiple (pick one of
 several functions), parallel (several calls to one function), parallel multiple, and irrelevance (don't call

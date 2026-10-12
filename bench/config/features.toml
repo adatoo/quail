@@ -1,5 +1,5 @@
 # The feature table on the website's comparison page (website/compare.html), written into it by `task site:compare`.
-# Every competitor cell links its own project's docs, source or release notes, at the version named here (ADR D-063):
+# Every competitor cell links its own project's docs, source or release notes, at the version named here (ADR-0063):
 # no third-party pages, and "not documented" where a primary source doesn't say. Check again when a version changes.
 
 checked = "2026-10-03"

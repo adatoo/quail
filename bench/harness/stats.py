@@ -1,5 +1,5 @@
 """The statistics the report uses: medians and spreads across rounds, Wilson intervals for accuracies, and an exact
-McNemar test for two engines scored on the same items (ADR D-063)."""
+McNemar test for two engines scored on the same items (ADR-0063)."""
 
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ def mcnemar(a: dict, b: dict) -> tuple[int, int, float]:
 
 def meaningful_speed_gap(ours: list[float], theirs: list[float], higher_is_better: bool,
                          threshold: float = 0.05) -> float | None:
-    """How much better `theirs` is than `ours` (a fraction of ours), if it's a difference D-063 lets the report
+    """How much better `theirs` is than `ours` (a fraction of ours), if it's a difference ADR-0063 lets the report
     claim: more than `threshold` and more than the spread between rounds on either side. Otherwise None."""
     a, b = median(ours), median(theirs)
     if a is None or b is None or a == 0:

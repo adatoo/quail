@@ -2,7 +2,7 @@ import Foundation
 
 // The `quail` CLI ↔ Quail.app control protocol: one JSON object per line
 // over a Unix domain socket (`ControlPaths.socketURL`). The app owns the
-// server (ADR D-003); the CLI asks it to act and report. Compiled into both
+// server (ADR-0003); the CLI asks it to act and report. Compiled into both
 // targets, so the two sides can't drift.
 
 enum ControlPaths {

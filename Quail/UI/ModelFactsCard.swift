@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// What helps you choose a catalog family (ADR D-070): what it's for, when it came out, its maker's page and the
+/// What helps you choose a catalog family (ADR-0070): what it's for, when it came out, its maker's page and the
 /// files, how it ranks publicly, what replaced it, and what else to consider on this Mac. The same card in the
 /// Add Model sheet and behind a Models row's info button.
 struct ModelFactsCard: View {

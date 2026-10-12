@@ -63,7 +63,7 @@ struct ModelDiscoveryTests {
         #expect(presets[1].string("mmproj") == "/store/gguf/mmproj-Gemma-4B.gguf")
     }
 
-    @Test("a KV cache type and flash attention from the preset (ADR D-057)")
+    @Test("a KV cache type and flash attention from the preset (ADR-0057)")
     func kvCachePresets() {
         let presets = PresetsFile.parse("""
         [a]

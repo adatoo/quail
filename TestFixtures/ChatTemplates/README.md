@@ -1,7 +1,7 @@
 # Chat-template fixtures
 
 Real chat templates and what llama.cpp's own engine renders from them, so `ChatTemplateTests` can
-check `quail-server`'s swift-jinja renderer against it (ADR D-035).
+check `quail-server`'s swift-jinja renderer against it (ADR-0035).
 
 - `templates/` — the Jinja text from each model's repository on Hugging Face: `Qwen/Qwen3-0.6B`,
   `unsloth/gemma-3-1b-it`, `unsloth/Llama-3.2-1B-Instruct` (all `tokenizer_config.json`'s `chat_template`)

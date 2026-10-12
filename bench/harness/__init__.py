@@ -1,1 +1,1 @@
-"""Quail's comparison harness (ADR D-063)."""
+"""Quail's comparison harness (ADR-0063)."""

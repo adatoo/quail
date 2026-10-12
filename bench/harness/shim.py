@@ -1,4 +1,4 @@
-"""A request shim between a standard tool (lm-eval, BFCL) and the engine under test (ADR D-063).
+"""A request shim between a standard tool (lm-eval, BFCL) and the engine under test (ADR-0063).
 
 The tools send OpenAI chat-completions requests the way they always do; the shim makes each one follow the
 fairness rules before it reaches the engine: the served model id, neutral sampling (temperature 0, seed 42,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes Quail's own scores into Quail/Resources/catalog.json from a `task bench:scores` run (ADR D-070).
+"""Writes Quail's own scores into Quail/Resources/catalog.json from a `task bench:scores` run (ADR-0070).
 
 For each family the run scored on Quail, one line, after its "summary":
 

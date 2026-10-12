@@ -1,7 +1,7 @@
 name: Auto-merge
 
 # Turns on auto-merge (merge commit — the only method main allows) for every
-# PR, so it merges itself once the required checks pass (ADR D-024, D-046).
+# PR, so it merges itself once the required checks pass (ADR-0024, ADR-0046).
 #
 # Authenticated as the "quail-release" GitHub App, not GITHUB_TOKEN: a merge
 # made with GITHUB_TOKEN starts no workflows, so release.yml would never run.

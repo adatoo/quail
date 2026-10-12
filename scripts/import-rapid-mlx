@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerates Quail/Resources/mlx-models.json from Rapid-MLX's bundled model catalog (ADR D-058).
+"""Regenerates Quail/Resources/mlx-models.json from Rapid-MLX's bundled model catalog (ADR-0058).
 
 Rapid-MLX (Apache-2.0, https://github.com/raullenchai/Rapid-MLX) ships three data files with its Python
 package: aliases.json (the models it knows, by alias), model_sizes.json (each repo's size) and

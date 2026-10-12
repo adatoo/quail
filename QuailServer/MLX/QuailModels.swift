@@ -4,7 +4,7 @@ import MLXLMCommon
 import MLXVLM
 import QuailServerCore
 
-/// Quail's own copies of mlx-swift-lm model files (`Models/`, ADR D-066), put in front of the library's models for the
+/// Quail's own copies of mlx-swift-lm model files (`Models/`, ADR-0066), put in front of the library's models for the
 /// `model_type`s they cover.
 enum QuailModels {
     static func register() async {

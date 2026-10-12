@@ -1,4 +1,4 @@
-# The signed, notarized release build (docs/ARCHITECTURE.md §9, ADR D-018),
+# The signed, notarized release build (docs/ARCHITECTURE.md §9, ADR-0018),
 # as tasks — the same ones a developer runs locally and the Release workflow's
 # dmg job runs in CI. Everything is configured through environment variables, so
 # a shell and CI secrets drive the same commands:
@@ -362,7 +362,7 @@ tasks:
           mkdir -p Casks
           cp "$CASK" Casks/quail-ai.rb
           # 0.9.0 published the cask as "quail", which collides with another app's cask in
-          # homebrew-cask (ADR D-033); drop that file so the tap has one Quail.
+          # homebrew-cask (ADR-0033); drop that file so the tap has one Quail.
           git rm -q --ignore-unmatch Casks/quail.rb
           git add Casks/quail-ai.rb
           if git diff --cached --quiet; then
@@ -381,7 +381,7 @@ tasks:
     cmds:
       - |
         # Replaces the user's DEFAULT keychain, so it refuses to run outside CI. CI
-        # runs on GitHub-hosted runners only (ADR D-031): a fresh VM per job.
+        # runs on GitHub-hosted runners only (ADR-0031): a fresh VM per job.
         if [ "${GITHUB_ACTIONS:-}" != "true" ] && [ "${QUAIL_ALLOW_KEYCHAIN_REPLACE:-}" != "1" ]; then
           echo "error: release:import-cert replaces your default keychain; it's for CI." >&2
           echo "       Set QUAIL_ALLOW_KEYCHAIN_REPLACE=1 if you really mean it." >&2

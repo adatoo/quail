@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-/// The dependency decision record (Config/third-party.json, ADR D-044) against what the project
+/// The dependency decision record (Config/third-party.json, ADR-0044) against what the project
 /// actually resolves, so a package can't join the build unreviewed, and against the notices file the
 /// app ships. `task notices:check` does the same against the packages' licence files in CI.
 @Suite("Third-party notices")
@@ -25,7 +25,7 @@ struct ThirdPartyNoticesTests {
         let resolved = try Self.resolvedIdentities()
         #expect(
             resolved.subtracting(listed.keys).isEmpty,
-            "new packages need a decision in Config/third-party.json (ADR D-044): \(resolved.subtracting(listed.keys).sorted())"
+            "new packages need a decision in Config/third-party.json (ADR-0044): \(resolved.subtracting(listed.keys).sorted())"
         )
         #expect(
             Set(listed.keys).subtracting(resolved).isEmpty,

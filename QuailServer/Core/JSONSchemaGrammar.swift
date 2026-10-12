@@ -2,7 +2,7 @@ import Foundation
 import Jinja
 import OrderedCollections
 
-/// JSON Schema to GBNF, the grammar language `llama_sampler_init_grammar` reads (ADR D-045).
+/// JSON Schema to GBNF, the grammar language `llama_sampler_init_grammar` reads (ADR-0045).
 ///
 /// A port of llama.cpp's own converter (`common/json-schema-to-grammar.cpp`, b11081), which libllama
 /// doesn't include: the same rules for whitespace, strings, numbers, objects and arrays, so a
@@ -76,7 +76,7 @@ enum JSONSchemaGrammar {
         return converter.grammar()
     }
 
-    /// Muse Glimmer's tool calls (ADR D-040 amendment): a message to the tool holding an ATEM block, one
+    /// Muse Glimmer's tool calls (ADR-0040 amendment): a message to the tool holding an ATEM block, one
     /// `<atem:parameter>` per property in the schema's order (the required ones always, the others optionally).
     /// A string is written raw, up to its closing tag; any other value is JSON held to its own schema, which
     /// `MuseGlimmerParser` reads back as JSON. With `parallel`, several calls, each its own message.

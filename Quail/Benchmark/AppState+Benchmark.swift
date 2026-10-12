@@ -6,7 +6,7 @@ extension AppState {
     /// under the Quail server.
     var benchmarkableModels: [String] {
         _ = storeRevision // re-read when the store changes
-        // The benchmark generates text, so it needs a chat model (ADR D-072).
+        // The benchmark generates text, so it needs a chat model (ADR-0072).
         return modelStore.loadCatalog().entries.filter { canServe($0.format) && $0.modelTask == .chat }
             .map(\.id).sorted()
     }

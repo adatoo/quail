@@ -6,7 +6,7 @@ public enum ModelKind: String, Equatable, Sendable {
 }
 
 /// How a model's KV cache stores its elements: llama-server's `cache-type-k`/`cache-type-v` values, used by both
-/// engines (ADR D-057). Smaller types hold a longer context in the same memory, at a small cost in accuracy.
+/// engines (ADR-0057). Smaller types hold a longer context in the same memory, at a small cost in accuracy.
 public enum KVCacheType: String, Equatable, Sendable, CaseIterable {
     case f16
     case q8_0
@@ -33,7 +33,7 @@ public struct ModelEntry: Equatable, Sendable {
     public var gpuLayers: Int?
     /// A vision model's `mmproj` companion (GGUF only).
     public var projector: URL?
-    /// Requests decoded together (llama-server's `parallel`; for MLX, only families that batch, ADR D-056); nil
+    /// Requests decoded together (llama-server's `parallel`; for MLX, only families that batch, ADR-0056); nil
     /// takes the server's setting.
     public var parallel: Int?
     public var loadOnStartup = false
@@ -54,7 +54,7 @@ public struct ModelEntry: Equatable, Sendable {
     /// llama.cpp's flash attention (`flash-attn`: on, off or auto); nil leaves it to llama.cpp, which a quantized
     /// V cache needs on.
     public var flashAttention: Bool?
-    /// What the model is for (ADR D-072): the preset's `embeddings`/`reranking`, or for an MLX folder without
+    /// What the model is for (ADR-0072): the preset's `embeddings`/`reranking`, or for an MLX folder without
     /// one, what its files say (`MLXEmbeddingDetector`). A GGUF without a preset is taken for a chat model, as
     /// llama-server takes it.
     public var task: ModelTask = .chat

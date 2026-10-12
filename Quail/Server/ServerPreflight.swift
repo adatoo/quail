@@ -107,7 +107,7 @@ enum OrphanReaper {
 
     /// Stops every orphan `orphans(matching:in:)` finds: `SIGTERM` the
     /// router (llama-server's own shutdown stops its model children — see
-    /// D-009), wait up to `timeout` for it to exit, then `SIGKILL`
+    /// ADR-0009), wait up to `timeout` for it to exit, then `SIGKILL`
     /// anything still alive. Returns the pids it signalled.
     @discardableResult
     static func reap(signature: String, timeout: TimeInterval = 5) async -> [Int32] {

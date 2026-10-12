@@ -5,13 +5,13 @@
 #   task vendor:uv [VERSION=0.12.17] the `uv` binary (not shipped in the app yet)
 #   task vendor:sparkle              Sparkle's release tools (generate_keys, generate_appcast, sign_update)
 #   task vendor:verify [DIR=…]       every Mach-O in DIR depends only on relocatable or system paths
-#   task vendor:ollama               Ollama's official macOS build, for the comparison harness only (ADR D-063)
+#   task vendor:ollama               Ollama's official macOS build, for the comparison harness only (ADR-0063)
 #   task vendor:llama-tools          the same llama.cpp release's tools (llama-bench, …), for the harness only
 version: '3'
 
 tasks:
   ollama:
-    desc: Fetch Ollama's official macOS build for the comparison harness (bench/, ADR D-063) — never shipped in the app
+    desc: Fetch Ollama's official macOS build for the comparison harness (bench/, ADR-0063) — never shipped in the app
     # Official build, not Homebrew's: the formula builds Ollama's MLX runner against Homebrew's mlx-c, which would
     # compare a different build. Pinned in bench/config/engines.toml (version and sha256).
     vars:
@@ -75,7 +75,7 @@ tasks:
         # As of the b11xxx releases, llama-server and every ggml-org dylib already
         # carry an @loader_path LC_RPATH and an @rpath/<name> install name/ID, so no
         # install_name_tool rewriting is needed as long as the whole dependency
-        # closure sits next to the binary (ADR D-009). The closure is computed by
+        # closure sits next to the binary (ADR-0009). The closure is computed by
         # walking `otool -L` recursively, not hardcoded, so it keeps working if
         # llama.cpp adds or renames a dylib; vendor:verify fails loudly if a future
         # release ships non-@rpath-relative dependencies.
@@ -161,7 +161,7 @@ tasks:
           codesign --force --sign - "$f"
         done
 
-        # The library quail-server's GGUF engine links (ADR D-043): the same tag's xcframework,
+        # The library quail-server's GGUF engine links (ADR-0043): the same tag's xcframework,
         # kept whole (Xcode picks the macOS slice). One framework binary with ggml built in, so
         # there is no closure to walk; it is embedded into Contents/Frameworks by embed:llama.
         FRAMEWORK="llama-${TAG}-xcframework.zip"
@@ -195,7 +195,7 @@ tasks:
         # uv publishes a <asset>.sha256 file alongside each release asset, so unlike
         # vendor:llama there's no separate pin file to maintain. `uv` isn't embedded
         # in the app yet — it's for the optional Python-runtime install flow (deferred
-        # by D-027), and this exists so the Vendor/ layout and pinning approach are
+        # by ADR-0027), and this exists so the Vendor/ layout and pinning approach are
         # established (docs/ARCHITECTURE.md §5).
         ROOT='{{.ROOT_DIR}}'
         [ -n "${VERSION:-}" ] || VERSION="$(cat "$ROOT/Vendor/uv.version")"

@@ -29,7 +29,7 @@ struct AddModelSheet: View {
     private let device = DeviceInfo.current()
 
     @State private var filter: ModelsPane.FormatFilter = .all
-    /// "Good for" — `nil` shows every family (ADR D-052).
+    /// "Good for" — `nil` shows every family (ADR-0052).
     @State private var strengthFilter: ModelStrength?
     @State private var query = ""
     @State private var selection: Selection?
@@ -76,7 +76,7 @@ struct AddModelSheet: View {
         .frame(width: 820, height: 580)
         .onAppear {
             filter = defaultFilter
-            // MLX first where the runtime can run it: it generates faster on Quail server (D-004 amendment of
+            // MLX first where the runtime can run it: it generates faster on Quail server (ADR-0004 amendment of
             // 2026-09-28); a family without an MLX variant falls back to GGUF when its listing loads.
             format = defaultFilter == .gguf || !appState.canServe(.mlxSafetensors) ? .gguf : .mlxSafetensors
             appState.installs.acknowledgeFinished()
@@ -259,7 +259,7 @@ struct AddModelSheet: View {
                 let shownAbove = Set(recommendedFamilies.map(\.id) + rapidPicks.map(\.family.id))
                 let rest = visibleFamilies.filter { !(query.isEmpty && shownAbove.contains($0.id)) }
                 let listed = rest.filter { $0.rapidMLX == nil && $0.task == .chat }
-                // Served at /v1/embeddings and /v1/rerank rather than chat (ADR D-072), so listed apart.
+                // Served at /v1/embeddings and /v1/rerank rather than chat (ADR-0072), so listed apart.
                 let retrieval = rest.filter { $0.task != .chat }
                 let more = rest.filter { $0.rapidMLX != nil && $0.task == .chat }
                 Section(query.isEmpty ? "All Models" : "Matches") {
@@ -417,7 +417,7 @@ struct AddModelSheet: View {
         return finalized.filter { allowed.contains($0.id) }
     }
 
-    /// Rapid-MLX's own picks for this Mac (ADR D-058), when MLX models can run and are being shown; those
+    /// Rapid-MLX's own picks for this Mac (ADR-0058), when MLX models can run and are being shown; those
     /// already recommended above aren't repeated.
     private var rapidPicks: [(role: String, family: Catalog.Family)] {
         guard appState.canServe(.mlxSafetensors), filter != .gguf else { return [] }

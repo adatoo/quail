@@ -1,6 +1,6 @@
 import Foundation
 
-/// Idle sequences moved out of the GGUF engine's shared KV cache into ordinary memory (#138, ADR D-048
+/// Idle sequences moved out of the GGUF engine's shared KV cache into ordinary memory (#138, ADR-0048
 /// amendment), kept free of llama.cpp so it can be tested.
 ///
 /// The slots share one pool of cells (a unified cache), and every chunk of a prompt attends over the pool's used

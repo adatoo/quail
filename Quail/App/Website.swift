@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-/// Where the app's links go (ADR D-062): the website and its docs, when `Info.plist`'s `QuailWebsiteURL` is set,
+/// Where the app's links go (ADR-0062): the website and its docs, when `Info.plist`'s `QuailWebsiteURL` is set,
 /// and the GitHub repository, always. The website address is one plist key so a new domain is a one-line change;
 /// empty or missing, every website link is hidden and Help falls back to the README.
 enum Website {
@@ -57,7 +57,7 @@ extension EnvironmentValues {
     @Entry var websiteBase: URL? = Website.base()
 }
 
-/// "Learn more" beside a short caption, opening a docs page; nothing without a website (ADR D-062).
+/// "Learn more" beside a short caption, opening a docs page; nothing without a website (ADR-0062).
 struct LearnMoreLink: View {
     let page: Website.DocsPage
     var section: String?

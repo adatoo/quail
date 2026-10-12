@@ -1,11 +1,11 @@
 name: Arena ratings
 
-# The catalog shows Arena's text-leaderboard rating for the models Arena lists (ADR D-070). On the
+# The catalog shows Arena's text-leaderboard rating for the models Arena lists (ADR-0070). On the
 # first of each month this runs scripts/update-arena-ratings and, when a rating moved, opens a PR
 # with the new numbers, a CHANGELOG line and its version bump; it then merges itself like any other
 # once CI passes. The app reads catalog.json from main, so the numbers reach people within a week.
 #
-# Pushed as the quail-release GitHub App (ADR D-046): a branch pushed with GITHUB_TOKEN starts no
+# Pushed as the quail-release GitHub App (ADR-0046): a branch pushed with GITHUB_TOKEN starts no
 # workflows, so CI would never run on the PR. Without the App's secrets it says so and stops.
 on:
   schedule:
@@ -74,9 +74,9 @@ jobs:
           git switch -c "$branch"
           git config user.name "quail-release[bot]"
           git config user.email "quail-release[bot]@users.noreply.github.com"
-          # The change, then the bump as its own last commit (ADR D-024).
+          # The change, then the bump as its own last commit (ADR-0024).
           git commit -m "$title" Quail/Resources/catalog.json
           PR_TITLE="$title" task version:bump
           git commit -am "chore(release): bump version for $title"
           git push -u origin "$branch"
-          gh pr create --title "$title" --body "Monthly refresh of the catalog's Arena ratings (ADR D-070) by \`scripts/update-arena-ratings\`. The ratings are Arena's (© Arena), from \`lmarena-ai/leaderboard-dataset\` under CC BY 4.0."
+          gh pr create --title "$title" --body "Monthly refresh of the catalog's Arena ratings (ADR-0070) by \`scripts/update-arena-ratings\`. The ratings are Arena's (© Arena), from \`lmarena-ai/leaderboard-dataset\` under CC BY 4.0."

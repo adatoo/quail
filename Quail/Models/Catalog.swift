@@ -16,7 +16,7 @@ import Foundation
 /// 3. user-added repo URLs (`user-catalog.json`, uncurated entries).
 ///
 /// Between the curated families and the user's own come the MLX models from Rapid-MLX's catalog
-/// (`RapidMLXCatalog`, ADR D-058), which aren't curated here but are checked to load in Quail server.
+/// (`RapidMLXCatalog`, ADR-0058), which aren't curated here but are checked to load in Quail server.
 struct Catalog: Sendable, Equatable {
     /// One family row in the picker (ARCHITECTURE.md §6: "The picker
     /// shows one row per family with format badges"). Curated families
@@ -38,9 +38,9 @@ struct Catalog: Sendable, Equatable {
         var rank: Int?
         var license: String?
         /// What the model is good for, as the catalog curates it — raw strings, like `role`, so a
-        /// remote catalog can add one; `ModelStrength.strengths(of:)` reads them (ADR D-052).
+        /// remote catalog can add one; `ModelStrength.strengths(of:)` reads them (ADR-0052).
         var strengths: [String] = []
-        /// What the model is for (ADR D-072), as the catalog says: "chat" when absent. A raw string like `role`, so
+        /// What the model is for (ADR-0072), as the catalog says: "chat" when absent. A raw string like `role`, so
         /// a remote catalog can name a task this app doesn't serve yet; `task` is then nil and the family isn't
         /// offered.
         var taskName: String?
@@ -51,9 +51,9 @@ struct Catalog: Sendable, Equatable {
         var mlx: MLXVariant?
         var isCurated: Bool
         var addedAt: Date?
-        /// Set for a model from Rapid-MLX's catalog (ADR D-058): its size and what the catalog says about it.
+        /// Set for a model from Rapid-MLX's catalog (ADR-0058): its size and what the catalog says about it.
         var rapidMLX: RapidMLXCatalog.Model?
-        /// The day the maker made the weights public (ADR D-070). Curated families only.
+        /// The day the maker made the weights public (ADR-0070). Curated families only.
         var released: Date?
         /// The maker's own Hugging Face repo (`Qwen/Qwen3-8B`), as opposed to the quantized one Quail downloads.
         var modelCard: String?
@@ -61,9 +61,9 @@ struct Catalog: Sendable, Equatable {
         var summary: String?
         /// The `id` of a newer family from the same line that replaces this one.
         var supersededBy: String?
-        /// Its rating on Arena's text leaderboard, when it's on it (ADR D-070).
+        /// Its rating on Arena's text leaderboard, when it's on it (ADR-0070).
         var arena: ArenaRating?
-        /// Quail's own scores for its default download (ADR D-070).
+        /// Quail's own scores for its default download (ADR-0070).
         var quailScores: QuailScores?
         /// Why it has no Quail scores ("It always thinks…"), or a caveat shown beside them.
         var quailNote: String?
@@ -90,7 +90,7 @@ struct Catalog: Sendable, Equatable {
     }
 
     /// A family's rating on Arena's text leaderboard with style control (arena.ai), from its CC BY 4.0
-    /// dataset, `lmarena-ai/leaderboard-dataset`. `scripts/update-arena-ratings` refreshes these (ADR D-070).
+    /// dataset, `lmarena-ai/leaderboard-dataset`. `scripts/update-arena-ratings` refreshes these (ADR-0070).
     struct ArenaRating: Sendable, Equatable, Hashable {
         var rating: Int
         /// Half the width of the 95% confidence interval: ratings closer than this are a tie.
@@ -102,7 +102,7 @@ struct Catalog: Sendable, Equatable {
     }
 
     /// Quail's own tests of a family's default download, answering without thinking (`task bench:scores`,
-    /// `scripts/update-quail-scores`; ADR D-070). Percentages.
+    /// `scripts/update-quail-scores`; ADR-0070). Percentages.
     struct QuailScores: Sendable, Equatable, Hashable {
         /// GSM8K, 8-shot chain of thought.
         var maths: Int
@@ -132,7 +132,7 @@ struct Catalog: Sendable, Equatable {
     struct MLXVariant: Sendable, Equatable, Hashable {
         var repo: String
         /// Checked to read images in Quail's MLX engine (a Qwen3.5-family model with its vision half,
-        /// ADR D-047 amendment).
+        /// ADR-0047 amendment).
         var vision = false
     }
 

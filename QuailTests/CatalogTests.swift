@@ -209,7 +209,7 @@ struct CatalogTests {
         #expect(Catalog.loadUserEntries(from: url) == entries)
     }
 
-    // MARK: - Rapid-MLX's catalog (ADR D-058)
+    // MARK: - Rapid-MLX's catalog (ADR-0058)
 
     @Test("the real Resources/mlx-models.json decodes, and its models become MLX-only rows")
     func realRapidMLXCatalogDecodes() throws {
@@ -296,7 +296,7 @@ struct CatalogTests {
             }
         }
 
-        // What helps you choose (revision 9, ADR D-070): every family has a release day, its maker's repo and a
+        // What helps you choose (revision 9, ADR-0070): every family has a release day, its maker's repo and a
         // summary; what replaces a family is in the catalog and came out later; a rating is complete.
         for family in catalog.families {
             #expect(family.released != nil, "\(family.id) missing released")
@@ -310,7 +310,7 @@ struct CatalogTests {
                 #expect(arena.rating > 1000 && arena.rank >= 1 && arena.rank <= arena.outOf, "\(family.id): \(arena)")
             }
         }
-        // Quail's own scores (D-070 amendment): every chat family has them, or a note saying why not.
+        // Quail's own scores (ADR-0070 amendment): every chat family has them, or a note saying why not.
         for family in catalog.families where ModelFacts.expectsRanking(family) {
             #expect(family.quailScores != nil || family.quailNote != nil, "\(family.id) has no Quail scores or note")
             if let scores = family.quailScores {
@@ -340,7 +340,7 @@ struct CatalogTests {
         // The same repo Rapid-MLX lists, so Add Model shows it once (Catalog.current drops the duplicate).
         #expect(qwen35.mlx?.repo == "mlx-community/Qwen3.5-9B-4bit")
         #expect(qwen35.mlx?.vision == true)
-        // Revision 8, Bonsai (ADR D-069). 1-bit Bonsai is GGUF only: MLX 0.32 has no 1-bit quantization.
+        // Revision 8, Bonsai (ADR-0069). 1-bit Bonsai is GGUF only: MLX 0.32 has no 1-bit quantization.
         let bonsai = try #require(catalog.families.first { $0.id == "bonsai-8b" })
         #expect(bonsai.gguf?.repo == "prism-ml/Bonsai-8B-gguf")
         #expect(bonsai.gguf?.quants == ["Q1_0"])

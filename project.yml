@@ -11,25 +11,25 @@ configs:
   Release: release
 
 packages:
-  # ADR D-032: the in-app updater (direct build only — see Quail/App/Updater.swift).
+  # ADR-0032: the in-app updater (direct build only — see Quail/App/Updater.swift).
   # Pinned exactly: an updater is code Quail runs with the user's privileges.
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     exactVersion: 2.10.0
-  # ADR D-022: the quail CLI's argument parsing — linked into QuailCLI only.
+  # ADR-0022: the quail CLI's argument parsing — linked into QuailCLI only.
   ArgumentParser:
     url: https://github.com/apple/swift-argument-parser
     exactVersion: 1.8.2
 
-  # ADR D-028/D-035: quail-server's chat-template renderer (QuailServerCore only). The
-  # collections pin is D-028's: 1.7.0 built by Xcode 27 doesn't launch on macOS 26.
+  # ADR-0028/ADR-0035: quail-server's chat-template renderer (QuailServerCore only). The
+  # collections pin is ADR-0028's: 1.7.0 built by Xcode 27 doesn't launch on macOS 26.
   Jinja:
     url: https://github.com/huggingface/swift-jinja
     exactVersion: 2.5.1
   Collections:
     url: https://github.com/apple/swift-collections
     exactVersion: 1.3.0
-  # ADR D-028/D-044: the MLX engine (the quail-server tool only; a static library can't be handed a package's C modules). mlx-swift-lm brings mlx-swift and the
+  # ADR-0028/ADR-0044: the MLX engine (the quail-server tool only; a static library can't be handed a package's C modules). mlx-swift-lm brings mlx-swift and the
   # model implementations; swift-transformers' Tokenizers reads tokenizer.json from the model folder.
   MLXSwiftLM:
     url: https://github.com/ml-explore/mlx-swift-lm
@@ -107,11 +107,11 @@ targets:
         # what's already bundled), so a bad push can't degrade the app
         # below its own shipped seed.
         QuailCatalogURL: "https://raw.githubusercontent.com/adatoo/quail/main/Quail/Resources/catalog.json"
-        # Website.base(in:) reads this (ADR D-062): the website and its docs, which "Learn more", Quail Help and
+        # Website.base(in:) reads this (ADR-0062): the website and its docs, which "Learn more", Quail Help and
         # About link to. quail-ai.com redirects here. Empty would hide every website link (Help falls back to the
         # README).
         QuailWebsiteURL: "https://quail-ai.app/"
-        # Sparkle (ADR D-032). The feed is the appcast.xml each release attaches;
+        # Sparkle (ADR-0032). The feed is the appcast.xml each release attaches;
         # `releases/latest` always redirects to the newest full release.
         SUFeedURL: "https://github.com/adatoo/quail/releases/latest/download/appcast.xml"
         # The public half of the EdDSA key that signs every update. The private half
@@ -130,7 +130,7 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         # The public half of the update-signing key (`generate_keys`; the private half is in the
         # maintainer's keychain and the SPARKLE_ED_PRIVATE_KEY secret). Override on the command
-        # line to test with another. ADR D-032.
+        # line to test with another. ADR-0032.
         SPARKLE_PUBLIC_ED_KEY: "oH+v2DZA8LRTu8SzGsRJSLwZAvyxRgppOiVU5eZ6xC0="
       configs:
         Debug:
@@ -195,7 +195,7 @@ targets:
     configFiles:
       Debug: Config/LocalSigning.xcconfig
 
-  # The server's code (ADR D-027): HTTP layer, model router, engine seam,
+  # The server's code (ADR-0027): HTTP layer, model router, engine seam,
   # routes. A static library so QuailTests can import it; the executable
   # below is one line on top. No third-party dependencies yet — MLX and
   # libllama arrive with their engines (Phase 3 steps 4 and 5).
@@ -217,7 +217,7 @@ targets:
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG"
 
-  # The GGUF engine (ADR D-043): libllama through the xcframework `task vendor:llama` stages.
+  # The GGUF engine (ADR-0043): libllama through the xcframework `task vendor:llama` stages.
   # A separate library so QuailServerCore, and what the app and CLI link, never carry it.
   QuailServerLlama:
     type: library.static
@@ -238,7 +238,7 @@ targets:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG"
 
   # `quail-server`, shipped at Quail.app/Contents/MacOS. The version comes from an Info.plist linked into the
-  # binary, so `--version` can't drift from the app (ADR D-024).
+  # binary, so `--version` can't drift from the app (ADR-0024).
   QuailServer:
     type: tool
     platform: macOS
@@ -256,7 +256,7 @@ targets:
         product: MLXLMCommon
       - package: MLXSwiftLM
         product: MLXVLM
-      # Models that don't chat (ADR D-072): embeddings, and rerankers.
+      # Models that don't chat (ADR-0072): embeddings, and rerankers.
       - package: MLXSwiftLM
         product: MLXEmbedders
       - package: MLXSwiftLM

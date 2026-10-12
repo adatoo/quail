@@ -1,6 +1,6 @@
 import Foundation
 
-/// When the MLX engine gives back the memory MLX keeps for reuse (#137, ADR D-055), kept free of MLX so it can be
+/// When the MLX engine gives back the memory MLX keeps for reuse (#137, ADR-0055), kept free of MLX so it can be
 /// tested.
 ///
 /// MLX doesn't return a freed GPU buffer to macOS: it keeps it in a cache, to hand out again for the next array of

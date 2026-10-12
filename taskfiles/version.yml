@@ -1,4 +1,4 @@
-# Quail's versioning (ADR D-024): the version lives in project.yml as
+# Quail's versioning (ADR-0024): the version lives in project.yml as
 # MARKETING_VERSION (SemVer) and CURRENT_PROJECT_VERSION (the build number,
 # +1 per release). Every PR carries its own bump, matching its Conventional
 # Commits title.
@@ -197,7 +197,7 @@ tasks:
         fail() {
           echo "::error::$1"
           echo
-          echo "The last commit on a branch is its version bump and nothing else (ADR D-024):"
+          echo "The last commit on a branch is its version bump and nothing else (ADR-0024):"
           echo "commit the change first, then: PR_TITLE=\"<PR title>\" task version:bump, write the"
           echo "CHANGELOG entry, and commit only project.yml, Quail.xcodeproj/project.pbxproj and CHANGELOG.md."
           exit 1

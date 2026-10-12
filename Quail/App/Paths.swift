@@ -77,7 +77,7 @@ enum Paths {
 
     /// The vendored `llama-server`, embedded as a sibling of Quail's own
     /// executable in `Contents/MacOS` by `task embed:llama` on every
-    /// build — see that script and D-009.
+    /// build — see that script and ADR-0009.
     static var llamaServerExecutable: URL {
         (Bundle.main.executableURL ?? URL(fileURLWithPath: "/dev/null"))
             .deletingLastPathComponent()
@@ -85,7 +85,7 @@ enum Paths {
     }
 
     /// Quail's own server, embedded next to `llama-server` in `Contents/MacOS` by the "Embed quail-server" build phase
-    /// (ADR D-027).
+    /// (ADR-0027).
     static var quailServerExecutable: URL {
         (Bundle.main.executableURL ?? URL(fileURLWithPath: "/dev/null"))
             .deletingLastPathComponent()

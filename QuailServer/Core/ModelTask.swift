@@ -1,6 +1,6 @@
 import Foundation
 
-/// What a model is for (ADR D-072). A chat model generates text through the chat and completion routes; an
+/// What a model is for (ADR-0072). A chat model generates text through the chat and completion routes; an
 /// embedding model turns text into vectors (`/v1/embeddings`), and a reranking model scores documents against a
 /// query (`/v1/rerank`). The presets say which, with llama-server's own keys (`embeddings`, `reranking`), so the
 /// same `presets.ini` means the same thing to both servers.

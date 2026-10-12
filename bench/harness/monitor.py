@@ -1,5 +1,5 @@
 """What a server costs while it's measured: its memory footprint and the Mac's power draw, sampled about once a
-second (ADR D-063).
+second (ADR-0063).
 
 Memory comes from `footprint`, for every process in the server's process group, summed, as two figures:
 - the footprint (the dirty memory macOS charges to the process), which counts the GPU buffers Metal holds but

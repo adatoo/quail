@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// One installed model's settings, in a popover from its row on the Models page (ADR D-061): its id to copy,
-/// its context size (ADR D-020) and KV cache (ADR D-057), each option labelled with how it fits on this Mac, and
-/// whether it loads when the server starts (ADR D-017). They used to hide in a small "ctx" menu and a star.
+/// One installed model's settings, in a popover from its row on the Models page (ADR-0061): its id to copy,
+/// its context size (ADR-0020) and KV cache (ADR-0057), each option labelled with how it fits on this Mac, and
+/// whether it loads when the server starts (ADR-0017). They used to hide in a small "ctx" menu and a star.
 struct ModelSettingsView: View {
     let entry: InstalledModel
     /// Whether the chosen runtime can serve this model's format; only then can it load on Start or be benchmarked.

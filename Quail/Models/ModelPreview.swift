@@ -10,7 +10,7 @@ enum RemoteFit: Sendable, Equatable {
     /// A short, user-facing reason ("Gated — add a Hugging Face token").
     case unknown(String)
 
-    /// No internet connection (ADR D-051): `AppState.loadCatalogVerdicts` stops asking once it sees
+    /// No internet connection (ADR-0051): `AppState.loadCatalogVerdicts` stops asking once it sees
     /// this, and the Add Model sheet says it's offline.
     static let offline = RemoteFit.unknown("Offline — can't reach Hugging Face")
 }
@@ -230,7 +230,7 @@ enum ModelPreview {
             device: device,
             runtime: entry.format == .gguf ? ggufRuntime : .omlx,
             // At the context and KV cache the model will actually run with
-            // (ADR D-020, D-057), not fixed defaults.
+            // (ADR-0020, ADR-0057), not fixed defaults.
             requestedContextSize: entry.effectiveContextSize,
             kvCache: entry.effectiveKVCache,
             bandwidthTable: bandwidthTable
@@ -254,7 +254,7 @@ enum ModelPreview {
 
     /// The context picker's options for an installed model, each with its
     /// verdict on this Mac at the model's KV cache setting, and whether a
-    /// 4-bit KV cache would make an option that doesn't fit fit (ADR D-057).
+    /// 4-bit KV cache would make an option that doesn't fit fit (ADR-0057).
     static func contextChoices(
         entry: InstalledModel,
         store: ModelStore,

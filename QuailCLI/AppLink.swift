@@ -74,7 +74,7 @@ enum AppLink {
     }
 
     /// The version of the Quail.app this CLI ships inside ("0.2.0 (2)"),
-    /// so `quail --version` can't drift from the app (ADR D-024).
+    /// so `quail --version` can't drift from the app (ADR-0024).
     static var appVersion: String {
         guard let app = enclosingApp(),
               let info = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist")),

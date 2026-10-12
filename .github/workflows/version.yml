@@ -1,7 +1,7 @@
 name: Version
 
 # Every PR carries its own SemVer bump, matching its Conventional Commits
-# title (ADR D-024): feat → minor, anything else → patch, `!` → major
+# title (ADR-0024): feat → minor, anything else → patch, `!` → major
 # (minor while 0.x), made as the branch's last commit, with nothing else in
 # it. Required on main next to build-and-test. `edited` is here so changing
 # the title re-checks.

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Images for MLX models (ADR D-047 amendment): which MLX architectures Quail can show an image, how an
+/// Images for MLX models (ADR-0047 amendment): which MLX architectures Quail can show an image, how an
 /// image's place is written in their prompts, and how one placeholder becomes the image's share of
 /// tokens. Kept here, beside the discovery that uses it, so it can be tested without MLX.
 public enum MLXVision {

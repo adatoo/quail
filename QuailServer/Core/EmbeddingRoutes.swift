@@ -1,7 +1,7 @@
 import Foundation
 import Jinja
 
-/// `/v1/embeddings` and `/v1/rerank` (ADR D-072, #181): the models that don't chat, in llama-server's request and
+/// `/v1/embeddings` and `/v1/rerank` (ADR-0072, #181): the models that don't chat, in llama-server's request and
 /// response shapes (OpenAI's for embeddings; Jina's and TEI's for reranking), so a client written for either
 /// server works with both.
 extension InferenceRoutes {

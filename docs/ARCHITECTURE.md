@@ -1,6 +1,6 @@
 # Quail — Architecture
 
-*Distribution updated 2026-09-26 (D-053). Owner: Arif Datoo.*
+*Distribution updated 2026-09-26 (ADR-0053). Owner: Arif Datoo.*
 
 Quail is a Postgres.app for local LLM servers: a menu bar item that starts a runtime, exposes an OpenAI-compatible endpoint, and gets out of the way. It manages three runtimes behind one interface (llama.cpp, oMLX, Rapid-MLX), one model folder, and one opinion about what fits on the machine.
 
@@ -19,21 +19,21 @@ Quail is a Postgres.app for local LLM servers: a menu bar item that starts a run
 
 **Out of scope (v1)**
 
-- A chat, agent, image or audio UI in the app — the runtimes' own web UIs are linked instead. Serving those models through standard APIs is in scope (D-072): embeddings and reranking now, speech and images later.
+- A chat, agent, image or audio UI in the app — the runtimes' own web UIs are linked instead. Serving those models through standard APIs is in scope (ADR-0072): embeddings and reranking now, speech and images later.
 - Running more than one runtime concurrently
 - Linux or Intel Macs; Apple Silicon only
-- Mac App Store publication (D-053)
+- Mac App Store publication (ADR-0053)
 - Remote or multi-user hosting (Rapid-MLX's LaunchDaemon mode covers that)
 
 **Principle:** every feature is a thin, honest view of what the runtime already exposes. If a runtime can't do something over its API or CLI, Quail doesn't fake it.
 
 ## 2. Distribution: Homebrew and a signed DMG
 
-Quail is free and open source, aimed at developers on Apple Silicon Macs. Homebrew is the primary installation path: `brew install --cask adatoo/tap/quail-ai`. A direct DMG from GitHub Releases carries the same Developer ID-signed, notarized app for people who do not use Homebrew. The cask also exposes the bundled `quail` CLI on PATH (D-033).
+Quail is free and open source, aimed at developers on Apple Silicon Macs. Homebrew is the primary installation path: `brew install --cask adatoo/tap/quail-ai`. A direct DMG from GitHub Releases carries the same Developer ID-signed, notarized app for people who do not use Homebrew. The cask also exposes the bundled `quail` CLI on PATH (ADR-0033).
 
-The app uses the hardened runtime without App Sandbox. Runtimes run as supervised child processes; the model store defaults to `~/Library/Application Support/Quail/Models` and can be relocated by the user. Updates use Sparkle 2 with an EdDSA-signed appcast (D-032); Homebrew's cask declares `auto_updates true`.
+The app uses the hardened runtime without App Sandbox. Runtimes run as supervised child processes; the model store defaults to `~/Library/Application Support/Quail/Models` and can be relocated by the user. Updates use Sparkle 2 with an EdDSA-signed appcast (ADR-0032); Homebrew's cask declares `auto_updates true`.
 
-Mac App Store publication is dropped (D-053, superseding D-006), and its build machinery (the `Quail-AppStore` scheme and configurations, the sandbox entitlements, the `APPSTORE` compile guards and the CI build) was removed on 2026-09-28. Release validation focuses on fresh Homebrew/DMG installs, CLI availability and updates from an existing release.
+Mac App Store publication is dropped (ADR-0053, superseding ADR-0006), and its build machinery (the `Quail-AppStore` scheme and configurations, the sandbox entitlements, the `APPSTORE` compile guards and the CI build) was removed on 2026-09-28. Release validation focuses on fresh Homebrew/DMG installs, CLI availability and updates from an existing release.
 
 Notarization needs every Mach-O in the bundle signed with the hardened runtime, including llama.cpp's dylibs. Bundled Python runtimes are avoided precisely because notarizing thousands of `.so` files inside a venv is slow and brittle.
 
@@ -81,7 +81,7 @@ protocol Runtime: Sendable {
 
 llama.cpp is bundled and always available; oMLX and Rapid-MLX are optional installs. Each adapter is a few hundred lines mapping the `Runtime` protocol onto that runtime's flags and endpoints.
 
-Phase 3 replaces the vendored `llama-server` with a server Quail builds and ships itself: **`quail-server`**, one child-process binary with two engines behind an `Engine` protocol — `libllama` (from llama.cpp's own xcframework release asset) for GGUF and Apple's `mlx-swift-lm` for MLX safetensors. The router (load/unload/`modelsMax`), chat-template rendering (swift-jinja, one renderer for both formats), tool-call parsing, `/v1/chat/completions`, `/v1/messages`, `/v1/responses`, `/v1/embeddings` and `/v1/rerank` (D-072), `/tokenize`, `timings` and one small web page of our own (D-042) are written once and shared. It keeps the llama-server API shapes, so `Runtime`, the benchmark, `quail chat` and every Connect snippet work unchanged. See ADR D-027 (why this superseded D-014's separate MLX server, with the spike evidence) and D-028 (dependencies and build requirements). The vendored `llama-server` stays the default until `quail-server` passes the parity gate in Phase 3 step 7; the table below describes it, along with the two uv-installed Python runtimes (oMLX, Rapid-MLX), which are deferred until a benchmark shows they earn their place.
+Phase 3 replaces the vendored `llama-server` with a server Quail builds and ships itself: **`quail-server`**, one child-process binary with two engines behind an `Engine` protocol — `libllama` (from llama.cpp's own xcframework release asset) for GGUF and Apple's `mlx-swift-lm` for MLX safetensors. The router (load/unload/`modelsMax`), chat-template rendering (swift-jinja, one renderer for both formats), tool-call parsing, `/v1/chat/completions`, `/v1/messages`, `/v1/responses`, `/v1/embeddings` and `/v1/rerank` (ADR-0072), `/tokenize`, `timings` and one small web page of our own (ADR-0042) are written once and shared. It keeps the llama-server API shapes, so `Runtime`, the benchmark, `quail chat` and every Connect snippet work unchanged. See ADR-0027 (why this superseded ADR-0014's separate MLX server, with the spike evidence) and ADR-0028 (dependencies and build requirements). The vendored `llama-server` stays the default until `quail-server` passes the parity gate in Phase 3 step 7; the table below describes it, along with the two uv-installed Python runtimes (oMLX, Rapid-MLX), which are deferred until a benchmark shows they earn their place.
 
 | | llama.cpp `llama-server` | oMLX | Rapid-MLX |
 | --- | --- | --- | --- |
@@ -100,12 +100,12 @@ Phase 3 replaces the vendored `llama-server` with a server Quail builds and ship
 - llama.cpp: pin one release tag per app version and vendor `llama-server` plus `libllama`, `libggml*`, `libmtmd` into `Contents/MacOS`; a build script rewrites `@rpath` with `install_name_tool` and codesigns each dylib. The `--models-preset` INI is generated from per-model settings (context size, GPU layers, sampling) so users never edit it.
 - llama.cpp — **which model a request gets**: router mode picks by the `"model"` field in the request body, whose value is the preset alias (the installed model's own id, e.g. `Qwen3-8B-Q4_K_M` — the same string the Models pane shows and lets you copy). `--models-autoload` (llama-server's own default: on) means a request naming an alias auto-loads it if it isn't already, evicting the least-recently-used model once `--models-max` is exceeded; Quail sets no flag to change this.
 - llama.cpp — **concurrency**: Quail sets no `--parallel`/`-np` flag, so llama-server's own default (`-1`, "auto") applies — confirmed via the vendored binary: this resolves to 4 request slots per loaded model, with continuous batching (`--cont-batching`, on by default) serving them together; a 5th simultaneous request to the same model waits for a free slot. With auto slots, `--kv-unified` also defaults on, meaning those 4 slots **share one KV pool sized by the model's own `ctx-size`** rather than each getting the full window — four agents talking to one model at once are, in effect, splitting one context window between them, not each getting their own. Different models each get their own process and slots, so agents split across models don't compete this way. Not currently exposed as a Settings control; revisit if real multi-agent use shows a need to override the auto default.
-- llama.cpp — **prompt/KV-cache reuse**: on by default (`--cache-prompt`) for same-slot prefix matches; non-prefix reuse (`--cache-reuse`) defaults off and doesn't support multimodal models (relevant to any vision family with an `mmproj`). A request routes to whichever slot's cached prompt best matches (`--slot-prompt-similarity`, threshold 0.10), so distinct concurrent conversations tend to keep their own slot up to the 4-slot limit above. Switching between *models* (not just slots) drops the cache entirely, since each model is a separate child process — relevant given `modelsMax` defaults to 1 (D-011).
+- llama.cpp — **prompt/KV-cache reuse**: on by default (`--cache-prompt`) for same-slot prefix matches; non-prefix reuse (`--cache-reuse`) defaults off and doesn't support multimodal models (relevant to any vision family with an `mmproj`). A request routes to whichever slot's cached prompt best matches (`--slot-prompt-similarity`, threshold 0.10), so distinct concurrent conversations tend to keep their own slot up to the 4-slot limit above. Switching between *models* (not just slots) drops the cache entirely, since each model is a separate child process — relevant given `modelsMax` defaults to 1 (ADR-0011).
 - oMLX: `~/.omlx/settings.json` and CLI flags both exist; Quail passes flags only and leaves oMLX's own settings untouched so a user's terminal use keeps working. Its `/admin` load/unload API is undocumented and may change; treat it as best-effort and fall back to auto-load.
 - Rapid-MLX: the CLI patches IDE configs (`rapid-mlx launch`) and can install a system LaunchDaemon (`rapid-mlx service install`). Quail must never call those; it only ever runs `serve` and `pull`.
 - Version drift: each adapter declares a tested version range. Outside it Quail still launches the runtime but shows "untested version" in the status menu rather than refusing.
-- `quail-server` (Phase 3, D-027/D-028): built from source by Quail's CI as a second executable target — only `libllama` is vendored (the pinned xcframework, sha256-checked like the binaries today) — and built with `xcodebuild` because `mlx-swift` compiles Metal shaders at build time. `--api-key` and a loopback-by-default `--host` from day one, matching every other runtime. Request bodies are parsed with an order-preserving JSON parser, because tool-schema key order is part of the prompt. Several requests at once through `--parallel N` (default 4): slots on one unified KV context for GGUF (D-048), and for MLX families that batch (Qwen3, Qwen3.5/3.6) one batched decode step over every text request in progress (D-056).
-- `quail-server` **in the app** (step 6): `RuntimeID.quail` and `QuailServerRuntime`, chosen on the Quail window's Server page while the server is stopped. It is the default since the parity gate passed (step 7); llama.cpp stays selectable, for GGUF only (D-027 amendment of 2026-09-28). It launches with llama-server's flags plus `--mlx-dir <store>/mlx`, and the generated `presets.ini` gains a section per MLX folder (`model = <dir>`, `ctx-size`, `load-on-startup`) only while this runtime is chosen, since llama-server can't read one. The app's format gates ask `runtime.supportedFormats`, so MLX rows load, can be the default, and count as servable only here; under llama.cpp they say which runtime they need. Its web UI is its own page at `/` (D-042). The legacy App Store configuration remains llama.cpp-only; publication and sandbox work are cancelled (D-053).
+- `quail-server` (Phase 3, ADR-0027/ADR-0028): built from source by Quail's CI as a second executable target — only `libllama` is vendored (the pinned xcframework, sha256-checked like the binaries today) — and built with `xcodebuild` because `mlx-swift` compiles Metal shaders at build time. `--api-key` and a loopback-by-default `--host` from day one, matching every other runtime. Request bodies are parsed with an order-preserving JSON parser, because tool-schema key order is part of the prompt. Several requests at once through `--parallel N` (default 4): slots on one unified KV context for GGUF (ADR-0048), and for MLX families that batch (Qwen3, Qwen3.5/3.6) one batched decode step over every text request in progress (ADR-0056).
+- `quail-server` **in the app** (step 6): `RuntimeID.quail` and `QuailServerRuntime`, chosen on the Quail window's Server page while the server is stopped. It is the default since the parity gate passed (step 7); llama.cpp stays selectable, for GGUF only (ADR-0027 amendment of 2026-09-28). It launches with llama-server's flags plus `--mlx-dir <store>/mlx`, and the generated `presets.ini` gains a section per MLX folder (`model = <dir>`, `ctx-size`, `load-on-startup`) only while this runtime is chosen, since llama-server can't read one. The app's format gates ask `runtime.supportedFormats`, so MLX rows load, can be the default, and count as servable only here; under llama.cpp they say which runtime they need. Its web UI is its own page at `/` (ADR-0042). The legacy App Store configuration remains llama.cpp-only; publication and sandbox work are cancelled (ADR-0053).
 
 ## 5. Runtime installation and updates (app-managed uv)
 
@@ -133,7 +133,7 @@ Install is one command per runtime, always pinned: `uv tool install --python 3.1
 
 This keeps the two moving targets (runtime code, MLX wheels) fully outside the signed bundle, so an upstream release never forces an app release, and an app release never forces a runtime reinstall.
 
-**Distribution scope:** these Python runtimes remain deferred by D-027. Dropping App Store publication (D-053) does not bring their implementation forward.
+**Distribution scope:** these Python runtimes remain deferred by ADR-0027. Dropping App Store publication (ADR-0053) does not bring their implementation forward.
 
 ## 6. Unified model store
 
@@ -159,7 +159,7 @@ One folder, two format subtrees, and Quail is the only thing that writes to it. 
 
 **Catalog.** Quail ships a curated `catalog.json` of model families, each with a GGUF variant and an MLX variant where both exist (e.g. `bartowski/...-GGUF` and `mlx-community/...-4bit`). A remote copy on the update host is fetched weekly so new models don't wait for an app release. Anything the user adds by repo URL becomes an uncurated entry. The picker shows one row per family with format badges; selecting a runtime that can't read the chosen format greys it and offers the sibling variant.
 
-**Import** on first run scans `~/.cache/llama.cpp`, `~/.omlx/models`, `~/.cache/huggingface/hub` and `~/.lmstudio/models`, and offers to move (not copy) recognised models into the store: a one-time banner in the Models pane, and Storage → Import Models from Other Apps… later (D-059). Symlinks are avoided: llama-server's directory scan and MLX loaders both behave inconsistently across them.
+**Import** on first run scans `~/.cache/llama.cpp`, `~/.omlx/models`, `~/.cache/huggingface/hub` and `~/.lmstudio/models`, and offers to move (not copy) recognised models into the store: a one-time banner in the Models pane, and Storage → Import Models from Other Apps… later (ADR-0059). Symlinks are avoided: llama-server's directory scan and MLX loaders both behave inconsistently across them.
 
 **Deletion** removes the files and the catalog row and, if the model is currently loaded, unloads it first via the runtime's API or a restart.
 
@@ -183,18 +183,18 @@ Quail answers two questions per model before download: will it fit, and roughly 
 
     RAM_needed = W + Σ_layers H_kv · (d_k + d_v) · b · min(C, window) + O
 
-where W is weight bytes, H_kv a layer's KV heads, d_k and d_v its key and value head dims, b bytes per KV element (2 for f16, about 1.06 for an 8-bit and 0.56 for a 4-bit cache, set per model in the Models pane, D-057), C context tokens (window is C itself except for a sliding-window layer under MLX, whose cache holds only its window, at full precision), O a fixed overhead (~1.5 GB for llama.cpp, ~2.5 GB for the Python runtimes). Each installed model has a context setting (D-020): **Automatic** — the largest of 32K / 16K / 8K that is Comfortable on this Mac, capped at the model's trained context (`<arch>.context_length`) — or a size the user picks from 4K–128K in the Models pane, each option labelled with its verdict. Verdicts are computed at the context the model will actually run at. Pre-download verdicts in the picker still use C = 8,192.
+where W is weight bytes, H_kv a layer's KV heads, d_k and d_v its key and value head dims, b bytes per KV element (2 for f16, about 1.06 for an 8-bit and 0.56 for a 4-bit cache, set per model in the Models pane, ADR-0057), C context tokens (window is C itself except for a sliding-window layer under MLX, whose cache holds only its window, at full precision), O a fixed overhead (~1.5 GB for llama.cpp, ~2.5 GB for the Python runtimes). Each installed model has a context setting (ADR-0020): **Automatic** — the largest of 32K / 16K / 8K that is Comfortable on this Mac, capped at the model's trained context (`<arch>.context_length`) — or a size the user picks from 4K–128K in the Models pane, each option labelled with its verdict. Verdicts are computed at the context the model will actually run at. Pre-download verdicts in the picker still use C = 8,192.
 
-The sum counts only the layers that keep a cache of past tokens (D-071). A plain model's layers are all alike, so it comes to 2 · L · H_kv · d · b · C. Layers that differ are read per layer:
+The sum counts only the layers that keep a cache of past tokens (ADR-0071). A plain model's layers are all alike, so it comes to 2 · L · H_kv · d · b · C. Layers that differ are read per layer:
 - sliding-window layers (Gemma, gpt-oss, Muse Glimmer), with their own head sizes;
 - Gemma 4's global layers, with fewer, larger heads;
 - linear-attention and Mamba layers (Qwen3.5 family, Nemotron H), which keep a small fixed-size state instead, left to O.
 
 Verdicts: **Comfortable** (needed < 70% of the GPU ceiling), **Tight** (fits at a reduced context, which Quail sets automatically), **Won't fit** (weights alone exceed the ceiling). Verdicts are per runtime because overheads differ.
 
-**Speed estimate** is decode-bound on Apple Silicon: `tok/s ≈ 0.7 × bandwidth / active_bytes_per_token`, where active bytes is the full weight size for dense models and only the active experts for MoE. Shown as "~35 tok/s" and calibrated over time: a Benchmark run (`quail-bench-1`, ADR D-023) stores measured TTFT and tok/s against the model and chip (`benchmarks.json`), and the Models tab shows the measured generation speed for that pair instead of the estimate. Each result keeps the estimate it was compared with, so estimate error per chip can be fed back into the formula later.
+**Speed estimate** is decode-bound on Apple Silicon: `tok/s ≈ 0.7 × bandwidth / active_bytes_per_token`, where active bytes is the full weight size for dense models and only the active experts for MoE. Shown as "~35 tok/s" and calibrated over time: a Benchmark run (`quail-bench-1`, ADR-0023) stores measured TTFT and tok/s against the model and chip (`benchmarks.json`), and the Models tab shows the measured generation speed for that pair instead of the estimate. Each result keeps the estimate it was compared with, so estimate error per chip can be fed back into the formula later.
 
-**Recommendations** in the picker are the curated catalog filtered to Comfortable on this Mac — any size, in a format the chosen runtime serves — sorted by a hand-set quality-per-GB rank (larger first on ties), top 5 (D-019). With MLX available, Rapid-MLX's own picks for the Mac's memory follow, and its other MLX models are listed below the curated ones (D-058). The catalog's RAM tiers remain as data (shown as a label on the About page) but no longer gate recommendations: a 64 GB Mac's "35B+" tier hid comfortable 27–31B models.
+**Recommendations** in the picker are the curated catalog filtered to Comfortable on this Mac — any size, in a format the chosen runtime serves — sorted by a hand-set quality-per-GB rank (larger first on ties), top 5 (ADR-0019). With MLX available, Rapid-MLX's own picks for the Mac's memory follow, and its other MLX models are listed below the curated ones (ADR-0058). The catalog's RAM tiers remain as data (shown as a label on the About page) but no longer gate recommendations: a 64 GB Mac's "35B+" tier hid comfortable 27–31B models.
 
 **Runtime hint:** when a family has both formats, the picker suggests MLX for large dense or MoE models on 32 GB+ machines (decode roughly 1.4–1.8× faster) and llama.cpp for small models or long-context work.
 
@@ -216,7 +216,7 @@ The menu stays short: status line, current model, Start/Stop, a Models submenu, 
 
 ## 9. Packaging, signing, notarization, updates
 
-The Developer ID-signed, notarized DMG is published on GitHub Releases and installed by the Homebrew cask. Sparkle 2 updates the app. The release pipeline has no App Store submission stage (D-053).
+The Developer ID-signed, notarized DMG is published on GitHub Releases and installed by the Homebrew cask. Sparkle 2 updates the app. The release pipeline has no App Store submission stage (ADR-0053).
 
 ```mermaid
 flowchart LR
@@ -235,7 +235,7 @@ flowchart LR
 - Keep entitlements minimal so notarization stays boring. llama.cpp's Metal path does not JIT, so no unsigned-executable-memory entitlement is needed.
 - The uv-installed Python runtimes are not part of the bundle and are never signed by us; they run as ordinary user processes. uv's managed Python is already signed by its builders.
 
-**Updates.** Sparkle 2 (ADR D-032) with an EdDSA key generated once; the appcast is a release asset (`releases/latest/download/appcast.xml`). The General page's Updates section chooses Daily / Weekly / Monthly / Never, and whether updates install without asking (off by default: Quail asks first). Runtime updates and catalog updates are separate channels with separate cadences.
+**Updates.** Sparkle 2 (ADR-0032) with an EdDSA key generated once; the appcast is a release asset (`releases/latest/download/appcast.xml`). The General page's Updates section chooses Daily / Weekly / Monthly / Never, and whether updates install without asking (off by default: Quail asks first). Runtime updates and catalog updates are separate channels with separate cadences.
 
 **Versioning.** `MAJOR.MINOR.PATCH` for the app. The bundled llama.cpp tag, the uv version, the known-good oMLX and Rapid-MLX pins and the catalog revision are all listed in About and in the appcast notes, so a bug report carries the whole matrix.
 
@@ -243,13 +243,13 @@ flowchart LR
 
 ## 10. Open questions
 
-- [x] Should the API key default to on (random, shown once) or off for loopback? Postgres.app defaults to trust on localhost. **Resolved:** off, regardless of host — see ADR D-010.
+- [x] Should the API key default to on (random, shown once) or off for loopback? Postgres.app defaults to trust on localhost. **Resolved:** off, regardless of host — see ADR-0010.
 - [ ] Rapid-MLX: confirm current `serve` accepts a local model directory and whether `/v1/models` exists in the pinned version.
 - [ ] oMLX: confirm the `/admin` load/unload endpoints are stable enough to use, or rely on auto-load only.
-- [x] Whether to let llama-server keep two models loaded (`--models-max 2`) for fast switching on 64 GB+ machines. **Resolved for Phase 1:** default is `1`; revisit once the Models pane can show loaded state — see ADR D-011.
-- [x] Where the appcast and remote catalog live. **Resolved:** the appcast is a GitHub Releases asset and the catalog is served from this (now public) repo — see ADR D-031 and D-032.
-- [x] Rapid-MLX ships its own model catalog and RAM-tier recommendation system (`rapid-mlx recipe --json`, `rapid-mlx models`/`info <alias>` — confirmed live at rapidmlx.com/docs/cli, "the same [catalog] the desktop app's picker reads"). Once Rapid-MLX is actually vendored, this could become a live, already-curated recommendation source Quail queries directly for MLX models, rather than maintaining a second, GGUF-only curated list in parallel forever. Not actionable before Phase 3 — GGUF/llama.cpp is Quail's only runtime today. **Confirmed against 0.14.3 (2026-09-24):** `rapid-mlx models --json` returns 191 text aliases with `hf_path` (145 under `mlx-community`) and `size_bytes`; `rapid-mlx recipe --json` returns per-Mac "smart"/"fast" picks (`schema_version` 1). Tracked as Phase 3 step 9. **Done 2026-09-28 (D-058):** imported as data, `scripts/import-rapid-mlx` → `Resources/mlx-models.json`.
-- [x] GGUF catalog source: could the Ollama registry (`registry.ollama.ai/v2/library/<name>/manifests/<tag>`) plus the ModelFit dataset (CC BY 4.0, ~105 Ollama-tagged local models) replace hand-curation? **Resolved:** no. Only 2 of 5 Ollama files loaded in the bundled llama-server (gemma3, gemma4 and gpt-oss are Ollama-engine builds it rejects), so downloads stay Hugging Face-only (D-002 stands) and ModelFit is a discovery feed for a maintainer script — see ADR D-026 and Phase 2b step 7.
+- [x] Whether to let llama-server keep two models loaded (`--models-max 2`) for fast switching on 64 GB+ machines. **Resolved for Phase 1:** default is `1`; revisit once the Models pane can show loaded state — see ADR-0011.
+- [x] Where the appcast and remote catalog live. **Resolved:** the appcast is a GitHub Releases asset and the catalog is served from this (now public) repo — see ADR-0031 and ADR-0032.
+- [x] Rapid-MLX ships its own model catalog and RAM-tier recommendation system (`rapid-mlx recipe --json`, `rapid-mlx models`/`info <alias>` — confirmed live at rapidmlx.com/docs/cli, "the same [catalog] the desktop app's picker reads"). Once Rapid-MLX is actually vendored, this could become a live, already-curated recommendation source Quail queries directly for MLX models, rather than maintaining a second, GGUF-only curated list in parallel forever. Not actionable before Phase 3 — GGUF/llama.cpp is Quail's only runtime today. **Confirmed against 0.14.3 (2026-09-24):** `rapid-mlx models --json` returns 191 text aliases with `hf_path` (145 under `mlx-community`) and `size_bytes`; `rapid-mlx recipe --json` returns per-Mac "smart"/"fast" picks (`schema_version` 1). Tracked as Phase 3 step 9. **Done 2026-09-28 (ADR-0058):** imported as data, `scripts/import-rapid-mlx` → `Resources/mlx-models.json`.
+- [x] GGUF catalog source: could the Ollama registry (`registry.ollama.ai/v2/library/<name>/manifests/<tag>`) plus the ModelFit dataset (CC BY 4.0, ~105 Ollama-tagged local models) replace hand-curation? **Resolved:** no. Only 2 of 5 Ollama files loaded in the bundled llama-server (gemma3, gemma4 and gpt-oss are Ollama-engine builds it rejects), so downloads stay Hugging Face-only (ADR-0002 stands) and ModelFit is a discovery feed for a maintainer script — see ADR-0026 and Phase 2b step 7.
 
 ## Sources
 

@@ -5,7 +5,7 @@ import Sparkle
 /// `UserDefaults`, so the app just reads and writes them through `UpdateSettings`.
 extension SPUUpdater: UpdateBackend {}
 
-/// The in-app updater (ADR D-032): checks the appcast each release attaches, on
+/// The in-app updater (ADR-0032): checks the appcast each release attaches, on
 /// the schedule the General page's Updates section chooses, and installs with Sparkle's standard UI.
 /// What it's doing in between (checking, downloading, waiting to install) goes to
 /// `UpdateSettings.status`, which Settings and the menu show.

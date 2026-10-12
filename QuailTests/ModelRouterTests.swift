@@ -111,7 +111,7 @@ struct ModelRouterTests {
         #expect(await world.count("unload a") == 1)
     }
 
-    @Test("while a load waits for busy models, it says which (ADR D-068)")
+    @Test("while a load waits for busy models, it says which (ADR-0068)")
     func saysWhatItWaitsFor() async throws {
         let world = FakeEngineWorld()
         let router = Self.makeRouter(["a", "b"], max: 1, world: world)
@@ -127,7 +127,7 @@ struct ModelRouterTests {
         #expect(await router.snapshot("b")?.waitingFor == [])
     }
 
-    @Test("a load asked for by hand stops the busy model's requests instead of waiting for them (ADR D-068)")
+    @Test("a load asked for by hand stops the busy model's requests instead of waiting for them (ADR-0068)")
     func handLoadInterrupts() async throws {
         let world = FakeEngineWorld()
         let router = Self.makeRouter(["a", "b"], max: 1, world: world)
@@ -187,7 +187,7 @@ struct ModelRouterTests {
         await router.release(next)
     }
 
-    @Test("an unload asked for by hand stops the model's requests, then unloads it (ADR D-068)")
+    @Test("an unload asked for by hand stops the model's requests, then unloads it (ADR-0068)")
     func handUnloadInterrupts() async throws {
         let world = FakeEngineWorld()
         let router = Self.makeRouter(["a"], world: world)

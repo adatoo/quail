@@ -3,7 +3,7 @@ import Testing
 @testable import Quail
 
 /// End to end with the real `quail-server` the app embeds, a real GGUF and a real MLX model, driven through
-/// `ServerController` → `ProcessSupervisor` → `QuailServerRuntime` as production does (ADR D-027 step 6).
+/// `ServerController` → `ProcessSupervisor` → `QuailServerRuntime` as production does (ADR-0027 step 6).
 /// Runs only when the models are on disk: `TEST_RUNNER_QUAIL_TEST_GGUF` (a `.gguf` file) and
 /// `TEST_RUNNER_QUAIL_TEST_MLX` (an MLX model directory), as for the engine tests.
 @Suite("QuailServer integration (models from the environment)", .timeLimit(.minutes(3)))
@@ -59,7 +59,7 @@ struct QuailServerIntegrationSmokeTest {
             let reply = try await complete(base: base, model: id)
             #expect(!reply.isEmpty, "\(id) answered nothing")
         }
-        // Several at once (decoded together by a family that batches, ADR D-056; queued otherwise): all answer.
+        // Several at once (decoded together by a family that batches, ADR-0056; queued otherwise): all answer.
         #expect(try await runtime.select(model: ModelRef(id: mlxID), base: base, apiKey: "it-key") == .hotSwapped)
         async let first = complete(base: base, model: mlxID)
         async let second = complete(base: base, model: mlxID)

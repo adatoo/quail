@@ -33,7 +33,7 @@ struct MenuView: View {
             Text(appState.modelStatusLine)
                 .disabled(true)
         }
-        // What it's doing, while it's doing something (ADR D-060).
+        // What it's doing, while it's doing something (ADR-0060).
         if appState.serverController.phase == .ready, let busy = appState.activity.busyLabel {
             Text(busy)
                 .disabled(true)
@@ -98,8 +98,8 @@ struct MenuView: View {
             openMain(.connect)
         }
 
-        // D-001: runtimes ship their own chat UIs — link to them. Quail server's page is signed in with a
-        // one-time ticket (D-042); llama.cpp's needs the key pasted into its settings (the Server page has
+        // ADR-0001: runtimes ship their own chat UIs — link to them. Quail server's page is signed in with a
+        // one-time ticket (ADR-0042); llama.cpp's needs the key pasted into its settings (the Server page has
         // a Copy button), since it reads nothing from the URL.
         // A runtime with no web UI of its own (Rapid-MLX) gets `quail chat`
         // instead: the same item, copying the command to the clipboard.
@@ -130,14 +130,14 @@ struct MenuView: View {
 
         Divider()
 
-        // The Quail window (ADR D-061), on whichever page it last showed (the Server page the first time).
+        // The Quail window (ADR-0061), on whichever page it last showed (the Server page the first time).
         // It holds the settings too, so it keeps Settings' ⌘,.
         Button("Open Quail") {
             openMain(nil)
         }
         .keyboardShortcut(",")
 
-        // The website's docs (ADR D-062), or the README until there is one.
+        // The website's docs (ADR-0062), or the README until there is one.
         Button("Quail Help") {
             NSWorkspace.shared.open(Website.help(base: Website.base()))
         }

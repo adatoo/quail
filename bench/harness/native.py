@@ -1,5 +1,5 @@
 """Engine-native baselines: what each lane's own benchmark tool gets from the same weights with no server in the
-way (ADR D-063). They bound what a server on that engine can reach; they aren't a server comparison.
+way (ADR-0063). They bound what a server on that engine can reach; they aren't a server comparison.
 
 - GGUF: `llama-bench` (prompt processing and generation, one sequence) and `llama-batched-bench` (1, 2, 4 and 8
   sequences at once), from the llama.cpp release Quail bundles (`task vendor:llama-tools`).

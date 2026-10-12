@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A family's `ModelStrength`s as small capsules — each with its explanation as a tooltip (ADR D-052).
+/// A family's `ModelStrength`s as small capsules — each with its explanation as a tooltip (ADR-0052).
 /// Strengths Quail can't use yet (audio) are left to `StrengthList`, which says so.
 struct StrengthChips: View {
     let strengths: [ModelStrength]

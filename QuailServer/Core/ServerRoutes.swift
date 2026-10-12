@@ -3,17 +3,17 @@ import Foundation
 /// The HTTP surface, in the shapes llama-server's router mode uses, so
 /// `LlamaCppRuntime`, the benchmark, `quail chat` and every Connect snippet see
 /// no difference: the management routes, the inference routes (`InferenceRoutes`) and the
-/// chat page at `/`. Every request passes `RequestGuard` first (ADR D-036).
+/// chat page at `/`. Every request passes `RequestGuard` first (ADR-0036).
 struct ServerRoutes: Sendable {
     let router: ModelRouter
     let apiKey: String?
     let log: ServerLog
     let requestGuard: RequestGuard
     private let inference: InferenceRoutes
-    /// Serve the chat page at `/` (ADR D-042). The page holds no secret, so it needs no key;
+    /// Serve the chat page at `/` (ADR-0042). The page holds no secret, so it needs no key;
     /// every call it makes does.
     private let webUI: Bool
-    /// The app's one-time sign-in tickets for the chat page (ADR D-042).
+    /// The app's one-time sign-in tickets for the chat page (ADR-0042).
     let tickets: KeyTickets
 
     init(
@@ -52,7 +52,7 @@ struct ServerRoutes: Sendable {
         if webUI, path == "/" || path == "/index.html" {
             return request.method == "GET" ? WebUI.response : methodNotAllowed()
         }
-        // llama.cpp's page left a service worker behind on this origin; this retires it (ADR D-042).
+        // llama.cpp's page left a service worker behind on this origin; this retires it (ADR-0042).
         if webUI, path == "/sw.js" || path == "/service-worker.js" {
             return request.method == "GET" ? WebUI.serviceWorkerResponse : methodNotAllowed()
         }
@@ -144,7 +144,7 @@ struct ServerRoutes: Sendable {
         return .json(200, ModelListJSON(data: models))
     }
 
-    /// What's happening now (ADR D-060): each model loading or loaded, and each request in progress, with how far its
+    /// What's happening now (ADR-0060): each model loading or loaded, and each request in progress, with how far its
     /// prompt has been read and how fast it's writing. llama-server's route name, Quail's own shape: its per-slot
     /// objects don't describe batched MLX requests or ones waiting in a queue. Never loads a model.
     private func activity() async -> HTTPResponse {
@@ -179,7 +179,7 @@ struct ServerRoutes: Sendable {
         do {
             // Queued; the status reads `loading` until it's ready. Asked for by hand, so a busy model in the way has
             // its
-            // requests stopped rather than waited for (ADR D-068).
+            // requests stopped rather than waited for (ADR-0068).
             try await router.load(id, interrupting: true)
             return .json(200, ["success": true])
         } catch {
@@ -234,7 +234,7 @@ private struct ModelJSON: Encodable {
         let value: String
         let failed: Bool?
         let exitCode: Int?
-        /// Quail's own (ADR D-068): while loading, the busy models it's waiting on to finish their requests.
+        /// Quail's own (ADR-0068): while loading, the busy models it's waiting on to finish their requests.
         var waitingFor: [String]?
 
         enum CodingKeys: String, CodingKey {
@@ -266,7 +266,7 @@ private struct ModelJSON: Encodable {
     let source: String
     /// `gguf` or `mlx`, which the chat page uses to show which settings apply (not in llama-server's list).
     let format: String
-    /// `chat`, `embedding` or `rerank` (ADR D-072; not in llama-server's list): the chat page and the app's Ping
+    /// `chat`, `embedding` or `rerank` (ADR-0072; not in llama-server's list): the chat page and the app's Ping
     /// leave out models that can't chat.
     let task: String
     let canRemove = false
@@ -318,7 +318,7 @@ private struct ModelJSON: Encodable {
     }
 }
 
-/// `GET /slots` (ADR D-060; who sent each request and each client's totals, D-067).
+/// `GET /slots` (ADR-0060; who sent each request and each client's totals, ADR-0067).
 struct ActivityJSON: Encodable {
     struct Model: Encodable {
         let id: String
@@ -326,7 +326,7 @@ struct ActivityJSON: Encodable {
         let loadingSeconds: Double?
         let leases: Int
         let memoryBytes: Int?
-        /// While loading: the busy models it's waiting on (ADR D-068).
+        /// While loading: the busy models it's waiting on (ADR-0068).
         let waitingFor: [String]?
 
         enum CodingKeys: String, CodingKey {
@@ -337,7 +337,7 @@ struct ActivityJSON: Encodable {
         }
     }
 
-    /// Who sent a request (ADR D-067).
+    /// Who sent a request (ADR-0067).
     struct Client: Encodable {
         let agent: String
         let userAgent: String

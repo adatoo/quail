@@ -1,4 +1,4 @@
-# The models compared (ADR D-063). Each has the same weights in every engine of a lane: the GGUF file for Quail,
+# The models compared (ADR-0063). Each has the same weights in every engine of a lane: the GGUF file for Quail,
 # llama-server and Ollama; the MLX folder for Quail, oMLX, Rapid-MLX and Ollama's MLX runner.
 #
 # Paths are relative to the model store: ~/Library/Application Support/Quail/Models, or QUAIL_BENCH_STORE.

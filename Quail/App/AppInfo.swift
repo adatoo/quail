@@ -16,7 +16,7 @@ enum AppInfo {
     }
 
     /// How this copy was distributed: Developer ID, as a DMG or through Homebrew (the Mac App Store build is
-    /// gone, D-053).
+    /// gone, ADR-0053).
     static var distribution: String {
         "Direct download"
     }
@@ -35,7 +35,7 @@ enum AppInfo {
         return tag.isEmpty ? nil : tag
     }
 
-    /// The notices file (`task notices`, ADR D-044): every bundled library's licence text.
+    /// The notices file (`task notices`, ADR-0044): every bundled library's licence text.
     static func thirdPartyNotices(in bundle: Bundle = .main) -> String? {
         guard let url = bundle.url(forResource: "THIRD_PARTY_NOTICES", withExtension: "md") else { return nil }
         return try? String(contentsOf: url, encoding: .utf8)

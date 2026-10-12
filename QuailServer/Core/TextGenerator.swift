@@ -11,7 +11,7 @@ enum TextGenerator {
     /// string matched — stops the engine.
     ///
     /// `activity`, if given, follows the request from here to its end (`GET /slots`) and is ended with the stream.
-    /// `interrupter`, if given, can stop it: the stream then ends with a 503 saying why (ADR D-068).
+    /// `interrupter`, if given, can stop it: the stream then ends with a 503 saying why (ADR-0068).
     static func stream(
         engine: any Engine,
         request: GenerationRequest,

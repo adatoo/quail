@@ -1,4 +1,4 @@
-"""The smoke test: what each engine really does with each model, before anything is timed (ADR D-063).
+"""The smoke test: what each engine really does with each model, before anything is timed (ADR-0063).
 
 It records, in capabilities.json, the things the fairness rules depend on and the report's caveats come from:
 whether a request's length can be held (`ignore_eos`), whether usage arrives on a stream, whether thinking is

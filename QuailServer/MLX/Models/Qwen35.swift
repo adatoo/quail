@@ -1,6 +1,6 @@
 // Adapted from mlx-swift-lm 3.31.4, Libraries/MLXLLM/Models/Qwen35.swift and Qwen35MoE.swift, with the parts of
 // Qwen3Next.swift and MLXLMCommon/GatedDelta.swift they use (MIT; Copyright (c) 2024 ml-explore), themselves ports of
-// mlx-lm's qwen3_5 and gated_delta. Quail's own copy (ADR D-066, #141): Qwen3.5 and 3.6, dense and mixture of
+// mlx-lm's qwen3_5 and gated_delta. Quail's own copy (ADR-0066, #141): Qwen3.5 and 3.6, dense and mixture of
 // experts, registered in place of mlx-swift-lm's.
 //
 // Changes from the source, to close the gap to mlx-lm, oMLX and Rapid-MLX on the same weights:

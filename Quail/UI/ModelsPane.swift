@@ -246,7 +246,7 @@ struct ModelsPane: View {
         Recommender.topPick(catalog: appState.catalog, device: DeviceInfo.current())
     }
 
-    /// `entry`'s catalog family's strengths (ADR D-052), matched as the Add Model sheet matches
+    /// `entry`'s catalog family's strengths (ADR-0052), matched as the Add Model sheet matches
     /// installed models to families.
     private func strengths(of entry: InstalledModel) -> [ModelStrength] {
         guard let family = family(of: entry) else { return [] }
@@ -257,7 +257,7 @@ struct ModelsPane: View {
         appState.catalog.families.first { !InstalledLookup.entries(for: $0, in: [entry]).isEmpty }
     }
 
-    /// The family that replaces `entry`'s, when you don't have it yet (ADR D-070).
+    /// The family that replaces `entry`'s, when you don't have it yet (ADR-0070).
     private func newer(than entry: InstalledModel) -> Catalog.Family? {
         guard let family = family(of: entry),
               let newer = ModelFacts.newer(than: family, in: appState.catalog.families),
@@ -643,7 +643,7 @@ private struct ModelRow: View {
     /// Whether the chosen runtime can serve this model's format; an MLX row under llama.cpp can't.
     let servable: Bool
     /// Whether this is `Config.defaultModelID` — the one row gets
-    /// `load-on-startup = true` in `presets.ini` (ADR D-017).
+    /// `load-on-startup = true` in `presets.ini` (ADR-0017).
     let isDefault: Bool
     let contextChoices: [ContextChoice]
     let kvCacheChoices: [KVCacheChoice]
@@ -718,7 +718,7 @@ private struct ModelRow: View {
                 HStack(spacing: 10) {
                     Badge(text: entry.format == .gguf ? "GGUF" : "MLX", color: entry.format == .gguf ? .blue : .purple)
                     if entry.modelTask != .chat {
-                        // Not a chat model (ADR D-072): what it's for, and where it's served.
+                        // Not a chat model (ADR-0072): what it's for, and where it's served.
                         Badge(text: entry.modelTask.label, color: .teal)
                             .help(entry.modelTask == .rerank
                                 ? "Scores documents against a query at /v1/rerank — not a chat model."
@@ -874,7 +874,7 @@ private struct LoadedModelRow: View {
     let entry: InstalledModel?
     let loading: Bool
     let unloading: Bool
-    /// While it loads: the busy models it's waiting on to finish their requests (ADR D-068).
+    /// While it loads: the busy models it's waiting on to finish their requests (ADR-0068).
     let waitingFor: [String]
     /// What `/slots` says about it: load time and, for MLX, its memory.
     let live: ServerActivity.Model?
@@ -1017,7 +1017,7 @@ extension ServerController.Phase {
 struct ContextChoice: Identifiable, Equatable {
     let tokens: Int
     let verdict: FitVerdict?
-    /// Doesn't fit at the model's KV cache setting, but would with a 4-bit one (ADR D-057).
+    /// Doesn't fit at the model's KV cache setting, but would with a 4-bit one (ADR-0057).
     var fitsWith4BitKV = false
 
     var id: Int {
@@ -1038,7 +1038,7 @@ struct ContextChoice: Identifiable, Equatable {
     }
 }
 
-/// One option in a model's KV cache picker (ADR D-057).
+/// One option in a model's KV cache picker (ADR-0057).
 struct KVCacheChoice: Identifiable, Equatable {
     let setting: KVCacheSetting
     let verdict: FitVerdict?

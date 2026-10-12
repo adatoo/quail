@@ -6,7 +6,7 @@ import Testing
 /// The GGUF embedding engine on real models, when they're given: an embedding model in `QUAIL_TEST_EMBED_MODEL`
 /// (Qwen3-Embedding 0.6B or nomic-embed v1.5, say) and a reranker in `QUAIL_TEST_RERANK_MODEL` (bge-reranker-v2-m3 or
 /// Qwen3-Reranker). Their vectors were also checked against llama-server b11306's for the same files: the same to
-/// a cosine of 1.0 (ADR D-072).
+/// a cosine of 1.0 (ADR-0072).
 @Suite("LlamaEmbeddingEngine", .timeLimit(.minutes(2)))
 struct LlamaEmbeddingEngineTests {
     private static func model(_ variable: String) -> URL? {

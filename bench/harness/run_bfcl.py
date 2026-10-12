@@ -1,4 +1,4 @@
-"""Runs BFCL (bfcl-eval) against the request shim in function-calling mode, and prints a JSON summary (ADR D-063).
+"""Runs BFCL (bfcl-eval) against the request shim in function-calling mode, and prints a JSON summary (ADR-0063).
 
 Run with BFCL's environment, not the harness's standard-library Python:
 

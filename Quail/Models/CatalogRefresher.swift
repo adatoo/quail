@@ -8,7 +8,7 @@ import Foundation
 /// The URL is the repo's own `catalog.json` on GitHub. It runs in the
 /// background at launch and only when the cache is a week old; with no
 /// connection it fails quietly, within `timeout`, and the bundled or
-/// cached catalog serves as before (ADR D-051).
+/// cached catalog serves as before (ADR-0051).
 struct CatalogRefresher: Sendable {
     /// "Weekly", per the plan. A failed refresh does not update
     /// `fetchedAt`, so the next app launch retries rather than waiting
@@ -115,7 +115,7 @@ struct CatalogRefresher: Sendable {
         return .updated(revision: document.revision)
     }
 
-    /// The same weekly refresh for Rapid-MLX's catalog (ADR D-058), `mlx-models.json` beside `catalog.json` at
+    /// The same weekly refresh for Rapid-MLX's catalog (ADR-0058), `mlx-models.json` beside `catalog.json` at
     /// the same host, with the same guards: a week between fetches, a schema this build reads, and no older
     /// revision than the one in hand.
     @discardableResult

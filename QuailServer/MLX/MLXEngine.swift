@@ -8,9 +8,9 @@ import MLXVLM
 import QuailServerCore
 import Tokenizers
 
-/// The MLX engine: `mlx-swift-lm` behind the `Engine` seam (ADR D-044). One instance holds one loaded
+/// The MLX engine: `mlx-swift-lm` behind the `Engine` seam (ADR-0044). One instance holds one loaded
 /// model directory. Requests queue for one serving task (`serve`), which runs inside the `ModelContainer`
-/// and, for a model family that batches, decodes up to `parallel` text requests together (ADR D-056).
+/// and, for a model family that batches, decodes up to `parallel` text requests together (ADR-0056).
 final class MLXEngine: Engine, @unchecked Sendable {
     /// The context asked for when a model's config doesn't say (its KV cache grows as it is used,
     /// so this is only the length a request may not exceed).
@@ -27,7 +27,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
     private let parallel: Int
     private let queue = MLXQueue()
 
-    /// - Parameter parallel: how many text requests may be decoded together (ADR D-056); 1 serves one at a time.
+    /// - Parameter parallel: how many text requests may be decoded together (ADR-0056); 1 serves one at a time.
     init(parallel: Int = 1) {
         self.parallel = max(1, parallel)
     }
@@ -40,7 +40,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         }
     }
 
-    /// Batched decoding (ADR D-056): on for the model families checked to give the same text batched as alone,
+    /// Batched decoding (ADR-0056): on for the model families checked to give the same text batched as alone,
     /// off with `QUAIL_MLX_BATCH=0`, and on for any model whose caches can batch with `QUAIL_MLX_BATCH=1`.
     static let batchSetting = ProcessInfo.processInfo.environment["QUAIL_MLX_BATCH"]
     /// `model_type`s whose batched text was checked against the same requests run alone.
@@ -70,9 +70,9 @@ final class MLXEngine: Engine, @unchecked Sendable {
         let caches = PromptCaches()
         /// Where they go when they leave memory, if anywhere (`--prompt-cache-dir`).
         let disk: PromptDiskCache?
-        /// Text requests decoded together at most: 1 unless the family batches (ADR D-056).
+        /// Text requests decoded together at most: 1 unless the family batches (ADR-0056).
         let batchLimit: Int
-        /// Bits per element the KV cache is quantized to, if the preset asks (ADR D-057).
+        /// Bits per element the KV cache is quantized to, if the preset asks (ADR-0057).
         let kvBits: Int?
 
         init(
@@ -119,7 +119,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         }
     }
 
-    /// Prompt caches kept from earlier requests (ADR D-055): a few conversations' worth, least recently used
+    /// Prompt caches kept from earlier requests (ADR-0055): a few conversations' worth, least recently used
     /// out first, so two callers (an agent and the chat page, or an agent's sub-tasks) stop evicting each
     /// other's prefix. Which one a prompt reuses, and how much, is `PromptCachePlan`'s decision.
     final class PromptCaches: @unchecked Sendable {
@@ -428,7 +428,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             do {
                 let loaded = try await loadedFor(job.request)
                 // Weights kept wired while requests run, as mlx-lm does with `set_wired_limit`, so macOS doesn't
-                // page a large model out between tokens under memory pressure (ADR D-055). The limit returns to
+                // page a large model out between tokens under memory pressure (ADR-0055). The limit returns to
                 // where it was when no request holds a ticket.
                 let wired = WiredMemoryTicket(size: loaded.weightBytes, policy: MLXLMCommon.WiredSumPolicy())
                 if job.request.media.isEmpty, loaded.sliceable {
@@ -758,7 +758,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
         }
     }
 
-    /// An image turn (ADR D-047 amendment): the prompt text with each image's placeholder, the images
+    /// An image turn (ADR-0047 amendment): the prompt text with each image's placeholder, the images
     /// through the model's own processor, and each placeholder widened to its image's share of tokens.
     /// A fresh cache, and nothing kept for the next request: positions after an image aren't a plain
     /// count of tokens, so a prefix can't safely be reused.
@@ -995,7 +995,7 @@ struct SeededSampler: LogitSampler {
     }
 
     /// The same draw with top-k on (llama-server's default, 40), done on the k most likely tokens instead
-    /// of the whole vocabulary: no sort of 150,000 entries per token (ADR D-055). All three filters keep a
+    /// of the whole vocabulary: no sort of 150,000 entries per token (ADR-0055). All three filters keep a
     /// run of the most likely tokens, and top-p's cut for a token depends only on the tokens more likely
     /// than it, so filtering the top k gives the same set as filtering everything. Only the random draw
     /// differs (it's over k values now): a seed still always gives the same text, though not the text it

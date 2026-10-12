@@ -4,7 +4,7 @@ import MLX
 import MLXLMCommon
 import QuailServerCore
 
-/// MLX prompt caches kept on disk once they leave memory (ADR D-055, Phase 3c step 5's disk tier): evicted from
+/// MLX prompt caches kept on disk once they leave memory (ADR-0055, Phase 3c step 5's disk tier): evicted from
 /// `PromptCaches`, or all of them when the model is unloaded (a swap under `--models-max 1`, the server stopping).
 /// A later prompt that one of them holds a good part of loads it back instead of reading its prompt again.
 ///
@@ -46,7 +46,7 @@ final class PromptDiskCache: @unchecked Sendable {
             .resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate?
                     .timeIntervalSince1970 ?? 0
         // The vision load's caches are its language model's, laid out differently: a folder of their own.
-        // A quantized cache (ADR D-057) is laid out differently too.
+        // A quantized cache (ADR-0057) is laid out differently too.
         let identity = "\(model.path)|\(weightBytes)|\(modified)|\(vision ? "vision" : "text")"
             + (entry.mlxKVBits.map { "|kv\($0)" } ?? "")
         let digest = SHA256.hash(data: Data(identity.utf8)).prefix(6).map { String(format: "%02x", $0) }.joined()

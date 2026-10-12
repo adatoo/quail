@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: "weekly"
     # Conventional Commits titles ("chore(deps): bump …"), so the PR's
-    # version bump can be derived from its title (ADR D-024).
+    # version bump can be derived from its title (ADR-0024).
     commit-message:
       prefix: "chore"
       include: "scope"

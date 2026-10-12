@@ -17,7 +17,7 @@ struct QuailApp: App {
             // ServerController.phase — see AppState.menuBarIcon's doc
             // comment for why this has to be a colour-baked NSImage
             // rather than a plain Image(systemName:) with .foregroundStyle.
-            // While the server is busy, a few words beside it (ADR D-060).
+            // While the server is busy, a few words beside it (ADR-0060).
             MenuBarLabel(appState: appDelegate.appState)
         }
         // The default `.menu` style renders a real NSMenu — standard
@@ -25,7 +25,7 @@ struct QuailApp: App {
         // An earlier `.window` style drew its own floating panel by hand,
         // which looked and behaved unlike every other menu bar app.
 
-        // The Quail window (ADR D-061): server, models, connect, benchmark, settings, about. Not opened at
+        // The Quail window (ADR-0061): server, models, connect, benchmark, settings, about. Not opened at
         // launch: the MenuBarExtra comes first, and SwiftUI opens no `Window` of a menu bar app by itself.
         Window("Quail", id: MainWindow.id) {
             MainWindow(appState: appDelegate.appState, updateSettings: appDelegate.updateSettings)

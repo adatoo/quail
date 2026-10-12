@@ -1,11 +1,11 @@
 import Foundation
 
-/// `quail eval tools` (ADR D-065): does tool calling work, end to end, for a model on a server? Sixteen
+/// `quail eval tools` (ADR-0065): does tool calling work, end to end, for a model on a server? Sixteen
 /// hand-written requests in six kinds, each checked against the call it should produce, in the shape BFCL's
 /// checker uses: the tool's name, every required parameter present and of its schema's type, and each value one
 /// of the accepted answers. It's a quick check of the whole path (template, parser, server), the one that found
 /// gpt-oss's and Llama 3.1's calls coming back as text, not a score to compare models with: BFCL's 200 cases on
-/// the bench Mac are that (ADR D-070).
+/// the bench Mac are that (ADR-0070).
 enum ToolEval {
     static let id = "quail-tools-1"
 

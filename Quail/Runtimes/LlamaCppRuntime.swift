@@ -4,9 +4,9 @@ import Foundation
 ///
 /// Router mode (launched with no model argument, just `--models-dir`) scans
 /// a folder of GGUF files and loads/unloads them on demand behind one HTTP
-/// endpoint — see docs/ARCHITECTURE.md §4 and D-004. Confirmed against a
+/// endpoint — see docs/ARCHITECTURE.md §4 and ADR-0004. Confirmed against a
 /// real b11081 build: `GET /health`, `GET /models`, `POST /models/load`
-/// all behave as documented. See D-009 for what killing it involves.
+/// all behave as documented. See ADR-0009 for what killing it involves.
 struct LlamaCppRuntime: Runtime {
     let executableURL: URL
     private let urlSession: URLSession

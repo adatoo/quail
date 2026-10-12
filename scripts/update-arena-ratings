@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refreshes the Arena ratings in Quail/Resources/catalog.json (ADR D-070).
+"""Refreshes the Arena ratings in Quail/Resources/catalog.json (ADR-0070).
 
 A curated family that Arena's text leaderboard lists carries one line naming it there:
 

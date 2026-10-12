@@ -1,6 +1,6 @@
 import Foundation
 
-/// One run of a fixed benchmark suite on one model, on one Mac (ADR D-023).
+/// One run of a fixed benchmark suite on one model, on one Mac (ADR-0023).
 ///
 /// Everything needed to compare it with another run — hardware, model file,
 /// engine build, conditions — travels with the numbers, because this is

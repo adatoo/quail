@@ -27,7 +27,7 @@ struct InstalledModel: Sendable, Equatable, Codable, Identifiable {
     var quant: String? = nil
     /// The "Automatic" context for this model on this Mac — recomputed by
     /// `ModelStore.refreshedCatalog` (`FitEstimator.automaticContextSize`,
-    /// ADR D-020); `nil` when it can't be estimated.
+    /// ADR-0020); `nil` when it can't be estimated.
     var contextSize: Int? = nil
     /// The user's choice from the Models pane's context picker; `nil`
     /// means Automatic. Never overwritten by a refresh.
@@ -35,9 +35,9 @@ struct InstalledModel: Sendable, Equatable, Codable, Identifiable {
     /// The context the model was trained for, from its header — caps the
     /// picker's options.
     var trainedContext: Int? = nil
-    /// The user's KV cache choice (ADR D-057); `nil` means full precision.
+    /// The user's KV cache choice (ADR-0057); `nil` means full precision.
     var userKVCache: KVCacheSetting? = nil
-    /// What it's for (ADR D-072), as `ModelTask`'s raw value; nil for a chat model, so files written before tasks
+    /// What it's for (ADR-0072), as `ModelTask`'s raw value; nil for a chat model, so files written before tasks
     /// existed still read. From the catalog family it was downloaded as, or else from its header or files.
     var task: String? = nil
     /// An embedding model's pooling when its header doesn't say (from the catalog), for `presets.ini`.

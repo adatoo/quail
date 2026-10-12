@@ -5,7 +5,7 @@ extension WebUI {
     /// serving its cached copy of `/` for the same origin, so after the app switched from llama-server to
     /// `quail-server` on the same port, the browser still showed llama.cpp's page. The browser checks a
     /// registered worker's script on every navigation, bypassing the worker; finding this one, it installs it,
-    /// and this one empties the caches, removes itself and reloads the open pages from the server (ADR D-042).
+    /// and this one empties the caches, removes itself and reloads the open pages from the server (ADR-0042).
     static let serviceWorkerKillSwitch = #"""
     "use strict";
     self.addEventListener("install", () => { self.skipWaiting(); });

@@ -13,7 +13,7 @@ enum HTTPServerError: Error, Equatable, LocalizedError {
 
 typealias HTTPHandler = @Sendable (HTTPRequest) async -> HTTPResponse
 
-/// A small HTTP/1.1 server on `Network.framework` (D-028: no swift-nio). It
+/// A small HTTP/1.1 server on `Network.framework` (ADR-0028: no swift-nio). It
 /// speaks exactly what OpenAI-style clients send — Content-Length bodies,
 /// keep-alive, `Expect: 100-continue` — and answers with a whole body or a
 /// chunked stream.
@@ -248,7 +248,7 @@ final class HTTPConnection: @unchecked Sendable {
 
     /// Runs the handler while watching the socket. A client that closes before the answer is
     /// ready — a long prompt still being processed, a model still loading — cancels the handler,
-    /// which stops the engine (D-037), instead of letting it finish work nobody will read.
+    /// which stops the engine (ADR-0037), instead of letting it finish work nobody will read.
     private func respond(to request: HTTPRequest, using handler: @escaping HTTPHandler) async -> HTTPResponse? {
         let work = Task { await handler(request) }
         let receive = armPendingReceive()
@@ -301,7 +301,7 @@ final class HTTPConnection: @unchecked Sendable {
         return (request, head.keepAlive)
     }
 
-    /// The client's IP address, for telling clients apart in `GET /slots` (ADR D-067).
+    /// The client's IP address, for telling clients apart in `GET /slots` (ADR-0067).
     private var peer: String? {
         guard case let .hostPort(host, _) = connection.endpoint else { return nil }
         switch host {

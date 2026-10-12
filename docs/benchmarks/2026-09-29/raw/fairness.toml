@@ -1,4 +1,4 @@
-# What every engine is held to (ADR D-063). The report prints this file, so change it only with a reason.
+# What every engine is held to (ADR-0063). The report prints this file, so change it only with a reason.
 
 # Every engine serves up to 8 requests at once, each with up to 8,192 tokens of context.
 slots = 8

@@ -31,7 +31,7 @@
 
     <h2 id="copy">Quail's own model code</h2>
     <p><strong>Why:</strong> Python's mlx-lm compiles several small calculations in this model into single GPU kernels, and the Swift library ran them step by step. mlx-lm also kept one value at a lower precision.</p>
-    <p><strong>Changed:</strong> Quail now keeps its own copy of the model code (MIT, adapted from mlx-swift-lm) and compiles the same calculations. Weights and downloads are unchanged. Replies at temperature 0 were byte-identical to before. <a href="https://github.com/adatoo/quail/blob/main/docs/DECISIONS.md">ADR D-066</a> sets the rules for keeping such copies.</p>
+    <p><strong>Changed:</strong> Quail now keeps its own copy of the model code (MIT, adapted from mlx-swift-lm) and compiles the same calculations. Weights and downloads are unchanged. Replies at temperature 0 were byte-identical to before. <a href="https://github.com/adatoo/quail/blob/main/docs/adr/0066-own-copies-of-mlx-model-files.md">ADR-0066</a> sets the rules for keeping such copies.</p>
     <p><strong>Result:</strong> 14.2 ms a token instead of 15.6 on the M1 Max, the same as mlx-lm itself. (<a href="https://github.com/adatoo/quail/issues/141">#141</a>, <a href="https://github.com/adatoo/quail/pull/147">#147</a>)</p>
 
     <h2 id="fused">One kernel for each GatedDeltaNet layer</h2>

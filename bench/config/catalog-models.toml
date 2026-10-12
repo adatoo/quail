@@ -1,4 +1,4 @@
-# Every chat model in the curated catalog, for Quail's own quality and tool-calling scores (ADR D-070):
+# Every chat model in the curated catalog, for Quail's own quality and tool-calling scores (ADR-0070):
 # QUAIL_BENCH_MODELS=catalog-models with ENGINES=quail-gguf (and quail-mlx for Bonsai 2, which is MLX only).
 # Each is its catalog default download. Thinking is off, as for the engine comparison (fairness.toml).
 # Gemma 4 31B runs 2 requests at once, not 8: with libllama's full-size sliding-window cache (which Quail keeps), 4 or

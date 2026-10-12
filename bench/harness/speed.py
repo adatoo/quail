@@ -1,5 +1,5 @@
 """The speed benchmark: GuideLLM's concurrent profile against each engine, the same prompts for every engine
-(ADR D-063).
+(ADR-0063).
 
 Per model, per round, per engine: start the server, warm it up, then run each level (512→256 tokens at
 concurrency 1, 2, 4 and 8, and 4096→128 at 1). Before a level the Mac waits until it's cool; a level that ends

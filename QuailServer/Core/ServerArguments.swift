@@ -34,16 +34,16 @@ struct ServerArguments: Equatable, Sendable {
     var mlxDirectory: URL?
     var presetsFile: URL?
     var modelsMax = 1
-    /// Requests a model decodes together (ADR D-048 for GGUF, D-056 for MLX families that batch); a preset's
+    /// Requests a model decodes together (ADR-0048 for GGUF, ADR-0056 for MLX families that batch); a preset's
     /// `parallel` overrides it per model.
     var parallel = ServerArguments.defaultParallel
     /// llama-server's default too. With one slot, a request with another prompt (Claude Code's permission
     /// check, a chat beside an agent) took the conversation's slot and its cache; the slots share one context,
-    /// so four cost no memory, and single-request speed measured the same (ADR D-048 amendment).
+    /// so four cost no memory, and single-request speed measured the same (ADR-0048 amendment).
     static let defaultParallel = 4
     var logFile: URL?
     /// Where MLX prompt caches go when they leave memory, to be picked up after a model swap or a restart
-    /// (ADR D-055 step 5); nil keeps them in memory only.
+    /// (ADR-0055 step 5); nil keeps them in memory only.
     var promptCacheDirectory: URL? = ServerArguments.defaultPromptCacheDirectory
     /// `~/Library/Caches/com.datoos.quail/PromptCache`: a cache macOS may clear, which costs only speed.
     static var defaultPromptCacheDirectory: URL? {
@@ -51,9 +51,9 @@ struct ServerArguments: Equatable, Sendable {
             .appendingPathComponent("com.datoos.quail/PromptCache", isDirectory: true)
     }
 
-    /// Web origins allowed to call this server from a browser (ADR D-036); none by default.
+    /// Web origins allowed to call this server from a browser (ADR-0036); none by default.
     var allowedOrigins: [String] = []
-    /// Serve the chat page at `/` (ADR D-042).
+    /// Serve the chat page at `/` (ADR-0042).
     var webUI = true
     var engine = EngineChoice.auto
 

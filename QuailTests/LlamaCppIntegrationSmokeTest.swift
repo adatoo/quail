@@ -10,7 +10,7 @@ import Testing
 /// **Not run as part of `xcodebuild test`** (and therefore not in CI):
 /// it needs `Vendor/llama.cpp` populated (`task vendor:llama`) and a
 /// real GGUF placed by hand, and the first launch of a freshly-signed
-/// binary can take up to ~16s (see docs/DECISIONS.md D-009). Per AGENTS.md
+/// binary can take up to ~16s (see ADR-0009 in docs/adr/). Per AGENTS.md
 /// ("Smoke test after any change to Server/ or Runtimes/"), run this
 /// manually before merging such a change by placing a small GGUF at
 /// `modelsDir` below (an environment variable would be more flexible, but
@@ -141,7 +141,7 @@ struct LlamaCppIntegrationSmokeTest {
         let row = try #require(catalog.entries.first { $0.id == "Qwen3-0.6B-Q8_0" })
         #expect(row.bytes == 639_446_688)
         // A 0.6B model is comfortable at 32K on any real Mac; its trained
-        // context (40,960) doesn't cap that — Automatic picks 32K (D-020).
+        // context (40,960) doesn't cap that — Automatic picks 32K (ADR-0020).
         #expect(row.contextSize == 32768)
         #expect(row.trainedContext == 40960)
     }

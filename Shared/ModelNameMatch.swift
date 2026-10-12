@@ -26,7 +26,7 @@ enum ModelNameMatch: Equatable {
     }
 }
 
-/// What `quail chat [model] [prompt…]` means (ADR D-025). The first word is
+/// What `quail chat [model] [prompt…]` means (ADR-0025). The first word is
 /// a model only if it names exactly one installed model; otherwise every
 /// word is the prompt and the default model answers. `-m` names the model
 /// outright, so nothing is guessed.
