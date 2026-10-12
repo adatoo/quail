@@ -65,7 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         source.resume()
         sigtermSource = source
 
-        // Sleep left disabled by the lid-closed option of a run that ended without cleaning up (ADR D-054).
+        // Sleep left disabled by the lid-closed option of a run that ended without cleaning up (ADR-0054).
         appState.lidGuard.recoverIfLeftOn()
 
         // Weekly catalog refresh (docs/ARCHITECTURE.md §6) — no-ops

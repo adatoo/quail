@@ -1,4 +1,4 @@
-# Quail's commands — the same ones locally and in CI (ADR D-030).
+# Quail's commands — the same ones locally and in CI (ADR-0030).
 #
 #   task            list every task
 #   task ci         what CI runs: lint, vendor, build, notices, verify, test
@@ -12,7 +12,7 @@
 #
 # WRITING TASKS: commands run in Task's own shell interpreter (mvdan/sh), which
 # handles nearly all of bash — [[ =~ ]], arrays, functions, process substitution,
-# trap — but differs in places (checked in the D-030 spike). Two that bite:
+# trap — but differs in places (checked in the ADR-0030 spike). Two that bite:
 #   - `${VAR:-$(cmd)}` runs cmd even when VAR is set. Use an explicit `if`.
 #   - `{{ … }}` in a command is Task's template syntax, even inside a quoted
 #     heredoc. Write a literal one as {{"{{"}} .
@@ -56,7 +56,7 @@ vars:
   CONFIGURATION: Debug
   DESTINATION: platform=macOS
   # mlx-swift has a build-tool plugin (its Metal shaders), and Xcode won't run one it hasn't been
-  # told to trust when it's run from the command line (ADR D-028/D-044).
+  # told to trust when it's run from the command line (ADR-0028/ADR-0044).
   XCODEBUILD_TRUST: -skipPackagePluginValidation -skipMacroValidation
   # CI builds unsigned; `task build CODE_SIGNING_ALLOWED=YES` uses your
   # Config/LocalSigning.local.xcconfig identity, if you have one.
@@ -205,14 +205,14 @@ tasks:
             exit 1
           fi
         done
-        # quail-server links llama.framework from Contents/Frameworks (ADR D-043); a missing or
+        # quail-server links llama.framework from Contents/Frameworks (ADR-0043); a missing or
         # unloadable one only shows when the server is started, so start it.
         if [ ! -f "$APP/Contents/Frameworks/llama.framework/Versions/A/llama" ]; then
           echo "::error::llama.framework is missing from Quail.app/Contents/Frameworks — check taskfiles/embed.yml and run task vendor:llama" >&2
           exit 1
         fi
         if [ ! -s "$APP/Contents/Resources/mlx-swift_Cmlx.bundle/Contents/Resources/default.metallib" ]; then
-          echo "::error::mlx-swift_Cmlx.bundle (the MLX shaders) is missing from Quail.app/Contents/Resources — MLX models would abort quail-server (ADR D-044); check taskfiles/embed.yml" >&2
+          echo "::error::mlx-swift_Cmlx.bundle (the MLX shaders) is missing from Quail.app/Contents/Resources — MLX models would abort quail-server (ADR-0044); check taskfiles/embed.yml" >&2
           exit 1
         fi
         if ! "$APP/Contents/MacOS/quail-server" --version > /dev/null; then
@@ -220,7 +220,7 @@ tasks:
           exit 1
         fi
         # A release must carry the Sparkle public key, or no installed copy could ever
-        # verify an update (ADR D-032). Local and CI builds have none, so it's opt-in.
+        # verify an update (ADR-0032). Local and CI builds have none, so it's opt-in.
         if [ -n "${REQUIRE_UPDATE_KEY:-}" ]; then
           KEY="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$APP/Contents/Info.plist" 2>/dev/null || true)"
           if [ -z "$KEY" ]; then
@@ -232,23 +232,23 @@ tasks:
         echo "bundle OK: catalog.json, llama.version, LICENSE-llama.cpp, THIRD_PARTY_NOTICES.md, llama.framework and the MLX shader bundle present; quail-server launches"
 
   check:offline:
-    desc: Prove Quail works with no internet connection — both servers, the app and the coding tools, under sandbox-exec (needs a Debug build and models — ADR D-051)
+    desc: Prove Quail works with no internet connection — both servers, the app and the coding tools, under sandbox-exec (needs a Debug build and models — ADR-0051)
     cmds:
       - Config/check-offline.sh
 
   catalog:arena:
-    desc: Refresh the Arena ratings in Resources/catalog.json from Arena's CC BY 4.0 dataset (ADR D-070)
+    desc: Refresh the Arena ratings in Resources/catalog.json from Arena's CC BY 4.0 dataset (ADR-0070)
     cmds:
       - scripts/update-arena-ratings
 
   site:serve:
-    desc: Serve the website (website/) at http://localhost:8765 to look at it (ADR D-062)
+    desc: Serve the website (website/) at http://localhost:8765 to look at it (ADR-0062)
     cmds:
       - echo "http://localhost:8765/"
       - python3 -m http.server 8765 --directory website
 
   site:check:
-    desc: Check the website — titles, descriptions, and every link and image inside it (ADR D-062)
+    desc: Check the website — titles, descriptions, and every link and image inside it (ADR-0062)
     cmds:
       - scripts/check-site website
 
@@ -268,7 +268,7 @@ tasks:
       - cp '{{.SHOTS}}'/quail-window-*.png website/assets/img/
 
   check:mlx-offline:
-    desc: The old name for check:offline, which covers the MLX path among the rest (ADR D-044, D-051)
+    desc: The old name for check:offline, which covers the MLX path among the rest (ADR-0044, ADR-0051)
     cmds:
       - task: check:offline
 

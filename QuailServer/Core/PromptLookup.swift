@@ -1,6 +1,6 @@
 import Foundation
 
-/// Prompt-lookup drafting for speculative decoding (ADR D-055, Phase 3c step 6), kept free of MLX so it can be
+/// Prompt-lookup drafting for speculative decoding (ADR-0055, Phase 3c step 6), kept free of MLX so it can be
 /// tested: when the text so far ends with a few tokens that appeared earlier (in the prompt or the reply), guess
 /// that what followed them then follows them again. A model editing a file, quoting a document or repeating a
 /// tool's output does this a lot; the engine checks every guess in one forward pass, so a wrong one costs little.

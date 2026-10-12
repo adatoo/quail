@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import IOKit.ps
 
-/// Keeps a laptop awake with its lid closed while Quail's server runs and it's plugged in (ADR D-054).
+/// Keeps a laptop awake with its lid closed while Quail's server runs and it's plugged in (ADR-0054).
 /// macOS sleeps on lid close whatever assertions an app holds; the only general switch is
 /// `pmset disablesleep`, which needs root. So, once per Quail launch, one administrator prompt starts a
 /// small root shell loop that:

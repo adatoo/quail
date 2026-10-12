@@ -7,7 +7,7 @@ import Foundation
 ///
 /// This relies on the engine decoding the format's special tokens into the text, as llama.cpp does
 /// for these models, except the one that ends generation (`<|call|>`, `<|return|>`), which the
-/// engine keeps to itself. Checked against gpt-oss-20b's real output (ADR D-040 amendment).
+/// engine keeps to itself. Checked against gpt-oss-20b's real output (ADR-0040 amendment).
 struct HarmonyParser: Sendable {
     private enum Kind: Equatable {
         case reasoning

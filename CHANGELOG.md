@@ -5,10 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Every PR adds its entries under [Unreleased] and cuts them into its own
-version's section with `task version:bump` (ADR D-024); every merge to
+version's section with `task version:bump` (ADR-0024); every merge to
 `main` is released as that version.
 
 ## [Unreleased]
+
+## [1.1.7] - 2026-10-12
+
+### Changed
+
+- **Decision records are one file each, in `docs/adr/`.** The 72 records that lived in `docs/DECISIONS.md` are now `docs/adr/0001-…` to `docs/adr/0072-…`, listed in `docs/adr/README.md`, and are referred to as `ADR-NNNN` (D-024 is now ADR-0024). An ADR is now edited in place when its decision changes, so it always describes the decision as it stands (#209).
 
 ## [1.1.6] - 2026-10-12
 

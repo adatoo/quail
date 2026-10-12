@@ -40,7 +40,7 @@ struct ModelLease: Sendable {
 }
 
 /// Stops the requests using one load of a model, when someone asks by hand for it to go: a load of another model
-/// that needs its room, or an unload (ADR D-068). A request registers a handler for as long as it generates; one
+/// that needs its room, or an unload (ADR-0068). A request registers a handler for as long as it generates; one
 /// that registers after the interruption is stopped at once, so a request that was about to start doesn't slip in.
 final class RequestInterrupter: Sendable {
     private struct State {
@@ -91,7 +91,7 @@ final class RequestInterrupter: Sendable {
 }
 
 /// Owns which models are loaded: at most `modelsMax`, least recently used out
-/// first (llama-server's router semantics, D-011). Loads run one at a time, in
+/// first (llama-server's router semantics, ADR-0011). Loads run one at a time, in
 /// order — two loads at once would double the peak memory the fit verdicts
 /// assumed — and `load` returns as soon as the load is queued, like
 /// `POST /models/load` does.
@@ -106,11 +106,11 @@ actor ModelRouter {
         var unloadWhenIdle = false
         /// When its engine started loading, while it does (`GET /slots`).
         var loadStartedAt: Date?
-        /// Stops the requests on this load of the model (ADR D-068); a fresh one for each load, and after an
+        /// Stops the requests on this load of the model (ADR-0068); a fresh one for each load, and after an
         /// interruption that turned out not to be needed.
         var interrupter = RequestInterrupter()
         /// While loading: whether someone asked for it by hand, so busy models in its way have their requests
-        /// stopped rather than waited for (ADR D-068).
+        /// stopped rather than waited for (ADR-0068).
         var interrupts = false
         /// While loading: the busy models it's waiting on (`GET /models`, `GET /slots`).
         var waitingFor: [String] = []
@@ -155,7 +155,7 @@ actor ModelRouter {
         slots[id]?.leases ?? 0
     }
 
-    /// The requests in progress, for `GET /slots` (ADR D-060). Not isolated: requests record themselves as they go.
+    /// The requests in progress, for `GET /slots` (ADR-0060). Not isolated: requests record themselves as they go.
     nonisolated let activity = ActivityRegistry()
 
     /// Each model that's loading or loaded, for `GET /slots`: its state, when its load started, its leases, its
@@ -183,7 +183,7 @@ actor ModelRouter {
 
     /// Queues a load and returns; the model reads `loading` until it's ready. `interrupting`: someone asked for it
     /// by hand, so if every model in its way is busy, the least recently used one has its requests stopped rather
-    /// than waited for (ADR D-068). A load a request needs waits.
+    /// than waited for (ADR-0068). A load a request needs waits.
     func load(_ id: String, interrupting: Bool = false) throws {
         guard slots[id] != nil else { throw RouterError.unknownModel(id) }
         if isShutDown {
@@ -285,7 +285,7 @@ actor ModelRouter {
     // MARK: Unloading
 
     /// Unloads a model, or marks it to go once its requests end. `interrupting`: someone asked by hand, so its
-    /// requests are stopped rather than waited for (ADR D-068).
+    /// requests are stopped rather than waited for (ADR-0068).
     func unload(_ id: String, interrupting: Bool = false) async throws {
         guard slots[id] != nil else { throw RouterError.unknownModel(id) }
         switch slots[id]!.state {
@@ -379,7 +379,7 @@ actor ModelRouter {
 
     /// Unloads least-recently-used models until one more fits, waiting for busy
     /// ones — and for unloads already in flight — to finish. For a load asked for by
-    /// hand, the least recently used busy model has its requests stopped (ADR D-068).
+    /// hand, the least recently used busy model has its requests stopped (ADR-0068).
     private func makeRoom(for id: String) async {
         var interrupted: Set<String> = []
         defer {

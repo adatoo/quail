@@ -8,7 +8,7 @@ import Foundation
 /// complete.
 ///
 /// In-process streaming (a data task's chunks, `ChunkedBody`), not a true background
-/// `URLSession` — see ADR D-015 for why: background sessions are
+/// `URLSession` — see ADR-0015 for why: background sessions are
 /// delegate-only (no streaming, so sha256 needs a second full read),
 /// their resume mechanism is Apple's own opaque, sometimes-unreliable
 /// `resumeData` rather than an HTTP `Range` we control, and critically
@@ -26,7 +26,7 @@ actor HFDownloader {
     /// small enough that progress still updates several times a second.
     private static let chunkSize = 1 << 20 // 1 MiB
 
-    /// How long a request may go without receiving a byte (ADR D-051). URLSession's default is 60 s,
+    /// How long a request may go without receiving a byte (ADR-0051). URLSession's default is 60 s,
     /// which on a network that looks connected but goes nowhere (a captive portal, a dead proxy)
     /// left the Add Model sheet waiting minutes. Metadata is small; a download keeps its partial
     /// bytes and resumes, so failing sooner costs nothing.

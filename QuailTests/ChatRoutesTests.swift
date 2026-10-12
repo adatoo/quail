@@ -807,7 +807,7 @@ struct ChatRoutesTests {
         #expect(harness.world.requests.isEmpty)
     }
 
-    @Test("POST /models/unload stops a streaming reply with an error that says why (ADR D-068)")
+    @Test("POST /models/unload stops a streaming reply with an error that says why (ADR-0068)")
     func unloadStopsAStream() async {
         let harness = Harness { $0.endless = true }
         let response = await harness

@@ -2,7 +2,7 @@ import Foundation
 import Jinja
 
 /// A model's own chat template, rendered with swift-jinja. The same renderer serves GGUF
-/// and MLX models, so one model gets one prompt whichever format it's loaded from (ADR D-027).
+/// and MLX models, so one model gets one prompt whichever format it's loaded from (ADR-0027).
 ///
 /// The template text comes from the engine (`Engine.chatTemplate()`): a GGUF's
 /// `tokenizer.chat_template`, or an MLX repo's `chat_template.jinja` / `tokenizer_config.json`.

@@ -11,7 +11,7 @@ enum Recommender {
     /// Roles that "recommended" doesn't mean, even if they'd otherwise
     /// land in a machine's tier — a 0.6B smoke-test model is never what
     /// a user browsing for a general model wants. Models that don't chat
-    /// (embedding, reranking; ADR D-072) are left out by their task.
+    /// (embedding, reranking; ADR-0072) are left out by their task.
     private static let excludedRoles: Set<String> = ["smoke-test", "embedding"]
 
     /// At most this many recommendations — the full list is right below.
@@ -64,7 +64,7 @@ enum Recommender {
             .first { ($0.paramsB ?? .infinity) <= comfortable }
     }
 
-    /// Rapid-MLX's own picks for this Mac's memory (ADR D-058), "smart" then "fast", as rows of the catalog.
+    /// Rapid-MLX's own picks for this Mac's memory (ADR-0058), "smart" then "fast", as rows of the catalog.
     static func rapidMLXPicks(catalog: Catalog, device: DeviceInfo) -> [(role: String, family: Catalog.Family)] {
         guard let rapid = catalog.rapidMLX else { return [] }
         guard let memory = device.unifiedMemoryBytes else { return [] }

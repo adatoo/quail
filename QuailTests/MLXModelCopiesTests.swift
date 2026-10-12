@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-/// Quail's own copies of mlx-swift-lm model files (ADR D-066) name the mlx-swift-lm pinned (a release, or a commit):
+/// Quail's own copies of mlx-swift-lm model files (ADR-0066) name the mlx-swift-lm pinned (a release, or a commit):
 /// moving the pin fails this until each copy has been compared with its source at the new pin.
 @Suite("MLX model copies")
 struct MLXModelCopiesTests {

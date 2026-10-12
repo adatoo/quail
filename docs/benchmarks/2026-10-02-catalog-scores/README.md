@@ -1,6 +1,6 @@
 # Quail's own scores for the catalog, 2 October 2026
 
-These are the numbers behind the "Maths · Knowledge · Tools" line on each model's card in Add Model (ADR D-070). They are Quail's own tests of the download each model offers by default, so any two catalog models can be compared, including the ones Arena's leaderboard doesn't list.
+These are the numbers behind the "Maths · Knowledge · Tools" line on each model's card in Add Model (ADR-0070). They are Quail's own tests of the download each model offers by default, so any two catalog models can be compared, including the ones Arena's leaderboard doesn't list.
 
 ## Method
 

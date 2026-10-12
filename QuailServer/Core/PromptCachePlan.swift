@@ -1,6 +1,6 @@
 import Foundation
 
-/// The MLX engine's prompt-cache bookkeeping (ADR D-055), kept free of MLX so it can be tested: which of the
+/// The MLX engine's prompt-cache bookkeeping (ADR-0055), kept free of MLX so it can be tested: which of the
 /// caches kept from earlier requests a new prompt can reuse, how much of it, and which to let go.
 ///
 /// A cache holds the keys and values (and, for hybrid models, the recurrent state) for a run of tokens. A cache

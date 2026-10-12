@@ -2,12 +2,12 @@ import Foundation
 import llama
 import QuailServerCore
 
-/// The GGUF engine: `libllama` behind the `Engine` seam (ADR D-043). One instance holds one loaded
+/// The GGUF engine: `libllama` behind the `Engine` seam (ADR-0043). One instance holds one loaded
 /// model, and its blocking C calls all run on one dedicated queue, never on Swift's cooperative pool.
 public struct LlamaEngine: Engine {
     private let runtime: LlamaRuntime
 
-    /// - Parameter parallel: how many requests are decoded together (slots); 1 serves one at a time (ADR D-048).
+    /// - Parameter parallel: how many requests are decoded together (slots); 1 serves one at a time (ADR-0048).
     public init(parallel: Int = 1) {
         runtime = LlamaRuntime(slotCount: max(1, parallel))
     }
@@ -147,7 +147,7 @@ final class LlamaRuntime: @unchecked Sendable {
     var tick: UInt64 = 0
     var rotor = 0
     /// Set for a model whose memory can't drop a sequence's tail (recurrent or hybrid layers), whose slots
-    /// therefore keep checkpoints to resume from (ADR D-048 amendment). A sliding-window model doesn't need them:
+    /// therefore keep checkpoints to resume from (ADR-0048 amendment). A sliding-window model doesn't need them:
     /// libllama's default full-size window cache (`swa_full`) cuts back like any other (#138).
     var partialMemory = false
     /// Idle slots' sequences moved out of the shared cache (#138), each with its checkpoints.
@@ -224,11 +224,11 @@ final class LlamaRuntime: @unchecked Sendable {
         var contextParams = llama_context_default_params()
         contextParams.n_ctx = UInt32(max(wanted, 256))
         contextParams.n_seq_max = UInt32(slotCount)
-        // The slots share one pool of KV cells, so a lone long request can use all of the context (ADR D-048).
+        // The slots share one pool of KV cells, so a lone long request can use all of the context (ADR-0048).
         contextParams.kv_unified = slotCount > 1
         // llama-server's default: one thread per performance core. The CPU still does the input embedding
         // lookup and the sampling with a model fully on the GPU, and libllama's own default is 4.
-        // A smaller KV cache type, if the preset asks (ADR D-057). A quantized V cache needs flash attention.
+        // A smaller KV cache type, if the preset asks (ADR-0057). A quantized V cache needs flash attention.
         if let type = entry.cacheTypeK {
             contextParams.type_k = Self.ggmlType(type)
         }

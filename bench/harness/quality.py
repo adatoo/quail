@@ -1,5 +1,5 @@
 """The quality benchmark: EleutherAI's lm-evaluation-harness on GSM8K (chain of thought, 8-shot, in chat turns)
-and MMLU-Pro (5-shot chain of thought, 14 subjects), through the request shim (ADR D-063).
+and MMLU-Pro (5-shot chain of thought, 14 subjects), through the request shim (ADR-0063).
 
 Every engine answers the same items: `--limit` takes the first N of each task (per subject for MMLU-Pro), and
 lm-eval's own seed fixes the few-shot examples. `--log_samples` keeps each item's answer and score, so the report

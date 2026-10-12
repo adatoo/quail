@@ -3,8 +3,8 @@ import Darwin
 import Foundation
 
 /// `quail bench [model]` — run the fixed benchmark suite in the app and
-/// print the result (ADR D-023). `--history` lists saved results. With `--url`, the CLI times any
-/// OpenAI-compatible server itself, without the app (ADR D-064).
+/// print the result (ADR-0023). `--history` lists saved results. With `--url`, the CLI times any
+/// OpenAI-compatible server itself, without the app (ADR-0064).
 struct Bench: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Benchmark a model: prompt processing, generation speed, time to first token, load time.",
@@ -68,7 +68,7 @@ struct Bench: AsyncParsableCommand {
         print(Self.summary(result))
     }
 
-    // MARK: - Another server (ADR D-064)
+    // MARK: - Another server (ADR-0064)
 
     private func runAgainst(_ text: String) async throws {
         guard let base = OpenAIBenchmarkClient.base(from: text) else {

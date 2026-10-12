@@ -21,7 +21,7 @@ class ConfigTests(unittest.TestCase):
         self.assertNotEqual(model.served_id("gguf"), model.served_id("mlx"))
 
     def test_catalog_models_file(self):
-        # The catalog's own scores (ADR D-070): every chat model in catalog.json, one lane each.
+        # The catalog's own scores (ADR-0070): every chat model in catalog.json, one lane each.
         with mock.patch.dict(os.environ, {"QUAIL_BENCH_MODELS": "catalog-models"}):
             models = {m.id: m for m in config.models(Path("/store"))}
         self.assertGreaterEqual(len(models), 28)

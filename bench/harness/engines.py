@@ -1,4 +1,4 @@
-"""The engines compared, each behind the same small interface (ADR D-063).
+"""The engines compared, each behind the same small interface (ADR-0063).
 
 An engine is started for one model at a time, with a scratch HOME and scratch model and cache folders, on a free
 localhost port, and stopped (with everything it spawned) before the next one starts. Every engine serves the

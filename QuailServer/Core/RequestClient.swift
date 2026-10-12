@@ -1,7 +1,7 @@
 import Foundation
 
-/// Who sent a request, as far as the server can tell (ADR D-067): the app, from its `User-Agent`, and the machine, from
-/// the connection's address. Every client shares one API key (D-039), so these are the only clues. They're kept in
+/// Who sent a request, as far as the server can tell (ADR-0067): the app, from its `User-Agent`, and the machine, from
+/// the connection's address. Every client shares one API key (ADR-0039), so these are the only clues. They're kept in
 /// memory for `GET /slots` (the app's Activity window) while the server runs, and never logged.
 public struct RequestClient: Sendable, Equatable {
     /// The `User-Agent`'s first product without a numeric version: "claude-cli", "OpenAI/Python", "curl"; empty when

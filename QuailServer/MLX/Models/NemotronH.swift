@@ -1,5 +1,5 @@
 // Adapted from mlx-swift-lm 0dcfe2f8a, Libraries/MLXLLM/Models/NemotronH.swift (MIT; Copyright (c) 2024 ml-explore),
-// itself a port of mlx-lm's nemotron_h. Quail's own copy (ADR D-066): Nemotron-H (Nemotron 3 Nano, Nemotron 3.5
+// itself a port of mlx-lm's nemotron_h. Quail's own copy (ADR-0066): Nemotron-H (Nemotron 3 Nano, Nemotron 3.5
 // Lightning), registered in place of mlx-swift-lm's with the config adapter in `MLXConfigAdapters.nemotronH`.
 //
 // Changes from the source:

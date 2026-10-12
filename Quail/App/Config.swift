@@ -11,17 +11,17 @@ import Foundation
 /// outright. Every property must have a matching case in `init(from:)` and
 /// `encode(to:)` be added below when a new one is introduced.
 struct Config: Sendable, Equatable, Codable {
-    /// Quail server by default since it passed the parity gate (ADR D-027 amendment); llama.cpp stays
+    /// Quail server by default since it passed the parity gate (ADR-0027 amendment); llama.cpp stays
     /// selectable, for GGUF models only.
     var runtimeID: RuntimeID = .quail
     var host: String = "127.0.0.1"
     var port: Int = 8080
     var modelsMax: Int = 1
-    /// On by default (ADR D-039): with no key, any web page you open could drive the runtime
+    /// On by default (ADR-0039): with no key, any web page you open could drive the runtime
     /// (llama-server answers every origin). Turn it off on the Server page.
     var apiKeyEnabled: Bool = true
     /// Whether the on-by-default rule has been applied to this config. A `config.json` written
-    /// before D-039 has `apiKeyEnabled: false` because that was the default, not a choice, so it's
+    /// before ADR-0039 has `apiKeyEnabled: false` because that was the default, not a choice, so it's
     /// switched on once; after that the setting is the user's.
     var apiKeyDefaultApplied: Bool = true
     /// Whether the Quail-server-by-default rule has been applied. A `config.json` written before it names
@@ -30,16 +30,16 @@ struct Config: Sendable, Equatable, Codable {
     var quailDefaultApplied: Bool = true
     var openAtLogin: Bool = false
     var autoStartServer: Bool = false
-    /// Keep the Mac from idle-sleeping while the server runs (ADR D-054).
+    /// Keep the Mac from idle-sleeping while the server runs (ADR-0054).
     var keepAwake: Bool = false
-    /// With `keepAwake`, also with a laptop's lid closed while plugged in (direct build only, D-054).
+    /// With `keepAwake`, also with a laptop's lid closed while plugged in (direct build only, ADR-0054).
     var keepAwakeLidClosed: Bool = false
     /// Set once the Models pane (Phase 2 step 7) lets someone relocate the
     /// store; `Paths.resolveModelsDirectory(bookmark:)` turns this back
     /// into a URL. `nil` means "use `Paths.defaultModelsDirectory`".
     var modelsDirectoryBookmark: Data?
     /// The GGUF whose `presets.ini` section gets `load-on-startup = true`
-    /// (ADR D-017) — confirmed against the real vendored binary: router
+    /// (ADR-0017) — confirmed against the real vendored binary: router
     /// mode loads that one model immediately at startup, with no client
     /// request needed, unlike every other preset (which stays `unloaded`
     /// until a Load click or a request names it). `nil` means "load
@@ -51,7 +51,7 @@ struct Config: Sendable, Equatable, Codable {
     /// first Start from the menu with a host other than this Mac's own.
     var lanWarningShown: Bool = false
 
-    /// Show what the server is doing next to the menu bar icon while it's busy (ADR D-060).
+    /// Show what the server is doing next to the menu bar icon while it's busy (ADR-0060).
     var menuBarActivity: Bool = true
     /// Whether the offer to move in models from other apps (Phase 4 step 2) has been answered, either way.
     var importOffered: Bool = false

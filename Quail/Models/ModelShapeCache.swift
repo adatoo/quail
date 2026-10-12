@@ -13,7 +13,7 @@ final class ModelShapeCache: @unchecked Sendable {
     static let lifetime: TimeInterval = 30 * 24 * 60 * 60
 
     /// Raised when `ModelShape` learns something new from the same files, so shapes read before are read again:
-    /// 2 added each layer's cache (`kvLayers`, ADR D-071).
+    /// 2 added each layer's cache (`kvLayers`, ADR-0071).
     static let version = 2
 
     private struct Entry: Codable {

@@ -180,7 +180,7 @@ struct InferenceRoutesTests {
         let bad = await speculation.post("/v1/completions", #"{"model":"Alpha","prompt":"x","speculative.n_max":-1}"#)
         #expect(bad.status == 400)
 
-        // The sampler options only some engines have (ADR D-043): parsed for every engine.
+        // The sampler options only some engines have (ADR-0043): parsed for every engine.
         let samplerHarness = Harness()
         _ = await samplerHarness.post("/v1/completions", """
         {"model":"Alpha","prompt":"x","dry_multiplier":0.8,"dry_base":2,"dry_allowed_length":3,"dry_penalty_last_n":64,

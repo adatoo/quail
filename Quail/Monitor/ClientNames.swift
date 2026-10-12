@@ -1,6 +1,6 @@
 import Foundation
 
-/// What the Activity window calls a client (ADR D-067): the app, named from its `User-Agent` by the Connect list's
+/// What the Activity window calls a client (ADR-0067): the app, named from its `User-Agent` by the Connect list's
 /// `userAgents` prefixes, and the machine, "this Mac" or its IP address.
 enum ClientNames {
     /// The Connect list, read once.

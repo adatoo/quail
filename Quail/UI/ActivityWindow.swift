@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Live CPU, GPU and memory, and what the server is doing, request by request (ADR D-060). A small window that
+/// Live CPU, GPU and memory, and what the server is doing, request by request (ADR-0060). A small window that
 /// can stay above other windows while a long prompt is read. The Mac's figures are sampled while it's open, whether
 /// or not the server runs, and charted over the last 1, 5 or 15 minutes.
 struct ActivityWindow: View {
@@ -144,7 +144,7 @@ struct ActivityWindow: View {
                         Text("Idle").font(.caption).foregroundStyle(.secondary)
                     }
                     if model.state == "loading", let waiting = model.waitingFor, !waiting.isEmpty {
-                        // A load that a request needs waits for a busy model's requests to end (ADR D-068).
+                        // A load that a request needs waits for a busy model's requests to end (ADR-0068).
                         Text("Loads once \(waiting.joined(separator: ", ")) finishes its requests")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -161,7 +161,7 @@ struct ActivityWindow: View {
         }
     }
 
-    /// Who's using the server (ADR D-067): each client busy now or in the chosen window, with how much of the window
+    /// Who's using the server (ADR-0067): each client busy now or in the chosen window, with how much of the window
     /// it kept a request running, coloured by that share.
     @ViewBuilder private var clientsSection: some View {
         let loads = ActivityMonitor.clientLoads(

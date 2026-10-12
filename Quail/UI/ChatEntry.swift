@@ -1,7 +1,7 @@
 import Foundation
 
 /// What the menu's chat item does. llama.cpp's own web UI is a real chat
-/// page (D-001: link to the runtime's UI); a runtime without one gets a
+/// page (ADR-0001: link to the runtime's UI); a runtime without one gets a
 /// hand-off to `quail chat` instead of a menu item that silently does
 /// nothing — Quail doesn't ship a chat window of its own.
 enum ChatEntry: Equatable {

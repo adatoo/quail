@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks the website in website/ (ADR D-062) before it's published: every page has a title and a description,
+"""Checks the website in website/ (ADR-0062) before it's published: every page has a title and a description,
 and every link and image inside the site points at a file that exists, including #fragments, which must name an
 id on the target page. Links off the site aren't fetched. The docs pages repeat one sidebar (there's no build
 step to share it), so every docs page's sidebar must list the same pages, and every docs page must be in it.

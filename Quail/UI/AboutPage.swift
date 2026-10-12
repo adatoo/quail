@@ -3,7 +3,7 @@ import SwiftUI
 
 /// The Quail window's About page: which Quail this is, what's inside it, and the Mac it runs on — the hardware
 /// facts `FitEstimator` reads for every verdict (docs/ARCHITECTURE.md §7), which had a Settings tab of their own
-/// until ADR D-061. One Copy Details covers both, for a bug report. (D-029 put About in Settings → General.)
+/// until ADR-0061. One Copy Details covers both, for a bug report. (ADR-0029 put About in Settings → General.)
 struct AboutPage: View {
     let appState: AppState
 
@@ -212,7 +212,7 @@ struct ThisMacFacts {
 }
 
 /// The licence texts that must ship with the app: Quail's own line, then the generated notices file
-/// (`task notices`, ADR D-044) with every bundled library's licence, laid out natively (the component table
+/// (`task notices`, ADR-0044) with every bundled library's licence, laid out natively (the component table
 /// as a grid, each licence as preformatted text); llama.cpp's own file is the fallback for a build without
 /// it. The file is about 80 KB, so it is read and laid out off the main thread, lazily, with a spinner
 /// meanwhile: as one `Text` it took seconds to appear.

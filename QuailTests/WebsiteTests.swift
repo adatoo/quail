@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Quail
 
-/// The app's links to the website (ADR D-062).
+/// The app's links to the website (ADR-0062).
 @Suite("Website")
 struct WebsiteTests {
     private func bundle(websiteURL: String?) throws -> (Bundle, () -> Void) {

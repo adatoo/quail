@@ -1,6 +1,6 @@
 // Adapted from mlx-swift-lm 0dcfe2f8a, with its open PR #630 (bac826f): Libraries/MLXLMCommon/HadamardQuantized.swift
 // and Libraries/MLXLLM/Models/PrismHadamardQwen35.swift (MIT; Copyright (c) 2024 ml-explore). Quail's own copy
-// (ADR D-066 amendment, D-069): Bonsai 2 27B, PrismML's Hadamard-rotated ternary Qwen3.6 27B
+// (ADR-0066 amendment, ADR-0069): Bonsai 2 27B, PrismML's Hadamard-rotated ternary Qwen3.6 27B
 // (`model_type: prism_hadamard_qwen35`), which the pinned mlx-swift-lm doesn't load.
 //
 // Checked against mlx-swift-lm 3.32.3, the release pinned (2026-09-30): its only changes since 0dcfe2f8a are
@@ -17,7 +17,8 @@
 //   embedding quantizes a random table (lazily, never evaluated).
 //
 // Delete this file when mlx-swift-lm ships #630 and the pin moves past it. A rotation applied wrongly still writes
-// fluent text, so this was checked token for token against a Python reference built from Rapid-MLX's runtime (D-066).
+// fluent text, so this was checked token for token against a Python reference built from Rapid-MLX's runtime
+// (ADR-0066).
 
 import Foundation
 import MLX

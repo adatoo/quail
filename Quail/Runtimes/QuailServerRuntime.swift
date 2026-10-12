@@ -1,6 +1,6 @@
 import Foundation
 
-/// Adapter for the bundled `quail-server` (ADR D-027): the same router-mode HTTP shapes as
+/// Adapter for the bundled `quail-server` (ADR-0027): the same router-mode HTTP shapes as
 /// `llama-server` (`/health`, `/models`, `POST /models/load`), so it reuses that adapter's calls, and
 /// it serves MLX models from the store's `mlx/` folder as well as GGUF.
 struct QuailServerRuntime: Runtime {
@@ -70,7 +70,7 @@ struct QuailServerRuntime: Runtime {
         try await http.unload(model: model, base: base, apiKey: apiKey)
     }
 
-    /// Its own chat page at `/` (ADR D-042).
+    /// Its own chat page at `/` (ADR-0042).
     func webUIURL(base: URL) -> URL? {
         base
     }

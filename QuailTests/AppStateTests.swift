@@ -520,7 +520,7 @@ struct AppStateTests {
         #expect(appState.apiKey == nil)
     }
 
-    @Test("a fresh install has an API key: on by default, generated and stored at launch (ADR D-039)")
+    @Test("a fresh install has an API key: on by default, generated and stored at launch (ADR-0039)")
     func freshInstallHasKey() throws {
         let scratch = scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }

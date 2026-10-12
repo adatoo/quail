@@ -65,7 +65,7 @@ ABSENT = Path("/nonexistent/quail-bench")
 
 def models(root: Path | None = None) -> list[Model]:
     """config/models.toml, the engine comparison's three models, or the file QUAIL_BENCH_MODELS names
-    (`catalog-models` for the catalog's own scores, ADR D-070)."""
+    (`catalog-models` for the catalog's own scores, ADR-0070)."""
     root = root or store()
     result = []
     for model_id, entry in load(os.environ.get("QUAIL_BENCH_MODELS") or "models").items():

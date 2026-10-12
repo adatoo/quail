@@ -1,7 +1,7 @@
 # The comparison harness
 
 Measures Quail against llama-server, Ollama, oMLX and Rapid-MLX on the same Mac and the same weights, with standard
-benchmarks. The method and its reasons are in ADR D-063 (`docs/DECISIONS.md`); the settings every engine is held
+benchmarks. The method and its reasons are in ADR-0063 (`docs/adr/0063-benchmark-comparison-method.md`); the settings every engine is held
 to are in `config/fairness.toml`. Nothing here ships in the app.
 
 ## Getting started

@@ -1,7 +1,7 @@
 import Foundation
 import Jinja
 
-/// Images a request carries, as bytes the engine can decode (ADR D-047). An image arrives as a `data:` URL
+/// Images a request carries, as bytes the engine can decode (ADR-0047). An image arrives as a `data:` URL
 /// with base64 content; a URL that would have to be fetched is refused, because fetching whatever address a
 /// request names is a network and privacy decision the server doesn't make on a client's behalf.
 public enum ImageInput {

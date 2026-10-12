@@ -1,11 +1,11 @@
 # Working in this repo
 
-Quail is a macOS menu bar app (SwiftUI, Swift 6, macOS 14+) that runs local LLM servers. Read `docs/ARCHITECTURE.md` for the design and `docs/IMPLEMENTATION_PLAN.md` for what to build next. Record any non-trivial design change in `docs/DECISIONS.md` as a new D-nnn entry.
+Quail is a macOS menu bar app (SwiftUI, Swift 6, macOS 14+) that runs local LLM servers. Read `docs/ARCHITECTURE.md` for the design and `docs/IMPLEMENTATION_PLAN.md` for what to build next. Decisions are ADRs in `docs/adr/` (`NNNN-title.md`, indexed by `docs/adr/README.md`; numbers are never reused). Record a new non-trivial decision as a new ADR. When a decision changes, edit its ADR in place so it describes the decision as it stands, updating its date and status (no amendment sections or superseding ADRs; a dropped decision becomes `Withdrawn`). Changing a decision needs the owner's explicit instruction; updating an ADR to match one already made does not.
 
 ## Conventions
 
 - Swift 6 with strict concurrency. `Sendable` types, actors for the supervisor and model store, `@Observable` for UI state. No Combine.
-- No third-party UI. The only permitted dependencies are Sparkle (SPM, pinned, linked into the Quail app target only — ADR D-032), swift-argument-parser, linked into the `quail` CLI target only (ADR D-022), and `swift-jinja` (pinned), `OrderedCollections`, llama.cpp's `llama.xcframework` (the same pinned tag as the bundled `llama-server`; `QuailServerLlama` only, ADR D-043), and `mlx-swift-lm` and `swift-transformers` (both pinned exactly, with their transitive packages), linked into the `quail-server` tool only (ADRs D-028, D-035, D-044). Every Swift package that resolves, direct or transitive, needs an entry in `Config/third-party.json`; `task notices` regenerates `Quail/Resources/THIRD_PARTY_NOTICES.md` from it and CI checks the result.
+- No third-party UI. The only permitted dependencies are Sparkle (SPM, pinned, linked into the Quail app target only — ADR-0032), swift-argument-parser, linked into the `quail` CLI target only (ADR-0022), and `swift-jinja` (pinned), `OrderedCollections`, llama.cpp's `llama.xcframework` (the same pinned tag as the bundled `llama-server`; `QuailServerLlama` only, ADR-0043), and `mlx-swift-lm` and `swift-transformers` (both pinned exactly, with their transitive packages), linked into the `quail-server` tool only (ADR-0028, ADR-0035, ADR-0044). Every Swift package that resolves, direct or transitive, needs an entry in `Config/third-party.json`; `task notices` regenerates `Quail/Resources/THIRD_PARTY_NOTICES.md` from it and CI checks the result.
 - Never inherit the user's shell environment when spawning a runtime. Build `environment` explicitly in `ProcessSupervisor`.
 - Runtimes are always given explicit paths (`--models-dir`, `--model-dir`, `HF_HOME`). Never rely on a runtime's default folder.
 - Never call `rapid-mlx launch` or `rapid-mlx service …`; Quail runs `serve` and `pull` only.
@@ -15,7 +15,7 @@ Quail is a macOS menu bar app (SwiftUI, Swift 6, macOS 14+) that runs local LLM 
 
 ## Build and test
 
-Everything goes through [Task](https://taskfile.dev) (`brew install go-task`; ADR D-030) — the same commands locally and in CI. `task` lists them; `task doctor` checks your tools.
+Everything goes through [Task](https://taskfile.dev) (`brew install go-task`; ADR-0030) — the same commands locally and in CI. `task` lists them; `task doctor` checks your tools.
 
 ```
 task ci                    # exactly what CI runs: lint, vendor, build, notices, verify, test
@@ -26,12 +26,12 @@ task generate              # xcodegen — only after editing project.yml; Quail.
 task vendor:llama          # once per llama.cpp bump; updates Vendor/llama.cpp (verifies the sha256 and the @rpath closure)
 task verify:bundle         # the built app: every Mach-O relocatable, catalog.json / llama.version / licence present
 task install               # Release build, signed, to ~/Apps/Quail.app (quit Quail first) — the app you can actually launch
-task site:serve            # the website (website/, ADR D-062) at localhost:8765; task site:check checks its links
+task site:serve            # the website (website/, ADR-0062) at localhost:8765; task site:check checks its links
 ```
 
 Xcode's build phases call `task embed:*`, so go-task must be installed anywhere Xcode builds Quail.
 
-The Xcode project is generated from `project.yml` (see ADR D-008 in docs/DECISIONS.md). Edit `project.yml`, not the `.xcodeproj` directly, then re-run `xcodegen generate` and commit both.
+The Xcode project is generated from `project.yml` (see ADR-0008, `docs/adr/0008-xcodegen-project.md`). Edit `project.yml`, not the `.xcodeproj` directly, then re-run `xcodegen generate` and commit both.
 
 Smoke test after any change to Server/ or Runtimes/: place a small GGUF in the store, Start, run the Ping sheet. Ping must pass.
 
@@ -41,11 +41,11 @@ Smoke test after any change to Server/ or Runtimes/: place a small GGUF in the s
 - Unit tests pass; new logic in `Models/`, `DeviceFit/`, `Server/` has tests using a fake `Runtime` where a process would otherwise be needed.
 - No absolute paths from the build machine end up in the bundle.
 - `docs/IMPLEMENTATION_PLAN.md` checkbox or phase status updated if the task completes a listed item.
-- The PR has a Conventional Commits title and carries its own version bump (`PR_TITLE="<PR title>" task version:bump`, ADR D-024) as the **last commit on the branch, on its own**: commit the work first, then bump, write the CHANGELOG entry, and commit only `project.yml`, `Quail.xcodeproj/project.pbxproj` and `CHANGELOG.md` (`chore(release): bump version to X.Y.Z`). A later fix goes in before it, never after; the `version` check (`task version:last-commit`) enforces this. Open it with `gh pr merge --auto --merge`.
+- The PR has a Conventional Commits title and carries its own version bump (`PR_TITLE="<PR title>" task version:bump`, ADR-0024) as the **last commit on the branch, on its own**: commit the work first, then bump, write the CHANGELOG entry, and commit only `project.yml`, `Quail.xcodeproj/project.pbxproj` and `CHANGELOG.md` (`chore(release): bump version to X.Y.Z`). A later fix goes in before it, never after; the `version` check (`task version:last-commit`) enforces this. Open it with `gh pr merge --auto --merge`.
 
 ## Things not to do
 
-- Don't add a chat window to the app, an agent mode, or an image or audio UI. Link to the runtime's web UI instead; `quail-server` serves one small page of its own at `/` (D-042), and it stays small. Serving other kinds of model through standard APIs (embeddings, reranking, and later speech and images) is in scope; the app only downloads and manages them (D-072).
+- Don't add a chat window to the app, an agent mode, or an image or audio UI. Link to the runtime's web UI instead; `quail-server` serves one small page of its own at `/` (ADR-0042), and it stays small. Serving other kinds of model through standard APIs (embeddings, reranking, and later speech and images) is in scope; the app only downloads and manages them (ADR-0072).
 - Don't bundle Python or wheels.
 - Don't write outside `Application Support/Quail`, `Logs/Quail`, and the user-chosen model store.
 - Don't commit `Vendor/`, signing identities, or `.p12` files.

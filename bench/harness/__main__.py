@@ -1,4 +1,4 @@
-"""Quail's comparison harness (ADR D-063). Run through Task: `task bench:doctor`, `task bench:smoke`, …
+"""Quail's comparison harness (ADR-0063). Run through Task: `task bench:doctor`, `task bench:smoke`, …
 
     python -m harness doctor                    what's installed, what's missing, how the Mac is
     python -m harness smoke [--engines …] [--models …]
@@ -15,7 +15,7 @@
                                                 all four, in one run folder; --resume carries on a stopped one
     python -m harness scores [--budget …] [--engines …] [--models …] [--resume RUN]
                                                 quality and tools in one run folder: the catalog's own scores
-                                                (QUAIL_BENCH_MODELS=catalog-models, ADR D-070)
+                                                (QUAIL_BENCH_MODELS=catalog-models, ADR-0070)
     python -m harness report RUN [--smoke RUN] [--out DIR] [--notes FILE]
                                                 the report: docs/benchmarks/<date>/ from a compare run
     python -m harness site [--report DIR]      website/compare.html: the feature table, and a report's results
@@ -199,7 +199,7 @@ def resumed(args) -> Path | None:
 
 
 def run_scores(args) -> int:
-    """Quality and tool calling, one model after another, in one run folder (ADR D-070's own scores)."""
+    """Quality and tool calling, one model after another, in one run folder (ADR-0070's own scores)."""
     chosen, models = engines.select(args.engines), pick_models(args.models)
 
     def body(run_dir):

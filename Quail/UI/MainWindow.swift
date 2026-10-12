@@ -13,7 +13,7 @@ enum MainPage: String, CaseIterable, Hashable, Identifiable {
         rawValue
     }
 
-    /// The sidebar's two groups: what you do with Quail, then Quail itself (ADR D-061).
+    /// The sidebar's two groups: what you do with Quail, then Quail itself (ADR-0061).
     static let work: [MainPage] = [.server, .models, .connect, .benchmark]
     static let app: [MainPage] = [.general, .about]
 
@@ -40,7 +40,7 @@ enum MainPage: String, CaseIterable, Hashable, Identifiable {
     }
 }
 
-/// The Quail window (ADR D-061): a sidebar of pages grouped by task — the server, its models, connecting tools
+/// The Quail window (ADR-0061): a sidebar of pages grouped by task — the server, its models, connecting tools
 /// and benchmarking them, then Quail's own settings and About. It replaced six Settings tabs that mixed
 /// preferences, work surfaces and a facts page, and spread the server's settings over three of them.
 ///

@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// What quail-server says it's doing (`GET /slots`, ADR D-060), and who's asking (D-067).
+/// What quail-server says it's doing (`GET /slots`, ADR-0060), and who's asking (ADR-0067).
 struct ServerActivity: Equatable, Sendable, Decodable {
     /// Who sent a request: the app (its `User-Agent`'s first product, and the whole header) and the machine ("local"
     /// for this Mac, else an IP address).
@@ -56,7 +56,7 @@ struct ServerActivity: Equatable, Sendable, Decodable {
         var loadingSeconds: Double?
         var leases: Int
         var memoryBytes: Int?
-        /// While loading: the busy models it's waiting on to finish their requests (ADR D-068).
+        /// While loading: the busy models it's waiting on to finish their requests (ADR-0068).
         var waitingFor: [String]?
 
         enum CodingKeys: String, CodingKey {
@@ -153,7 +153,7 @@ extension ServerActivity {
     }
 }
 
-/// One client: an app on a machine (ADR D-067).
+/// One client: an app on a machine (ADR-0067).
 struct ClientKey: Hashable, Sendable {
     var agent: String
     var address: String?
@@ -236,7 +236,7 @@ struct ChartPoint: Equatable, Sendable {
     var y: Double?
 }
 
-/// Samples the Mac, and polls the server's activity while it runs (ADR D-060): every second while something is
+/// Samples the Mac, and polls the server's activity while it runs (ADR-0060): every second while something is
 /// happening, every two seconds otherwise. The Mac is sampled while the server runs *or* the Activity window is open,
 /// so the window shows CPU, GPU and memory with the server stopped too; nothing runs when neither is true. Keeps 15
 /// minutes of readings for the window's charts, which show the last 1, 5 or 15 of them.
@@ -247,7 +247,7 @@ final class ActivityMonitor {
     private(set) var server = ServerActivity()
     /// Readings, oldest first, trimmed to `historySpan`.
     private(set) var history: [ActivityPoint] = []
-    /// Each client's totals at each `/slots` poll, oldest first, trimmed to `historySpan` (ADR D-067).
+    /// Each client's totals at each `/slots` poll, oldest first, trimmed to `historySpan` (ADR-0067).
     private(set) var clientReadings: [ClientReading] = []
     /// Whether the runtime answers `GET /slots` (quail-server does; llama-server's router doesn't).
     private(set) var hasActivity = false

@@ -1,5 +1,5 @@
 // Adapted from mlx-swift-lm 3.31.4, Libraries/MLXVLM/Models/Gemma4.swift (MIT; Copyright (c) 2024 ml-explore),
-// itself based on mlx-vlm's gemma4. Quail's own copy (ADR D-066, #140): the language model of Gemma 4's vision
+// itself based on mlx-vlm's gemma4. Quail's own copy (ADR-0066, #140): the language model of Gemma 4's vision
 // checkpoints, mixture-of-experts layers included, loaded text-only and registered in place of mlx-swift-lm's
 // text-only Gemma 4 (which has no experts, so Gemma 4 26B-A4B could only load through the vision model).
 //

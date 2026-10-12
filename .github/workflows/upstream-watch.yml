@@ -1,8 +1,8 @@
 name: Upstream watch
 
 # Upstream pull requests Quail is waiting for (#158): the 1-bit and Bonsai 2 runtimes,
-# and the changes that let Quail delete its copies of mlx-swift-lm model files (ADR D-066,
-# D-069). Every Monday this reads each one's state. When one has merged or closed, it
+# and the changes that let Quail delete its copies of mlx-swift-lm model files (ADR-0066,
+# ADR-0069). Every Monday this reads each one's state. When one has merged or closed, it
 # comments on #158 (once per pull request and state) and fails, so GitHub emails the
 # owner; the issue says what Quail does next.
 on:

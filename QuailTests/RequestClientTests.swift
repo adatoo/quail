@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import QuailServerCore
 
-@Suite("Request client (ADR D-067)")
+@Suite("Request client (ADR-0067)")
 struct RequestClientTests {
     @Test("the app is the User-Agent's first product, without a numeric version", arguments: [
         ("claude-cli/2.1.3 (external, cli)", "claude-cli"),

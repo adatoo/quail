@@ -1,7 +1,7 @@
 import Foundation
 
 /// Models other apps already downloaded, found on first run and offered for moving into Quail's store
-/// (Phase 4 step 2, ADR D-059): llama.cpp's download cache, LM Studio's models folder, the Hugging Face cache
+/// (Phase 4 step 2, ADR-0059): llama.cpp's download cache, LM Studio's models folder, the Hugging Face cache
 /// and oMLX's models folder. They're moved, never copied or linked: a model on disk twice wastes gigabytes,
 /// and llama-server's folder scan and MLX's loaders both treat links inconsistently.
 struct ImportCandidate: Identifiable, Equatable, Sendable {

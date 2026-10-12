@@ -4,12 +4,12 @@ import Foundation
 /// (`Paths.logFile(for:)`) and config values.
 enum RuntimeID: String, Sendable, CaseIterable, Codable {
     case llamaCpp
-    /// Quail's own `quail-server`: GGUF and MLX in one process (ADR D-027).
+    /// Quail's own `quail-server`: GGUF and MLX in one process (ADR-0027).
     case quail
     case omlx
     case rapidMLX
 
-    /// The runtimes the app can start today, the default first; oMLX and Rapid-MLX are deferred (ADR D-027).
+    /// The runtimes the app can start today, the default first; oMLX and Rapid-MLX are deferred (ADR-0027).
     static var available: [RuntimeID] {
         [.quail, .llamaCpp]
     }
@@ -82,7 +82,7 @@ struct Health: Sendable, Equatable, Decodable {
 struct ServedModel: Sendable, Equatable, Identifiable, Decodable {
     let id: String
     let status: Status
-    /// quail-server's own (ADR D-072): `chat`, `embedding` or `rerank`. llama-server doesn't say.
+    /// quail-server's own (ADR-0072): `chat`, `embedding` or `rerank`. llama-server doesn't say.
     var task: String? = nil
 
     /// Whether it can answer a chat request, as far as the server says.
@@ -98,7 +98,7 @@ struct ServedModel: Sendable, Equatable, Identifiable, Decodable {
         let value: String
         let failed: Bool?
         let exitCode: Int?
-        /// quail-server's own (ADR D-068): while loading, the busy models it's waiting on to finish their requests.
+        /// quail-server's own (ADR-0068): while loading, the busy models it's waiting on to finish their requests.
         var waitingFor: [String]?
 
         private enum CodingKeys: String, CodingKey {

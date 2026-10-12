@@ -33,7 +33,7 @@ struct GenerationSettings: Equatable, Sendable {
     var stream = false
     var includeUsage = false
     /// What the reply must follow: llama-server's `grammar` and `json_schema`, or OpenAI's
-    /// `response_format` (ADR D-045). Only some engines can honour it.
+    /// `response_format` (ADR-0045). Only some engines can honour it.
     var constraint: Constraint?
 
     enum Constraint: Equatable, Sendable {

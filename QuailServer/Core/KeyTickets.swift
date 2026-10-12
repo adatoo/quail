@@ -1,7 +1,7 @@
 import Foundation
 
 /// One-time tickets that let the Quail app sign its own chat page in without putting the API key in a URL
-/// (ADR D-042). The app asks for a ticket with the key (`POST /auth/ticket`) and opens the page at
+/// (ADR-0042). The app asks for a ticket with the key (`POST /auth/ticket`) and opens the page at
 /// `/#ticket=…`; the page trades the ticket for the key once (`POST /auth/exchange`) and forgets the
 /// fragment. A ticket is random, lives 30 seconds, works once, and is only ever held in memory.
 final class KeyTickets: @unchecked Sendable {

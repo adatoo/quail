@@ -1,7 +1,7 @@
 name: MLX release watch
 
 # While no mlx-swift-lm release takes mlx-swift 0.32, Quail pins mlx-swift-lm to
-# a commit on its main branch (ADR D-044 amendment, #149). Every Monday this
+# a commit on its main branch (ADR-0044 amendment, #149). Every Monday this
 # reads the latest release's Package.swift. Once that release takes mlx-swift
 # 0.32 or later, it comments on #149 (once per release) and fails, so GitHub
 # emails the owner to move the pin. With the pin back on a release

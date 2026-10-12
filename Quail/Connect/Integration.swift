@@ -27,7 +27,7 @@ struct Integration: Sendable, Equatable, Identifiable, Decodable {
         case openAIChat = "openai-chat"
         case openAIResponses = "openai-responses"
         case anthropic
-        /// `/v1/embeddings` and `/v1/rerank` (ADR D-072), for an embedding or reranking model.
+        /// `/v1/embeddings` and `/v1/rerank` (ADR-0072), for an embedding or reranking model.
         case openAIEmbeddings = "openai-embeddings"
         case rerank
 
@@ -47,7 +47,7 @@ struct Integration: Sendable, Equatable, Identifiable, Decodable {
 
     let id: String
     let name: String
-    /// `User-Agent` prefixes that name this tool in the Activity window (ADR D-067); nil for tools not yet seen.
+    /// `User-Agent` prefixes that name this tool in the Activity window (ADR-0067); nil for tools not yet seen.
     let userAgents: [String]?
     let category: Category
     let api: API
@@ -62,7 +62,7 @@ struct Integration: Sendable, Equatable, Identifiable, Decodable {
     let docsURL: URL
     let notes: String?
     /// The smallest model context (tokens) the tool works with — the
-    /// Connect tab warns when the chosen model runs smaller (ADR D-020).
+    /// Connect tab warns when the chosen model runs smaller (ADR-0020).
     let minContext: Int?
     /// How `quail launch` starts the tool pointed at Quail — `nil` for
     /// tools configured in their own settings screens.

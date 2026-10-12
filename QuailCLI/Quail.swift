@@ -3,7 +3,7 @@ import Foundation
 
 /// `quail` — the command-line companion to Quail.app, "like ollama"
 /// (docs/IMPLEMENTATION_PLAN.md Phase 2b). A thin client: the app owns the
-/// server and the model store (ADR D-003); this asks it to act over the
+/// server and the model store (ADR-0003); this asks it to act over the
 /// control socket (`ControlProtocol`), launching the app first if needed.
 @main
 struct Quail: AsyncParsableCommand {

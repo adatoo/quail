@@ -33,7 +33,7 @@ public protocol Engine: Sendable {
     func memoryBytes() async -> Int?
 }
 
-/// What an engine supports beyond plain text generation (ADR D-043, D-044). A request that needs
+/// What an engine supports beyond plain text generation (ADR-0043, ADR-0044). A request that needs
 /// more than its engine offers is refused with a message naming what's missing, or, for a sampler
 /// option, ignored with a line in the server log.
 public struct EngineCapabilities: Equatable, Sendable {
@@ -41,7 +41,7 @@ public struct EngineCapabilities: Equatable, Sendable {
     public var extraSamplers = false
     /// Output constrained by a GBNF grammar (JSON mode, JSON schemas, forced tool calls).
     public var grammar = false
-    /// Image input, through a vision projector (ADR D-047).
+    /// Image input, through a vision projector (ADR-0047).
     public var vision = false
     /// Several requests decoded together (slots); an engine without it is served one request at a time,
     /// the others waiting their turn.
@@ -67,7 +67,7 @@ public extension Engine {
     }
 }
 
-/// The engine for a model that doesn't chat (ADR D-072): an embedding model's vectors, or a reranker's scores.
+/// The engine for a model that doesn't chat (ADR-0072): an embedding model's vectors, or a reranker's scores.
 /// `/v1/embeddings` and `/v1/rerank` use it; the chat routes never reach one, since they refuse a model of another
 /// task first.
 public protocol EmbeddingEngine: Engine {
@@ -226,7 +226,7 @@ public enum GenerationEvent: Equatable, Sendable {
     case token(id: Int, text: String)
     case finished(FinishReason, GenerationTimings)
     /// How far the prompt has been read: tokens in the cache so far (`cached` of them reused), of `total`. Optional,
-    /// for `GET /slots` (ADR D-060); never sent to a client.
+    /// for `GET /slots` (ADR-0060); never sent to a client.
     case promptProgress(done: Int, total: Int, cached: Int)
 }
 

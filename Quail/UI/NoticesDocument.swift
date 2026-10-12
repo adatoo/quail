@@ -1,6 +1,6 @@
 import Foundation
 
-/// The generated `THIRD_PARTY_NOTICES.md` (ADR D-044) as blocks the licences sheet can lay out natively: a
+/// The generated `THIRD_PARTY_NOTICES.md` (ADR-0044) as blocks the licences sheet can lay out natively: a
 /// component table, one section per component, licence texts as preformatted blocks. It reads the Markdown
 /// `task notices` writes (headings, paragraphs, one pipe table, fenced blocks), not Markdown in general;
 /// anything else stays a paragraph.

@@ -127,7 +127,7 @@ struct ModelStore: Sendable, Equatable {
 
     /// The store's catalog, reconciled against what's actually on disk —
     /// the same "disk is the source of truth, catalog is the index"
-    /// stance as `regeneratePresets` (ADR D-012): files no longer on disk
+    /// stance as `regeneratePresets` (ADR-0012): files no longer on disk
     /// lose their rows (ARCHITECTURE.md §6: "Deletion removes the files
     /// and the catalog row"), files on disk without a row gain one (a
     /// hand-placed model), and every surviving row's `bytes` and
@@ -141,10 +141,10 @@ struct ModelStore: Sendable, Equatable {
     /// directories always evaluate under `.omlx` — that's the only
     /// format-aware choice for them), and the resulting
     /// resulting `FitEstimator.automaticContextSize` is stored as the
-    /// row's `contextSize` (ADR D-020) — what `presets.ini` uses unless the
+    /// row's `contextSize` (ADR-0020) — what `presets.ini` uses unless the
     /// user picked a size (`userContextSize`, never touched here).
     ///
-    /// Each row's task (ADR D-072) comes from the catalog family it was downloaded as, when `families` lists it,
+    /// Each row's task (ADR-0072) comes from the catalog family it was downloaded as, when `families` lists it,
     /// or else from the model's own header or files (`ModelTask.detected`).
     func refreshedCatalog(
         device: DeviceInfo,
@@ -284,7 +284,7 @@ struct ModelStore: Sendable, Equatable {
     /// chosen numbers with no UI behind them would be guessing, not a
     /// decision.
     ///
-    /// - Parameter defaultModelID: `Config.defaultModelID` (ADR D-017) —
+    /// - Parameter defaultModelID: `Config.defaultModelID` (ADR-0017) —
     ///   that one section, if it's still actually installed, gets
     ///   `load-on-startup = true`, confirmed against the real vendored
     ///   binary to make router mode load it immediately at startup with
@@ -299,7 +299,7 @@ struct ModelStore: Sendable, Equatable {
     }
 
     /// - Parameter includeMLX: also a section per MLX model directory, for a runtime that serves them
-    ///   (quail-server reads a `model` that is a directory as MLX, ADR D-044). llama-server would fail on one,
+    ///   (quail-server reads a `model` that is a directory as MLX, ADR-0044). llama-server would fail on one,
     ///   so it's off unless the chosen runtime can use it.
     func regeneratePresets(
         catalog: StoreCatalog,
@@ -356,7 +356,7 @@ struct ModelStore: Sendable, Equatable {
         try ini.write(to: presetsFile, atomically: true, encoding: .utf8)
     }
 
-    /// A quantized KV cache's preset lines (ADR D-057): llama-server's own keys, which quail-server reads for both
+    /// A quantized KV cache's preset lines (ADR-0057): llama-server's own keys, which quail-server reads for both
     /// formats. llama.cpp needs flash attention for a quantized V cache, so a GGUF section turns it on.
     static func kvCacheLines(_ setting: KVCacheSetting, flashAttention: Bool) -> String {
         guard setting != .full else { return "" }

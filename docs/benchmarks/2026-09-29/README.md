@@ -1,6 +1,6 @@
 # Quail against llama-server, Ollama, oMLX and Rapid-MLX — 2026-09-29
 
-Measured by the comparison harness in `bench/` (ADR D-063): the same weights in every engine of a lane, the same prompts, the same settings, one server at a time.
+Measured by the comparison harness in `bench/` (ADR-0063): the same weights in every engine of a lane, the same prompts, the same settings, one server at a time.
 
 ## What we found
 
@@ -299,7 +299,7 @@ Engine-native ceiling (mlx_lm.benchmark, no server): generated tokens/s by seque
 
 ## Where Quail is slower or worse
 
-Each cell names the engines that did better than Quail at that level, and by how much, as a share of Quail's figure: higher throughput, or shorter times. Only gaps of more than 5% and more than the spread between rounds count (D-063). Time between tokens is only compared with one request at a time.
+Each cell names the engines that did better than Quail at that level, and by how much, as a share of Quail's figure: higher throughput, or shorter times. Only gaps of more than 5% and more than the spread between rounds count (ADR-0063). Time between tokens is only compared with one request at a time.
 
 #### Qwen3 8B, GGUF lane
 

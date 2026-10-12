@@ -2,7 +2,7 @@ import Foundation
 import llama
 import QuailServerCore
 
-// Serving several requests from one loaded model (ADR D-048). A request takes a slot, which is a sequence of
+// Serving several requests from one loaded model (ADR-0048). A request takes a slot, which is a sequence of
 // the shared context; a step of the scheduler decodes one batch holding a token for every request that is
 // generating and a share of the prompt for every request that is still reading its prompt. Each step is its
 // own block on the runtime's queue, so `tokenize` and the like run between steps instead of waiting for all

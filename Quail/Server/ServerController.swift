@@ -37,7 +37,7 @@ final class ServerController {
         }
     }
 
-    /// Told of every phase change — `AppState` keeps the Mac awake while the server runs (ADR D-054).
+    /// Told of every phase change — `AppState` keeps the Mac awake while the server runs (ADR-0054).
     @ObservationIgnored var onPhaseChange: ((Phase) -> Void)?
     private(set) var recentFailureLogs: [String] = []
 
@@ -197,7 +197,7 @@ final class ServerController {
     /// `.stopped` before returning — not just for the `SIGTERM` to be sent.
     /// `supervisor.stop()` returning only means the signal was delivered;
     /// the process (and llama-server's own graceful shutdown of any child
-    /// model instance, see D-009) still needs a moment to actually exit,
+    /// model instance, see ADR-0009) still needs a moment to actually exit,
     /// which arrives later as a `ProcessSupervisor.Event` on `eventTask`.
     /// Awaiting that task's completion — rather than the phase becoming
     /// `.stopped` some other way — is what makes this safe to call

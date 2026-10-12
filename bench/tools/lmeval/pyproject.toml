@@ -1,4 +1,4 @@
-# EleutherAI's lm-evaluation-harness for the comparison harness's quality runs (ADR D-063), pinned. Its
+# EleutherAI's lm-evaluation-harness for the comparison harness's quality runs (ADR-0063), pinned. Its
 # local-chat-completions model talks to the harness's request shim (harness/shim.py), never to an engine directly.
 # `task bench:setup` makes the environment.
 [project]

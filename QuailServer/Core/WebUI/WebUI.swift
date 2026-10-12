@@ -3,7 +3,7 @@ import Foundation
 
 /// The one page `quail-server` serves at `/`: conversations kept in the browser, a model picker with load
 /// and unload, generation settings, Markdown replies and per-message edit, regenerate, copy and delete. It
-/// speaks the same HTTP API as every other client, so it works for GGUF and MLX models alike (ADR D-042).
+/// speaks the same HTTP API as every other client, so it works for GGUF and MLX models alike (ADR-0042).
 /// No framework, no build step, no request to any other host.
 ///
 /// It shows text a model wrote, so it is built not to be talked into running any of it: Markdown is parsed

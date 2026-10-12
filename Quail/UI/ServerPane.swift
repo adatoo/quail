@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// The Quail window's Server page (ADR D-061): whether the server is running and what to do about it, the
+/// The Quail window's Server page (ADR-0061): whether the server is running and what to do about it, the
 /// addresses and key a client uses, who can reach it, which runtime runs it, and how it starts and keeps the Mac
 /// awake — everything that was spread over Settings' General and Endpoint tabs, with no Start or Stop anywhere.
 ///

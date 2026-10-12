@@ -5,7 +5,7 @@ import MLXLMCommon
 import MLXRerankers
 import QuailServerCore
 
-/// The MLX engine for models that don't chat (ADR D-072, #181): `mlx-swift-lm`'s `MLXEmbedders` for an embedding
+/// The MLX engine for models that don't chat (ADR-0072, #181): `mlx-swift-lm`'s `MLXEmbedders` for an embedding
 /// model's pooled vectors, and its `MLXRerankers` for a reranker's scores. One instance holds one model. Inputs run
 /// one at a time, each its own forward pass, so no input is padded: padding needs a mask every model family reads
 /// the same way, and a single input needs none.

@@ -54,7 +54,7 @@ struct ConnectPane: View {
         }
         .onChange(of: selectedID) { _, _ in
             testOutcome = nil
-            // Embeddings and reranking take another kind of model than chat (ADR D-072).
+            // Embeddings and reranking take another kind of model than chat (ADR-0072).
             if !installedModels.contains(model) {
                 model = installedModels.contains(appState.config.defaultModelID ?? "")
                     ? appState.config.defaultModelID ?? "" : installedModels.first ?? ""

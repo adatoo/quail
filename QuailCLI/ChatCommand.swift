@@ -3,9 +3,9 @@ import Darwin
 import Foundation
 
 /// `quail chat [model] [prompt…]` — chat with a model in the terminal
-/// (ADR D-021: for judging a model; no saved history, attachments or tools).
+/// (ADR-0021: for judging a model; no saved history, attachments or tools).
 /// Whether the first word is a model or the start of the prompt is decided
-/// by `ChatTarget` (ADR D-025).
+/// by `ChatTarget` (ADR-0025).
 struct ChatCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "chat",

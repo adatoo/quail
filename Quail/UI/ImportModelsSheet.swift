@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Models pane's one-time offer (Phase 4 step 2, ADR D-059): models other apps downloaded, ready to move in.
+/// The Models pane's one-time offer (Phase 4 step 2, ADR-0059): models other apps downloaded, ready to move in.
 struct ImportOfferBanner: View {
     let appState: AppState
     let review: () -> Void

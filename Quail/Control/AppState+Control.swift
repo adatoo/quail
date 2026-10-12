@@ -1,7 +1,7 @@
 import Foundation
 
 /// The `quail` CLI's requests, answered by the app — which owns the server,
-/// the store and the settings (ADR D-003). See `ControlProtocol.swift`.
+/// the store and the settings (ADR-0003). See `ControlProtocol.swift`.
 extension AppState {
     func handleControl(_ request: ControlRequest) async -> ControlResponse {
         switch request.command {

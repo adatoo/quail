@@ -103,7 +103,7 @@ final class ModelInstallController {
     /// Returns the driving `Task` when it starts now (tests and `quail pull` await it; the observed state is
     /// `phase`, not the task's result), `nil` when it was queued, is already running or queued, or has no
     /// files. Resumes transparently: files already partially in `ModelStore.partialDirectory` continue from
-    /// their existing bytes (ADR D-015).
+    /// their existing bytes (ADR-0015).
     @discardableResult
     func install(
         repo: String,
@@ -314,7 +314,7 @@ final class ModelInstallController {
         return doneBefore + writtenForCurrent
     }
 
-    /// What every download, listing and `quail pull` says with no connection (ADR D-051).
+    /// What every download, listing and `quail pull` says with no connection (ADR-0051).
     nonisolated static let offlineMessage =
         "no internet connection — adding models needs one; installed models work as normal, and a download resumes where it stopped"
 

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Quail
 
-/// Each layer's cache (ADR D-071), from the shapes of real catalog models: their GGUF headers' keys and their MLX
+/// Each layer's cache (ADR-0071), from the shapes of real catalog models: their GGUF headers' keys and their MLX
 /// `config.json`s, cut to the fields that matter.
 @Suite("Per-layer KV cache")
 struct KVLayersTests {
@@ -114,7 +114,7 @@ struct KVLayersTests {
         let global: Int64 = 10 * 4 * 1024 * 2
         #expect(FitEstimator.kvBytes(shape, contextSize: 512, kvCache: .full) == 512 * (50 * 16 * 512 * 2 + global))
         #expect(FitEstimator.kvBytes(shape, contextSize: 32768, kvCache: .full) == windowed + global * 32768)
-        // A 4-bit setting shrinks only the global layers: MLX doesn't quantize a rotating cache (ADR D-057).
+        // A 4-bit setting shrinks only the global layers: MLX doesn't quantize a rotating cache (ADR-0057).
         #expect(FitEstimator.kvBytes(shape, contextSize: 32768, kvCache: .q4)
             == windowed + Int64(10 * 4 * 1024 * 0.5625) * 32768)
     }

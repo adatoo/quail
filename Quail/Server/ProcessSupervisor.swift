@@ -14,7 +14,7 @@ import Foundation
 /// model: tested against a real model load, `SIGTERM` to the router's PID
 /// alone triggers the router's own shutdown handler, which stops its child
 /// itself before exiting. No process-group kill is needed — see
-/// docs/DECISIONS.md D-009's correction.
+/// docs/adr/0009-llama-cpp-vendoring.md's correction.
 actor ProcessSupervisor {
     /// Something happened that the owner (`ServerController`) needs to
     /// react to: a line of output, or the process exiting.

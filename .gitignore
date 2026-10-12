@@ -38,7 +38,7 @@ release-notes.md
 Vendor/sparkle/
 Vendor/.sparkle-staged
 
-# The comparison harness (bench/, ADR D-063): its runs, scratch space (.noindex keeps Spotlight out),
+# The comparison harness (bench/, ADR-0063): its runs, scratch space (.noindex keeps Spotlight out),
 # tool environments, and the engines it fetches
 bench/runs/
 bench/.work.noindex/

@@ -33,7 +33,7 @@ struct ModelShape: Sendable, Equatable, Codable {
     /// The context the model was trained for (`<arch>.context_length`),
     /// when the header says — caps the per-model context setting.
     var trainedContext: Int?
-    /// The layers that keep a cache of past tokens, when they aren't all alike (ADR D-071): `nil` means every one
+    /// The layers that keep a cache of past tokens, when they aren't all alike (ADR-0071): `nil` means every one
     /// of `layerCount` layers keeps `kvHeadCount` heads of `headDim` for every token, the plain formula.
     var kvLayers: [KVLayers]?
 
@@ -58,7 +58,7 @@ struct ModelShape: Sendable, Equatable, Codable {
         var keyValueDim: Int
         /// A sliding-window layer whose engine keeps only its window (MLX's rotating cache). `nil` for a layer
         /// that keeps every token, which includes a GGUF sliding-window layer: libllama's default full-size
-        /// window cache (`swa_full`), which quail-server keeps (ADR D-048), sizes it like any other.
+        /// window cache (`swa_full`), which quail-server keeps (ADR-0048), sizes it like any other.
         var window: Int?
     }
 
@@ -222,7 +222,7 @@ struct ModelShape: Sendable, Equatable, Codable {
     }
 }
 
-/// How a model's KV cache stores its elements, a per-model setting (ADR D-057): full precision, or quantized to
+/// How a model's KV cache stores its elements, a per-model setting (ADR-0057): full precision, or quantized to
 /// 8 or 4 bits for a longer context in the same memory. Written to `presets.ini` as llama-server's
 /// `cache-type-k`/`cache-type-v`, which both runtimes read.
 enum KVCacheSetting: String, Sendable, Equatable, Codable, CaseIterable {
@@ -273,7 +273,7 @@ struct FitEstimate: Sendable, Equatable {
     /// unrecognized chip — ARCHITECTURE.md §7: "unknown chip → no speed
     /// estimate", deliberately not a guess.
     var estimatedTokensPerSecond: Double?
-    /// For a `.tight` verdict at full precision: the context a 4-bit KV cache would fit instead (ADR D-057),
+    /// For a `.tight` verdict at full precision: the context a 4-bit KV cache would fit instead (ADR-0057),
     /// when that's more.
     var contextWith4BitKV: Int?
 }
@@ -312,7 +312,7 @@ enum FitEstimator {
         return options.isEmpty ? [trained] : options.sorted()
     }
 
-    /// "Automatic" context (ADR D-020): the largest of 32K / 16K / 8K that
+    /// "Automatic" context (ADR-0020): the largest of 32K / 16K / 8K that
     /// is Comfortable on this Mac, capped at the trained context; if none
     /// is, the `.tight` reduced size at 8K (the old behaviour); `nil` when
     /// nothing can be estimated. 8K alone — the old fixed default — was
@@ -361,7 +361,7 @@ enum FitEstimator {
     /// RAM_needed = W + KV(C) + O, where KV(C) = 2 · L · H_kv · d · b · C for a model whose layers are all alike.
     ///
     /// `b` is `kvCache.bytesPerElement`: 2 for the engines' default f16 cache, about 1 or 0.56 when a model is set
-    /// to a quantized one (ADR D-057). Not read from model metadata: it's a setting, not a model property.
+    /// to a quantized one (ADR-0057). Not read from model metadata: it's a setting, not a model property.
     static func ramNeeded(
         model: ModelShape,
         contextSize: Int,
@@ -371,9 +371,9 @@ enum FitEstimator {
         model.weightBytes + kvBytes(model, contextSize: contextSize, kvCache: kvCache) + overheadBytes
     }
 
-    /// The keys and values held for `contextSize` tokens, summed over the layers that keep them (ADR D-071).
+    /// The keys and values held for `contextSize` tokens, summed over the layers that keep them (ADR-0071).
     /// A layer with a window holds at most that many tokens, and stays at full precision under a quantized
-    /// setting, as MLX leaves its rotating caches (ADR D-057).
+    /// setting, as MLX leaves its rotating caches (ADR-0057).
     static func kvBytes(_ model: ModelShape, contextSize: Int, kvCache: KVCacheSetting) -> Int64 {
         let layers = model.kvLayers
             ?? [ModelShape.KVLayers(

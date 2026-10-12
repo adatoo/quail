@@ -87,7 +87,7 @@ struct InferenceRoutes: Sendable {
 
     /// The model a request names: `model` in the body, or `?model=` for the GET routes. A router
     /// has no default, so a request that names none is refused (llama-server's behaviour). A model of
-    /// another task than the route's is refused too, naming the route that serves it (ADR D-072); `task`
+    /// another task than the route's is refused too, naming the route that serves it (ADR-0072); `task`
     /// nil takes a model of any task (`/tokenize`, `/props`).
     func modelID(body: Value?, request: HTTPRequest, task: ModelTask? = .chat) async throws -> String {
         var id = body?["model"]?.stringValue
@@ -652,7 +652,7 @@ struct InferenceRoutes: Sendable {
                 "build_info": buildLabel,
                 "is_sleeping": false,
                 "cors_proxy_enabled": false,
-                // Quail's own: the KV cache types in use (ADR D-057).
+                // Quail's own: the KV cache types in use (ADR-0057).
                 "cache_type_k": (snapshot?.entry.cacheTypeK ?? .f16).rawValue,
                 "cache_type_v": (snapshot?.entry.cacheTypeV ?? .f16).rawValue,
             ]

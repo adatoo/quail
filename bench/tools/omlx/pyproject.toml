@@ -1,4 +1,4 @@
-# oMLX for the comparison harness (ADR D-063), from its release wheel, pinned. `task bench:setup` makes the
+# oMLX for the comparison harness (ADR-0063), from its release wheel, pinned. `task bench:setup` makes the
 # environment; the harness runs .venv/bin/omlx with a scratch --base-path, never ~/.omlx.
 [project]
 name = "bench-omlx"

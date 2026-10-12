@@ -1,23 +1,23 @@
 name: Release
 
-# Every merge to main is a release (ADR D-024): the PR already carried its
+# Every merge to main is a release (ADR-0024): the PR already carried its
 # SemVer bump (version.yml checked it), so this tags the merge commit
 # vX.Y.Z and publishes a GitHub Release with that version's CHANGELOG
 # section. Releases are full releases, not pre-releases, even while 0.x:
 # Sparkle and Homebrew find the newest one through GitHub's releases/latest,
-# which skips pre-releases (ADR D-031).
+# which skips pre-releases (ADR-0031).
 #
-# The signed, notarized DMG (docs/ARCHITECTURE.md §9, ADR D-018) is built
+# The signed, notarized DMG (docs/ARCHITECTURE.md §9, ADR-0018) is built
 # and attached only when vars.SIGNING_ENABLED is 'true' — set it once the
 # Apple signing secrets are in the repo. Every step is a task from
-# Taskfile.yml (ADR D-030) — the same release:* tasks a developer runs
+# Taskfile.yml (ADR-0030) — the same release:* tasks a developer runs
 # locally via `task install:notarized`.
 #
-# The last job updates the Homebrew cask in adatoo/homebrew-tap (ADR D-033),
+# The last job updates the Homebrew cask in adatoo/homebrew-tap (ADR-0033),
 # from the DMG as published, so the hash brew checks is of what people download.
 #
 # Triggered by the push a merge makes. Merges must be made as a person or
-# as the quail-release App (auto-merge.yml, ADR D-046) — a merge made with
+# as the quail-release App (auto-merge.yml, ADR-0046) — a merge made with
 # GITHUB_TOKEN starts no workflows.
 on:
   push:
@@ -91,7 +91,7 @@ jobs:
     needs: tag
     if: needs.tag.outputs.created == 'true' && vars.SIGNING_ENABLED == 'true'
     # GitHub-hosted: a fresh VM per run, so release:import-cert replacing the
-    # default keychain touches nothing that outlives the job (ADR D-031).
+    # default keychain touches nothing that outlives the job (ADR-0031).
     runs-on: macos-26
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
@@ -106,7 +106,7 @@ jobs:
           sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
 
-      # mlx-swift compiles its Metal shaders during the build (ADR D-028/D-044); on Xcode 26 the
+      # mlx-swift compiles its Metal shaders during the build (ADR-0028/ADR-0044); on Xcode 26 the
       # Metal Toolchain is a separate download (about 840 MB) when the image doesn't carry it.
       - name: Metal Toolchain
         run: |
@@ -162,7 +162,7 @@ jobs:
 
       - name: Verify the exported app (Mach-O closure, bundled resources, update key)
         # REQUIRE_UPDATE_KEY: a build whose Info.plist has no Sparkle public key could
-        # never verify an update, so it must not ship (ADR D-032).
+        # never verify an update, so it must not ship (ADR-0032).
         run: task verify:bundle APP=build/export/Quail.app REQUIRE_UPDATE_KEY=1
 
       - name: Build, sign, notarize and staple the DMG

@@ -6,7 +6,7 @@ import Jinja
 /// `JSONSerialization` and `JSONDecoder` both sort or scramble keys, and a chat template
 /// prints a tool's JSON schema into the prompt: `properties` reordered means a different
 /// prompt from the one llama.cpp builds, and a model that answers a little worse for no
-/// visible reason (ADR D-027). Parsing into Jinja's own `Value` also means a request body can
+/// visible reason (ADR-0027). Parsing into Jinja's own `Value` also means a request body can
 /// go straight into a template, with no conversion step to reorder anything.
 ///
 /// Strict RFC 8259: no comments, no trailing commas, no NaN or Infinity, valid UTF-8 only.

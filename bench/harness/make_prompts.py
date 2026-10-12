@@ -1,5 +1,5 @@
 """Writes the speed benchmark's prompts: one JSONL file per set, each prompt exactly `tokens` long in the model's
-own tokenizer (ADR D-063).
+own tokenizer (ADR-0063).
 
 Run with GuideLLM's environment (it has `transformers` and `faker`), not the harness's standard-library Python:
 

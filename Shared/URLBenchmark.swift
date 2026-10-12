@@ -1,6 +1,6 @@
 import Foundation
 
-/// `quail bench --url` (ADR D-064): a speed benchmark for any server that speaks OpenAI's chat completions, timed
+/// `quail bench --url` (ADR-0064): a speed benchmark for any server that speaks OpenAI's chat completions, timed
 /// from the client. It's the same shape of test as `quail-bench-1`: prompts of 512 and 4,096 tokens, 256 tokens
 /// generated, time to first token, a returning turn and four requests at once. But it can't use what only
 /// llama-server and Quail offer (`/tokenize`, the server's own `timings`, loading and unloading), so it's a

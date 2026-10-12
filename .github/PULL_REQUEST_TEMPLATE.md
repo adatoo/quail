@@ -18,7 +18,7 @@
 - [ ] No absolute build-machine paths end up in the bundle
 - [ ] `docs/IMPLEMENTATION_PLAN.md` checkbox/status updated if this completes
       a listed item
-- [ ] `docs/DECISIONS.md` has a new `D-nnn` entry if this changes a recorded
-      decision
+- [ ] The ADR in `docs/adr/` is brought up to date (or a new one added and
+      indexed) if this changes or makes a recorded decision
 - [ ] Conventional Commits title, and the version bumped for it
       (`PR_TITLE="<PR title>" task version:bump`)

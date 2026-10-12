@@ -1,5 +1,5 @@
 #!/bin/bash
-# Proves Quail works with no internet connection (ADR D-051). Everything runs under sandbox-exec with
+# Proves Quail works with no internet connection (ADR-0051). Everything runs under sandbox-exec with
 # outbound IP connections denied:
 #
 #   1. quail-server, GGUF and MLX: denied *and fatal* — any attempt to reach beyond this Mac kills the

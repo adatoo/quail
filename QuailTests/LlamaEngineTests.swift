@@ -399,7 +399,7 @@ struct LlamaEngineTests {
         await engine.unload()
     }
 
-    // MARK: several requests at once (ADR D-048)
+    // MARK: several requests at once (ADR-0048)
 
     @Test("Qwen3-0.6B: four requests decoded together each give what they give alone", .enabled(if: smallExists))
     func parallelEqualsSerial() async throws {

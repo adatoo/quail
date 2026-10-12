@@ -82,7 +82,7 @@ class ReportTests(unittest.TestCase):
         self.assertLess(text.index("| 512x256-c8 |"), text.index("| 4096x128-c1 | Rapid-MLX 50%, oMLX 28% | — |"))
         self.assertIn("| 512x256-c8 | — | oMLX 92% |", text)
         self.assertIn("- Model M, MLX, GSM8K", text)
-        self.assertEqual(report.losses_lines([], []), ["Nowhere by a margin D-063 lets this report claim.", ""])
+        self.assertEqual(report.losses_lines([], []), ["Nowhere by a margin ADR-0063 lets this report claim.", ""])
 
     def test_the_engines_logs_add_caveats(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Quail
 
-/// ADR D-051: with no internet connection, Hugging Face lookups say "offline" in plain words, the
+/// ADR-0051: with no internet connection, Hugging Face lookups say "offline" in plain words, the
 /// Add Model list stops asking after the first one, and what's cached still gets a verdict.
 @Suite("Offline", .timeLimit(.minutes(1)))
 struct OfflineTests {
@@ -94,7 +94,7 @@ struct OfflineTests {
                 )
         }
         for family in appState.catalog.families where family.id != cached.id {
-            // Rapid-MLX's rows are looked up as they scroll into view, not here (ADR D-058).
+            // Rapid-MLX's rows are looked up as they scroll into view, not here (ADR-0058).
             #expect(appState.catalogFits[family.id] == (family.rapidMLX == nil ? .offline : nil), "\(family.id)")
         }
     }

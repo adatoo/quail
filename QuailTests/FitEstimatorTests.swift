@@ -36,7 +36,7 @@ struct FitEstimatorTests {
         headDim: 128
     )
 
-    // MARK: - KV cache quantization (ADR D-057)
+    // MARK: - KV cache quantization (ADR-0057)
 
     @Test("an 8-bit or 4-bit KV cache shrinks the KV term by its bytes per element")
     func quantizedKVCacheShrinksKVTerm() {
@@ -408,7 +408,7 @@ struct FitEstimatorTests {
         #expect(RemoteFitBadge.contextLabel(1536) == "1.5K")
     }
 
-    // MARK: - Context size (ADR D-020)
+    // MARK: - Context size (ADR-0020)
 
     @Test("automaticContextSize: largest comfortable of 32K/16K/8K — 16K for 8B Q4_K_M on a 16 GB Mac")
     func automaticContext() {

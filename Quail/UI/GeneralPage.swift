@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The Quail window's General page: Quail itself rather than its server — opening at login, the menu bar, the
-/// `quail` command and updates. The server's own start-up and power settings are on the Server page (ADR D-061).
+/// `quail` command and updates. The server's own start-up and power settings are on the Server page (ADR-0061).
 struct GeneralPage: View {
     let appState: AppState
     let updateSettings: UpdateSettings?

@@ -18,7 +18,7 @@ import SwiftUI
 final class AppState {
     private(set) var config: Config
     let serverController: ServerController
-    /// Holds off idle sleep while the server runs, when `Config.keepAwake` asks (ADR D-054).
+    /// Holds off idle sleep while the server runs, when `Config.keepAwake` asks (ADR-0054).
     let keepAwake: KeepAwake
     /// Keeps a plugged-in laptop awake with its lid closed, when `Config.keepAwakeLidClosed` asks.
     @ObservationIgnored let lidGuard = LidSleepGuard()
@@ -43,7 +43,7 @@ final class AppState {
     /// session.
     let installs: ModelInstallController
 
-    /// Benchmark runs and saved results (Phase 2b step 4, ADR D-023).
+    /// Benchmark runs and saved results (Phase 2b step 4, ADR-0023).
     let benchmarks: BenchmarkController
 
     private let configURL: URL
@@ -89,7 +89,7 @@ final class AppState {
         keepAwake: KeepAwake = KeepAwake(),
         serverPreflight: (@Sendable (EndpointConfig) async -> PreflightResult)? = ServerPreflight.live
     ) {
-        // ADR D-039: the API key is on by default. A config from before that rule reads "off" only
+        // ADR-0039: the API key is on by default. A config from before that rule reads "off" only
         // because off was the default, so it's switched on once.
         var config = config
         let appliesKeyDefault = !config.apiKeyDefaultApplied
@@ -97,7 +97,7 @@ final class AppState {
             config.apiKeyEnabled = true
             config.apiKeyDefaultApplied = true
         }
-        // Quail server became the default once it passed the parity gate (ADR D-027 amendment). A config from
+        // Quail server became the default once it passed the parity gate (ADR-0027 amendment). A config from
         // before then names llama.cpp only because that was the default, so it's switched once.
         let appliesQuailDefault = !config.quailDefaultApplied
         if appliesQuailDefault {
@@ -139,7 +139,7 @@ final class AppState {
         var key = config.apiKeyEnabled ? try? secretStore.get(account: Self.apiKeyAccount) : nil
         if config.apiKeyEnabled, key == nil {
             // First launch, or the Keychain entry is gone: an enabled key that doesn't exist would
-            // start the runtime open, which is the state D-039 exists to avoid.
+            // start the runtime open, which is the state ADR-0039 exists to avoid.
             let fresh = Self.generateAPIKey()
             try? secretStore.set(fresh, account: Self.apiKeyAccount)
             key = fresh
@@ -152,7 +152,7 @@ final class AppState {
         serverController.onPhaseChange = { [weak self] _ in self?.updatePower() }
     }
 
-    // MARK: - Keeping the Mac awake (ADR D-054)
+    // MARK: - Keeping the Mac awake (ADR-0054)
 
     private var serverRunning: Bool {
         serverController.phase == .starting || serverController.phase == .ready
@@ -312,7 +312,7 @@ final class AppState {
 
     var lastModelsSnapshot: ModelsSnapshot?
 
-    /// Live activity for the menu bar and the Activity window (ADR D-060).
+    /// Live activity for the menu bar and the Activity window (ADR-0060).
     let activity = ActivityMonitor()
 
     private func startActivity() {
@@ -631,7 +631,7 @@ final class AppState {
         persist()
     }
 
-    /// Whether `--api-key` is passed to the runtime. On by default (ADR D-039, amending D-010:
+    /// Whether `--api-key` is passed to the runtime. On by default (ADR-0039, amending ADR-0010:
     /// llama-server answers requests from any web page, so an open loopback server isn't safe
     /// from the browser). Turning it off is allowed.
     func setAPIKeyEnabled(_ enabled: Bool) {
@@ -772,7 +772,7 @@ final class AppState {
     /// Keyed by family id. A family with no entry hasn't been queued yet.
     private(set) var catalogFits: [String: RemoteFit] = [:]
 
-    /// The last Hugging Face request failed for want of a connection (ADR D-051) — the Add Model
+    /// The last Hugging Face request failed for want of a connection (ADR-0051) — the Add Model
     /// sheet says so. Cleared by the next one that gets through.
     var hubOffline = false
 
@@ -793,7 +793,7 @@ final class AppState {
         Set(ModelFormat.allCases.filter(canServe))
     }
 
-    /// One family's verdict, for a row of Rapid-MLX's catalog as it scrolls into view (ADR D-058): there are
+    /// One family's verdict, for a row of Rapid-MLX's catalog as it scrolls into view (ADR-0058): there are
     /// too many of them to look up all at once, as `loadCatalogVerdicts` does for the curated ones.
     func loadCatalogFit(for family: Catalog.Family) async {
         switch catalogFits[family.id] {
@@ -935,7 +935,7 @@ final class AppState {
     }
 
     /// Asks the running server to unload `id`, then re-reads what's loaded. quail-server stops the model's requests in
-    /// flight rather than waiting for them (ADR D-068).
+    /// flight rather than waiting for them (ADR-0068).
     func unloadModel(id: String) async throws {
         guard let base = baseURL, serverController.phase == .ready else {
             throw ModelSelectionError.serverNotRunning
@@ -959,7 +959,7 @@ final class AppState {
     }
 
     /// How many models router-mode llama.cpp may keep loaded at once
-    /// (docs/ARCHITECTURE.md §6's hot-swap budget; ADR D-011 defaults it
+    /// (docs/ARCHITECTURE.md §6's hot-swap budget; ADR-0011 defaults it
     /// to 1 until loaded-state is visible — it is, as of the Models
     /// pane, but 1 stays the default until step 8's click-to-load makes
     /// more meaningful).
@@ -970,7 +970,7 @@ final class AppState {
     }
 
     /// The model whose `presets.ini` section gets `load-on-startup = true`
-    /// (ADR D-017) — applies next Start, same as `modelsMax`; a running
+    /// (ADR-0017) — applies next Start, same as `modelsMax`; a running
     /// server isn't reconfigured live. `id: nil` clears it (the star
     /// toggle passing the already-default row's own id back off).
     func setDefaultModel(_ id: String?) {
@@ -979,7 +979,7 @@ final class AppState {
         persist()
     }
 
-    /// The Models pane's per-model context picker (ADR D-020). `nil` is
+    /// The Models pane's per-model context picker (ADR-0020). `nil` is
     /// Automatic. Takes effect at the next Start — while running, the menu
     /// shows "Models changed — restart to apply".
     func setContextSize(_ tokens: Int?, forModel id: String) async {
@@ -992,7 +992,7 @@ final class AppState {
         await reconcileStore()
     }
 
-    /// The Models pane's per-model KV cache picker (ADR D-057). Like the
+    /// The Models pane's per-model KV cache picker (ADR-0057). Like the
     /// context picker, it takes effect at the next Start.
     func setKVCache(_ setting: KVCacheSetting, forModel id: String) async {
         var catalog = modelStore.loadCatalog()
@@ -1005,7 +1005,7 @@ final class AppState {
         await reconcileStore()
     }
 
-    // MARK: - Importing models from other apps (Phase 4 step 2, ADR D-059)
+    // MARK: - Importing models from other apps (Phase 4 step 2, ADR-0059)
 
     /// Models found in other apps' folders, not yet in the store.
     private(set) var importCandidates: [ImportCandidate] = []
@@ -1247,7 +1247,7 @@ final class AppState {
     /// 12 random bytes, base64url-encoded without padding — exactly 16
     /// characters (96 bits of entropy — still enormous for a secret
     /// whose job is deterring casual access on a loopback/LAN endpoint,
-    /// see ADR D-010, not resisting a nation-state). Base64url (`-`/`_`,
+    /// see ADR-0010, not resisting a nation-state). Base64url (`-`/`_`,
     /// no `+`/`/`) rather than plain base64: copy-pasted into a shell
     /// `Authorization: Bearer …` header or a URL, `+`/`/` need escaping
     /// and `=` padding is visual noise; none of that applies here.

@@ -85,7 +85,7 @@ final class PingRunner {
     /// the user's actual default model to load it. A test shouldn't change
     /// what's loaded.
     ///
-    /// Only a chat model can answer the first-token step (ADR D-072): those the server marks otherwise, and
+    /// Only a chat model can answer the first-token step (ADR-0072): those the server marks otherwise, and
     /// `nonChat` (what the app's store knows, for a runtime that doesn't say), are passed over.
     static func choose(
         from models: [ServedModel], preferred: String?, nonChat: Set<String> = []

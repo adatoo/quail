@@ -1,4 +1,4 @@
-# The comparison harness's driver (ADR D-063). Standard library only, so it runs on any Mac with uv, and CI can
+# The comparison harness's driver (ADR-0063). Standard library only, so it runs on any Mac with uv, and CI can
 # test it without installing anything. The benchmark tools it drives each have their own locked environment under
 # tools/, because guidellm, lm-eval and bfcl-eval don't all resolve together. None of this ships in the app.
 [project]
