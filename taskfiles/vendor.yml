@@ -1,7 +1,7 @@
 # Vendored binaries (docs/ARCHITECTURE.md §5, §9): each pins a version and a
 # sha256, lands in Vendor/ (gitignored), and is checked before it's trusted.
 #
-#   task vendor:llama [TAG=b11306]   llama-server + its @rpath dependency closure, and llama.xcframework
+#   task vendor:llama [TAG=b11564]   llama-server + its @rpath dependency closure, and llama.xcframework
 #   task vendor:uv [VERSION=0.12.17] the `uv` binary (not shipped in the app yet)
 #   task vendor:sparkle              Sparkle's release tools (generate_keys, generate_appcast, sign_update)
 #   task vendor:verify [DIR=…]       every Mach-O in DIR depends only on relocatable or system paths
@@ -86,6 +86,11 @@ tasks:
         # locally right after vendoring.
         ROOT='{{.ROOT_DIR}}'
         [ -n "${TAG:-}" ] || TAG="$(cat "$ROOT/Vendor/llama.version")"
+        # A new tag can change llama.h's structs (b11564 added a field to llama_context_params). Xcode's module
+        # cache keeps the old header's layout, so Swift built incrementally against it writes fields at the old
+        # offsets: kv_unified read as false, and a shared-prompt copy aborted. Drop the cache so the next build
+        # reads the new headers.
+        rm -rf "$ROOT/DerivedData/ModuleCache.noindex"
         ASSET="llama-${TAG}-bin-macos-arm64.tar.gz"
         URL="https://github.com/ggml-org/llama.cpp/releases/download/${TAG}/${ASSET}"
         OUT="$ROOT/Vendor/llama.cpp"
