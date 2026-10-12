@@ -24,9 +24,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ISSUE: "158"
           # owner/repo#number, one per line.
+          # mlx#3161 and llama.cpp#29600 merged (2026-10-09, 10-11); what they wait on now is in #158.
           WATCHED: |
-            ml-explore/mlx#3161
-            ggml-org/llama.cpp#29600
             ml-explore/mlx-swift-lm#630
         run: |
           changed=0

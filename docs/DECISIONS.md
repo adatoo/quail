@@ -215,6 +215,12 @@ Add Model already listed three Ternary Bonsai MLX downloads, from Rapid-MLX's ca
 
 The weekly Upstream watch workflow follows the three upstream PRs and comments on #158 when one merges or closes.
 
+**Amended 2026-10-12 (llama.cpp b11564):** llama.cpp #29600 merged on 10-11 and is in b11564, which Quail now bundles. It adds Bonsai 2's activation transform for llama.cpp's own `Q2_0` type, not PrismML's `PQ2_0` and `PTQ1_0`; those two still stop with "failed to read tensor info".
+- **What works:** the `Q2_0` file is in PrismML's testing repo, `prism-ml/Ternary-Bonsai-2-27B-gguf-dev` (7.6 GB, named `…-Q2_0-prism-fork-required.gguf`). On b11564 it answered correctly with its thinking, called a tool, and read the test image with the main repo's Q8_0 projector. That held on both quail-server and the bundled llama-server.
+- **Speed:** on the M4 Pro with a Release build, it wrote 18 tok/s against 15 for the MLX 2-bit build. That's one short reply each, so it's not a benchmark.
+- **The catalog waits for PrismML.** Its testing repo says the file "moves to the main repo once that lands", next to the projector. A catalog row pointing at a testing repo, under a name that says a fork is required, would be wrong on both counts. #158 tracks the move.
+- mlx#3161 merged on 10-09 but isn't in an mlx-swift release yet. The Upstream watch now follows mlx-swift-lm #630 alone, and #158 lists what the other two wait on.
+
 ## D-068 · 2026-09-30 · Load and Unload by hand stop a busy model's requests
 
 **Situation:** with one model loaded at a time, loading another while the chat page was still streaming a reply left the new model at "Loading…" for as long as the reply ran, with nothing saying why. The router never takes a model out from under a request (D-011's router semantics), so it waited. With a slow thinking model and no length limit, that's many minutes. Unload waited the same way. And the page kept its own choice of model, so its next message could reload the old model and push the new one out.
