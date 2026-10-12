@@ -31,7 +31,8 @@ struct LlamaCppIntegrationSmokeTest {
     @Test("real llama-server: start, list a real model, stop — router and child both gone")
     func realRouterStartsListsAndStops() async throws {
         let modelsDir = "/tmp/quail-smoke-models/gguf"
-        guard FileManager.default.fileExists(atPath: modelsDir) else {
+        // The model, not just its folder: macOS clears old files out of /tmp and leaves the folder behind.
+        guard FileManager.default.fileExists(atPath: modelsDir + "/Qwen3-0.6B-Q8_0.gguf") else {
             print("\(modelsDir) not found; skipping. See this file's header to run manually.")
             return
         }
@@ -71,7 +72,8 @@ struct LlamaCppIntegrationSmokeTest {
     @Test("real llama-server with --api-key: /health is exempt, /models needs the header")
     func realRouterEnforcesAPIKeyExceptOnHealth() async throws {
         let modelsDir = "/tmp/quail-smoke-models/gguf"
-        guard FileManager.default.fileExists(atPath: modelsDir) else {
+        // The model, not just its folder: macOS clears old files out of /tmp and leaves the folder behind.
+        guard FileManager.default.fileExists(atPath: modelsDir + "/Qwen3-0.6B-Q8_0.gguf") else {
             print("\(modelsDir) not found; skipping. See this file's header to run manually.")
             return
         }
@@ -122,7 +124,9 @@ struct LlamaCppIntegrationSmokeTest {
         // metadata — the skip-past-what-we-don't-read path at real scale,
         // and refreshedCatalog's end-to-end fit wiring on it.
         let modelsDir = URL(fileURLWithPath: "/tmp/quail-smoke-models", isDirectory: true)
-        guard FileManager.default.fileExists(atPath: modelsDir.appendingPathComponent("gguf").path) else {
+        guard FileManager.default
+            .fileExists(atPath: modelsDir.appendingPathComponent("gguf/Qwen3-0.6B-Q8_0.gguf").path)
+        else {
             print("smoke model store not found; skipping. See this file's header to run manually.")
             return
         }
