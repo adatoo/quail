@@ -10,6 +10,13 @@ version's section with `task version:bump` (ADR D-024); every merge to
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-10-12
+
+### Changed
+
+- **llama.cpp b11564** (from b11306), for Quail's GGUF engine and the bundled llama-server. Its speed is level with b11306: on the M4 Pro with Qwen3.6 35B-A3B, prompts ran at 752–789 tok/s against 776–781, and generation at 51–52 tok/s on both. It can run Bonsai 2 27B's `Q2_0` GGUF and DFlash 2 draft models. The catalog adds neither yet (#158, #207).
+- **`task vendor:llama` clears Xcode's module cache.** b11564 added a field to one of llama.cpp's settings, and an incremental build kept the old layout. The server then passed llama.cpp the wrong settings and crashed when two requests shared a prompt. Clean builds, CI's included, were never affected.
+
 ## [1.1.5] - 2026-10-12
 
 ### Fixed
