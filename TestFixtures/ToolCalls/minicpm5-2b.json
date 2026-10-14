@@ -1,0 +1,382 @@
+{
+ "two-calls-nothink": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris and in Tokyo? Use the tool for both."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "<function name=\"get_weather\"><param name=\"city\">Paris</param></function>\n<function name=\"get_weather\"><param name=\"city\">Tokyo</param></function>",
+  "prompt": "<s><|im_start|>system\n# Tools\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}\n</tools>\n\nTool usage guidelines:\n- You may call zero or more functions. If no function calls are needed, just answer normally and do not include any <function ... </function>.\n- When calling a function, return an XML object within <function ... </function> using:\n<function name=\"function-name\"><param name=\"param-name\">param-value</param></function>\n- param-value may be multi-line. If it contains <, & or newline characters, wrap it in a CDATA block: <param name=\"param-name\"><![CDATA[...multi-line value...]]></param><|im_end|>\n<|im_start|>user\nWhat's the weather in Paris and in Tokyo? Use the tool for both.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Paris\"}"
+   },
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Tokyo\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "call-thinking": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris? Use the tool."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "raw": "The user wants to know the weather in Paris. I'll use the get_weather function.\n</think>\n\n<function name=\"get_weather\"><param name=\"city\">Paris</param></function>",
+  "prompt": "<s><|im_start|>system\n# Tools\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}\n</tools>\n\nTool usage guidelines:\n- You may call zero or more functions. If no function calls are needed, just answer normally and do not include any <function ... </function>.\n- When calling a function, return an XML object within <function ... </function> using:\n<function name=\"function-name\"><param name=\"param-name\">param-value</param></function>\n- param-value may be multi-line. If it contains <, & or newline characters, wrap it in a CDATA block: <param name=\"param-name\"><![CDATA[...multi-line value...]]></param><|im_end|>\n<|im_start|>user\nWhat's the weather in Paris? Use the tool.<|im_end|>\n<|im_start|>assistant\n<think>\n",
+  "content": "",
+  "reasoning": "The user wants to know the weather in Paris. I'll use the get_weather function.\n",
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Paris\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "typed-args": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Add 2.5 and 4 using the add tool, with the note \"007\"."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "<function name=\"add\"><param name=\"a\">2.5</param><param name=\"b\">4</param><param name=\"note\">007</param></function>",
+  "prompt": "<s><|im_start|>system\n# Tools\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}\n</tools>\n\nTool usage guidelines:\n- You may call zero or more functions. If no function calls are needed, just answer normally and do not include any <function ... </function>.\n- When calling a function, return an XML object within <function ... </function> using:\n<function name=\"function-name\"><param name=\"param-name\">param-value</param></function>\n- param-value may be multi-line. If it contains <, & or newline characters, wrap it in a CDATA block: <param name=\"param-name\"><![CDATA[...multi-line value...]]></param><|im_end|>\n<|im_start|>user\nAdd 2.5 and 4 using the add tool, with the note \"007\".<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+  "content": "",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "add",
+    "arguments": "{\"a\":2.5,\"b\":4,\"note\":\"007\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "no-call": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Say hello in one word."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "Hello",
+  "prompt": "<s><|im_start|>system\n# Tools\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}\n</tools>\n\nTool usage guidelines:\n- You may call zero or more functions. If no function calls are needed, just answer normally and do not include any <function ... </function>.\n- When calling a function, return an XML object within <function ... </function> using:\n<function name=\"function-name\"><param name=\"param-name\">param-value</param></function>\n- param-value may be multi-line. If it contains <, & or newline characters, wrap it in a CDATA block: <param name=\"param-name\"><![CDATA[...multi-line value...]]></param><|im_end|>\n<|im_start|>user\nSay hello in one word.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+  "content": "Hello",
+  "reasoning": null,
+  "tool_calls": [],
+  "finish": "stop"
+ },
+ "text-then-call": {
+  "request": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "Before calling a tool, always write one short sentence saying what you are about to do."
+    },
+    {
+     "role": "user",
+     "content": "What's the weather in Oslo?"
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "I need to check the current weather conditions in Oslo.\n<function name=\"get_weather\"><param name=\"city\">Oslo</param></function>",
+  "prompt": "<s><|im_start|>system\nBefore calling a tool, always write one short sentence saying what you are about to do.\n\n# Tools\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}\n</tools>\n\nTool usage guidelines:\n- You may call zero or more functions. If no function calls are needed, just answer normally and do not include any <function ... </function>.\n- When calling a function, return an XML object within <function ... </function> using:\n<function name=\"function-name\"><param name=\"param-name\">param-value</param></function>\n- param-value may be multi-line. If it contains <, & or newline characters, wrap it in a CDATA block: <param name=\"param-name\"><![CDATA[...multi-line value...]]></param><|im_end|>\n<|im_start|>user\nWhat's the weather in Oslo?<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+  "content": "I need to check the current weather conditions in Oslo.\n",
+  "reasoning": null,
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Oslo\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ }
+}

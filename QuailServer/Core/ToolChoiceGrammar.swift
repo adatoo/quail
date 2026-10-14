@@ -61,7 +61,7 @@ extension JSONSchemaGrammar {
             } catch let failure as Failure {
                 throw RequestError.invalid("a tool's parameters can't be used to force a call: \(failure.message)")
             }
-        case .qwenXML, .harmony, .gemma4, .none:
+        case .qwenXML, .harmony, .gemma4, .pythonic, .minicpmXML, .none:
             throw RequestError.invalid(
                 "forcing a tool call isn't supported for this model's chat format (\(format.label)) yet"
             )
@@ -107,6 +107,8 @@ extension ToolCallFormat {
         case .harmony: "Harmony"
         case .gemma4: "Gemma 4"
         case .museGlimmer: "Muse Glimmer"
+        case .pythonic: "Python calls"
+        case .minicpmXML: "MiniCPM XML"
         case .none: "no tool-call format"
         }
     }

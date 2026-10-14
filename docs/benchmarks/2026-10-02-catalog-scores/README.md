@@ -54,6 +54,9 @@ These are the numbers behind the "Maths · Knowledge · Tools" line on each mode
 | Bonsai 8B, 1-bit | 82 ± 6 | 38 ± 9 | 88 | 38/40 | 36/40 | 30/40 | 33/40 | 39/40 | 0.66.0 |
 | Bonsai 4B, 1-bit | 79 ± 7 | 31 ± 8 | 16 | 0/40 | 0/40 | 0/40 | 0/40 | 31/40 | 0.66.0 |
 | Bonsai 1.7B, 1-bit | 44 ± 8 | 22 ± 8 | 85 | 38/40 | 35/40 | 33/40 | 28/40 | 36/40 | 0.66.0 |
+| MiniCPM5 2B | 81 ± 6 | 50 ± 9 | 86 | 36/40 | 34/40 | 33/40 | 32/40 | 36/40 | 1.2.0 |
+
+MiniCPM5 2B was added on 15 October 2026 (catalog revision 13), scored on the M4 Pro Mac mini rather than the M1 Max, in run `20261015-003535-scores`, with another Quail open (these tests aren't timed). On BFCL, llama-server b11564 got 36, 33, 32, 32 and 36 of 40 on the same file. Quail's first run got 160 of 200, until it read the lists and dicts MiniCPM5 writes as Python (`['a', 'b']`) and `40.0` for an integer as llama-server does. LFM2.5 24B-A2B, added at the same time, isn't scored: it always thinks before answering.
 
 The maths and knowledge tests ran on Quail 0.66.0 for every model. Tool calling for the 16 models whose call formats #167 changed was re-run on 0.67.3; the rest are from 0.66.0, whose parser is the same for their formats.
 

@@ -32,11 +32,21 @@ struct ChatTemplateTests {
         }
     }
 
-    private static let families = ["qwen3", "gemma3", "llama3", "gptoss", "gemma4", "gemma4-mlx", "muse-glimmer"]
+    private static let families = [
+        "qwen3",
+        "gemma3",
+        "llama3",
+        "gptoss",
+        "gemma4",
+        "gemma4-mlx",
+        "muse-glimmer",
+        "minicpm5",
+        "lfm25",
+    ]
     /// llama-server passes `enable_thinking: true` to a template that can think, unless a request says
     /// otherwise (b11081 server-context.cpp). Qwen3's template reads a missing value the same way; Gemma 4's
-    /// reads it as off, so its goldens need the value llama-server gave.
-    private static let thinksByDefault: Set = ["gemma4", "gemma4-mlx"]
+    /// reads it as off, and MiniCPM5's adds nothing without it, so their goldens need the value llama-server gave.
+    private static let thinksByDefault: Set = ["gemma4", "gemma4-mlx", "minicpm5"]
     private static let caseNames = ["plain", "multi-turn", "tools", "tool-roundtrip", "unicode"]
     static let allCases: [Case] = families.flatMap { family in caseNames.map { Case(family: family, name: $0) } }
 

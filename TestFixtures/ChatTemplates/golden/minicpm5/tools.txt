@@ -1,0 +1,18 @@
+<|endoftext|><|im_start|>system
+# Tools
+
+You are provided with function signatures within <tools></tools> XML tags:
+<tools>
+{"type": "function", "function": {"name": "get_weather", "description": "Get the current weather for a city.", "parameters": {"type": "object", "required": ["city"], "properties": {"unit": {"type": "string", "enum": ["celsius", "fahrenheit"], "description": "Temperature unit"}, "city": {"type": "string", "description": "City name, e.g. Paris"}}}}}
+{"type": "function", "function": {"name": "get_time", "description": "Get the current time in a timezone.", "parameters": {"type": "object", "properties": {"timezone": {"type": "string"}}, "required": ["timezone"]}}}
+</tools>
+
+Tool usage guidelines:
+- You may call zero or more functions. If no function calls are needed, just answer normally and do not include any <function ... </function>.
+- When calling a function, return an XML object within <function ... </function> using:
+<function name="function-name"><param name="param-name">param-value</param></function>
+- param-value may be multi-line. If it contains <, & or newline characters, wrap it in a CDATA block: <param name="param-name"><![CDATA[...multi-line value...]]></param><|im_end|>
+<|im_start|>user
+What's the weather in Paris and what time is it in Tokyo?<|im_end|>
+<|im_start|>assistant
+<think>

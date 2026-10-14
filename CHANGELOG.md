@@ -10,6 +10,14 @@ version's section with `task version:bump` (ADR-0024); every merge to
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-15
+
+### Added
+
+- **LFM2.5 24B-A2B in the catalog.** Liquid AI's new mixture-of-experts model for agents, released on 13 October: about 2.45B of its 24B parameters are active at a time, so it's quick (about 100 tokens a second on the GGUF and 120 on MLX on an M4 Pro). It always reasons before answering, sometimes at length, and calls tools well. Its licence is free for organisations under $10M a year in revenue (#211).
+- **MiniCPM5 2B in the catalog.** OpenBMB's small model for 8–16 GB Macs. It thinks, calls tools, and scores 81 for maths, 50 for knowledge and 86 for tools in Quail's own tests (#211).
+- **quail-server reads LFM2's and MiniCPM5's tool calls**, on both engines. Before, their calls came back as text. A list or dict that a model writes as Python, and `40.0` for an integer parameter, are now read as llama-server reads them.
+
 ## [1.1.7] - 2026-10-12
 
 ### Changed
