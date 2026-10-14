@@ -4,7 +4,7 @@
 # Gemma 4 31B runs 2 requests at once, not 8: with libllama's full-size sliding-window cache (which Quail keeps), 4 or
 # 8 caches of 8K beside its weights ran the M1 Max's GPU out of memory.
 # Not here: qwen3-0.6b (smoke test); nomic-embed-v1.5 (embedding model); deepseek-r1-distill-llama-8b (always thinks); deepseek-r1-distill-qwen-32b (always thinks); muse-glimmer-30b (its template has no switch, and it
-# thinks before answering).
+# thinks before answering); lfm2.5-24b-a2b (always thinks).
 
 ["qwen3-4b"]
 name = "Qwen3 4B"
@@ -93,6 +93,11 @@ gguf = "gguf/granite-4.2-8b-Q4_K_M.gguf"
 name = "Granite 4.2 3B"
 catalog = "granite-4.2-3b:Q4_K_M"
 gguf = "gguf/granite-4.2-3b-Q4_K_M.gguf"
+
+["minicpm5-2b"]
+name = "MiniCPM5 2B"
+catalog = "minicpm5-2b:Q4_K_M"
+gguf = "gguf/MiniCPM5-2B-Q4_K_M.gguf"
 
 ["ornith-1.5-35b-a3b"]
 name = "Ornith 1.5 35B-A3B (vision)"
