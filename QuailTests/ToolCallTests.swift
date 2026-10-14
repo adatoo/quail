@@ -97,7 +97,7 @@ struct ToolCallTests {
     @Test("a family's tool-call format is read from its template", arguments: [
         ("qwen3", ToolCallFormat.hermesJSON), ("qwen36", .qwenXML), ("llama3", .bareJSON),
         ("gptoss", .harmony), ("gemma3", ToolCallFormat.none), ("gemma4", .gemma4), ("gemma4-mlx", .gemma4),
-        ("muse-glimmer", .museGlimmer),
+        ("muse-glimmer", .museGlimmer), ("lfm25", .pythonic), ("minicpm5", .minicpmXML),
     ])
     func detection(family: String, expected: ToolCallFormat) throws {
         #expect(try ToolCallFormat.detect(template: Self.text("ChatTemplates/templates/\(family).jinja")) == expected)
@@ -110,6 +110,9 @@ struct ToolCallTests {
         let family: String
         var bos = "<|endoftext|>"
         var eos = "<|im_end|>"
+        /// llama-server passes `enable_thinking: true` to a template when a request doesn't say (b11564
+        /// server-context.cpp); MiniCPM5's template adds nothing without it, so its prompts need that value.
+        var thinksByDefault = false
         var testDescription: String {
             file
         }
@@ -118,6 +121,8 @@ struct ToolCallTests {
     static let models = [
         Model(file: "qwen3-8b", family: "qwen3"), Model(file: "qwen3.6-35b", family: "qwen36"),
         Model(file: "gemma-4-26b", family: "gemma4", bos: "<bos>", eos: "<eos>"),
+        Model(file: "minicpm5-2b", family: "minicpm5", bos: "<s>", eos: "</s>", thinksByDefault: true),
+        Model(file: "lfm2.5-24b", family: "lfm25", bos: "<|startoftext|>"),
     ]
 
     @Test(
@@ -152,7 +157,7 @@ struct ToolCallTests {
         let template = try ChatTemplate(Self.text("ChatTemplates/templates/\(model.family).jinja"))
         for (name, capture) in try Self.captured(model.file) {
             let body = try Self.request(of: model.file, case: name)
-            let kwargs: [String: Value] = if case let .object(members)? = body["chat_template_kwargs"] {
+            var kwargs: [String: Value] = if case let .object(members)? = body["chat_template_kwargs"] {
                 Dictionary(uniqueKeysWithValues: members.compactMap { key, value in
                     if case let .string(name) = key {
                         (name, value)
@@ -163,13 +168,16 @@ struct ToolCallTests {
             } else {
                 [:]
             }
+            if model.thinksByDefault, kwargs["enable_thinking"] == nil {
+                kwargs["enable_thinking"] = .boolean(true)
+            }
             var prompt = try template.render(.init(
                 messages: body["messages"]?.arrayValue ?? [], tools: body["tools"]?.arrayValue,
                 bosToken: model.bos, eosToken: model.eos, extra: kwargs
             ))
             // llama-server leaves out the BOS text Gemma 4's template starts with, and adds the token
             // itself; quail-server tokenizes that text as the BOS instead. The same tokens either way.
-            if prompt.hasPrefix(model.bos) {
+            if prompt.hasPrefix(model.bos), capture.prompt?.hasPrefix(model.bos) == false {
                 prompt.removeFirst(model.bos.count)
             }
             #expect(prompt == capture.prompt, "\(model.file)/\(name)")
@@ -254,6 +262,108 @@ struct ToolCallTests {
         // A value that's neither JSON nor one of those stays text, as before.
         let odd = "<tool_call><function=get><parameter=flag>yes</parameter></function></tool_call>"
         #expect(parse([odd], format: .qwenXML, tools: tools).calls.first?.arguments == #"{"flag":"yes"}"#)
+    }
+
+    // MARK: LFM2's Python calls
+
+    @Test("LFM2: a Python list of calls is calls, its literals read as JSON", arguments: [1, 4, 10000])
+    func pythonic(size: Int) {
+        let raw = #"Let me check.<|tool_call_start|>[get_weather(city='Paris', days=3), add(a=1.5, b=-2, note="it's \"ok\"\n")]<|tool_call_end|>"#
+        let result = parse(chunked(raw, size), format: .pythonic)
+        #expect(result.content == "Let me check.")
+        #expect(result.calls == [
+            ParsedToolCall(name: "get_weather", arguments: #"{"city":"Paris","days":3}"#),
+            ParsedToolCall(name: "add", arguments: #"{"a":1.5,"b":-2,"note":"it's \"ok\"\n"}"#),
+        ])
+    }
+
+    @Test("LFM2: True, False, None, lists, dicts and escapes; a string the schema types is read as that type")
+    func pythonicLiterals() {
+        let tools: [Value] = (try? OrderedJSON.parse(#"""
+        [{"type":"function","function":{"name":"get","parameters":{"type":"object","properties":{
+          "flag":{"type":"boolean"},"limit":{"type":"integer"},"tags":{"type":"array"},"opts":{"type":"object"},
+          "label":{"type":"string"},"none":{"type":"string"}}}}}]
+        """#).arrayValue) ?? []
+        let raw = #"<|tool_call_start|>[get(flag=True, limit='10', tags=['a', "b",], opts={"x": [1, 2], 'y': None}, label='caf\u00e9\\', none=None)]<|tool_call_end|>"#
+        #expect(parse([raw], format: .pythonic, tools: tools).calls.first?.arguments
+            == #"{"flag":true,"limit":10,"tags":["a","b"],"opts":{"x":[1,2],"y":null},"label":"café\\","none":null}"#)
+        // A call with no arguments, and one without the list's brackets.
+        #expect(parse(["<|tool_call_start|>[get()]<|tool_call_end|>"], format: .pythonic, tools: tools).calls
+            == [ParsedToolCall(name: "get", arguments: "{}")])
+        #expect(parse(["<|tool_call_start|>get(limit=5)<|tool_call_end|>"], format: .pythonic, tools: tools).calls
+            == [ParsedToolCall(name: "get", arguments: #"{"limit":5}"#)])
+    }
+
+    @Test("LFM2: JSON calls, which it writes when a system prompt asks, are calls too")
+    func pythonicJSON() {
+        let one = #"<|tool_call_start|>{"name": "add", "arguments": {"a": 1, "b": 2}}<|tool_call_end|>"#
+        #expect(parse([one], format: .pythonic).calls == [ParsedToolCall(name: "add", arguments: #"{"a": 1, "b": 2}"#)])
+        let list = #"<|tool_call_start|>[{"name": "add", "arguments": {"a": 1, "b": 2}}, {"name": "get_weather", "arguments": {"city": "Oslo"}}]<|tool_call_end|>"#
+        #expect(parse([list], format: .pythonic).calls.map(\.name) == ["add", "get_weather"])
+    }
+
+    @Test("LFM2: anything that isn't calls to offered tools is given back as text", arguments: [
+        "<|tool_call_start|>[nope(a=1)]<|tool_call_end|>",
+        "<|tool_call_start|>[add(a=1]<|tool_call_end|>",
+        "<|tool_call_start|>[add(1, 2)]<|tool_call_end|>", // positional arguments
+        "<|tool_call_start|>[add(a='unterminated)]<|tool_call_end|>",
+        "<|tool_call_start|>[add(a=1)] and more<|tool_call_end|>",
+        "<|tool_call_start|>[]<|tool_call_end|>",
+    ])
+    func pythonicInvalid(raw: String) {
+        let result = parse([raw], format: .pythonic)
+        #expect(result.calls.isEmpty)
+        #expect(result.content == raw)
+    }
+
+    @Test("LFM2.5: generation starts inside its reasoning, and a call follows it")
+    func pythonicAfterReasoning() {
+        let raw = "The user wants Paris.</think><|tool_call_start|>[get_weather(city='Paris')]<|tool_call_end|>"
+        let result = parse(chunked(raw, 3), format: .pythonic, startsInReasoning: true)
+        #expect(result.reasoning == "The user wants Paris.")
+        #expect(result.content.isEmpty)
+        #expect(result.calls == [ParsedToolCall(name: "get_weather", arguments: #"{"city":"Paris"}"#)])
+    }
+
+    // MARK: MiniCPM5
+
+    @Test(
+        "MiniCPM5: each <function name=…> is a call, typed by the schema; a CDATA value is kept whole",
+        arguments: [1, 5, 10000]
+    )
+    func minicpm(size: Int) {
+        let raw = #"Sure.\#n<function name="add"><param name="a">2.5</param><param name="note"><![CDATA[<b>&</function>\#nok]]></param></function>\#n<function name="get_weather"><param name="city">Oslo</param></function>"#
+        let result = parse(chunked(raw, size), format: .minicpmXML)
+        #expect(result.content == "Sure.\n") // llama-server keeps the newline before a call
+        #expect(result.calls == [
+            ParsedToolCall(name: "add", arguments: #"{"a":2.5,"note":"<b>&</function>\nok"}"#),
+            ParsedToolCall(name: "get_weather", arguments: #"{"city":"Oslo"}"#),
+        ])
+    }
+
+    @Test(
+        "MiniCPM5: a list or dict written as Python is JSON's, and 40.0 for an integer is 40, as llama-server reads them"
+    )
+    func minicpmPythonValues() {
+        let tools: [Value] = (try? OrderedJSON.parse(#"""
+        [{"type":"function","function":{"name":"find","parameters":{"type":"object","properties":{
+          "stops":{"type":"array"},"budget":{"type":"object"},"speed":{"type":"integer"},"label":{"type":"string"}}}}}]
+        """#).arrayValue) ?? []
+        let raw = #"<function name="find"><param name="stops">['Santa Barbara', "Monterey"]</param><param name="budget">{'min': 300000.0, 'max': None}</param><param name="speed">40.0</param><param name="label">['kept']</param></function>"#
+        #expect(parse([raw], format: .minicpmXML, tools: tools).calls.first?.arguments
+            ==
+            #"{"stops":["Santa Barbara","Monterey"],"budget":{"min":300000.0,"max":null},"speed":40,"label":"['kept']"}"#)
+    }
+
+    @Test("MiniCPM5: anything that isn't a call to an offered tool is given back as text", arguments: [
+        #"<function name="nope"><param name="a">1</param></function>"#,
+        #"<function name="add"><param name="a">1</function>"#,
+        #"<function name="add">junk<param name="a">1</param></function>"#,
+    ])
+    func minicpmInvalid(raw: String) {
+        let result = parse([raw], format: .minicpmXML)
+        #expect(result.calls.isEmpty)
+        #expect(result.content == raw)
     }
 
     // MARK: Gemma 4

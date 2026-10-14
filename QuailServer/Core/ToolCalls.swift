@@ -24,6 +24,11 @@ enum ToolCallFormat: Equatable, Sendable {
     case gemma4
     /// Muse Glimmer's messages: `<|start|>assistant to=NAME<|message|><atem:function_calls>…` (`MuseGlimmerParser`).
     case museGlimmer
+    /// `<|tool_call_start|>[NAME(key='text', n=1), …]<|tool_call_end|>`: Python calls (LFM2, LFM2.5; `PythonicCalls`).
+    case pythonic
+    /// `<function name="NAME"><param name="KEY">VALUE</param></function>`, untagged, a value with `<`, `&` or a
+    /// newline in a CDATA section (MiniCPM5).
+    case minicpmXML
     case none
 
     /// A family whose whole reply is read by its own parser (`ChatOutputParser`), reasoning included.
@@ -41,6 +46,12 @@ enum ToolCallFormat: Equatable, Sendable {
         }
         if template.contains("<atem:function_calls>"), template.contains("to=self") {
             return .museGlimmer
+        }
+        if template.contains("<|tool_call_start|>") {
+            return .pythonic
+        }
+        if template.contains("<function name=\"") {
+            return .minicpmXML
         }
         if template.contains("<function=") {
             return .qwenXML
@@ -74,17 +85,25 @@ struct ToolCallParser: Sendable {
     private var pending = ""
     /// Set once real (non-whitespace) content has been seen, so a later `{` isn't a bare call.
     private var sawContent = false
+    /// Right after a call: whitespace before the next call (or the end) isn't content, however it arrives.
+    private var afterCall = false
 
     private let openTag: String
     private let closeTag: String
     /// Whether the newline a model writes before a call is layout, not content. llama-server keeps
-    /// Gemma 4's (checked on real output), so it's kept there too.
+    /// Gemma 4's and MiniCPM5's (checked on real output), so it's kept there too.
     private let trimsLayoutBeforeCall: Bool
 
     init(format: ToolCallFormat, tools: [Value]) {
         self.format = format
-        (openTag, closeTag) = format == .gemma4 ? ("<|tool_call>", "<tool_call|>") : ("<tool_call>", "</tool_call>")
-        trimsLayoutBeforeCall = format != .gemma4
+        (openTag, closeTag) = switch format {
+        case .gemma4: ("<|tool_call>", "<tool_call|>")
+        case .pythonic: ("<|tool_call_start|>", "<|tool_call_end|>")
+        // The tag's start is the call's start: the rest of it, `NAME">`, is read with the body.
+        case .minicpmXML: (Self.minicpmOpen, "</function>")
+        default: ("<tool_call>", "</tool_call>")
+        }
+        trimsLayoutBeforeCall = format != .gemma4 && format != .minicpmXML
         var schemas: [String: [String: String]] = [:]
         for tool in tools {
             guard let name = tool["function"]?["name"]?.stringValue else { continue }
@@ -134,6 +153,17 @@ struct ToolCallParser: Sendable {
         loop: while true {
             switch state {
             case .text:
+                if afterCall {
+                    let rest = pending.drop(while: { $0.isWhitespace })
+                    if rest.isEmpty {
+                        if final {
+                            pending = ""
+                        }
+                        break loop
+                    }
+                    pending = String(rest)
+                    afterCall = false
+                }
                 if format == .bareJSON {
                     if !sawContent {
                         let body = pending.drop(while: { $0.isWhitespace })
@@ -184,8 +214,7 @@ struct ToolCallParser: Sendable {
                     state = .text
                     if let calls = parseTagged(body) {
                         out += calls.map { .toolCall($0) }
-                        // Whitespace between consecutive calls isn't content.
-                        pending = String(pending.drop(while: { $0.isWhitespace }))
+                        afterCall = true
                     } else {
                         content(openTag + body + closeTag)
                     }
@@ -212,17 +241,22 @@ struct ToolCallParser: Sendable {
         return out
     }
 
-    /// Where the call ends. Gemma 4's strings are written raw between `<|"|>` marks, so one could hold
-    /// the closing tag's text; only a tag outside them counts.
+    /// Where the call ends. Gemma 4's strings are written raw between `<|"|>` marks, and MiniCPM5's values
+    /// in CDATA sections, so one could hold the closing tag's text; only a tag outside them counts.
     private func closeTagRange(in text: String) -> Range<String.Index>? {
-        guard format == .gemma4 else { return text.range(of: closeTag) }
+        let quotes: (open: String, close: String)
+        switch format {
+        case .gemma4: quotes = (Gemma4Arguments.quote, Gemma4Arguments.quote)
+        case .minicpmXML: quotes = (Self.cdataOpen, Self.cdataClose)
+        default: return text.range(of: closeTag)
+        }
         var from = text.startIndex
         while true {
             let close = text.range(of: closeTag, range: from ..< text.endIndex)
-            guard let quote = text.range(of: Gemma4Arguments.quote, range: from ..< text.endIndex),
+            guard let quote = text.range(of: quotes.open, range: from ..< text.endIndex),
                   close.map({ quote.lowerBound < $0.lowerBound }) ?? true
             else { return close }
-            guard let end = text.range(of: Gemma4Arguments.quote, range: quote.upperBound ..< text.endIndex)
+            guard let end = text.range(of: quotes.close, range: quote.upperBound ..< text.endIndex)
             else { return nil } // inside a string that hasn't ended yet
             from = end.upperBound
         }
@@ -236,8 +270,88 @@ struct ToolCallParser: Sendable {
         case .hermesJSON: Self.callFromJSON(body, allowed: toolNames).map { [$0] }
         case .qwenXML: parseXML(body)
         case .gemma4: parseGemma4(body).map { [$0] }
+        case .pythonic: parsePythonic(body)
+        case .minicpmXML: parseMiniCPM(body).map { [$0] }
         default: nil
         }
+    }
+
+    /// The list in `<|tool_call_start|>[…]<|tool_call_end|>`: Python calls with keyword arguments, or JSON
+    /// calls (`{"name": …, "arguments": …}`, alone or in a list), which LFM2 writes when a system prompt asks.
+    private func parsePythonic(_ body: String) -> [ParsedToolCall]? {
+        let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.hasPrefix("{") {
+            return Self.callFromJSON(text, allowed: toolNames, coercingTo: schemas).map { [$0] }
+        }
+        if text.hasPrefix("["), text.dropFirst().drop(while: { $0.isWhitespace }).hasPrefix("{") {
+            guard case let .array(items)? = try? OrderedJSON.parse(text), !items.isEmpty else { return nil }
+            var calls: [ParsedToolCall] = []
+            for item in items {
+                guard let json = try? OrderedJSON.serialize(item),
+                      let call = Self.callFromJSON(json, allowed: toolNames, coercingTo: schemas)
+                else { return nil }
+                calls.append(call)
+            }
+            return calls
+        }
+        guard let parsed = PythonicCalls.parse(text), !parsed.isEmpty else { return nil }
+        var calls: [ParsedToolCall] = []
+        for (name, arguments) in parsed {
+            guard toolNames.contains(name) else { return nil }
+            var members = arguments
+            for (key, member) in members {
+                guard case let .string(parameter) = key else { continue }
+                if case let .string(raw) = member {
+                    members[key] = Self.typed(raw, as: schemas[name]?[parameter])
+                } else {
+                    members[key] = Self.narrowed(member, to: schemas[name]?[parameter])
+                }
+            }
+            guard let json = try? OrderedJSON.serialize(.object(members)) else { return nil }
+            calls.append(ParsedToolCall(name: name, arguments: json))
+        }
+        return calls
+    }
+
+    static let minicpmOpen = "<function name=\""
+    static let cdataOpen = "<![CDATA["
+    static let cdataClose = "]]>"
+
+    /// `NAME">` then `<param name="KEY">VALUE</param>` blocks, the rest of a call after `<function name="`.
+    /// A value is the text as written (or a CDATA section's), typed by the tool's schema as `qwenXML`'s are.
+    private func parseMiniCPM(_ body: String) -> ParsedToolCall? {
+        guard let nameEnd = body.range(of: "\">") else { return nil }
+        let name = String(body[..<nameEnd.lowerBound])
+        guard toolNames.contains(name) else { return nil }
+        var arguments = OrderedDictionary<ObjectKey, Value>()
+        var rest = body[nameEnd.upperBound...]
+        while true {
+            rest = rest.drop(while: { $0.isWhitespace })
+            if rest.isEmpty {
+                break
+            }
+            guard rest.hasPrefix("<param name=\""),
+                  let keyEnd = rest.range(of: "\">")
+            else { return nil }
+            let key = String(rest[rest.index(rest.startIndex, offsetBy: 13) ..< keyEnd.lowerBound])
+            rest = rest[keyEnd.upperBound...]
+            let raw: String
+            if rest.hasPrefix(Self.cdataOpen) {
+                let inner = rest.dropFirst(Self.cdataOpen.count)
+                guard let end = inner.range(of: Self.cdataClose) else { return nil }
+                raw = String(inner[..<end.lowerBound])
+                rest = inner[end.upperBound...]
+                guard rest.hasPrefix("</param>") else { return nil }
+            } else {
+                guard let end = rest.range(of: "</param>") else { return nil }
+                raw = String(rest[..<end.lowerBound])
+                rest = rest[end.lowerBound...]
+            }
+            rest = rest.dropFirst("</param>".count)
+            arguments[.string(key)] = Self.typed(raw, as: schemas[name]?[key])
+        }
+        guard let json = try? OrderedJSON.serialize(.object(arguments)) else { return nil }
+        return ParsedToolCall(name: name, arguments: json)
     }
 
     /// `call:NAME{…}`, the arguments in Gemma 4's notation, written out as compact JSON (as llama-server does).
@@ -404,7 +518,16 @@ struct ToolCallParser: Sendable {
             return .string(raw)
         }
         if let value = try? OrderedJSON.parse(raw) {
-            return value
+            return narrowed(value, to: type)
+        }
+        // MiniCPM5 writes a list or dict parameter as Python: `['a', 'b']`, `{'min': 1.0}`. llama-server reads
+        // them as JSON's, as its grammar would have had them written.
+        let trimmed = Substring(raw.trimmingCharacters(in: .whitespacesAndNewlines))
+        if trimmed.first == "[" || trimmed.first == "{" {
+            var rest = trimmed
+            if let value = PythonicCalls.value(&rest, depth: 0), rest.allSatisfy(\.isWhitespace) {
+                return value
+            }
         }
         // Qwen writes Python's True, False and None as often as JSON's. llama-server never sees them: its grammar
         // holds a typed parameter to JSON. The schema says what was meant, so read them as it does.
@@ -414,6 +537,15 @@ struct ToolCallParser: Sendable {
         case ("None", _): return .null
         default: return .string(raw)
         }
+    }
+
+    /// A whole number written with a decimal point (`40.0`) for an integer parameter is that integer, as
+    /// llama-server reads it.
+    static func narrowed(_ value: Value, to type: String?) -> Value {
+        if type == "integer", case let .double(number) = value, number.rounded() == number, abs(number) < 1e15 {
+            return .int(Int(number))
+        }
+        return value
     }
 
     private static func partialSuffixLength(of text: String, for tag: String) -> Int {
@@ -512,6 +644,143 @@ enum Gemma4Arguments {
         guard !name.isEmpty else { return nil }
         text = text.dropFirst(key.count)
         return name
+    }
+}
+
+/// LFM2's calls: a Python list of calls with keyword arguments, `[f(city='Paris', days=3), g()]`. Its template
+/// writes a string argument in single quotes, escaped as Python does, and anything else as JSON, so a value is
+/// read as a Python literal: a quoted string (either quote), a number, `True`/`False`/`None` (or JSON's spelling),
+/// or a list or dict of them. The list's brackets may be left out.
+enum PythonicCalls {
+    /// Each call's name and arguments, in order; nil unless the whole text is calls.
+    static func parse(_ text: String) -> [(name: String, arguments: OrderedDictionary<ObjectKey, Value>)]? {
+        var rest = Substring(text).drop(while: { $0.isWhitespace })
+        let bracketed = take("[", from: &rest)
+        var calls: [(name: String, arguments: OrderedDictionary<ObjectKey, Value>)] = []
+        repeat {
+            rest = rest.drop(while: { $0.isWhitespace })
+            let name = rest.prefix(while: { $0.isLetter || $0.isNumber || "_.-".contains($0) })
+            guard !name.isEmpty else { return nil }
+            rest = rest.dropFirst(name.count)
+            guard take("(", from: &rest) else { return nil }
+            var arguments = OrderedDictionary<ObjectKey, Value>()
+            if !take(")", from: &rest) {
+                repeat {
+                    rest = rest.drop(while: { $0.isWhitespace })
+                    let key = rest.prefix(while: { $0.isLetter || $0.isNumber || $0 == "_" })
+                    guard !key.isEmpty else { return nil }
+                    rest = rest.dropFirst(key.count)
+                    guard take("=", from: &rest), let value = value(&rest, depth: 0) else { return nil }
+                    arguments[.string(String(key))] = value
+                } while take(",", from: &rest)
+                guard take(")", from: &rest) else {
+                    return nil
+                }
+            }
+            calls.append((String(name), arguments))
+        } while take(",", from: &rest)
+        if bracketed, !take("]", from: &rest) {
+            return nil
+        }
+        return rest.allSatisfy(\.isWhitespace) ? calls : nil
+    }
+
+    /// One Python literal from the start of `text`, which is left just after it.
+    static func value(_ text: inout Substring, depth: Int) -> Value? {
+        guard depth < OrderedJSON.maxDepth else { return nil }
+        text = text.drop(while: { $0.isWhitespace })
+        guard let first = text.first else { return nil }
+        if first == "'" || first == "\"" {
+            return string(&text).map { .string($0) }
+        }
+        if take("[", from: &text) {
+            var items: [Value] = []
+            if take("]", from: &text) {
+                return .array(items)
+            }
+            repeat {
+                if !items.isEmpty, peek("]", in: text) {
+                    break // a trailing comma
+                }
+                guard let item = value(&text, depth: depth + 1) else { return nil }
+                items.append(item)
+            } while take(",", from: &text)
+            return take("]", from: &text) ? .array(items) : nil
+        }
+        if take("{", from: &text) {
+            var members = OrderedDictionary<ObjectKey, Value>()
+            if take("}", from: &text) {
+                return .object(members)
+            }
+            repeat {
+                if !members.isEmpty, peek("}", in: text) {
+                    break
+                }
+                text = text.drop(while: { $0.isWhitespace })
+                guard let key = string(&text), take(":", from: &text),
+                      let member = value(&text, depth: depth + 1)
+                else { return nil }
+                members[.string(key)] = member
+            } while take(",", from: &text)
+            return take("}", from: &text) ? .object(members) : nil
+        }
+        let token = text.prefix(while: { $0.isLetter || $0.isNumber || "+-.".contains($0) })
+        let scalar: Value? = switch token {
+        case "True", "true": .boolean(true)
+        case "False", "false": .boolean(false)
+        case "None", "null": .null
+        default: try? OrderedJSON.parse(String(token))
+        }
+        guard let scalar else { return nil }
+        text = text.dropFirst(token.count)
+        return scalar
+    }
+
+    /// A string in single or double quotes, with Python's escapes.
+    private static func string(_ text: inout Substring) -> String? {
+        guard let quote = text.first, quote == "'" || quote == "\"" else { return nil }
+        var result = ""
+        var index = text.index(after: text.startIndex)
+        while index < text.endIndex {
+            let character = text[index]
+            if character == quote {
+                text = text[text.index(after: index)...]
+                return result
+            }
+            if character == "\\" {
+                index = text.index(after: index)
+                guard index < text.endIndex else { return nil }
+                switch text[index] {
+                case "n": result.append("\n")
+                case "r": result.append("\r")
+                case "t": result.append("\t")
+                case "0": result.append("\0")
+                case "u":
+                    let digits = text[text.index(after: index)...].prefix(4)
+                    guard digits.count == 4, let code = UInt32(digits, radix: 16),
+                          let scalar = Unicode.Scalar(code) else { return nil }
+                    result.unicodeScalars.append(scalar)
+                    index = text.index(index, offsetBy: 4)
+                default: result.append(text[index]) // \\, \', \" and anything else: the character itself
+                }
+            } else {
+                result.append(character)
+            }
+            index = text.index(after: index)
+        }
+        return nil
+    }
+
+    /// Skips whitespace, then `mark` if it's next.
+    private static func take(_ mark: Character, from text: inout Substring) -> Bool {
+        text = text.drop(while: { $0.isWhitespace })
+        guard text.first == mark else { return false }
+        text = text.dropFirst()
+        return true
+    }
+
+    private static func peek(_ mark: Character, in text: Substring) -> Bool {
+        text.drop(while: { $0.isWhitespace }).first == mark
     }
 }
 

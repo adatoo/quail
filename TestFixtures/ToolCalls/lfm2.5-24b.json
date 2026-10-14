@@ -1,0 +1,382 @@
+{
+ "two-calls-nothink": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris and in Tokyo? Use the tool for both."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "The user wants to know the weather in Paris and Tokyo, and they want me to use the tool for both. I need to call get_weather twice - once for Paris and once for Tokyo. The function requires a city parameter, and optionally a unit (celsius or fahrenheit). The user didn't specify a unit, so I'll use the default (probably celsius since it's not specified). Let me make both calls.\n\nI can make both calls in parallel since they're independent of each other.\n</think><|tool_call_start|>[get_weather(city='Paris'), get_weather(city='Tokyo')]<|tool_call_end|>",
+  "prompt": "<|im_start|>system\nList of tools: [{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}, {\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}]<|im_end|>\n<|im_start|>user\nWhat's the weather in Paris and in Tokyo? Use the tool for both.<|im_end|>\n<|im_start|>assistant\n<think>",
+  "content": "",
+  "reasoning": "The user wants to know the weather in Paris and Tokyo, and they want me to use the tool for both. I need to call get_weather twice - once for Paris and once for Tokyo. The function requires a city parameter, and optionally a unit (celsius or fahrenheit). The user didn't specify a unit, so I'll use the default (probably celsius since it's not specified). Let me make both calls.\n\nI can make both calls in parallel since they're independent of each other.\n",
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Paris\"}"
+   },
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Tokyo\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "call-thinking": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "What's the weather in Paris? Use the tool."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "raw": "The user wants to know the weather in Paris and asks me to use the tool. I should call get_weather with city \"Paris\". The unit parameter is optional, so I can either omit it or specify a unit. Since they didn't specify, I'll just use the city. Let's call the function.</think><|tool_call_start|>[get_weather(city='Paris')]<|tool_call_end|>",
+  "prompt": "<|im_start|>system\nList of tools: [{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}, {\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}]<|im_end|>\n<|im_start|>user\nWhat's the weather in Paris? Use the tool.<|im_end|>\n<|im_start|>assistant\n<think>",
+  "content": "",
+  "reasoning": "The user wants to know the weather in Paris and asks me to use the tool. I should call get_weather with city \"Paris\". The unit parameter is optional, so I can either omit it or specify a unit. Since they didn't specify, I'll just use the city. Let's call the function.",
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Paris\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "typed-args": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Add 2.5 and 4 using the add tool, with the note \"007\"."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "The user wants to add 2.5 and 4 using the add tool, with the note \"007\". Let me call the add function with a=2.5, b=4, and note=\"007\".\n</think><|tool_call_start|>[add(a=2.5, b=4, note='007')]<|tool_call_end|>",
+  "prompt": "<|im_start|>system\nList of tools: [{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}, {\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}]<|im_end|>\n<|im_start|>user\nAdd 2.5 and 4 using the add tool, with the note \"007\".<|im_end|>\n<|im_start|>assistant\n<think>",
+  "content": "",
+  "reasoning": "The user wants to add 2.5 and 4 using the add tool, with the note \"007\". Let me call the add function with a=2.5, b=4, and note=\"007\".\n",
+  "tool_calls": [
+   {
+    "name": "add",
+    "arguments": "{\"a\":2.5,\"b\":4,\"note\":\"007\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ },
+ "no-call": {
+  "request": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Say hello in one word."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "The user is asking me to say hello in one word. This is a simple request that doesn't require any tools - it's just a matter of responding with a single word greeting. The most common one-word greeting would be \"Hello!\" or \"Hi!\". Let me go with \"Hello!\" as it's the standard greeting.\n\nNo tools are needed for this task.\n</think>Hello!",
+  "prompt": "<|im_start|>system\nList of tools: [{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}, {\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}]<|im_end|>\n<|im_start|>user\nSay hello in one word.<|im_end|>\n<|im_start|>assistant\n<think>",
+  "content": "Hello!",
+  "reasoning": "The user is asking me to say hello in one word. This is a simple request that doesn't require any tools - it's just a matter of responding with a single word greeting. The most common one-word greeting would be \"Hello!\" or \"Hi!\". Let me go with \"Hello!\" as it's the standard greeting.\n\nNo tools are needed for this task.\n",
+  "tool_calls": [],
+  "finish": "stop"
+ },
+ "text-then-call": {
+  "request": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "Before calling a tool, always write one short sentence saying what you are about to do."
+    },
+    {
+     "role": "user",
+     "content": "What's the weather in Oslo?"
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "description": "Get current weather for a city",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "celsius",
+          "fahrenheit"
+         ]
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    },
+    {
+     "type": "function",
+     "function": {
+      "name": "add",
+      "description": "Add two numbers",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "a": {
+         "type": "number"
+        },
+        "b": {
+         "type": "number"
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "a",
+        "b"
+       ]
+      }
+     }
+    }
+   ],
+   "chat_template_kwargs": {
+    "enable_thinking": false
+   }
+  },
+  "raw": "The user is asking about the weather in Oslo. I have a function called get_weather that can retrieve current weather for a city. The required parameter is \"city\" and it has an optional \"unit\" parameter. The user didn't specify a unit, so I'll just use the default (celsius is typically the standard). Let me call this function with city=\"Oslo\".\n</think><|tool_call_start|>[get_weather(city='Oslo')]<|tool_call_end|>",
+  "prompt": "<|im_start|>system\nBefore calling a tool, always write one short sentence saying what you are about to do.\nList of tools: [{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Get current weather for a city\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"unit\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]}}, \"required\": [\"city\"]}}}, {\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"number\"}, \"b\": {\"type\": \"number\"}, \"note\": {\"type\": \"string\"}}, \"required\": [\"a\", \"b\"]}}}]<|im_end|>\n<|im_start|>user\nWhat's the weather in Oslo?<|im_end|>\n<|im_start|>assistant\n<think>",
+  "content": "",
+  "reasoning": "The user is asking about the weather in Oslo. I have a function called get_weather that can retrieve current weather for a city. The required parameter is \"city\" and it has an optional \"unit\" parameter. The user didn't specify a unit, so I'll just use the default (celsius is typically the standard). Let me call this function with city=\"Oslo\".\n",
+  "tool_calls": [
+   {
+    "name": "get_weather",
+    "arguments": "{\"city\":\"Oslo\"}"
+   }
+  ],
+  "finish": "tool_calls"
+ }
+}
