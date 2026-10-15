@@ -105,7 +105,6 @@ tasks:
         echo
         check task "everything" "brew install go-task"
         check xcodegen "generate, version:bump" "brew install xcodegen"
-        check swiftformat "lint, format" "brew install swiftformat"
         check xcbeautify "prettier build output" "brew install xcbeautify" optional
         check create-dmg "release:dmg" "brew install create-dmg" optional
         check gh "opening PRs" "brew install gh" optional
@@ -123,21 +122,18 @@ tasks:
       - task: test
       - task: bench:test
 
+  # Both run the pinned swiftformat in Vendor/, not one from the PATH (ADR-0073).
   lint:
-    desc: swiftformat --lint
-    preconditions:
-      - sh: command -v swiftformat
-        msg: 'swiftformat is not installed — brew install swiftformat'
+    desc: swiftformat --lint, with the pinned swiftformat
+    deps: [vendor:swiftformat]
     cmds:
-      - swiftformat --lint .
+      - Vendor/swiftformat/swiftformat --lint .
 
   format:
-    desc: Format the Swift sources with swiftformat
-    preconditions:
-      - sh: command -v swiftformat
-        msg: 'swiftformat is not installed — brew install swiftformat'
+    desc: Format the Swift sources with the pinned swiftformat
+    deps: [vendor:swiftformat]
     cmds:
-      - swiftformat .
+      - Vendor/swiftformat/swiftformat .
 
   generate:
     desc: Regenerate Quail.xcodeproj from project.yml

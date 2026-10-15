@@ -4,6 +4,7 @@
 #   task vendor:llama [TAG=b11564]   llama-server + its @rpath dependency closure, and llama.xcframework
 #   task vendor:uv [VERSION=0.12.17] the `uv` binary (not shipped in the app yet)
 #   task vendor:sparkle              Sparkle's release tools (generate_keys, generate_appcast, sign_update)
+#   task vendor:swiftformat          the swiftformat `task lint` and `task format` run, locally and in CI (ADR-0073)
 #   task vendor:verify [DIR=…]       every Mach-O in DIR depends only on relocatable or system paths
 #   task vendor:ollama               Ollama's official macOS build, for the comparison harness only (ADR-0063)
 #   task vendor:llama-tools          the same llama.cpp release's tools (llama-bench, …), for the harness only
@@ -272,6 +273,40 @@ tasks:
         done
         echo "$VERSION" > "$ROOT/Vendor/.sparkle-staged"
         echo "staged Sparkle $VERSION tools in $OUT/bin"
+
+  swiftformat:
+    desc: Fetch the pinned swiftformat release, verify its sha256, stage it in Vendor/swiftformat
+    # lint and format run this copy, never one from the PATH, so the Mac and CI format alike (ADR-0073).
+    # Skipped when Vendor/swiftformat is already this version; `task --force vendor:swiftformat` re-fetches.
+    status:
+      - test -x Vendor/swiftformat/swiftformat
+      - test "$(cat Vendor/.swiftformat-staged 2>/dev/null)" = "$(cat Vendor/swiftformat.version)"
+    cmds:
+      - |
+        # The release asset's name carries no version, so it's saved as swiftformat-<version>.zip:
+        # bumping Vendor/swiftformat.version without Vendor/swiftformat.sha256 then fails here.
+        ROOT='{{.ROOT_DIR}}'
+        VERSION="$(cat "$ROOT/Vendor/swiftformat.version")"
+        ASSET="swiftformat-${VERSION}.zip"
+        URL="https://github.com/nicklockwood/SwiftFormat/releases/download/${VERSION}/swiftformat.zip"
+        OUT="$ROOT/Vendor/swiftformat"
+        TMP="$(mktemp -d)"
+        trap 'rm -rf "$TMP"' EXIT
+
+        echo "==> fetching $URL"
+        curl -fsSL -o "$TMP/$ASSET" "$URL"
+        echo "==> verifying sha256"
+        grep -q " $ASSET\$" "$ROOT/Vendor/swiftformat.sha256" \
+          || { echo "error: no sha256 for $ASSET in Vendor/swiftformat.sha256" >&2; exit 1; }
+        ( cd "$TMP" && grep " $ASSET\$" "$ROOT/Vendor/swiftformat.sha256" | shasum -a 256 -c - )
+
+        mkdir -p "$TMP/x" && unzip -q "$TMP/$ASSET" -d "$TMP/x"
+        [ -x "$TMP/x/swiftformat" ] || { echo "error: no swiftformat binary in the release" >&2; exit 1; }
+        rm -rf "$OUT" && mkdir -p "$OUT" && mv "$TMP/x/swiftformat" "$OUT/swiftformat"
+        GOT="$("$OUT/swiftformat" --version)"
+        [ "$GOT" = "$VERSION" ] || { echo "error: the binary says $GOT, not $VERSION" >&2; exit 1; }
+        echo "$VERSION" > "$ROOT/Vendor/.swiftformat-staged"
+        echo "staged swiftformat $VERSION in $OUT"
 
   verify:
     desc: Check every Mach-O under DIR (default Vendor/llama.cpp) depends only on relocatable or system paths

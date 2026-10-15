@@ -37,6 +37,8 @@ Vendor/.uv-staged
 release-notes.md
 Vendor/sparkle/
 Vendor/.sparkle-staged
+Vendor/swiftformat/
+Vendor/.swiftformat-staged
 
 # The comparison harness (bench/, ADR-0063): its runs, scratch space (.noindex keeps Spotlight out),
 # tool environments, and the engines it fetches

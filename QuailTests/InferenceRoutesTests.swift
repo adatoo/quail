@@ -275,8 +275,8 @@ struct InferenceRoutesTests {
     @Test("a client that goes away mid-stream stops the engine and frees the model")
     func clientLeaves() async {
         let harness = Harness(engine: { var engine = ScriptedEngine(world: $0); engine.endless = true; return engine })
-        /// The connection's whole life is inside this function: when it returns, nothing holds the
-        /// stream, which is what the HTTP server's own write loop leaves behind when a send fails.
+        // The connection's whole life is inside this function: when it returns, nothing holds the
+        // stream, which is what the HTTP server's own write loop leaves behind when a send fails.
         func readThreeChunksThenHangUp() async {
             let response = await harness.send(
                 "POST", "/v1/completions", body: #"{"model":"Alpha","prompt":"x","stream":true}"#

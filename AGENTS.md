@@ -9,7 +9,7 @@ Quail is a macOS menu bar app (SwiftUI, Swift 6, macOS 14+) that runs local LLM 
 - Never inherit the user's shell environment when spawning a runtime. Build `environment` explicitly in `ProcessSupervisor`.
 - Runtimes are always given explicit paths (`--models-dir`, `--model-dir`, `HF_HOME`). Never rely on a runtime's default folder.
 - Never call `rapid-mlx launch` or `rapid-mlx service …`; Quail runs `serve` and `pull` only.
-- Vendored binaries live in `Vendor/` and are git-ignored; `task vendor:llama`, `task vendor:uv` and `task vendor:sparkle` (the release tools, not the framework) are the only way they get there, and each pins a version and a sha256 (`Vendor/*.version`, `Vendor/llama.sha256`).
+- Vendored binaries live in `Vendor/` and are git-ignored; `task vendor:llama`, `task vendor:uv`, `task vendor:sparkle` (the release tools, not the framework) and `task vendor:swiftformat` are the only way they get there, and each pins a version and a sha256 (`Vendor/*.version`, `Vendor/*.sha256`).
 - Config is `~/Library/Application Support/Quail/config.json` (Codable). Secrets (API key, HF token) go in Keychain, never in the JSON.
 - Logs go to `~/Library/Logs/Quail/`. Use `os.Logger` for app logs, the `LogStore` for runtime stdout/stderr.
 
@@ -21,7 +21,7 @@ Everything goes through [Task](https://taskfile.dev) (`brew install go-task`; AD
 task ci                    # exactly what CI runs: lint, vendor, build, notices, verify, test
 task build                 # compile into ./DerivedData, unsigned like CI (never touches a running Quail; macOS won't open it — "damaged")
 task test                  # unit tests
-task lint / task format    # swiftformat
+task lint / task format    # the pinned swiftformat (Vendor/swiftformat.version, ADR-0073), not Homebrew's
 task generate              # xcodegen — only after editing project.yml; Quail.xcodeproj is committed
 task vendor:llama          # once per llama.cpp bump; updates Vendor/llama.cpp (verifies the sha256 and the @rpath closure)
 task verify:bundle         # the built app: every Mach-O relocatable, catalog.json / llama.version / licence present
