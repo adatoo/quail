@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR-0024); every merge to
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-15
+
+### Changed
+
+- **One pinned swiftformat for building Quail.** `task lint` and `task format` now use a swiftformat version that Quail pins and checks, the same on a Mac and in CI, so the two can't disagree about formatting again. A weekly check opens an issue when a newer swiftformat comes out. Nothing changes in the app (#213).
+
 ## [1.2.0] - 2026-10-15
 
 ### Added
