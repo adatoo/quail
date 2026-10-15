@@ -84,3 +84,4 @@ ADR-0001 to ADR-0072 were moved here on 2026-10-12 from the single decisions fil
 | [ADR-0070](0070-model-choice-facts.md) | Helping people choose a model: release dates, model cards, and Arena's ratings | Accepted |
 | [ADR-0071](0071-fit-estimate-per-layer-cache.md) | The fit estimate counts each layer's cache | Accepted |
 | [ADR-0072](0072-models-that-dont-chat.md) | Models that don't chat: a task for every model, narrowing D-001 | Accepted |
+| [ADR-0073](0073-pinned-swiftformat.md) | One pinned swiftformat for the Mac and CI | Accepted |

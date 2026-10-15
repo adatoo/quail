@@ -478,14 +478,14 @@ final class MLXEngine: Engine, @unchecked Sendable {
             }
         }
 
-        /// Counts a decode step, and clears the buffer cache when it's due.
+        // Counts a decode step, and clears the buffer cache when it's due.
         func stepped() {
             if Self.managesBufferCache, clearing.step() {
                 Memory.clearCache()
             }
         }
 
-        /// Whether a waiting request can start now.
+        // Whether a waiting request can start now.
         func admissible(_ job: MLXJob) -> Bool {
             guard job.request.media.isEmpty, self.current === loaded, !needsSwap(job.request, from: loaded)
             else { return false }
@@ -501,7 +501,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             return padding * bytesPerToken <= loaded.weightBytes / 4
         }
 
-        /// Hands the finished sequences at `leaving` their caches back and closes their replies.
+        // Hands the finished sequences at `leaving` their caches back and closes their replies.
         func leave(_ leaving: [Int]) {
             let staying = active.indices.filter { !leaving.contains($0) }
             for index in leaving {
@@ -531,7 +531,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             active = staying.map { active[$0] }
         }
 
-        /// One token for every active sequence.
+        // One token for every active sequence.
         func step() {
             let layers = batch ?? active[0].layers
             let tokens = current ?? MLXArray(active.map { Int32(truncatingIfNeeded: $0.pending ?? 0) })
@@ -559,7 +559,7 @@ final class MLXEngine: Engine, @unchecked Sendable {
             stepped()
         }
 
-        /// A sequence whose prompt is fed joins the active ones.
+        // A sequence whose prompt is fed joins the active ones.
         func join(_ sequence: MLXSequence) {
             if let batch {
                 BatchedLayers.extend(batch, with: sequence.layers)

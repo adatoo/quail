@@ -278,11 +278,11 @@ extension LlamaRuntime {
             abandon()
             throw EngineError.generationFailed("the prompt has no tokens")
         }
-        /// Which slot, and how much of the prompt is already in it. The last prompt token is always decoded
-        /// afresh, because sampling needs its logits.
-        /// Measured even when the request asks for no cache: it still decides the slot, so a client that repeats
-        /// itself (the benchmark, a retry) keeps using one sequence instead of leaving stale ones in every slot,
-        /// which the unified cache's attention would then have to step over.
+        // Which slot, and how much of the prompt is already in it. The last prompt token is always decoded
+        // afresh, because sampling needs its logits.
+        // Measured even when the request asks for no cache: it still decides the slot, so a client that repeats
+        // itself (the benchmark, a retry) keeps using one sequence instead of leaving stale ones in every slot,
+        // which the unified cache's attention would then have to step over.
         func prefix(of slot: Slot) -> Int {
             let limit = min(slot.cached.count, prompt.count - 1)
             var n = 0

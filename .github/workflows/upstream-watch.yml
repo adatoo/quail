@@ -5,6 +5,10 @@ name: Upstream watch
 # ADR-0069). Every Monday this reads each one's state. When one has merged or closed, it
 # comments on #158 (once per pull request and state) and fails, so GitHub emails the
 # owner; the issue says what Quail does next.
+#
+# It also reads swiftformat's latest release. Quail pins one version for the Mac and CI
+# alike (ADR-0073), so a new one is never picked up by itself: the first time a release
+# is newer than Vendor/swiftformat.version, this opens an issue to move the pin and fails.
 on:
   schedule:
     - cron: "0 7 * * 1"
@@ -19,6 +23,8 @@ jobs:
     name: upstream-watch
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
+
       - name: Look for merged or closed pull requests
         env:
           GH_TOKEN: ${{ github.token }}
@@ -47,3 +53,33 @@ jobs:
             echo "::error::An upstream pull request Quail is waiting for has merged or closed (#$ISSUE)."
             exit 1
           fi
+
+      - name: Look for a newer swiftformat
+        # Runs even when the step above failed: the two watch different things.
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pinned=$(cat Vendor/swiftformat.version)
+          latest=$(gh api repos/nicklockwood/SwiftFormat/releases/latest --jq .tag_name)
+          echo "swiftformat: pinned $pinned, latest $latest"
+          [ "$latest" = "$pinned" ] && exit 0
+          title="Update swiftformat to $latest"
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --search "\"$title\" in:title" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -1)
+          if [ -n "$existing" ]; then
+            echo "#$existing already covers swiftformat $latest."
+            exit 0
+          fi
+          body=$(cat <<BODY
+          swiftformat $latest is out; Quail pins $pinned (ADR-0073). Release notes: https://github.com/nicklockwood/SwiftFormat/releases/tag/$latest
+
+          ## Acceptance criteria
+
+          - [ ] \`Vendor/swiftformat.version\` says $latest, and \`Vendor/swiftformat.sha256\` has the sha256 of its \`swiftformat.zip\`, saved as \`swiftformat-$latest.zip\`.
+          - [ ] \`task format\` has run with it, and \`task lint\` passes locally and in CI.
+          BODY
+          )
+          url=$(gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body")
+          echo "::error::swiftformat $latest is out; Quail pins $pinned. Opened $url to move the pin."
+          exit 1

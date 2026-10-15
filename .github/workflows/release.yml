@@ -125,7 +125,7 @@ jobs:
       - name: Install tools
         run: |
           # The hosted image has Homebrew but not every tool Quail's tasks use.
-          for tool in swiftformat xcodegen xcbeautify create-dmg; do
+          for tool in xcodegen xcbeautify create-dmg; do
             command -v "$tool" > /dev/null || brew install "$tool"
           done
 

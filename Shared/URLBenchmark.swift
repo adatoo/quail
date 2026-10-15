@@ -128,7 +128,7 @@ struct URLBenchmarkRunner: Sendable {
             measurements: .init()
         )
         var counter = 0
-        /// A tag no earlier prompt started with, so no prefix cache answers it.
+        // A tag no earlier prompt started with, so no prefix cache answers it.
         func tag() -> String {
             counter += 1
             return "Request \(counter)-\(UUID().uuidString.prefix(8)):"
