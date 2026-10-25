@@ -16,6 +16,10 @@ name: Release
 # The last job updates the Homebrew cask in adatoo/homebrew-tap (ADR-0033),
 # from the DMG as published, so the hash brew checks is of what people download.
 #
+# Only the newest three DMG artifacts are kept (#216): each DMG is attached
+# to its release anyway, and artifact storage is shared by every repo on
+# the account.
+#
 # Triggered by the push a merge makes. Merges must be made as a person or
 # as the quail-release App (auto-merge.yml, ADR-0046) — a merge made with
 # GITHUB_TOKEN starts no workflows.
@@ -176,7 +180,8 @@ jobs:
         with:
           name: quail-dmg
           path: build/Quail-*.dmg
-          retention-days: 90
+          # A backstop: prune-dmgs keeps only the newest three anyway.
+          retention-days: 7
 
       # release:upload retries a dropped connection, which failed the 1.0.0 release (#196).
       - name: Attach DMG to the release
@@ -210,6 +215,30 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.tag.outputs.version }}
         run: gh release edit "v$VERSION" --latest
+
+  # Delete every DMG artifact but the newest three (#216). Its failure
+  # never touches the release, which already carries the DMG.
+  prune-dmgs:
+    name: keep-newest-three-dmgs
+    needs: dmg
+    runs-on: ubuntu-latest # API calls only; no Xcode needed
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      KEEP: 3
+    steps:
+      - name: Delete older DMG artifacts
+        run: |
+          set -euo pipefail
+          gh api --paginate \
+            "repos/${{ github.repository }}/actions/artifacts?name=quail-dmg&per_page=100" \
+            -q '.artifacts[] | select(.expired == false) | "\(.created_at) \(.id)"' \
+            | sort -r | tail -n +"$((KEEP + 1))" \
+            | while read -r created id; do
+                echo "deleting artifact $id from $created"
+                gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id"
+              done
 
   homebrew:
     name: update-homebrew-cask
