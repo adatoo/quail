@@ -10,6 +10,12 @@ version's section with `task version:bump` (ADR-0024); every merge to
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-10-25
+
+### Changed
+
+- Release builds keep only the newest three DMGs as GitHub Actions artifacts, for 7 days at most, so CI storage no longer fills up. Every DMG is still attached to its release (#216).
+
 ## [1.2.1] - 2026-10-15
 
 ### Changed
